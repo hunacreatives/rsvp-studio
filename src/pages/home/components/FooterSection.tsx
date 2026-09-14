@@ -56,11 +56,8 @@ export default function FooterSection() {
               <a href="https://www.instagram.com/rsvpstudioo/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-white">
                 <i className="ri-instagram-line" />
               </a>
-              <a href="https://facebook.com" aria-label="Facebook" className="hover:text-white">
+              <a href="https://www.facebook.com/share/19fvSStpSZ/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-white">
                 <i className="ri-facebook-circle-line" />
-              </a>
-              <a href="https://pinterest.com" aria-label="Pinterest" className="hover:text-white">
-                <i className="ri-pinterest-line" />
               </a>
             </div>
           </div>
