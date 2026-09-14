@@ -1,141 +1,127 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-const FONT_PRIMARY = "'Playfair Display', Georgia, serif";
-const FONT_SECONDARY = "'Jost', sans-serif";
-const COLOR_BG = "#4D403A";
-const COLOR_TEXT = "rgba(255,255,255,0.85)";
-const COLOR_MUTED = "rgba(255,255,255,0.5)";
-
-const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Services", href: "/services" },
-  { label: "Collections", href: "/collections" },
-  { label: "Portfolio", href: "/portfolio" },
-  { label: "FAQ", href: "/faqs" },
-  { label: "Enquire", href: "/enquire" },
+const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
+  {
+    title: "Services",
+    links: [
+      { label: "Milestone Events Website", to: "/services/milestone" },
+      { label: "Monogram Design", to: "/services/monogram" },
+      { label: "Digital Save the Date", to: "/services/save-the-date" },
+      { label: "Stationery Design", to: "/services/stationery" },
+      { label: "RSVP Management", to: "/services/rsvp" },
+    ],
+  },
+  {
+    title: "Explore",
+    links: [
+      { label: "Collections", to: "/collections" },
+      { label: "Portfolio", to: "/portfolio" },
+      { label: "FAQ", to: "/faqs" },
+      { label: "Blog", to: "/blog" },
+    ],
+  },
+  {
+    title: "Studio",
+    links: [
+      { label: "Start a Project", to: "/enquire#start" },
+      { label: "Become a Partner", to: "/enquire/partner" },
+      { label: "Inquire", to: "/enquire" },
+    ],
+  },
 ];
 
 export default function FooterSection() {
   const navigate = useNavigate();
-
-  const handleNav = (href: string) => {
-    if (href.startsWith("/") && !href.startsWith("/#")) {
-      navigate(href);
-    } else {
-      const id = href.replace("#", "");
-      if (window.location.pathname !== "/") {
-        navigate("/");
-        setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }), 300);
-      } else {
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-      }
-    }
-  };
-
   return (
-    <footer style={{ background: COLOR_BG, padding: "28px 40px 20px" }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-3 items-start gap-8">
-
-          {/* Left: Logo */}
-          <div className="flex items-start">
+    <footer style={{ background: "var(--ink)" }} className="text-white/80">
+      <div className="container-x pt-16 pb-8 md:pt-20 md:pb-10">
+        <div className="grid gap-12 md:grid-cols-[1.2fr_2fr]">
+          <div>
             <img
-              src="https://static.readdy.ai/image/08981d36cd0b73cf08022d4d82071d03/d93d6eb65f2609b96c00a4e84b115b64.png"
-              alt="Huna Events"
-              style={{ height: "90px", width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 0.9 }}
+              src="/brand/logotype-white.png"
+              alt="The RSVP Studio"
+              className="h-12 w-auto"
             />
-          </div>
-
-          {/* Center: Tagline + Nav */}
-          <div className="flex flex-col items-center gap-5">
-            <p
-              style={{
-                fontFamily: FONT_PRIMARY,
-                fontSize: "22px",
-                fontWeight: 400,
-                color: COLOR_TEXT,
-                letterSpacing: "0.01em",
-                textAlign: "center",
-              }}
-            >
-              Check in, stay in awhile
+            <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">
+              Interactive digital invitations and event websites for life's most
+              meaningful milestones.
             </p>
-            <nav className="flex items-center gap-6 flex-wrap justify-center">
-              {navLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                  className="cursor-pointer whitespace-nowrap transition-opacity duration-200 hover:opacity-100"
-                  style={{
-                    fontFamily: FONT_SECONDARY,
-                    fontSize: "14px",
-                    fontWeight: 300,
-                    color: COLOR_MUTED,
-                    textDecoration: "none",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  {link.label}
-                </a>
-              ))}
-            </nav>
-          </div>
-
-          {/* Right: Contact + Social */}
-          <div className="flex flex-col items-end gap-3">
-            <div className="text-right">
-              <p
-                style={{
-                  fontFamily: FONT_SECONDARY,
-                  fontSize: "16px",
-                  fontWeight: 500,
-                  color: COLOR_TEXT,
-                  letterSpacing: "0.04em",
-                  marginBottom: "4px",
-                }}
-              >
-                Contact
-              </p>
-              <a
-                href="mailto:contact.hunaevents@gmail.com"
-                style={{
-                  fontFamily: FONT_SECONDARY,
-                  fontSize: "14px",
-                  fontWeight: 300,
-                  color: COLOR_MUTED,
-                  textDecoration: "none",
-                  letterSpacing: "0.01em",
-                }}
-              >
-                contact.hunaevents@gmail.com
+            <a
+              href="mailto:hello@thersvpstudio.com"
+              className="mt-5 inline-block text-sm text-white/80 underline underline-offset-4 hover:text-white"
+            >
+              hello@thersvpstudio.com
+            </a>
+            <div className="mt-6 flex gap-4 text-xl">
+              <a href="https://www.instagram.com/rsvpstudioo/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-white">
+                <i className="ri-instagram-line" />
+              </a>
+              <a href="https://facebook.com" aria-label="Facebook" className="hover:text-white">
+                <i className="ri-facebook-circle-line" />
+              </a>
+              <a href="https://pinterest.com" aria-label="Pinterest" className="hover:text-white">
+                <i className="ri-pinterest-line" />
               </a>
             </div>
-            <div className="flex items-center gap-3 mt-1">
-              {[
-                { icon: "ri-facebook-fill", href: "https://facebook.com" },
-                { icon: "ri-instagram-line", href: "https://instagram.com" },
-                { icon: "ri-linkedin-fill", href: "https://linkedin.com" },
-              ].map((s) => (
-                <a
-                  key={s.icon}
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="w-8 h-8 flex items-center justify-center cursor-pointer transition-opacity duration-200 hover:opacity-100"
-                  style={{ color: "rgba(255,255,255,0.7)" }}
-                >
-                  <i className={`${s.icon} text-base`} />
-                </a>
-              ))}
-            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+            {COLUMNS.map((col) => (
+              <div key={col.title}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                  {col.title}
+                </p>
+                <ul className="mt-4 space-y-2.5">
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      <button
+                        onClick={() => {
+                          const [p, h] = l.to.split("#");
+                          navigate(p || "/");
+                          if (h)
+                            setTimeout(
+                              () =>
+                                document
+                                  .getElementById(h)
+                                  ?.scrollIntoView({ behavior: "smooth" }),
+                              300,
+                            );
+                        }}
+                        className="text-sm text-white/70 hover:text-white transition-colors text-left"
+                      >
+                        {l.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-6 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2" style={{ borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-          <p style={{ fontFamily: FONT_SECONDARY, fontSize: "11px", color: COLOR_MUTED, fontWeight: 300 }}>
-            &copy; 2026 Huna Events. All rights reserved.
+        <div className="mt-12 border-t border-white/10 pt-6 flex flex-col gap-3 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+            <span>© 2026 The RSVP Studio. All rights reserved.</span>
+            <span className="flex gap-4">
+              <Link to="/privacy" className="underline underline-offset-4 hover:text-white">
+                Privacy Policy
+              </Link>
+              <Link to="/terms" className="underline underline-offset-4 hover:text-white">
+                Terms of Use
+              </Link>
+            </span>
+          </div>
+          <p>
+            Made with love by{" "}
+            <a
+              href="https://hunacreatives.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 hover:text-white"
+            >
+              Huna Creatives
+            </a>
+            .
           </p>
         </div>
       </div>
