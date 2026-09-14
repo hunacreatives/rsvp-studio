@@ -9,6 +9,7 @@ import StationeryDesign from "../pages/services/stationery/page";
 import RsvpManagement from "../pages/services/rsvp/page";
 import Collections from "../pages/collections/page";
 import Portfolio from "../pages/portfolio/page";
+import PortfolioDetail from "../pages/portfolio/detail";
 import Faqs from "../pages/faqs/page";
 import Enquire from "../pages/enquire/page";
 import PartnerInquiry from "../pages/enquire/partner";
@@ -26,6 +27,7 @@ const routes: RouteObject[] = [
   { path: "/services/rsvp", element: <RsvpManagement /> },
   { path: "/collections", element: <Collections /> },
   { path: "/portfolio", element: <Portfolio /> },
+  { path: "/portfolio/:slug", element: <PortfolioDetail /> },
   { path: "/faqs", element: <Faqs /> },
   { path: "/blog", element: <Blog /> },
   { path: "/enquire", element: <Enquire /> },

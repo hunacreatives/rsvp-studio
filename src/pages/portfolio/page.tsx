@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
 import InvitePlaceholder from "@/pages/home/components/InvitePlaceholder";
 import { Reveal } from "@/lib/Reveal";
+import { WORKS } from "./works";
 
 type Category =
   | "All"
@@ -43,29 +45,6 @@ const SUBFILTERS: Record<Exclude<Category, "All">, Group[]> = {
   Stationery: EVENT_GROUPS,
   Monogram: MONOGRAM_GROUPS,
 };
-
-type Work = {
-  title: string;
-  category: Exclude<Category, "All">;
-  meta: string;
-  tags: string[];
-  seed: number;
-};
-
-const WORKS: Work[] = [
-  { title: "Clara & Étienne", category: "Milestone Events Website", meta: "Bespoke Web Design · Monogram", tags: ["Tailored", "Wedding"], seed: 1 },
-  { title: "Mika & JP", category: "Milestone Events Website", meta: "Semi-Custom Website · Monogram // Single", tags: ["Semi-Custom", "Wedding"], seed: 2 },
-  { title: "Baby Sofia", category: "Milestone Events Website", meta: "Semi-Custom Website", tags: ["Semi-Custom", "Girl Baby Shower"], seed: 3 },
-  { title: "Aria Turns One", category: "Milestone Events Website", meta: "Semi-Custom Website · Monogram // Single", tags: ["Semi-Custom", "1st Birthday"], seed: 4 },
-  { title: "T & H", category: "Monogram", meta: "Monogram // Couple", tags: ["Couple"], seed: 5 },
-  { title: "Monogram M", category: "Monogram", meta: "Monogram // Single", tags: ["Single"], seed: 6 },
-  { title: "R & A Crest", category: "Monogram", meta: "Monogram // Crest", tags: ["Crest"], seed: 7 },
-  { title: "Destiny & Austin", category: "Digital Save the Date", meta: "Digital Save the Date · Wedding", tags: ["Wedding"], seed: 8 },
-  { title: "Gelis Turns 30", category: "Digital Save the Date", meta: "Digital Save the Date · Adult Birthday", tags: ["Adult Birthday"], seed: 9 },
-  { title: "Camille & Rafael", category: "Stationery", meta: "Signature Suite · Tinghun / Engagement", tags: ["Semi-Custom", "Tinghun / Engagement"], seed: 10 },
-  { title: "Arianne & Marco", category: "Stationery", meta: "Essential Suite · Wedding", tags: ["Semi-Custom", "Wedding"], seed: 11 },
-  { title: "The Bautistas", category: "Stationery", meta: "Heirloom Suite · Anniversary", tags: ["Tailored", "Anniversary"], seed: 12 },
-];
 
 export default function PortfolioPage() {
   const [category, setCategory] = useState<Category>("All");
@@ -153,25 +132,39 @@ export default function PortfolioPage() {
             )}
 
             <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {shown.map((w, i) => (
-                <Reveal key={w.title} delay={(i % 4) * 0.04}>
+              {shown.map((w, i) => {
+                const card = (
                   <div className="group">
-                    <div className="relative">
-                      <InvitePlaceholder
-                        seed={w.seed}
-                        className="w-full aspect-[3/4]"
-                      />
-                      <span className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/85 text-[var(--ink)] backdrop-blur">
-                        <i className="ri-instagram-line text-sm" />
-                      </span>
+                    <div className="relative overflow-hidden rounded-[14px]" style={{ boxShadow: "0 30px 60px -30px rgba(0,7,39,0.28)" }}>
+                      {w.thumbnail ? (
+                        <img
+                          src={w.thumbnail}
+                          alt={w.title}
+                          className="aspect-[3/4] w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <InvitePlaceholder seed={w.seed} className="w-full aspect-[3/4]" />
+                      )}
+                      {w.liveUrl && (
+                        <span className="absolute inset-0 flex items-end justify-center bg-black/0 pb-6 opacity-0 transition-all duration-200 group-hover:bg-black/20 group-hover:opacity-100">
+                          <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink)]">
+                            View Project
+                          </span>
+                        </span>
+                      )}
                     </div>
                     <h3 className="mt-3 font-display text-lg font-semibold text-[var(--ink)]">
                       {w.title}
                     </h3>
                     <p className="mt-0.5 text-sm text-[var(--slate)]">{w.meta}</p>
                   </div>
-                </Reveal>
-              ))}
+                );
+                return (
+                  <Reveal key={w.slug} delay={(i % 4) * 0.04}>
+                    {w.liveUrl ? <Link to={`/portfolio/${w.slug}`}>{card}</Link> : card}
+                  </Reveal>
+                );
+              })}
             </div>
 
             {shown.length === 0 && (
