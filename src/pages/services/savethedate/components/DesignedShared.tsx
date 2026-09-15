@@ -30,7 +30,7 @@ export default function DesignedShared() {
 
         <div
           ref={track}
-          className="mt-12 flex gap-5 overflow-x-auto pb-4 -mx-6 px-6 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="mt-12 flex gap-5 overflow-x-auto pb-4 -mx-6 px-6 scroll-pl-6 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {FEATURES.map((f) => (
             <div

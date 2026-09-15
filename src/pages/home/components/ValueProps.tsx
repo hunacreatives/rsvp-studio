@@ -49,12 +49,14 @@ export default function ValueProps() {
 
         <div
           ref={track}
-          className="mt-6 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory pb-4 -mx-6 px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="mt-6 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory pb-4 -mx-6 scroll-pl-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {CARDS.map((c, i) => (
             <div
               key={c.title}
-              className="snap-start shrink-0 w-[76%] sm:w-[44%] lg:w-[31%]"
+              className={`snap-start shrink-0 w-[76%] sm:w-[44%] lg:w-[31%] ${
+                i === 0 ? "ml-6" : ""
+              } ${i === CARDS.length - 1 ? "mr-6" : ""}`}
             >
               <InvitePlaceholder
                 seed={i + 2}

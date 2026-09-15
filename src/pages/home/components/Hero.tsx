@@ -94,14 +94,14 @@ export default function Hero() {
       <div className="container-x relative z-10 text-center">
         <h1
           className="font-display font-semibold tracking-[-0.02em] leading-[1.12] mx-auto max-w-3xl text-[var(--ink)] text-balance"
-          style={{ fontSize: "clamp(1.6rem, 3.4vw, 2.9rem)" }}
+          style={{ fontSize: "clamp(2rem, 5vw, 2.9rem)" }}
         >
           Digital invitations designed to make every celebration unforgettable
         </h1>
 
-        <div className="mt-7 flex flex-col items-center gap-2.5">
-          <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line)] bg-white px-6 py-2.5 text-[16px] leading-none text-[var(--indigo)] overflow-hidden">
-            <i className="ri-global-line shrink-0 text-[17px] leading-none" />
+        <div className="mt-5 md:mt-7 flex flex-col items-center gap-2">
+          <span className="inline-flex items-center gap-2 md:gap-2.5 rounded-full border border-[var(--line)] bg-white px-4 py-1.5 md:px-6 md:py-2.5 text-[13px] md:text-[16px] leading-none text-[var(--indigo)] overflow-hidden">
+            <i className="ri-global-line shrink-0 text-sm md:text-[17px] leading-none" />
             <span className="relative flex h-[1.4em] items-center overflow-hidden">
               <span
                 key={greetIdx}
@@ -111,7 +111,7 @@ export default function Hero() {
               </span>
             </span>
           </span>
-          <p className="text-[var(--slate)] text-lg">In Any Language in the World</p>
+          <p className="text-[var(--slate)] text-sm md:text-lg">In Any Language in the World</p>
         </div>
       </div>
 
@@ -150,7 +150,7 @@ export default function Hero() {
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div
             ref={phone}
-            className="pointer-events-auto relative w-[230px] md:w-[270px] aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] shadow-[0_50px_90px_-30px_rgba(0,7,39,0.5)]"
+            className="pointer-events-auto relative w-[160px] sm:w-[190px] md:w-[270px] aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] shadow-[0_50px_90px_-30px_rgba(0,7,39,0.5)]"
           >
             <div className="absolute left-1/2 top-2 -translate-x-1/2 w-16 h-1.5 rounded-full bg-black/70 z-10" />
             <div className="absolute inset-0 rounded-[28px] overflow-hidden">

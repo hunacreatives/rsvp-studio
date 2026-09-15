@@ -34,7 +34,7 @@ export default function HowItWorks() {
       <div className="container-x mt-14 md:mt-20 grid gap-10 md:grid-cols-3">
         {STEPS.map((s, i) => (
           <Reveal key={s.n} delay={i * 0.08}>
-            <div className="relative">
+            <div className="relative mx-auto max-w-[220px] md:max-w-none">
               <InvitePlaceholder seed={i + 4} className="w-full aspect-[3/4]" />
               <span className="absolute left-4 top-4 grid place-items-center w-8 h-8 rounded-full bg-white text-[var(--ink)] text-sm font-semibold shadow">
                 {s.n}

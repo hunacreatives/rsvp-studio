@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NAV_ITEMS, type NavItem } from "../nav-data";
+import { lenisRef } from "@/lib/lenis";
 
 const LOGO = "/brand/logotype-dark.png";
 
@@ -27,6 +28,9 @@ export default function Navbar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const [panelTop, setPanelTop] = useState(64);
+  const scrollYRef = useRef(0);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -36,9 +40,36 @@ export default function Navbar({
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    if (mobileOpen) {
+      scrollYRef.current = window.scrollY;
+      // Lenis keeps its own animated scroll target and fights a raw
+      // window.scrollTo() by re-asserting its old position on the next
+      // frame — use its own API to jump to top (scrollTo no-ops once
+      // stopped, so this must happen before stop()) so the sticky header
+      // (and this button) doesn't get dragged back off-screen.
+      if (lenisRef.current) {
+        lenisRef.current.scrollTo(0, { immediate: true });
+        lenisRef.current.stop();
+      } else {
+        window.scrollTo(0, 0);
+      }
+      document.body.style.overflow = "hidden";
+      // The panel sits below the header, but the header's own height varies
+      // (announcement bar, banners, etc.) — measure it instead of guessing.
+      const bottom = headerRef.current?.getBoundingClientRect().bottom;
+      if (bottom) setPanelTop(bottom);
+    } else {
+      document.body.style.overflow = "";
+      if (lenisRef.current) {
+        lenisRef.current.start();
+        lenisRef.current.scrollTo(scrollYRef.current, { immediate: true, force: true });
+      } else {
+        window.scrollTo(0, scrollYRef.current);
+      }
+    }
     return () => {
       document.body.style.overflow = "";
+      lenisRef.current?.start();
     };
   }, [mobileOpen]);
 
@@ -64,6 +95,7 @@ export default function Navbar({
 
   return (
     <header
+      ref={headerRef}
       className="sticky top-0 z-50"
       onMouseLeave={() => setOpenMega(null)}
     >
@@ -229,7 +261,10 @@ export default function Navbar({
 
       {/* Mobile panel */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 top-16 bg-[var(--warm-white)] overflow-y-auto">
+        <div
+          className="lg:hidden fixed inset-x-0 bottom-0 bg-[var(--warm-white)] overflow-y-auto"
+          style={{ top: panelTop }}
+        >
           <div className="container-x py-6">
             {NAV_ITEMS.map((item) => {
               const expanded = mobileSection === item.label;
