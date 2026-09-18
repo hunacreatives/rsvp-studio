@@ -67,6 +67,9 @@ alter table invite_codes enable row level security;
 create policy "profiles_self" on profiles
   for select using (id = auth.uid());
 
+create policy "profiles_self_update" on profiles
+  for update using (id = auth.uid());
+
 create policy "events_select_own" on events
   for select using (
     owner_id = auth.uid()

@@ -1,22 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import GuestTable, { type Guest } from "./components/GuestTable";
+import Sidebar, { type Section } from "./components/Sidebar";
+import ProfileSection from "./components/ProfileSection";
+import EventsSection, { type Event } from "./components/EventsSection";
 
-type Event = {
+type Profile = {
   id: string;
-  name: string;
-  event_date: string | null;
-  table_name: string;
+  full_name: string | null;
+  email: string | null;
+  created_at: string;
 };
 
 export default function AccountDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [section, setSection] = useState<Section>("profile");
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [guestsLoading, setGuestsLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -28,14 +29,16 @@ export default function AccountDashboard() {
         return;
       }
 
-      const ownEvents = await supabase
-        .from("events")
-        .select("id, name, event_date, table_name")
-        .eq("owner_id", session.user.id);
-      const memberEvents = await supabase
-        .from("event_members")
-        .select("events(id, name, event_date, table_name)")
-        .eq("profile_id", session.user.id);
+      const [profileRes, ownEvents, memberEvents] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, email, created_at").eq("id", session.user.id).single(),
+        supabase.from("events").select("id, name, event_date, table_name").eq("owner_id", session.user.id),
+        supabase
+          .from("event_members")
+          .select("events(id, name, event_date, table_name)")
+          .eq("profile_id", session.user.id),
+      ]);
+
+      setProfile(profileRes.data ?? null);
 
       const combined: Event[] = [
         ...(ownEvents.data ?? []),
@@ -48,33 +51,16 @@ export default function AccountDashboard() {
       }
 
       setEvents(combined);
-      setActiveId(combined[0].id);
       setLoading(false);
     })();
   }, [navigate]);
-
-  useEffect(() => {
-    if (!activeId) return;
-    const event = events.find((e) => e.id === activeId);
-    if (!event) return;
-
-    setGuestsLoading(true);
-    supabase
-      .from(event.table_name)
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setGuests((data ?? []) as Guest[]);
-        setGuestsLoading(false);
-      });
-  }, [activeId, events]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
   };
 
-  if (loading) {
+  if (loading || !profile) {
     return (
       <div className="min-h-screen grid place-items-center" style={{ background: "var(--warm-white)" }}>
         <p style={{ color: "var(--slate)" }}>Loading…</p>
@@ -82,45 +68,37 @@ export default function AccountDashboard() {
     );
   }
 
-  const activeEvent = events.find((e) => e.id === activeId);
+  const memberSince = new Date(profile.created_at).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+  });
 
   return (
     <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
       <div className="container-x py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div>
-            <p className="eyebrow mb-2">RSVP Responses</p>
-            <h1 className="font-display text-3xl font-semibold" style={{ color: "var(--ink)" }}>
-              {activeEvent?.name}
-            </h1>
-          </div>
+        <div className="flex flex-col md:flex-row gap-6">
+          <Sidebar
+            fullName={profile.full_name || ""}
+            memberSince={memberSince}
+            section={section}
+            onSection={setSection}
+            onSignOut={handleSignOut}
+          />
 
-          <div className="flex items-center gap-3">
-            {events.length > 1 && (
-              <select
-                value={activeId ?? ""}
-                onChange={(e) => setActiveId(e.target.value)}
-                className="rounded-xl px-4 py-2.5 text-[14px] outline-none"
-                style={{ background: "#fff", border: "1px solid var(--line)" }}
-              >
-                {events.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}
-                  </option>
-                ))}
-              </select>
+          <div className="flex-1 min-w-0">
+            {section === "profile" ? (
+              <ProfileSection
+                profileId={profile.id}
+                fullName={profile.full_name || ""}
+                email={profile.email || ""}
+                memberSince={memberSince}
+                onSaved={(name) => setProfile((p) => (p ? { ...p, full_name: name } : p))}
+              />
+            ) : (
+              <EventsSection events={events} />
             )}
-            <button onClick={handleSignOut} className="btn btn-ghost !py-2.5 !px-5 !text-[12px]">
-              Sign Out
-            </button>
           </div>
         </div>
-
-        {guestsLoading ? (
-          <p style={{ color: "var(--slate)" }}>Loading RSVPs…</p>
-        ) : (
-          <GuestTable guests={guests} />
-        )}
       </div>
     </div>
   );
