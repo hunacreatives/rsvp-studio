@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NAV_ITEMS, type NavItem } from "../nav-data";
 import { lenisRef } from "@/lib/lenis";
+import AuthModal from "./AuthModal";
 
 const LOGO = "/brand/logotype-dark.png";
 
@@ -23,6 +24,7 @@ export default function Navbar({
     if (!path || path === "/") return pathname === "/";
     return pathname === path || pathname.startsWith(path + "/");
   };
+  const [authOpen, setAuthOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openMega, setOpenMega] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -170,7 +172,7 @@ export default function Navbar({
               <i className="ri-search-line text-lg" />
             </button>
             <button
-              onClick={() => go("/enquire#start")}
+              onClick={() => setAuthOpen(true)}
               className="hidden md:inline-flex btn btn-dark !px-6 !py-3 !text-[12px]"
             >
               Login / Sign Up
@@ -326,7 +328,10 @@ export default function Navbar({
               );
             })}
             <button
-              onClick={() => go("/enquire#start")}
+              onClick={() => {
+                setMobileOpen(false);
+                setAuthOpen(true);
+              }}
               className="btn btn-dark w-full mt-8"
             >
               Login / Sign Up
@@ -334,6 +339,8 @@ export default function Navbar({
           </div>
         </div>
       )}
+
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </header>
   );
 }

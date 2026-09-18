@@ -16,6 +16,8 @@ import PartnerInquiry from "../pages/enquire/partner";
 import Blog from "../pages/blog/page";
 import Privacy from "../pages/legal/privacy";
 import Terms from "../pages/legal/terms";
+import AccountDashboard from "../pages/account/page";
+import AccountOnboarding from "../pages/account/onboarding";
 
 const routes: RouteObject[] = [
   { path: "/", element: <Home /> },
@@ -34,6 +36,8 @@ const routes: RouteObject[] = [
   { path: "/enquire/partner", element: <PartnerInquiry /> },
   { path: "/privacy", element: <Privacy /> },
   { path: "/terms", element: <Terms /> },
+  { path: "/account", element: <AccountDashboard /> },
+  { path: "/account/onboarding", element: <AccountOnboarding /> },
   { path: "*", element: <NotFound /> },
 ];
 
