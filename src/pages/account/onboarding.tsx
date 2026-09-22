@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import Navbar from "@/pages/home/components/Navbar";
+import CreateEventModal from "./components/CreateEventModal";
 
 export default function AccountOnboarding() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [creatingEvent, setCreatingEvent] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +42,9 @@ export default function AccountOnboarding() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--warm-white)" }}>
+    <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
+      <Navbar />
+      <div className="flex items-center justify-center px-6 py-20">
       <div className="w-full max-w-md">
         <h1 className="font-display text-3xl font-semibold" style={{ color: "var(--ink)" }}>
           Link your event
@@ -69,7 +74,22 @@ export default function AccountOnboarding() {
             {loading ? "Checking…" : "Connect"}
           </button>
         </form>
+
+        <div className="mt-8 pt-8 text-center" style={{ borderTop: "1px solid var(--line)" }}>
+          <p className="text-[13px] mb-3" style={{ color: "var(--slate)" }}>
+            Planning your own wedding, birthday, or celebration?
+          </p>
+          <button
+            onClick={() => setCreatingEvent(true)}
+            className="px-5 py-2.5 rounded-xl text-[14px] font-medium"
+            style={{ border: "1px solid var(--line)", color: "var(--ink)" }}
+          >
+            Create a New Event
+          </button>
+        </div>
       </div>
+      </div>
+      {creatingEvent ? <CreateEventModal onClose={() => setCreatingEvent(false)} /> : null}
     </div>
   );
 }

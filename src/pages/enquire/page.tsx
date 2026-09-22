@@ -118,7 +118,7 @@ export default function ProjectInquiry() {
 
       <main>
         <section
-          className="relative overflow-hidden pt-16 md:pt-28 pb-4"
+          className="relative overflow-hidden pt-16 md:pt-24 pb-10"
           style={{ background: "var(--warm-white)" }}
         >
           <Fireworks />
@@ -132,18 +132,11 @@ export default function ProjectInquiry() {
             </h1>
             <p className="mt-5 text-[var(--slate)]">
               Tell us about your event — as much or as little as you know so far.
-              We&apos;ll take it from there and fill in the rest together.
-            </p>
-            <p className="mt-4 text-sm text-[var(--slate)]">
-              For urgent inquiries, email us at{" "}
-              <a href="mailto:hello@thersvpstudio.com" className="text-[var(--ink)] underline underline-offset-4">
-                hello@thersvpstudio.com
-              </a>
             </p>
           </div>
         </section>
 
-        <section id="start" className="scroll-mt-24 pb-24 pt-12" style={{ background: "var(--warm-white)" }}>
+        <section id="start" className="scroll-mt-24 pb-24 pt-4 md:pt-8" style={{ background: "var(--paper)" }}>
           <div className="container-x mx-auto max-w-2xl">
             {submitted ? (
               <SuccessCard
@@ -151,7 +144,11 @@ export default function ProjectInquiry() {
                 message="We'll be in touch within two business days."
               />
             ) : (
-              <form onSubmit={handleSubmit}>
+              <form
+                onSubmit={handleSubmit}
+                className="rounded-2xl bg-white p-6 shadow-[0_24px_60px_-32px_rgba(0,7,39,0.25)] md:p-10"
+                style={{ border: "1px solid var(--line)" }}
+              >
                 {/* Step indicator */}
                 <div className="mb-10 flex items-center gap-3">
                   {STEP_LABELS.map((label, i) => {
@@ -385,11 +382,19 @@ export default function ProjectInquiry() {
                 </div>
               </form>
             )}
+            {!submitted && (
+              <p className="mt-6 text-center text-[13px]" style={{ color: "var(--slate)" }}>
+                For urgent inquiries, email{" "}
+                <a href="mailto:hello@thersvpstudio.com" className="underline underline-offset-4" style={{ color: "var(--ink)" }}>
+                  hello@thersvpstudio.com
+                </a>
+              </p>
+            )}
           </div>
         </section>
 
         {/* Process */}
-        <section className="py-16 md:py-28" style={{ background: "var(--ink)" }}>
+        <section className="py-16 md:py-28" style={{ background: "var(--indigo)" }}>
           <div className="container-x mx-auto max-w-3xl">
             <Reveal
               as="h2"

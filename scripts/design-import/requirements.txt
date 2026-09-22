@@ -1,0 +1,11 @@
+lxml>=5.0
+# iopaint hard-pins Pillow==9.5.0 across every released version — pinned
+# to match, not our own preference. We only use long-stable Image/
+# ImageDraw/ImageFilter APIs here, all present since well before 9.5.0.
+Pillow==9.5.0
+# python-doctr 0.9.x caps numpy<2.0 — pinned down to satisfy that,
+# not our own preference (we used numpy 2.x ad hoc earlier this session).
+numpy>=1.24,<2.0
+scipy>=1.10
+python-doctr[torch]>=0.9
+iopaint>=1.0

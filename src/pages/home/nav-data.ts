@@ -5,6 +5,11 @@ export type MegaGroup = { title: string; links: NavLink[] };
 export type NavItem = {
   label: string;
   to: string;
+  /** Extra path prefixes that should also count as "current" for this
+   *  item, beyond `to` itself — for nav items whose `to` is a pure
+   *  redirector (like /build) that never stays on-screen, so it can
+   *  never sustain an active state on its own. */
+  activePrefixes?: string[];
   mega?: {
     exploreEyebrow: string;
     exploreCta: NavLink;
@@ -13,6 +18,8 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
+  { label: "Home", to: "/" },
+  { label: "Build Your Website", to: "/build" },
   {
     label: "Services",
     to: "/services",

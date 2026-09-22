@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import Navbar from "@/pages/home/components/Navbar";
 import Sidebar, { type Section } from "./components/Sidebar";
 import ProfileSection from "./components/ProfileSection";
 import EventsSection, { type Event } from "./components/EventsSection";
+import WebsiteSection from "./components/WebsiteSection";
 
 type Profile = {
   id: string;
@@ -14,8 +16,11 @@ type Profile = {
 
 export default function AccountDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
-  const [section, setSection] = useState<Section>("profile");
+  const navState = location.state as { section?: Section; mode?: "edit" | "gallery" } | null;
+  const [section, setSection] = useState<Section>(navState?.section ?? "profile");
+  const websiteMode = navState?.mode ?? "edit";
   const [profile, setProfile] = useState<Profile | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
 
@@ -31,18 +36,23 @@ export default function AccountDashboard() {
 
       const [profileRes, ownEvents, memberEvents] = await Promise.all([
         supabase.from("profiles").select("id, full_name, email, created_at").eq("id", session.user.id).single(),
-        supabase.from("events").select("id, name, event_date, table_name").eq("owner_id", session.user.id),
+        supabase
+          .from("events")
+          .select("id, name, event_date, table_name, event_type, status")
+          .eq("owner_id", session.user.id),
         supabase
           .from("event_members")
-          .select("events(id, name, event_date, table_name)")
+          .select("events(id, name, event_date, table_name, event_type, status)")
           .eq("profile_id", session.user.id),
       ]);
 
       setProfile(profileRes.data ?? null);
 
       const combined: Event[] = [
-        ...(ownEvents.data ?? []),
-        ...((memberEvents.data ?? []).flatMap((r) => (r.events ? [r.events as unknown as Event] : []))),
+        ...(ownEvents.data ?? []).map((e) => ({ ...e, role: "Owner" as const })),
+        ...((memberEvents.data ?? []).flatMap((r) =>
+          r.events ? [{ ...(r.events as unknown as Omit<Event, "role">), role: "Member" as const }] : []
+        )),
       ];
 
       if (combined.length === 0) {
@@ -62,8 +72,11 @@ export default function AccountDashboard() {
 
   if (loading || !profile) {
     return (
-      <div className="min-h-screen grid place-items-center" style={{ background: "var(--warm-white)" }}>
-        <p style={{ color: "var(--slate)" }}>Loading…</p>
+      <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
+        <Navbar />
+        <div className="grid place-items-center py-24">
+          <p style={{ color: "var(--slate)" }}>Loading…</p>
+        </div>
       </div>
     );
   }
@@ -75,6 +88,7 @@ export default function AccountDashboard() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
+      <Navbar />
       <div className="container-x py-10">
         <div className="flex flex-col md:flex-row gap-6">
           <Sidebar
@@ -94,6 +108,8 @@ export default function AccountDashboard() {
                 memberSince={memberSince}
                 onSaved={(name) => setProfile((p) => (p ? { ...p, full_name: name } : p))}
               />
+            ) : section === "website" ? (
+              <WebsiteSection events={events} mode={websiteMode} />
             ) : (
               <EventsSection events={events} />
             )}

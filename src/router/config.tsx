@@ -18,6 +18,11 @@ import Privacy from "../pages/legal/privacy";
 import Terms from "../pages/legal/terms";
 import AccountDashboard from "../pages/account/page";
 import AccountOnboarding from "../pages/account/onboarding";
+import PreviewHarnessPage from "../pages/wedding-sites/preview/PreviewHarnessPage";
+import PublicEventSitePage from "../pages/wedding-sites/public/PublicEventSitePage";
+import BuilderShellPage from "../pages/wedding-sites/builder/BuilderShellPage";
+import TemplateGalleryPage from "../pages/wedding-sites/builder/TemplateGalleryPage";
+import BuildLandingPage from "../pages/wedding-sites/builder/BuildLandingPage";
 
 const routes: RouteObject[] = [
   { path: "/", element: <Home /> },
@@ -38,6 +43,15 @@ const routes: RouteObject[] = [
   { path: "/terms", element: <Terms /> },
   { path: "/account", element: <AccountDashboard /> },
   { path: "/account/onboarding", element: <AccountOnboarding /> },
+  { path: "/invite/:slug", element: <PublicEventSitePage /> },
+  { path: "/build", element: <BuildLandingPage /> },
+  { path: "/account/events/:eventId/site-builder", element: <TemplateGalleryPage /> },
+  { path: "/account/events/:eventId/site-builder/edit", element: <BuilderShellPage /> },
+  // Dev-only harness for building/QA-ing event-site templates against
+  // fixture content — never shipped to production.
+  ...(import.meta.env.DEV
+    ? [{ path: "/internal/event-site-preview", element: <PreviewHarnessPage /> }]
+    : []),
   { path: "*", element: <NotFound /> },
 ];
 

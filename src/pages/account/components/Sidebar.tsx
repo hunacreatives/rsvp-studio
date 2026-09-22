@@ -1,4 +1,4 @@
-export type Section = "profile" | "events";
+export type Section = "profile" | "events" | "website";
 
 function initials(name: string) {
   return name
@@ -24,6 +24,7 @@ export default function Sidebar({
 }) {
   const items: { key: Section; label: string; icon: string }[] = [
     { key: "profile", label: "Profile", icon: "ri-user-line" },
+    { key: "website", label: "Website", icon: "ri-global-line" },
     { key: "events", label: "My Events", icon: "ri-calendar-check-line" },
   ];
 

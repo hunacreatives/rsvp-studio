@@ -2,9 +2,28 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NAV_ITEMS, type NavItem } from "../nav-data";
 import { lenisRef } from "@/lib/lenis";
+import { supabase } from "@/lib/supabase";
 import AuthModal from "./AuthModal";
 
+function initials(name: string) {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "?"
+  );
+}
+
 const LOGO = "/brand/logotype-dark.png";
+
+// Every page mounts its own <Navbar/>, so each navigation would otherwise
+// start from "logged out" and flash the Login/Sign Up button until the
+// async session check resolves. Caching the last known value at module
+// scope (survives across page navigations, reset on a full reload) lets a
+// fresh mount initialize with the right state immediately.
+let cachedAccountName: string | null = null;
 
 export default function Navbar({
   bannerVisible,
@@ -19,14 +38,19 @@ export default function Navbar({
 
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const isCurrent = (to: string) => {
+  const matchesPath = (path: string) => pathname === path || pathname.startsWith(path + "/");
+  const isCurrent = (to: string, activePrefixes?: string[]) => {
     const path = to.split("#")[0];
+    if (activePrefixes?.some(matchesPath)) return true;
     if (!path || path === "/") return pathname === "/";
-    return pathname === path || pathname.startsWith(path + "/");
+    return matchesPath(path);
   };
   const [authOpen, setAuthOpen] = useState(false);
+  const [accountName, setAccountName] = useState<string | null>(cachedAccountName);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openMega, setOpenMega] = useState<string | null>(null);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -39,6 +63,17 @@ export default function Navbar({
     onScroll();
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const applySession = (session: import("@supabase/supabase-js").Session | null) => {
+      const name = (session?.user.user_metadata?.full_name as string | undefined) || session?.user.email || null;
+      cachedAccountName = name;
+      setAccountName(name);
+    };
+    supabase.auth.getSession().then(({ data }) => applySession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -131,30 +166,39 @@ export default function Navbar({
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-9">
             {NAV_ITEMS.map((item) => {
-              const current = isCurrent(item.to);
+              const current = isCurrent(item.to, item.activePrefixes);
+              // `openMega` only tracks which mega-DROPDOWN is open — for
+              // items with no dropdown (Home, Build Your Website, Blog)
+              // it's always set to null on hover, so it can never signal
+              // "hovering this item" for them. `hoveredItem` tracks plain
+              // hover for every item so the underline/color reacts to
+              // hover consistently, dropdown or not.
+              const highlighted = openMega === item.label || hoveredItem === item.label || current;
               return (
                 <button
                   key={item.label}
-                  onMouseEnter={() => setOpenMega(item.mega ? item.label : null)}
-                  onFocus={() => setOpenMega(item.mega ? item.label : null)}
+                  onMouseEnter={() => {
+                    setOpenMega(item.mega ? item.label : null);
+                    setHoveredItem(item.label);
+                  }}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  onFocus={() => {
+                    setOpenMega(item.mega ? item.label : null);
+                    setHoveredItem(item.label);
+                  }}
+                  onBlur={() => setHoveredItem(null)}
                   onClick={() => go(item.to)}
                   aria-current={current ? "page" : undefined}
                   className="relative py-2 text-[13px] tracking-wide transition-colors"
                   style={{
-                    color:
-                      openMega === item.label || current
-                        ? "var(--acc-blue)"
-                        : "var(--indigo)",
+                    color: highlighted ? "var(--acc-blue)" : "var(--indigo)",
                     fontWeight: current ? 600 : 500,
                   }}
                 >
                   {item.label}
                   <span
                     className="absolute left-0 -bottom-[1px] h-[2px] bg-[var(--acc-blue)] transition-all duration-300"
-                    style={{
-                      width:
-                        openMega === item.label || current ? "100%" : "0%",
-                    }}
+                    style={{ width: highlighted ? "100%" : "0%" }}
                   />
                 </button>
               );
@@ -171,12 +215,53 @@ export default function Navbar({
             >
               <i className="ri-search-line text-lg" />
             </button>
-            <button
-              onClick={() => setAuthOpen(true)}
-              className="hidden md:inline-flex btn btn-dark !px-6 !py-3 !text-[12px]"
-            >
-              Login / Sign Up
-            </button>
+            {accountName ? (
+              <div className="hidden md:block relative">
+                <button
+                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  aria-label="Account"
+                  className="w-10 h-10 rounded-full grid place-items-center text-[13px] font-semibold"
+                  style={{ background: "var(--acc-blue)", color: "#fff" }}
+                >
+                  {initials(accountName)}
+                </button>
+                {accountMenuOpen && (
+                  <div
+                    className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden shadow-lg"
+                    style={{ background: "#fff", border: "1px solid var(--line)" }}
+                  >
+                    <button
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        go("/account");
+                      }}
+                      className="w-full text-left px-4 py-3 text-[14px] hover:bg-black/5"
+                      style={{ color: "var(--ink)" }}
+                    >
+                      My Account
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setAccountMenuOpen(false);
+                        await supabase.auth.signOut();
+                        go("/");
+                      }}
+                      className="w-full text-left px-4 py-3 text-[14px] hover:bg-black/5"
+                      style={{ color: "var(--acc-coral)" }}
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => setAuthOpen(true)}
+                className="hidden md:inline-flex btn btn-dark !px-6 !py-3 !text-[12px]"
+              >
+                Login / Sign Up
+              </button>
+            )}
             <button
               aria-label="Menu"
               className="lg:hidden grid place-items-center w-10 h-10 -mr-2"
@@ -282,7 +367,7 @@ export default function Navbar({
                   >
                     <span
                       style={
-                        isCurrent(item.to)
+                        isCurrent(item.to, item.activePrefixes)
                           ? { color: "var(--acc-blue)", fontWeight: 600 }
                           : undefined
                       }
@@ -327,15 +412,35 @@ export default function Navbar({
                 </div>
               );
             })}
-            <button
-              onClick={() => {
-                setMobileOpen(false);
-                setAuthOpen(true);
-              }}
-              className="btn btn-dark w-full mt-8"
-            >
-              Login / Sign Up
-            </button>
+            {accountName ? (
+              <div className="mt-8 space-y-2">
+                <button
+                  onClick={() => go("/account")}
+                  className="btn btn-dark w-full"
+                >
+                  My Account
+                </button>
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    go("/");
+                  }}
+                  className="btn btn-ghost w-full"
+                >
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  setAuthOpen(true);
+                }}
+                className="btn btn-dark w-full mt-8"
+              >
+                Login / Sign Up
+              </button>
+            )}
           </div>
         </div>
       )}
