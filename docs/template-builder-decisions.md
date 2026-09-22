@@ -4,6 +4,21 @@ Terse by design: one entry per decision a future engineer could otherwise
 accidentally reverse. Newest at top. See the full architecture plan for
 detailed reasoning if you need it.
 
+## Building a new template from an SVG export? Start at the toolkit's handoff playbook
+- Decision: `~/svg-fidelity-toolkit` (a separate repo/app) is the extraction
+  pipeline for turning a flat, auto-traced SVG design export into a
+  `summary.json`/`composition.json`/asset-file package. Its
+  `docs/rsvp-studio-handoff.md` is the checklist for turning that package
+  into a real template here — read it before writing a new template's
+  components, not after something breaks.
+- Why: every entry below this one is a lesson that playbook already
+  captures in condensed form (position:fixed/transform, container query
+  units, overflow:hidden clipping, the editorPreview requirement,
+  headless-Chrome screenshot timing, etc.) — this pointer exists so a
+  future session finds the condensed checklist before re-deriving any of
+  these the hard way a second time. This log remains the full, unabridged
+  version each condensed point was pulled from.
+
 ## Self-serve event creation uses a new shared `rsvps` table, not per-event dynamic tables
 - Decision: Self-serve-created events leave `events.table_name` null and
   store RSVPs in a new normalized `rsvps(event_id, name, email, message,
