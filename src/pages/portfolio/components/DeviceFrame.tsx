@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { lenisRef } from "@/lib/lenis";
 
 type DeviceType = "laptop" | "phone";
 
@@ -10,6 +11,24 @@ const INTRINSIC: Record<DeviceType, { width: number; height: number }> = {
 // Non-screen chrome height (bezel padding + laptop base tray), subtracted
 // from the shared --frame-h so both mockups' screens end up the same height.
 const CHROME: Record<DeviceType, number> = { laptop: 12 + 14, phone: 10 };
+
+// Wheel events inside a cross-origin iframe chain to the page once the
+// embedded site can't scroll further (or never scrolls, like an intro
+// screen), and CSS overscroll-behavior on the <iframe> can't stop that.
+// So while a mouse is over a screen, freeze the page scroll itself.
+// gutter: stable keeps the scrollbar's space so nothing shifts sideways.
+function lockPageScroll(locked: boolean) {
+  const root = document.documentElement.style;
+  if (locked) {
+    lenisRef.current?.stop();
+    root.overflow = "hidden";
+    root.scrollbarGutter = "stable";
+  } else {
+    root.overflow = "";
+    root.scrollbarGutter = "";
+    lenisRef.current?.start();
+  }
+}
 
 export default function DeviceFrame({
   type,
@@ -37,6 +56,9 @@ export default function DeviceFrame({
     return () => ro.disconnect();
   }, [width]);
 
+  // Release the lock if we navigate away mid-hover.
+  useEffect(() => () => lockPageScroll(false), []);
+
   return (
     <div className="inline-flex flex-col items-center">
       <div
@@ -53,11 +75,16 @@ export default function DeviceFrame({
 
         <div
           ref={wrapRef}
+          onPointerEnter={(e) => e.pointerType === "mouse" && lockPageScroll(true)}
+          onPointerLeave={() => lockPageScroll(false)}
           className="relative overflow-hidden bg-white"
           style={{
             borderRadius: isLaptop ? "3px" : "21px",
+            // Explicit width (not aspect-ratio alone): some engines size the
+            // box from the unscaled 1440px iframe otherwise, stretching the
+            // bezel edge to edge.
             height: `calc(var(--frame-h) - ${CHROME[type]}px)`,
-            aspectRatio: `${width} / ${height}`,
+            width: `calc((var(--frame-h) - ${CHROME[type]}px) * ${width / height})`,
           }}
         >
           {scale > 0 && (
@@ -66,6 +93,7 @@ export default function DeviceFrame({
               title={title}
               width={width}
               height={height}
+              className="absolute left-0 top-0"
               style={{
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",

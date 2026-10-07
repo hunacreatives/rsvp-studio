@@ -42,7 +42,7 @@ export default function PortfolioDetail() {
             <div className="flex flex-col items-center gap-y-16">
               <div
                 className="flex flex-col items-center"
-                style={{ "--frame-h": "clamp(340px, 42vw, 520px)" } as React.CSSProperties}
+                style={{ "--frame-h": "min(520px, max(340px, 42vw), calc(52vw - 4px))" } as React.CSSProperties}
               >
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--slate)]">
                   Desktop

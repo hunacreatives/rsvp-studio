@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import InvitePlaceholder from "./InvitePlaceholder";
@@ -28,6 +28,10 @@ const GREETINGS = [
   "عيد ميلاد سعيد",
 ];
 
+// Real mobile captures of carloandtrixia.com (opener → Welcome → Our Story),
+// cross-faded in the hero phone.
+const PHONE_SCREENS = [1, 2, 3].map((n) => `/home/hero-phone/carlo-trixia-${n}.webp`);
+
 export default function Hero() {
   const navigate = useNavigate();
   const root = useRef<HTMLDivElement | null>(null);
@@ -35,11 +39,21 @@ export default function Hero() {
   const upperRow = useRef<HTMLDivElement | null>(null);
   const lowerRow = useRef<HTMLDivElement | null>(null);
   const [greetIdx, setGreetIdx] = useState(0);
+  const [screenIdx, setScreenIdx] = useState(0);
 
   useEffect(() => {
     const id = window.setInterval(
       () => setGreetIdx((i) => (i + 1) % GREETINGS.length),
       2200,
+    );
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(
+      () => setScreenIdx((i) => (i + 1) % PHONE_SCREENS.length),
+      3400,
     );
     return () => window.clearInterval(id);
   }, []);
@@ -153,14 +167,30 @@ export default function Hero() {
             className="pointer-events-auto relative w-[160px] sm:w-[190px] md:w-[270px] aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] shadow-[0_50px_90px_-30px_rgba(0,7,39,0.5)]"
           >
             <div className="absolute left-1/2 top-2 -translate-x-1/2 w-16 h-1.5 rounded-full bg-black/70 z-10" />
-            <div className="absolute inset-0 rounded-[28px] overflow-hidden">
-              <InvitePlaceholder
-                seed={3}
-                label="Carlo & Trixia"
-                rounded={0}
-                className="w-full h-full"
-              />
+            <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[#3f4a32]">
+              {PHONE_SCREENS.map((src, i) => (
+                <img
+                  key={src}
+                  src={src}
+                  alt={i === 0 ? "Carlo & Trixia wedding website on a phone" : ""}
+                  aria-hidden={i !== 0}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  className="absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-1000 ease-out"
+                  style={{ opacity: i === screenIdx ? 1 : 0 }}
+                />
+              ))}
             </div>
+
+            {/* Featured tag — links to the case study */}
+            <Link
+              to="/portfolio/carlo-and-trixia"
+              className="absolute left-1/2 -bottom-5 z-20 -translate-x-1/2 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--line)] bg-white px-3 py-1.5 md:px-4 md:py-2 text-[11px] md:text-[13px] leading-none text-[var(--ink)] shadow-[0_12px_30px_-12px_rgba(0,7,39,0.35)] transition-transform hover:-translate-y-0.5"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--acc-coral)]" />
+              <span className="font-semibold uppercase tracking-[0.12em] text-[var(--slate)]">Featured</span>
+              <span className="font-medium">Carlo &amp; Trixia</span>
+              <i className="ri-arrow-right-up-line text-[var(--slate)]" />
+            </Link>
           </div>
         </div>
       </div>
