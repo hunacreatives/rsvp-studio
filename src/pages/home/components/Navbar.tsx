@@ -4,17 +4,7 @@ import { NAV_ITEMS, type NavItem } from "../nav-data";
 import { lenisRef } from "@/lib/lenis";
 import { supabase } from "@/lib/supabase";
 import AuthModal from "./AuthModal";
-
-function initials(name: string) {
-  return (
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase())
-      .join("") || "?"
-  );
-}
+import { defaultAvatar } from "@/pages/account/portal/format";
 
 const LOGO = "/brand/logotype-dark.png";
 
@@ -24,6 +14,11 @@ const LOGO = "/brand/logotype-dark.png";
 // scope (survives across page navigations, reset on a full reload) lets a
 // fresh mount initialize with the right state immediately.
 let cachedAccountName: string | null = null;
+let cachedAvatarUrl: string | null = null;
+let cachedIsStaff = false;
+
+/** The dashboard fires this after a name/photo change so the navbar updates in place. */
+export const PROFILE_EVENT = "rsvp:profile-updated";
 
 export default function Navbar({
   bannerVisible,
@@ -47,6 +42,10 @@ export default function Navbar({
   };
   const [authOpen, setAuthOpen] = useState(false);
   const [accountName, setAccountName] = useState<string | null>(cachedAccountName);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(cachedAvatarUrl);
+  const [isStaff, setIsStaff] = useState(cachedIsStaff);
+  const accountHome = isStaff ? "/studio" : "/account";
+  const accountLabel = isStaff ? "Studio Console" : "My Account";
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openMega, setOpenMega] = useState<string | null>(null);
@@ -70,10 +69,41 @@ export default function Navbar({
       const name = (session?.user.user_metadata?.full_name as string | undefined) || session?.user.email || null;
       cachedAccountName = name;
       setAccountName(name);
+      if (!session) {
+        cachedAvatarUrl = null;
+        setAvatarUrl(null);
+        cachedIsStaff = false;
+        setIsStaff(false);
+        return;
+      }
+      supabase
+        .from("profiles")
+        .select("avatar_url, is_staff")
+        .eq("id", session.user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          cachedAvatarUrl = (data?.avatar_url as string | null) ?? null;
+          setAvatarUrl(cachedAvatarUrl);
+          cachedIsStaff = !!data?.is_staff;
+          setIsStaff(cachedIsStaff);
+        });
     };
+    const onProfile = (e: Event) => {
+      const detail = (e as CustomEvent<{ name?: string | null; avatarUrl?: string | null }>).detail;
+      if (detail.name !== undefined) setAccountName((cachedAccountName = detail.name));
+      if (detail.avatarUrl !== undefined) setAvatarUrl((cachedAvatarUrl = detail.avatarUrl));
+    };
+    window.addEventListener(PROFILE_EVENT, onProfile);
     supabase.auth.getSession().then(({ data }) => applySession(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
-    return () => sub.subscription.unsubscribe();
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Token refreshes fire this too; only re-read the profile on real changes.
+      if (_event === "TOKEN_REFRESHED") return;
+      applySession(session);
+    });
+    return () => {
+      sub.subscription.unsubscribe();
+      window.removeEventListener(PROFILE_EVENT, onProfile);
+    };
   }, []);
 
   useEffect(() => {
@@ -220,10 +250,12 @@ export default function Navbar({
                 <button
                   onClick={() => setAccountMenuOpen((v) => !v)}
                   aria-label="Account"
-                  className="w-10 h-10 rounded-full grid place-items-center text-[13px] font-semibold"
-                  style={{ background: "var(--acc-blue)", color: "#fff" }}
+                  className="flex items-center gap-2.5 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-black/5"
                 >
-                  {initials(accountName)}
+                  <span className="max-w-[120px] truncate text-[14px] text-[var(--ink)]">
+                    {accountName.includes("@") ? accountName.split("@")[0] : accountName.split(" ")[0]}
+                  </span>
+                  <img src={avatarUrl || defaultAvatar(accountName)} alt="" className="h-9 w-9 rounded-full object-cover" />
                 </button>
                 {accountMenuOpen && (
                   <div
@@ -233,12 +265,12 @@ export default function Navbar({
                     <button
                       onClick={() => {
                         setAccountMenuOpen(false);
-                        go("/account");
+                        go(accountHome);
                       }}
                       className="w-full text-left px-4 py-3 text-[14px] hover:bg-black/5"
                       style={{ color: "var(--ink)" }}
                     >
-                      My Account
+                      {accountLabel}
                     </button>
                     <button
                       onClick={async () => {
@@ -415,10 +447,10 @@ export default function Navbar({
             {accountName ? (
               <div className="mt-8 space-y-2">
                 <button
-                  onClick={() => go("/account")}
+                  onClick={() => go(accountHome)}
                   className="btn btn-dark w-full"
                 >
-                  My Account
+                  {accountLabel}
                 </button>
                 <button
                   onClick={async () => {

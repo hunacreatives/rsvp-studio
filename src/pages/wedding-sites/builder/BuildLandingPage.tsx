@@ -69,8 +69,7 @@ export default function BuildLandingPage() {
           <p className="mt-6 text-[13px]" style={{ color: "var(--slate)" }}>
             Continuing something you already started?{" "}
             <Link
-              to="/account"
-              state={{ section: "website" }}
+              to="/account/projects"
               className="font-medium underline"
               style={{ color: "var(--ink)" }}
             >

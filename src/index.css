@@ -217,3 +217,19 @@ html.lenis body {
     transition: none;
   }
 }
+
+/* Invoice / receipt: "Download" prints just the document (save as PDF). */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .invoice-print,
+  .invoice-print * {
+    visibility: visible;
+  }
+  .invoice-print {
+    position: absolute;
+    inset: 0 0 auto 0;
+    border: none !important;
+  }
+}

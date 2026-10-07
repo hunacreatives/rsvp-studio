@@ -50,10 +50,10 @@ function renderEmail(firstName: string) {
                 <h1 class="force-white" style="margin:0;color:#ffffff !important;font-family:Georgia,'Times New Roman',serif;font-weight:600;font-size:34px;line-height:1.15;letter-spacing:-0.01em;">
                   You're Officially<br />Signed Up!
                 </h1>
-                <p class="force-white-70" style="margin:16px auto 0;max-width:380px;color:rgba(255,255,255,0.75) !important;font-size:15px;line-height:1.6;">
-                  Welcome, ${firstName}. Your RSVP Studio account is ready to go.
+                <p class="force-white-70" style="margin:16px auto 0;max-width:440px;color:rgba(255,255,255,0.75) !important;font-size:15px;line-height:1.6;">
+                  Welcome, ${firstName}. Your RSVP Studio account<br />is ready&nbsp;to&nbsp;go.
                 </p>
-                <img src="${SITE}/services/stationery/hero-heart.png" alt="" width="220" style="display:block;margin:28px auto 0;height:auto;" />
+                <img src="${SITE}/email/welcome-collage.png" alt="" width="520" style="display:block;width:100%;max-width:520px;margin:24px auto 0;height:auto;" />
               </td>
             </tr>
 
@@ -61,9 +61,9 @@ function renderEmail(firstName: string) {
             <tr>
               <td style="padding:40px 40px 8px;text-align:center;">
                 <p class="force-ink" style="margin:0 0 20px;color:#000727 !important;font-size:16px;line-height:1.7;">
-                  You now have your own dashboard to check in on your event, anytime —
-                  no more waiting on a CSV or a passcode page. Your guest list and RSVPs
-                  are right there whenever you want a look.
+                  Your dashboard is where we’ll work together: follow your project’s
+                  progress, message our team, view invoices, and watch your guest list
+                  fill up as RSVPs come&nbsp;in.
                 </p>
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px auto 0;">
                   <tr>
@@ -77,27 +77,39 @@ function renderEmail(firstName: string) {
               </td>
             </tr>
 
-            <!-- Footer -->
+            <!-- Help (same as the verify email) -->
             <tr>
-              <td style="padding:32px 40px 40px;">
-                <hr style="border:none;border-top:1px solid #e7e7e0;margin:0 0 24px;" />
-                <p class="force-slate" style="margin:0 0 16px;text-align:center;font-size:13px;color:#868697 !important;line-height:1.7;">
-                  Questions? Email us at
-                  <a href="mailto:hello@thersvpstudio.com" class="force-blue" style="color:#2f61d5 !important;text-decoration:none;">hello@thersvpstudio.com</a>
-                  or visit our <a href="${SITE}/faqs" class="force-blue" style="color:#2f61d5 !important;text-decoration:none;">FAQs</a>.
+              <td align="center" style="padding:30px 56px 30px;">
+                <p class="force-ink" style="margin:0;color:#000727 !important;font-size:12px;line-height:1.8;text-align:center;">
+                  If you have any questions, please email us at
+                  <a href="mailto:hello@thersvpstudio.com" class="force-ink" style="color:#000727 !important;font-weight:700;text-decoration:none;">hello@thersvpstudio.com</a>
+                  or visit our <a href="${SITE}/faqs" class="force-ink" style="color:#000727 !important;font-weight:700;text-decoration:none;">FAQs</a>.
+                  A real person on our team reads every message and is happy to help with your account or your&nbsp;event.
                 </p>
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
-                  <tr>
-                    <td style="padding:0 10px;">
-                      <a href="https://www.instagram.com/rsvpstudioo/" class="force-ink" style="color:#25265e !important;text-decoration:none;font-size:20px;">&#9679;</a>
-                    </td>
-                    <td style="padding:0 10px;">
-                      <a href="https://www.facebook.com/share/19fvSStpSZ/?mibextid=wwXIfr" class="force-ink" style="color:#25265e !important;text-decoration:none;font-size:20px;">&#9679;</a>
-                    </td>
-                  </tr>
-                </table>
-                <p class="force-slate" style="margin:0;text-align:center;font-size:11px;color:#868697 !important;">
-                  The RSVP Studio, a Huna Creatives brand &mdash; ${SITE.replace("https://", "")}
+              </td>
+            </tr>
+
+            <!-- Footer (shared with the verify email) -->
+            <tr>
+              <td align="center" style="padding:0 32px 36px;">
+                <table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+                <p class="force-slate" style="margin:20px 0 14px;font-size:12px;color:#868697 !important;">
+                  <a href="https://www.instagram.com/rsvpstudioo/" class="force-slate" style="color:#868697 !important;text-decoration:none;">Instagram</a>
+                  &nbsp;&middot;&nbsp;
+                  <a href="https://www.facebook.com/share/19fvSStpSZ/?mibextid=wwXIfr" class="force-slate" style="color:#868697 !important;text-decoration:none;">Facebook</a>
+                </p>
+                <p class="force-slate" style="margin:0 0 14px;font-size:12px;color:#868697 !important;">
+                  <a href="${SITE}" class="force-slate" style="color:#868697 !important;text-decoration:none;">The RSVP Studio</a>
+                  &nbsp;&nbsp;|&nbsp;&nbsp;
+                  <a href="${SITE}/services" class="force-slate" style="color:#868697 !important;text-decoration:none;">Services</a>
+                  &nbsp;&nbsp;|&nbsp;&nbsp;
+                  <a href="${SITE}/faqs" class="force-slate" style="color:#868697 !important;text-decoration:none;">FAQs</a>
+                  &nbsp;&nbsp;|&nbsp;&nbsp;
+                  <a href="${SITE}/terms" class="force-slate" style="color:#868697 !important;text-decoration:none;">Terms</a>
+                </p>
+                <p class="force-slate" style="margin:0;font-size:10px;line-height:1.6;color:#a0a0ad !important;">
+                  You received this email because you created an account at thersvpstudio.com.<br />
+                  The RSVP Studio, a Huna Creatives brand &middot; Philippines
                 </p>
               </td>
             </tr>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <style>
+      :root { color-scheme: light only; supported-color-schemes: light only; }
+      @media (prefers-color-scheme: dark) {
+        .force-ink { color: #000727 !important; }
+        .force-body { color: #4a4b63 !important; }
+        .force-slate { color: #868697 !important; }
+        .force-white { color: #ffffff !important; }
+        .force-coral-bg { background: #ff7052 !important; }
+        .force-card-bg { background: #ffffff !important; }
+        .force-page-bg { background: #f3f3f5 !important; }
+      }
+    </style>
+  </head>
+  <body class="force-page-bg" bgcolor="#f3f3f5" style="margin:0;padding:0;background:#f3f3f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">You’re well on your way — just verify your email to finish setting up your RSVP Studio account.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f3f3f5" class="force-page-bg" style="background:#f3f3f5;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="#ffffff" class="force-card-bg" style="max-width:560px;width:100%;background:#ffffff;">
+
+            <!-- Logo -->
+            <tr>
+              <td align="center" style="padding:36px 32px 8px;">
+                <img src="https://thersvpstudio.com/brand/logotype-dark.png" alt="The RSVP Studio" width="128" style="display:block;height:auto;" />
+              </td>
+            </tr>
+
+            <!-- Spot illustration -->
+            <tr>
+              <td align="center" style="padding:24px 32px 8px;">
+                <img src="https://thersvpstudio.com/email/confirm-spot.png" alt="An RSVP card in an envelope" width="200" height="200" style="display:block;width:200px;height:200px;" />
+              </td>
+            </tr>
+
+            <!-- Copy -->
+            <tr>
+              <td style="padding:28px 56px 0;">
+                <p class="force-body" style="margin:0 0 20px;color:#4a4b63 !important;font-size:16px;line-height:1.7;">
+                  Hi{{ if .Data.full_name }} {{ .Data.full_name }}{{ end }},
+                </p>
+                <p class="force-body" style="margin:0 0 20px;color:#4a4b63 !important;font-size:16px;line-height:1.7;">
+                  You’re well on your way to setting up your RSVP Studio account. We just need to
+                  verify your email. Click the button below to let us know this is really&nbsp;you.
+                </p>
+                <p class="force-body" style="margin:0 0 30px;color:#4a4b63 !important;font-size:16px;line-height:1.7;">
+                  Oh, and this link is valid for 24&nbsp;hours.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Button -->
+            <tr>
+              <td align="center" style="padding:0 32px 34px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td bgcolor="#ff7052" class="force-coral-bg" style="border-radius:999px;background:#ff7052;">
+                      <a href="{{ .ConfirmationURL }}" class="force-white" style="display:inline-block;padding:16px 42px;color:#ffffff !important;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;">
+                        Verify Email Address
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Help -->
+            <tr>
+              <td align="center" style="padding:0 56px 30px;">
+                <p class="force-ink" style="margin:0;color:#000727 !important;font-size:12px;line-height:1.8;text-align:center;">
+                  If you have any questions, please email us at
+                  <a href="mailto:hello@thersvpstudio.com" class="force-ink" style="color:#000727 !important;font-weight:700;text-decoration:none;">hello@thersvpstudio.com</a>
+                  or visit our <a href="https://thersvpstudio.com/faqs" class="force-ink" style="color:#000727 !important;font-weight:700;text-decoration:none;">FAQs</a>.
+                  A real person on our team reads every message and is happy to help with your account or your&nbsp;event.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Divider + social + links -->
+            <tr>
+              <td align="center" style="padding:0 32px 36px;">
+                <table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+                <p class="force-slate" style="margin:20px 0 14px;font-size:12px;color:#868697 !important;">
+                  <a href="https://www.instagram.com/rsvpstudioo/" class="force-slate" style="color:#868697 !important;text-decoration:none;">Instagram</a>
+                  &nbsp;&middot;&nbsp;
+                  <a href="https://www.facebook.com/share/19fvSStpSZ/?mibextid=wwXIfr" class="force-slate" style="color:#868697 !important;text-decoration:none;">Facebook</a>
+                </p>
+                <p class="force-slate" style="margin:0 0 14px;font-size:12px;color:#868697 !important;">
+                  <a href="https://thersvpstudio.com" class="force-slate" style="color:#868697 !important;text-decoration:none;">The RSVP Studio</a>
+                  &nbsp;&nbsp;|&nbsp;&nbsp;
+                  <a href="https://thersvpstudio.com/services" class="force-slate" style="color:#868697 !important;text-decoration:none;">Services</a>
+                  &nbsp;&nbsp;|&nbsp;&nbsp;
+                  <a href="https://thersvpstudio.com/faqs" class="force-slate" style="color:#868697 !important;text-decoration:none;">FAQs</a>
+                  &nbsp;&nbsp;|&nbsp;&nbsp;
+                  <a href="https://thersvpstudio.com/terms" class="force-slate" style="color:#868697 !important;text-decoration:none;">Terms</a>
+                </p>
+                <p class="force-slate" style="margin:0;font-size:10px;line-height:1.6;color:#a0a0ad !important;">
+                  You received this email because this address was used to sign up at thersvpstudio.com.<br />
+                  If that wasn’t you, you can safely ignore&nbsp;it.<br />
+                  The RSVP Studio, a Huna Creatives brand &middot; Philippines
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

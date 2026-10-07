@@ -36,9 +36,14 @@ export default function AuthModal({
   // form the panel is currently hiding.
   const visibleForm = covering === "signup" ? "signin" : "signup";
 
-  const handleAuthed = () => {
+  const handleAuthed = async () => {
     onClose();
-    navigate("/account");
+    // Studio team accounts go straight to the admin console.
+    const { data } = await supabase.auth.getUser();
+    const { data: profile } = data.user
+      ? await supabase.from("profiles").select("is_staff").eq("id", data.user.id).maybeSingle()
+      : { data: null };
+    navigate(profile?.is_staff ? "/studio" : "/account");
   };
 
   return (
@@ -184,6 +189,49 @@ function AuthForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resent, setResent] = useState<"idle" | "sending" | "sent">("idle");
+
+  // Re-send the "confirm your email" message (Supabase rate-limits this).
+  const resendConfirmation = async () => {
+    setResent("sending");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/account` },
+    });
+    if (error) {
+      setResent("idle");
+      return setError(error.message);
+    }
+    setResent("sent");
+  };
+  const [resetSent, setResetSent] = useState(false);
+  // Two-factor: after a correct password, accounts with an authenticator
+  // app enrolled must also enter a 6-digit code (Supabase AAL2).
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+
+  const handleForgot = async () => {
+    setError(null);
+    if (!email) return setError("Enter your email above first.");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/account/settings?reset=1`,
+    });
+    if (error) return setError(error.message);
+    setResetSent(true);
+  };
+
+  const handleMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaFactorId) return;
+    setError(null);
+    setLoading(true);
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: mfaFactorId, code: mfaCode.trim() });
+    setLoading(false);
+    if (error) return setError("That code didn’t work — try the latest one from your app.");
+    onAuthed();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,14 +240,37 @@ function AuthForm({
 
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setLoading(false);
+        if (/email not confirmed/i.test(error.message)) {
+          setUnconfirmed(true);
+          return setError("Please confirm your email first — check your inbox for the link we sent.");
+        }
+        return setError(error.message);
+      }
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totp = factors?.totp?.[0];
+        if (totp) {
+          setLoading(false);
+          setMfaFactorId(totp.id);
+          return;
+        }
+      }
       setLoading(false);
-      if (error) return setError(error.message);
       onAuthed();
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName } },
+        options: {
+          // welcomed:false → the welcome email goes out once they've verified
+          // (see PortalContext). Accounts made before this flag never get it twice.
+          data: { full_name: fullName, welcomed: false },
+          // The confirmation link brings them back here, signed in.
+          emailRedirectTo: `${window.location.origin}/account`,
+        },
       });
       setLoading(false);
       if (error) return setError(error.message);
@@ -211,6 +282,7 @@ function AuthForm({
         }).catch(() => {
           // Non-fatal — the account still works without the welcome email.
         });
+        supabase.auth.updateUser({ data: { welcomed: true } });
         onAuthed();
       } else {
         // Email confirmation is required before a session exists.
@@ -218,6 +290,40 @@ function AuthForm({
       }
     }
   };
+
+  if (mfaFactorId) {
+    return (
+      <div className="w-full h-full px-8 py-10 md:px-12 flex flex-col justify-center">
+        <h2 className="font-display text-3xl font-semibold" style={{ color: "var(--ink)" }}>
+          Enter your code
+        </h2>
+        <p className="mt-3 text-[14px] leading-relaxed" style={{ color: "var(--slate)" }}>
+          Open your authenticator app and enter the 6-digit code for The RSVP Studio.
+        </p>
+        <form className="mt-6 space-y-3" onSubmit={handleMfa}>
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="123456"
+            value={mfaCode}
+            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+            className="w-full rounded-xl px-4 py-3.5 text-[18px] tracking-[0.3em] outline-none"
+            style={{ background: "var(--paper)", border: "1px solid var(--line)" }}
+            autoFocus
+          />
+          {error && (
+            <p className="text-[13px]" style={{ color: "var(--acc-coral)" }}>
+              {error}
+            </p>
+          )}
+          <button type="submit" disabled={loading || mfaCode.length !== 6} className="btn btn-primary w-full !mt-5 disabled:opacity-60">
+            {loading ? "Checking…" : "Verify"}
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   if (checkEmail) {
     return (
@@ -229,6 +335,21 @@ function AuthForm({
           We sent a confirmation link to <strong style={{ color: "var(--ink)" }}>{email}</strong>.
           Click it to finish setting up your account.
         </p>
+        <p className="mt-6 text-[13px]" style={{ color: "var(--slate)" }}>
+          Didn’t get it? Check your spam folder, or{" "}
+          {resent === "sent" ? (
+            <span style={{ color: "var(--acc-green)" }}>we sent another one.</span>
+          ) : (
+            <button onClick={resendConfirmation} disabled={resent === "sending"} className="underline" style={{ color: "var(--acc-blue)" }}>
+              {resent === "sending" ? "sending…" : "resend the email"}
+            </button>
+          )}
+        </p>
+        {error && (
+          <p className="mt-3 text-[13px]" style={{ color: "var(--acc-coral)" }}>
+            {error}
+          </p>
+        )}
       </div>
     );
   }
@@ -283,7 +404,7 @@ function AuthForm({
           type="password"
           placeholder="Enter password"
           required
-          minLength={6}
+          minLength={mode === "signup" ? 8 : undefined}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-xl px-4 py-3.5 text-[15px] outline-none transition-colors"
@@ -292,9 +413,15 @@ function AuthForm({
 
         {mode === "signin" ? (
           <div className="flex justify-end">
-            <button type="button" className="text-[13px]" style={{ color: "var(--slate)" }}>
-              Forgot password?
-            </button>
+            {resetSent ? (
+              <p className="text-[13px]" style={{ color: "var(--acc-green)" }}>
+                Check your email for a reset link.
+              </p>
+            ) : (
+              <button type="button" onClick={handleForgot} className="text-[13px] hover:underline" style={{ color: "var(--slate)" }}>
+                Forgot password?
+              </button>
+            )}
           </div>
         ) : (
           <div className="h-1" />
@@ -302,7 +429,16 @@ function AuthForm({
 
         {error && (
           <p className="text-[13px]" style={{ color: "var(--acc-coral)" }}>
-            {error}
+            {error}{" "}
+            {unconfirmed ? (
+              resent === "sent" ? (
+                <span style={{ color: "var(--acc-green)" }}>Sent — check your inbox.</span>
+              ) : (
+                <button type="button" onClick={resendConfirmation} className="underline" style={{ color: "var(--acc-blue)" }}>
+                  Resend link
+                </button>
+              )
+            ) : null}
           </p>
         )}
 

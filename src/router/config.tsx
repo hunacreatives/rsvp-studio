@@ -16,8 +16,24 @@ import PartnerInquiry from "../pages/enquire/partner";
 import Blog from "../pages/blog/page";
 import Privacy from "../pages/legal/privacy";
 import Terms from "../pages/legal/terms";
-import AccountDashboard from "../pages/account/page";
 import AccountOnboarding from "../pages/account/onboarding";
+import PortalLayout from "../pages/account/portal/PortalLayout";
+import PortalHome from "../pages/account/portal/pages/HomePage";
+import PortalProjects from "../pages/account/portal/pages/ProjectsPage";
+import PortalProjectDetail from "../pages/account/portal/pages/ProjectDetailPage";
+import PortalBilling from "../pages/account/portal/pages/BillingPage";
+import PortalInvoice from "../pages/account/portal/pages/InvoicePage";
+import PortalAccount from "../pages/account/portal/pages/AccountPage";
+import PortalMessages from "../pages/account/portal/pages/MessagesPage";
+import PortalHelp from "../pages/account/portal/pages/HelpPage";
+import PortalContactSupport from "../pages/account/portal/pages/ContactSupportPage";
+import PortalGuide from "../pages/account/portal/pages/GuidePage";
+import StudioLayout from "../pages/studio/StudioLayout";
+import StudioOverview from "../pages/studio/pages/OverviewPage";
+import StudioProjects from "../pages/studio/pages/ProjectsPage";
+import StudioInboxPage from "../pages/studio/pages/InboxPage";
+import StudioInvoices from "../pages/studio/pages/InvoicesPage";
+import StudioClients from "../pages/studio/pages/ClientsPage";
 import PreviewHarnessPage from "../pages/wedding-sites/preview/PreviewHarnessPage";
 import PublicEventSitePage from "../pages/wedding-sites/public/PublicEventSitePage";
 import BuilderShellPage from "../pages/wedding-sites/builder/BuilderShellPage";
@@ -41,8 +57,34 @@ const routes: RouteObject[] = [
   { path: "/enquire/partner", element: <PartnerInquiry /> },
   { path: "/privacy", element: <Privacy /> },
   { path: "/terms", element: <Terms /> },
-  { path: "/account", element: <AccountDashboard /> },
+  {
+    path: "/account",
+    element: <PortalLayout />,
+    children: [
+      { index: true, element: <PortalHome /> },
+      { path: "projects", element: <PortalProjects /> },
+      { path: "projects/:projectId", element: <PortalProjectDetail /> },
+      { path: "billing", element: <PortalBilling /> },
+      { path: "billing/:invoiceId", element: <PortalInvoice /> },
+      { path: "settings", element: <PortalAccount /> },
+      { path: "messages", element: <PortalMessages /> },
+      { path: "help", element: <PortalHelp /> },
+      { path: "help/contact", element: <PortalContactSupport /> },
+      { path: "help/guides/:slug", element: <PortalGuide /> },
+    ],
+  },
   { path: "/account/onboarding", element: <AccountOnboarding /> },
+  {
+    path: "/studio",
+    element: <StudioLayout />,
+    children: [
+      { index: true, element: <StudioOverview /> },
+      { path: "projects", element: <StudioProjects /> },
+      { path: "inbox", element: <StudioInboxPage /> },
+      { path: "invoices", element: <StudioInvoices /> },
+      { path: "clients", element: <StudioClients /> },
+    ],
+  },
   { path: "/invite/:slug", element: <PublicEventSitePage /> },
   { path: "/build", element: <BuildLandingPage /> },
   { path: "/account/events/:eventId/site-builder", element: <TemplateGalleryPage /> },
