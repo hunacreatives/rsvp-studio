@@ -196,19 +196,21 @@ export function useEventSiteDraft(eventId: string | undefined) {
     if (!siteId) return;
     setSaveStatus("saving");
     const nowIso = new Date().toISOString();
+    // Guests' RSVP forms post content.slug — make sure it's the real one.
+    const publishedContent = { ...content, slug: slug || content.slug };
     const { error } = await supabase
       .from("wedding_sites")
       .update({
-        draft_content: content,
+        draft_content: publishedContent,
         draft_presentation: presentation,
-        published_content: content,
+        published_content: publishedContent,
         published_presentation: presentation,
         published_at: nowIso,
       })
       .eq("id", siteId);
     if (!error) setPublishedAt(nowIso);
     setSaveStatus(error ? "error" : "saved");
-  }, [siteId, content, presentation]);
+  }, [siteId, content, presentation, slug]);
 
   return {
     status,

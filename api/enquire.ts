@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
+import { esc, isEmail, sendChecked } from "./_lib/email";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -29,7 +30,7 @@ function renderRows(values: Record<string, string | string[]>) {
     .filter(([, v]) => (Array.isArray(v) ? v.length > 0 : !!v))
     .map(
       ([k, v]) =>
-        `<tr><td style="padding:6px 10px 6px 0;color:#8a8478;vertical-align:top;white-space:nowrap;">${labelize(k)}</td><td style="padding:6px 0;font-weight:600;">${Array.isArray(v) ? v.join(", ") : v}</td></tr>`,
+        `<tr><td style="padding:6px 10px 6px 0;color:#8a8478;vertical-align:top;white-space:nowrap;">${esc(labelize(k))}</td><td style="padding:6px 0;font-weight:600;">${esc(Array.isArray(v) ? v.join(", ") : String(v))}</td></tr>`,
     )
     .join("");
 }
@@ -44,8 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = (values?.email as string) || "";
   const name = (values?.your_name as string) || "";
 
-  if (!email || !name) {
-    res.status(400).json({ error: "Name and email required" });
+  if (!email || !name || !isEmail(email.trim())) {
+    res.status(400).json({ error: "Please enter your name and a valid email." });
     return;
   }
 
@@ -65,8 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     form === "partner-inquiry" ? "New Partner Inquiry" : "New Project Inquiry";
 
   try {
-    await Promise.all([
-      resend.emails.send({
+    const [studioCopy, guestCopy] = await Promise.allSettled([
+      sendChecked(resend, {
         from: FROM,
         to: TO,
         subject: `${form === "partner-inquiry" ? "🤝" : "🥂"} ${heading} from ${name}`,
@@ -78,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             </table>
             ${
               omitted.length
-                ? `<p style="margin-top:16px;font-size:12px;color:#b9974a;">Attachment(s) too large to include: ${omitted.join(", ")}. Follow up with ${email} to request them directly.</p>`
+                ? `<p style="margin-top:16px;font-size:12px;color:#b9974a;">Attachment(s) too large to include: ${esc(omitted.join(", "))}. Follow up with ${esc(email)} to request them directly.</p>`
                 : ""
             }
             <p style="margin-top: 24px; color: #b9974a; font-size: 12px;">Sent from thersvpstudio.com</p>
@@ -87,7 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         attachments: included.length ? included : undefined,
         replyTo: email,
       }),
-      resend.emails.send({
+      sendChecked(resend, {
         from: FROM,
         to: email,
         subject:
@@ -97,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         html: `
           <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #4a4a4a;">
             <p style="font-size: 40px; text-align: center; margin: 0 0 8px;">🥂</p>
-            <h2 style="text-align: center; color: #333333; font-size: 22px; margin: 0 0 4px;">Thank you, ${name}!</h2>
+            <h2 style="text-align: center; color: #333333; font-size: 22px; margin: 0 0 4px;">Thank you, ${esc(name)}!</h2>
             <p style="text-align: center; color: #8a8478; font-size: 14px; margin: 0 0 28px;">
               We've received your ${form === "partner-inquiry" ? "partnership " : ""}inquiry and will be in touch within two business days.
             </p>
@@ -111,6 +112,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }),
     ]);
 
+    if (guestCopy.status === "rejected") console.error("Inquiry confirmation email failed:", guestCopy.reason);
+    if (studioCopy.status === "rejected") throw studioCopy.reason;
     res.status(200).json({ ok: true, omitted });
   } catch (err) {
     console.error("Resend error:", err);

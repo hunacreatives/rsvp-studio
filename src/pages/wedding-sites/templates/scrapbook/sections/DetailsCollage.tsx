@@ -13,6 +13,7 @@ import {
   type Tone,
 } from "../components";
 import { formatTime, hostNames, monogram, splitAddress, type PhotoSlots } from "../content";
+import { parseEventDate } from "../../../content/parseEventDate";
 
 interface Props {
   content: EventContent;
@@ -23,7 +24,7 @@ interface Props {
 
 function dateParts(iso: string): { month: string; day: string; year: string } | null {
   if (!iso) return null;
-  const d = new Date(iso);
+  const d = parseEventDate(iso);
   if (Number.isNaN(d.getTime())) return null;
   return {
     month: d.toLocaleDateString(undefined, { month: "long" }).toUpperCase(),

@@ -1,4 +1,5 @@
 import type { EventContent, GalleryItem, ImageAsset, Location } from "../../content/types";
+import { parseEventDate } from "../../content/parseEventDate";
 
 /**
  * Named photo slots for the collages.
@@ -87,14 +88,14 @@ export function hasLocation(location: Location): boolean {
 
 export function formatLongDate(iso: string): string | null {
   if (!iso) return null;
-  const date = new Date(iso);
+  const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
 
 export function formatTime(iso: string): string | null {
   if (!iso) return null;
-  const date = new Date(iso);
+  const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
   const hasClockTime = iso.includes("T") && !(date.getHours() === 0 && date.getMinutes() === 0);
   return hasClockTime ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : null;

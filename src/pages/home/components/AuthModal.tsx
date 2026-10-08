@@ -277,8 +277,7 @@ function AuthForm({
       if (data.session) {
         fetch("/api/send-welcome-email", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, fullName }),
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
         }).catch(() => {
           // Non-fatal — the account still works without the welcome email.
         });

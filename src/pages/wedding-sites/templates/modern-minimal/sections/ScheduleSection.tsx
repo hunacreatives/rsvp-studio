@@ -1,5 +1,6 @@
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
+import { parseEventDate } from "../../../content/parseEventDate";
 
 interface ScheduleSectionProps {
   content: EventContent;
@@ -7,7 +8,7 @@ interface ScheduleSectionProps {
 }
 
 function formatTime(iso: string): string {
-  const date = new Date(iso);
+  const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }

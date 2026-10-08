@@ -1,18 +1,31 @@
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import Navbar from "@/pages/home/components/Navbar";
+import FooterSection from "@/pages/home/components/FooterSection";
 
+/** 404 for unknown pages, plus a gentler message for invitation links. */
 export default function NotFound() {
-  const location = useLocation();
-  
+  const { pathname } = useLocation();
+  const isInvite = pathname.startsWith("/invite/");
+
   return (
-    <div className="relative flex flex-col items-center justify-center h-screen text-center px-4">
-      <h1 className="absolute bottom-0 text-9xl md:text-[12rem] font-black text-gray-50 select-none pointer-events-none z-0">
-        404
-      </h1>
-      <div className="relative z-10">
-        <h1 className="text-xl md:text-2xl font-semibold mt-6">This page has not been generated</h1>
-        <p className="mt-2 text-base text-gray-400 font-mono">{location.pathname}</p>
-        <p className="mt-4 text-lg md:text-xl text-gray-500">Tell me more about this page, so I can generate it</p>
-      </div>
+    <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
+      <Navbar />
+      <main className="container-x flex min-h-[60vh] flex-col items-center justify-center py-24 text-center">
+        <p className="eyebrow">{isInvite ? "Invitation" : "404"}</p>
+        <h1 className="mt-3 font-display text-[2.2rem] font-semibold leading-tight text-[var(--ink)] md:text-[3rem]">
+          {isInvite ? "This invitation isn’t available" : "We couldn’t find that page"}
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-[16px] text-[var(--slate)]">
+          {isInvite
+            ? "The link may be mistyped, or the host hasn’t published their site yet. Double-check the link you were sent, or ask the host for a new one."
+            : "The link may be broken or the page may have moved."}
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link to="/" className="btn btn-primary">Go to homepage</Link>
+          {isInvite ? null : <Link to="/faqs" className="btn btn-ghost">Visit FAQs</Link>}
+        </div>
+      </main>
+      <FooterSection />
     </div>
   );
 }

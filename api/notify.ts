@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { sendChecked } from "./_lib/email";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -81,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const to = await recipientsFor(thread.event_id, thread.profile_id, "notify_project_updates");
         for (const r of to) {
           sends.push(
-            resend.emails.send({
+            sendChecked(resend, {
               from: FROM,
               to: r.email!,
               subject: `New message: ${thread.subject}`,
@@ -91,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       } else {
         sends.push(
-          resend.emails.send({
+          sendChecked(resend, {
             from: FROM,
             to: STUDIO_INBOX,
             replyTo: caller.email ?? undefined,
@@ -105,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const to = await recipientsFor(body.eventId, null, "notify_project_updates");
       for (const r of to) {
         sends.push(
-          resend.emails.send({
+          sendChecked(resend, {
             from: FROM,
             to: r.email!,
             subject: `${ev?.name ?? "Your project"}: ${body.title ?? "New update"}`,
@@ -123,7 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const paid = body.kind === "payment";
       for (const r of to) {
         sends.push(
-          resend.emails.send({
+          sendChecked(resend, {
             from: FROM,
             to: r.billing_email || r.email!,
             subject: paid ? `Payment received — invoice #${inv.number}` : `New invoice #${inv.number} — ${peso(Number(inv.amount))}`,

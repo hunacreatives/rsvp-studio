@@ -3,6 +3,7 @@ import type { EventContent } from "../../../content/types";
 import { usePrefersReducedMotion } from "../../../engine/motion";
 import type { EventTheme } from "../../../engine/theme";
 import type { EditorialFormalSettings } from "../index";
+import { parseEventDate } from "../../../content/parseEventDate";
 
 interface HeroProps {
   content: EventContent;
@@ -13,7 +14,7 @@ interface HeroProps {
 
 function formatEventDate(iso: string): { day: string; month: string; weekday: string } | null {
   if (!iso) return null;
-  const date = new Date(iso);
+  const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
   return {
     day: String(date.getDate()),

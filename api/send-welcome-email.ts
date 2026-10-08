@@ -1,15 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { esc, sendChecked } from "./_lib/email";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
+const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 const FROM = "The RSVP Studio <hello@thersvpstudio.com>";
 const SITE = "https://thersvpstudio.com";
-
-type Body = {
-  email: string;
-  fullName?: string;
-};
 
 function renderEmail(firstName: string) {
   return `
@@ -128,18 +126,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { email, fullName } = req.body as Body;
-  if (!email) {
-    res.status(400).json({ error: "Email required" });
+  // Only ever email the signed-in caller's own address — never an address
+  // from the request body — so this can't be used to send branded mail to
+  // strangers.
+  const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+  const { data } = await supabaseAdmin.auth.getUser(token);
+  const user = data?.user;
+  if (!user?.email) {
+    res.status(401).json({ error: "Not signed in" });
     return;
   }
 
-  const firstName = (fullName || "").trim().split(" ")[0] || "there";
+  const fullName = (user.user_metadata?.full_name as string | undefined) ?? "";
+  const firstName = esc(fullName.trim().split(" ")[0] || "there");
 
   try {
-    await resend.emails.send({
+    await sendChecked(resend, {
       from: FROM,
-      to: email,
+      to: user.email,
       subject: "You're officially signed up 🎉",
       html: renderEmail(firstName),
     });

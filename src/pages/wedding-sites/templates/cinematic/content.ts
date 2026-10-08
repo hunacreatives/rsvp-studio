@@ -1,4 +1,5 @@
 import type { EventContent } from "../../content/types";
+import { parseEventDate } from "../../content/parseEventDate";
 
 /** "Gel" for one host, "Gel and Sam" for two, "Gel, Sam and Mia" for more —
  *  matches the reference's single-honoree copy while staying generic. */
@@ -13,7 +14,7 @@ export function hostNames(content: EventContent): string {
  *  gracefully degrading to date-only or nothing if either is missing. */
 export function formatDateTime(iso: string): string | null {
   if (!iso) return null;
-  const date = new Date(iso);
+  const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
 
   const dateLabel = date.toLocaleDateString(undefined, { month: "long", day: "numeric" });

@@ -1,5 +1,6 @@
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
+import { parseEventDate } from "../../../content/parseEventDate";
 
 interface HeroProps {
   content: EventContent;
@@ -8,7 +9,7 @@ interface HeroProps {
 
 function formatEventDate(iso: string): string | null {
   if (!iso) return null;
-  const date = new Date(iso);
+  const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }

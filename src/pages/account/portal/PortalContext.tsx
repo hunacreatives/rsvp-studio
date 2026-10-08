@@ -52,8 +52,7 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
       supabase.auth.updateUser({ data: { welcomed: true } });
       fetch("/api/send-welcome-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, fullName: user.user_metadata?.full_name ?? "" }),
+        headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` },
       }).catch(() => undefined);
     }
     const next = await api.loadSnapshot(user.id);
