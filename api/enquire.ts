@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
-import { esc, isEmail, sendChecked } from "./_lib/email";
+import { esc, isEmail, sendChecked } from "./_lib/email.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 

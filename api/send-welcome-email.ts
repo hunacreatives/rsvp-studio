@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { esc, sendChecked } from "./_lib/email";
+import { esc, sendChecked } from "./_lib/email.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);

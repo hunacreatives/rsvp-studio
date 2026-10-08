@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { clean, esc, isEmail, safeUrl, sendChecked } from "./_lib/email";
+import { clean, esc, isEmail, safeUrl, sendChecked } from "./_lib/email.js";
 
 // One RSVP endpoint for every event site. Which table to write to and the
 // email copy are resolved server-side from `slug` — never trusted from the
