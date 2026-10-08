@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
@@ -16,19 +16,34 @@ export default function AuthModal({
   // card — they never move. `covering` is the only state: it says which of
   // the two forms the navy panel currently sits on top of (hides).
   const [covering, setCovering] = useState<"signin" | "signup">("signup");
+  // Set once sign-up has sent a confirmation email: the whole modal then
+  // becomes a "check your inbox" screen that a stray tap can't dismiss.
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Reset ONLY when the modal opens. This used to share an effect with the
+  // Escape listener, which depends on `onClose` — a new function on every
+  // parent render — so any re-render of the page behind the modal (e.g. the
+  // navbar reacting to the auth event right after sign-up) snapped it back
+  // to Sign In and hid the "check your email" message.
   useEffect(() => {
     if (!open) return;
     setCovering("signup");
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    setSentTo(null);
+  }, [open]);
+
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKey);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -55,7 +70,7 @@ export default function AuthModal({
       <div
         className="absolute inset-0"
         style={{ background: "rgba(0,7,39,0.55)", backdropFilter: "blur(4px)" }}
-        onClick={onClose}
+        onClick={sentTo ? undefined : onClose}
       />
 
       <div
@@ -71,6 +86,10 @@ export default function AuthModal({
           <i className="ri-close-line text-xl" />
         </button>
 
+        {sentTo ? (
+          <CheckInbox email={sentTo} onBack={() => setSentTo(null)} />
+        ) : (
+        <>
         {/* Mobile: no room for the two-panel mask, so a simple tab switch */}
         <div className="md:hidden flex border-b border-[var(--line)]">
           {(["signin", "signup"] as const).map((m) => (
@@ -92,16 +111,17 @@ export default function AuthModal({
             mode={visibleForm}
             onSwitch={() => setCovering(visibleForm)}
             onAuthed={handleAuthed}
+            onCheckEmail={setSentTo}
           />
         </div>
 
         {/* Desktop: both forms fixed and stationary; only the navy panel moves */}
         <div className="hidden md:block relative min-h-[560px] overflow-hidden">
           <div className="absolute top-0 bottom-0 left-0 w-1/2">
-            <AuthForm mode="signin" onSwitch={() => setCovering("signup")} onAuthed={handleAuthed} />
+            <AuthForm mode="signin" onSwitch={() => setCovering("signup")} onAuthed={handleAuthed} onCheckEmail={setSentTo} />
           </div>
           <div className="absolute top-0 bottom-0 right-0 w-1/2">
-            <AuthForm mode="signup" onSwitch={() => setCovering("signin")} onAuthed={handleAuthed} />
+            <AuthForm mode="signup" onSwitch={() => setCovering("signin")} onAuthed={handleAuthed} onCheckEmail={setSentTo} />
           </div>
 
           {/* Moving navy panel — transform only, nothing else about it changes */}
@@ -142,6 +162,8 @@ export default function AuthModal({
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
@@ -178,17 +200,18 @@ function AuthForm({
   mode,
   onSwitch,
   onAuthed,
+  onCheckEmail,
 }: {
   mode: "signin" | "signup";
   onSwitch: () => void;
   onAuthed: () => void;
+  onCheckEmail: (email: string) => void;
 }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [checkEmail, setCheckEmail] = useState(false);
   const [unconfirmed, setUnconfirmed] = useState(false);
   const [resent, setResent] = useState<"idle" | "sending" | "sent">("idle");
 
@@ -198,7 +221,7 @@ function AuthForm({
     const { error } = await supabase.auth.resend({
       type: "signup",
       email,
-      options: { emailRedirectTo: `${window.location.origin}/account` },
+      options: { emailRedirectTo: `${window.location.origin}/account?welcome=1` },
     });
     if (error) {
       setResent("idle");
@@ -269,7 +292,7 @@ function AuthForm({
           // (see PortalContext). Accounts made before this flag never get it twice.
           data: { full_name: fullName, welcomed: false },
           // The confirmation link brings them back here, signed in.
-          emailRedirectTo: `${window.location.origin}/account`,
+          emailRedirectTo: `${window.location.origin}/account?welcome=1`,
         },
       });
       setLoading(false);
@@ -283,9 +306,13 @@ function AuthForm({
         });
         supabase.auth.updateUser({ data: { welcomed: true } });
         onAuthed();
+      } else if (data.user && (data.user.identities?.length ?? 0) === 0) {
+        // Supabase answers an already-registered email with a fake success
+        // and no identities (so it doesn't leak who has an account).
+        setError("An account with this email already exists. Sign in instead, or use “Forgot password?”.");
       } else {
         // Email confirmation is required before a session exists.
-        setCheckEmail(true);
+        onCheckEmail(email);
       }
     }
   };
@@ -320,35 +347,6 @@ function AuthForm({
             {loading ? "Checking…" : "Verify"}
           </button>
         </form>
-      </div>
-    );
-  }
-
-  if (checkEmail) {
-    return (
-      <div className="w-full h-full px-8 py-10 md:px-12 flex flex-col justify-center">
-        <h2 className="font-display text-3xl font-semibold" style={{ color: "var(--ink)" }}>
-          Check your email
-        </h2>
-        <p className="mt-4 text-[14px] leading-relaxed" style={{ color: "var(--slate)" }}>
-          We sent a confirmation link to <strong style={{ color: "var(--ink)" }}>{email}</strong>.
-          Click it to finish setting up your account.
-        </p>
-        <p className="mt-6 text-[13px]" style={{ color: "var(--slate)" }}>
-          Didn’t get it? Check your spam folder, or{" "}
-          {resent === "sent" ? (
-            <span style={{ color: "var(--acc-green)" }}>we sent another one.</span>
-          ) : (
-            <button onClick={resendConfirmation} disabled={resent === "sending"} className="underline" style={{ color: "var(--acc-blue)" }}>
-              {resent === "sending" ? "sending…" : "resend the email"}
-            </button>
-          )}
-        </p>
-        {error && (
-          <p className="mt-3 text-[13px]" style={{ color: "var(--acc-coral)" }}>
-            {error}
-          </p>
-        )}
       </div>
     );
   }
@@ -453,6 +451,75 @@ function AuthForm({
       >
         {mode === "signin" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
       </button>
+    </div>
+  );
+}
+
+/** Webmail shortcut for common providers (people forget to go check). */
+function inboxLink(email: string): { label: string; url: string } | null {
+  const domain = email.split("@")[1]?.toLowerCase() ?? "";
+  if (/^(gmail|googlemail)\.com$/.test(domain)) return { label: "Open Gmail", url: "https://mail.google.com/mail/u/0/#search/from%3Athersvpstudio.com" };
+  if (/^(icloud|me|mac)\.com$/.test(domain)) return { label: "Open iCloud Mail", url: "https://www.icloud.com/mail" };
+  if (/^(outlook|hotmail|live|msn)\.[a-z.]+$/.test(domain)) return { label: "Open Outlook", url: "https://outlook.live.com/mail" };
+  if (/^(yahoo|ymail)\.[a-z.]+$/.test(domain)) return { label: "Open Yahoo Mail", url: "https://mail.yahoo.com" };
+  return null;
+}
+
+/**
+ * Shown across the whole modal once sign-up has sent the confirmation
+ * email, so nobody can miss that the next step happens in their inbox.
+ */
+function CheckInbox({ email, onBack }: { email: string; onBack: () => void }) {
+  const [resent, setResent] = useState<"idle" | "sending" | "sent">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const inbox = inboxLink(email);
+
+  const resend = async () => {
+    setResent("sending");
+    setError(null);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/account?welcome=1` },
+    });
+    if (error) {
+      setResent("idle");
+      return setError(error.message);
+    }
+    setResent("sent");
+  };
+
+  return (
+    <div className="flex min-h-[520px] flex-col items-center justify-center px-8 py-14 text-center md:px-20" role="status" aria-live="polite">
+      <img src="/email/confirm-spot.png" alt="" width={132} height={132} className="h-[132px] w-[132px]" />
+      <h2 className="mt-6 font-display text-[2rem] font-semibold leading-tight md:text-[2.4rem]" style={{ color: "var(--ink)" }}>
+        Check your inbox
+      </h2>
+      <p className="mt-3 max-w-md text-[15px] leading-relaxed" style={{ color: "var(--slate)" }}>
+        We sent a confirmation link to <strong style={{ color: "var(--ink)" }}>{email}</strong>. Open it to finish
+        creating your account, then you&rsquo;ll be signed in&nbsp;automatically.
+      </p>
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
+        {inbox ? (
+          <a href={inbox.url} target="_blank" rel="noreferrer" className="btn btn-primary">
+            {inbox.label}
+          </a>
+        ) : null}
+        <button type="button" onClick={resend} disabled={resent !== "idle"} className="btn btn-ghost disabled:opacity-60">
+          {resent === "sent" ? "Sent again" : resent === "sending" ? "Sending…" : "Resend email"}
+        </button>
+      </div>
+      <p className="mt-6 text-[13px]" style={{ color: "var(--slate)" }}>
+        Can&rsquo;t find it? Check your spam or promotions folder.{" "}
+        <button type="button" onClick={onBack} className="underline" style={{ color: "var(--acc-blue)" }}>
+          Use a different email
+        </button>
+      </p>
+      {error ? (
+        <p className="mt-3 text-[13px]" style={{ color: "var(--acc-coral)" }}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { PROFILE_EVENT } from "@/pages/home/components/Navbar";
+import Navbar, { PROFILE_EVENT } from "@/pages/home/components/Navbar";
+import AuthModal from "@/pages/home/components/AuthModal";
 import * as api from "./api";
 import { demoMessages, demoSnapshot, isDemoMode } from "./demo";
 import type { Message, Profile, Thread, ThreadKind } from "./types";
@@ -33,6 +34,7 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
   const navigate = useNavigate();
   const [demo] = useState(isDemoMode);
   const [snap, setSnap] = useState<api.PortalSnapshot | null>(null);
+  const [linkProblem, setLinkProblem] = useState<string | null>(null);
   const listeners = useRef(new Set<(m: Message) => void>());
   const demoThreads = useRef<Record<string, Message[]>>({});
 
@@ -44,6 +46,15 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
     const { data } = await supabase.auth.getSession();
     const user = data.session?.user;
     if (!user) {
+      // Supabase sends people back with the error in the URL when an email
+      // link has expired or was already used. Explain it rather than
+      // dropping them on the homepage with no idea what happened.
+      const raw = `${window.location.hash.slice(1)}&${window.location.search.slice(1)}`;
+      const info = new URLSearchParams(raw);
+      if (info.get("error") || info.get("error_code")) {
+        setLinkProblem(info.get("error_code") ?? info.get("error") ?? "link");
+        return;
+      }
       navigate("/", { replace: true });
       return;
     }
@@ -167,6 +178,32 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
     };
   }, [snap, demo, load]);
 
+  if (linkProblem) return <LinkProblem code={linkProblem} />;
   if (!value) return <>{fallback}</>;
   return <PortalCtx.Provider value={value}>{children}</PortalCtx.Provider>;
+}
+
+/** An email link (confirm / reset) that expired or was already used. */
+function LinkProblem({ code }: { code: string }) {
+  const [authOpen, setAuthOpen] = useState(false);
+  const expired = /expired|otp/i.test(code);
+  return (
+    <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
+      <Navbar />
+      <main className="container-x flex min-h-[60vh] flex-col items-center justify-center py-24 text-center">
+        <img src="/email/confirm-spot.png" alt="" width={112} height={112} className="h-28 w-28" />
+        <h1 className="mt-6 font-display text-[2rem] font-semibold leading-tight text-[var(--ink)] md:text-[2.6rem]">
+          {expired ? "That link has expired" : "That link didn\u2019t work"}
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-[16px] text-[var(--slate)]">
+          Email links work once and only for a limited time. If you already confirmed your email, just log in. If not, log in
+          with your email and password and we&rsquo;ll offer to send a fresh&nbsp;link.
+        </p>
+        <button onClick={() => setAuthOpen(true)} className="btn btn-primary mt-8">
+          Log in
+        </button>
+      </main>
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+    </div>
+  );
 }

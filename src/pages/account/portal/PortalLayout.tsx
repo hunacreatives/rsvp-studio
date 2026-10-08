@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { Navigate, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Navigate, NavLink, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -39,6 +39,15 @@ function Shell() {
   const { profile, threads, demo } = usePortal();
   const navigate = useNavigate();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  // Arrived from the "confirm your email" link (?welcome=1): say so once.
+  const [params, setParams] = useSearchParams();
+  const [justConfirmed, setJustConfirmed] = useState(params.get("welcome") === "1");
+  useEffect(() => {
+    if (params.get("welcome") !== "1") return;
+    const next = new URLSearchParams(params);
+    next.delete("welcome");
+    setParams(next, { replace: true });
+  }, [params, setParams]);
   const unread = threads.filter((t) => t.unread).length;
 
   // Studio team accounts use the admin console, never the client dashboard.
@@ -55,6 +64,20 @@ function Shell() {
       {demo ? (
         <div className="bg-[var(--acc-yellow)] px-4 py-1.5 text-center text-[12px] font-medium text-[var(--ink)]">
           Demo data (dev only) — <a className="underline" href="?demo=off">exit demo</a>
+        </div>
+      ) : null}
+
+      {justConfirmed ? (
+        <div className="border-b border-[#bfe8cf] bg-[#ecfaf1]" role="status">
+          <div className="container-x flex items-center gap-3 py-3 text-[14px] text-[var(--ink)]">
+            <i className="ri-checkbox-circle-fill text-xl text-[var(--acc-green)]" />
+            <p className="flex-1">
+              <strong>Your email is confirmed.</strong> Welcome to The RSVP Studio, {firstName(profile.full_name, "friend")}. You&rsquo;re signed in and ready to go.
+            </p>
+            <button onClick={() => setJustConfirmed(false)} aria-label="Dismiss" className="grid h-8 w-8 place-items-center rounded-full hover:bg-black/5">
+              <i className="ri-close-line text-lg" />
+            </button>
+          </div>
         </div>
       ) : null}
 
