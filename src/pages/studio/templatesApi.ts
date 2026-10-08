@@ -24,6 +24,7 @@ export interface VersionRow {
   status: "draft" | "published" | "archived";
   spec: unknown;
   qa: Record<string, unknown>;
+  ingest_report: Record<string, unknown> | null;
   published_at: string | null;
   created_at: string;
 }
@@ -40,7 +41,7 @@ export async function listTemplates(): Promise<TemplateRow[]> {
 export async function getTemplate(id: string): Promise<{ template: TemplateRow; versions: VersionRow[] }> {
   const template = must(await supabase.from("templates").select("*").eq("id", id).single()) as TemplateRow;
   const versions = must(
-    await supabase.from("template_versions").select("id, template_id, version, status, spec, qa, published_at, created_at").eq("template_id", id).order("version", { ascending: false }),
+    await supabase.from("template_versions").select("id, template_id, version, status, spec, qa, ingest_report, published_at, created_at").eq("template_id", id).order("version", { ascending: false }),
   ) as VersionRow[];
   return { template, versions };
 }
@@ -98,6 +99,8 @@ export async function createDraftVersion(input: {
   files: File[];
   /** New template (not a new version): refuse if the ID is taken. */
   isNew?: boolean;
+  /** AI import: where it came from, its match score and notes (shown on the template page). */
+  ingestReport?: Record<string, unknown>;
 }): Promise<{ versionId: string; missing: string[] }> {
   const parsed = parseSpec(input.rawSpec);
   if (!("spec" in parsed)) throw new Error(`The template file has problems:\n${parsed.errors.join("\n")}`);
@@ -122,7 +125,7 @@ export async function createDraftVersion(input: {
 
   const { spec, missing } = await uploadAssets(input.templateId, version, parsed.spec, input.files);
   const row = must(
-    await supabase.from("template_versions").insert({ template_id: input.templateId, version, status: "draft", spec }).select("id").single(),
+    await supabase.from("template_versions").insert({ template_id: input.templateId, version, status: "draft", spec, ingest_report: input.ingestReport ?? null }).select("id").single(),
   ) as { id: string };
   return { versionId: row.id, missing };
 }

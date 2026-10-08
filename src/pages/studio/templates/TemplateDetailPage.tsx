@@ -45,7 +45,29 @@ export default function TemplateDetailPage() {
     const parsed = parseSpec(version.spec);
     return "spec" in parsed ? parsed.spec : null;
   }, [version]);
-  const { results, blocking } = useTemplateChecks(spec);
+  const checks = useTemplateChecks(spec);
+  const { blocking } = checks;
+  // AI imports: how closely the template matches the uploaded design.
+  const match = (version?.ingest_report as { match?: { total: number; placement: number; fit: number; fonts: number | null; phoneEnlarged: number; textLayers: number } } | null)?.match;
+  const results = [
+    ...checks.results,
+    ...(match
+      ? [
+          {
+            id: "match",
+            label: `Matches the original design: ${match.total}%`,
+            status: (match.total >= 80 ? "pass" : "warn") as "pass" | "warn",
+            detail: `Text placement ${match.placement}%, fits its boxes ${match.fit}%${match.fonts !== null ? `, fonts ${match.fonts}%` : ""}.`,
+          },
+          {
+            id: "phone",
+            label: "Readable on phones",
+            status: (match.phoneEnlarged ? "warn" : "pass") as "pass" | "warn",
+            detail: match.phoneEnlarged ? `${match.phoneEnlarged} of ${match.textLayers} text boxes are enlarged on phones and may crowd.` : undefined,
+          },
+        ]
+      : []),
+  ];
   const fixture = FIXTURES.find((f) => f.id === fixtureId) ?? FIXTURES[0];
   const isLive = template?.current_version_id === versionId && version?.status === "published";
 

@@ -22,6 +22,9 @@ import { BINDING_FIELDS, type BindingField } from "./bindings";
 const hex = z.string().regex(/^#[0-9a-fA-F]{3,8}$/, "colour must be a hex value like #520606");
 
 export const COLOR_TOKENS = ["bg", "surface", "ink", "muted", "accent", "onAccent"] as const;
+/** Font slots: display/body always; accent/extra for designs with 3–4 faces. */
+export const FONT_SLOTS = ["display", "body", "accent", "extra"] as const;
+export type FontSlot = (typeof FONT_SLOTS)[number];
 export type ColorToken = (typeof COLOR_TOKENS)[number];
 const colorRef = z.union([z.enum(COLOR_TOKENS), hex]);
 
@@ -60,7 +63,7 @@ const textLayer = z
     bind: binding.optional(),
     /** Fixed text (when no bind), or the fallback shown when the bound field is empty. */
     text: z.string().max(400).optional(),
-    font: z.enum(["display", "body"]).default("body"),
+    font: z.enum(FONT_SLOTS).default("body"),
     /** Canvas units (% of canvas width). */
     size: z.number().positive().max(40),
     /** Smallest size the text may shrink to when real content is long. */
@@ -78,6 +81,15 @@ const textLayer = z
     hideWhenEmpty: z.boolean().default(false),
     /** Placeholder shown in the builder while the bound field is empty. */
     editorHint: z.string().max(60).optional(),
+    /** Drop shadow / glow, in canvas units (e.g. Canva's text shadow). */
+    shadow: z
+      .object({
+        x: z.number().min(-5).max(5),
+        y: z.number().min(-5).max(5),
+        blur: z.number().min(0).max(10),
+        color: z.string().regex(/^#[0-9a-fA-F]{8}$/, "shadow colour must be #rrggbbaa"),
+      })
+      .optional(),
   });
 
 const photoLayer = z.object({
@@ -135,8 +147,10 @@ const canvasSection = z.object({
   aspect: z.tuple([z.number().positive(), z.number().positive()]),
   maxWidth: z.number().positive().max(2400).default(640),
   band: colorRef.default("bg"),
+  /** "none": no space around the canvas — bands of a long design stack edge to edge. */
+  padding: z.enum(["normal", "none"]).default("normal"),
   backgroundAssetId: z.string().optional(),
-  layers: z.array(layerSchema).max(80),
+  layers: z.array(layerSchema).max(150),
 });
 
 export const BLOCK_TYPES = ["story", "keyPeople", "schedule", "venue", "gallery", "registry", "faqs", "rsvp", "footer"] as const;
@@ -195,7 +209,7 @@ export const templateSpecSchema = z
       defaultPaletteId: z.string(),
       /** Let customers pick the platform-wide palettes too (only when the art isn't colour-baked). */
       allowGlobalPalettes: z.boolean().default(false),
-      fonts: z.object({ display: fontRef, body: fontRef }),
+      fonts: z.object({ display: fontRef, body: fontRef, accent: fontRef.optional(), extra: fontRef.optional() }),
       radius: z.enum(["none", "soft", "round"]).default("soft"),
     }),
     assets: z.record(asset).default({}),
@@ -242,7 +256,7 @@ export interface TextLayerSpec extends LayerBase {
   type: "text";
   bind?: { field: BindingField; format?: string; joiner?: string };
   text?: string;
-  font: "display" | "body";
+  font: FontSlot;
   size: number;
   minSize?: number;
   color: ColorRef;
@@ -256,6 +270,7 @@ export interface TextLayerSpec extends LayerBase {
   opacity: number;
   hideWhenEmpty: boolean;
   editorHint?: string;
+  shadow?: { x: number; y: number; blur: number; color: string };
 }
 export interface PhotoLayerSpec extends LayerBase { type: "photo"; slot: number; radius: number; frameAssetId?: string; editorHint?: string }
 export interface ImageLayerSpec extends LayerBase { type: "image"; assetId: string; opacity: number }
@@ -270,6 +285,7 @@ export interface CanvasSectionSpec {
   aspect: [number, number];
   maxWidth: number;
   band: ColorRef;
+  padding: "normal" | "none";
   backgroundAssetId?: string;
   layers: LayerSpec[];
 }
@@ -294,7 +310,7 @@ export interface TemplateSpec {
     palettes: PaletteSpec[];
     defaultPaletteId: string;
     allowGlobalPalettes: boolean;
-    fonts: { display: FontRefSpec; body: FontRefSpec };
+    fonts: { display: FontRefSpec; body: FontRefSpec; accent?: FontRefSpec; extra?: FontRefSpec };
     radius: "none" | "soft" | "round";
   };
   assets: Record<string, { url: string; w: number; h: number }>;

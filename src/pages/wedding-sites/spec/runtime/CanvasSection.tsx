@@ -34,7 +34,7 @@ export default function CanvasSection({ section, spec, content, editorPreview }:
   };
 
   return (
-    <section style={{ background: colorOf(theme, section.band), padding: "clamp(24px, 6cqw, 64px) clamp(12px, 3cqw, 24px)" }}>
+    <section style={{ background: colorOf(theme, section.band), padding: section.padding === "none" ? 0 : "clamp(24px, 6cqw, 64px) clamp(12px, 3cqw, 24px)" }}>
       <div
         style={{
           position: "relative",
@@ -179,7 +179,15 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(box);
-    return () => ro.disconnect();
+    // Web fonts arrive after first paint and change the text's size: refit.
+    let live = true;
+    document.fonts?.ready.then(() => live && fit());
+    document.fonts?.addEventListener?.("loadingdone", fit);
+    return () => {
+      live = false;
+      ro.disconnect();
+      document.fonts?.removeEventListener?.("loadingdone", fit);
+    };
   }, [value, layer.size, layer.minSize]);
 
   if (!value || (layer.hideWhenEmpty && layer.bind && !bound && !editorPreview)) return null;
@@ -187,6 +195,7 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
   return (
     <div
       ref={boxRef}
+      data-layer-id={layer.id}
       style={{
         ...boxStyle(layer),
         display: "flex",
@@ -199,7 +208,7 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
         ref={textRef}
         style={{
           display: "block",
-          fontFamily: layer.font === "display" ? theme.displayFont : theme.bodyFont,
+          fontFamily: theme.fonts[layer.font] ?? theme.bodyFont,
           fontSize: sizeCss(layer.size),
           color: colorOf(theme, layer.color),
           fontWeight: layer.weight,
@@ -210,6 +219,7 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
           opacity: isHint ? layer.opacity * 0.55 : layer.opacity,
           whiteSpace: "pre-line",
           overflowWrap: "normal",
+          textShadow: layer.shadow ? `${layer.shadow.x}cqw ${layer.shadow.y}cqw ${layer.shadow.blur}cqw ${layer.shadow.color}` : undefined,
         }}
       >
         {value}

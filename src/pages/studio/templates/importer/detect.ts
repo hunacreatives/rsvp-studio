@@ -14,6 +14,12 @@ export interface DetectedBox {
   w: number;
   h: number;
   color: string;
+  /** SVG import: tilt of the line (degrees) and its unrotated size/centre. */
+  rotate?: number;
+  cx?: number;
+  cy?: number;
+  rw?: number;
+  rh?: number;
 }
 
 export interface Detection {

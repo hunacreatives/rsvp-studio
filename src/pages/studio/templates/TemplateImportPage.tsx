@@ -9,27 +9,66 @@ import type { EventContent } from "@/pages/wedding-sites/content/types";
 import { defaultSectionVisibility } from "@/pages/wedding-sites/presentation/types";
 import { BINDING_FIELDS, BINDING_INFO, type BindingField } from "@/pages/wedding-sites/spec/bindings";
 import SpecTemplate from "@/pages/wedding-sites/spec/runtime/SpecTemplate";
-import { parseSpec, type TemplateSpec } from "@/pages/wedding-sites/spec/schema";
+import { parseSpec, type FontSlot, type TemplateSpec } from "@/pages/wedding-sites/spec/schema";
 import { StudioHeader } from "../StudioLayout";
 import { createDraftVersion, templateIdFrom } from "../templatesApi";
 import { assembleSpec, type AiLayer, type AiResult } from "./importer/assemble";
-import { detectText, type Detection } from "./importer/detect";
+import { detectText, type DetectedBox, type Detection } from "./importer/detect";
+import { matchFonts } from "./importer/fontMatch";
 import { measureLayers, type LineMetrics } from "./importer/measure";
+import { analyseSvg, type SvgAnalysis } from "./importer/svg";
+import { buildSvgLayers, measureShadow, renderTextMask, svgContext, svgDetection, type SvgBuild } from "./importer/svgImport";
 import { FIXTURES } from "./checks";
 
-type Stage = "upload" | "measuring" | "thinking" | "review";
+type Stage = "upload" | "measuring" | "thinking" | "finishing" | "review";
+type Mode = "svg" | "images";
+
+/** Share of the smaller box covered by the other. */
+const overlapShare = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) => {
+  const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  return (ix * iy) / Math.min(a.w * a.h, b.w * b.h);
+};
+
+const layersKey = (text: number[], photos: { p: number }[]) => `${text.join(",")}|${photos.map((p) => p.p).join(",")}`;
 
 /**
- * Studio → Templates → Import a design with AI. The designer's two exports
- * (with and without text) are measured in the browser; Claude labels what
- * each piece of text is; staff review the result against the original and
- * save it as a draft — then the normal checklist + publish flow takes over.
+ * Boxes whose letters come out of the artwork: the ones kept as text, plus
+ * any same-colour fragment sitting mostly inside one of them (rising
+ * handwriting can split a name into overlapping boxes; the AI may drop the
+ * fragment, but its letters must not stay behind as a ghost).
+ */
+const removalBoxes = (ai: AiResult, boxes: DetectedBox[]) => {
+  const kept = new Set(textBoxes(ai));
+  const keptBoxes = boxes.filter((b) => kept.has(b.n));
+  for (const b of boxes) {
+    if (kept.has(b.n)) continue;
+    const host = keptBoxes.find((k) => k.color === b.color && overlapShare(k, b) > 0.6 && k.w * k.h >= b.w * b.h);
+    if (host) kept.add(b.n);
+  }
+  return [...kept].sort((x, y) => x - y);
+};
+
+/** Box numbers the AI kept as text (everything else stays in the artwork). */
+const textBoxes = (ai: AiResult) => [...new Set(ai.layers.filter((l) => l.role !== "ignore").flatMap((l) => l.boxes))].sort((a, b) => a - b);
+
+/**
+ * Studio → Templates → Import a design with AI. Either ONE SVG file (its
+ * letters are found from the file's structure and removed for clean art) or
+ * two image exports (with and without text, diffed). Claude labels what each
+ * piece of text is; fonts are confirmed by test-rendering; staff review the
+ * result against the original and save a draft — then the normal checklist
+ * + publish flow takes over.
  */
 export default function TemplateImportPage() {
   const navigate = useNavigate();
   const [label, setLabel] = useState("");
   const [tier, setTier] = useState<"free" | "premium">("free");
   const [hint, setHint] = useState("");
+  const [mode, setMode] = useState<Mode>("svg");
+  const [svgFile, setSvgFile] = useState<File | null>(null);
+  const [svgA, setSvgA] = useState<SvgAnalysis | null>(null);
+  const [build, setBuild] = useState<SvgBuild | null>(null);
   const [designFile, setDesignFile] = useState<File | null>(null);
   const [artFile, setArtFile] = useState<File | null>(null);
   const [stage, setStage] = useState<Stage>("upload");
@@ -38,8 +77,9 @@ export default function TemplateImportPage() {
   const [metrics, setMetrics] = useState<LineMetrics[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [score, setScore] = useState<MatchScore | null>(null);
 
-  const askAi = async (d: Detection) => {
+  const askAi = async (d: Pick<Detection, "tiles" | "width" | "height" | "boxes">, m: Mode, a: SvgAnalysis | null = svgA): Promise<AiResult> => {
     setStage("thinking");
     const { data } = await supabase.auth.getSession();
     const r = await fetch("/api/template-ai", {
@@ -50,29 +90,124 @@ export default function TemplateImportPage() {
         width: d.width,
         height: d.height,
         hint: hint.trim() || undefined,
+        mode: m,
+        ...(m === "svg" && a ? svgContext(a) : {}),
         boxes: d.boxes.map((b) => ({ n: b.n, x: +b.x.toFixed(3), y: +b.y.toFixed(3), w: +b.w.toFixed(3), h: +b.h.toFixed(3), color: b.color })),
       }),
     });
     const out = await r.json().catch(() => ({ error: `The AI request failed (${r.status}).` }));
     if (!r.ok || !out.result) throw new Error(out.error ?? "The AI request failed.");
-    setAi(out.result as AiResult);
+    return out.result as AiResult;
+  };
+
+  /** SVG import: remove the confirmed text for clean art, recreate shadows, match fonts. */
+  const finishSvg = async (a: SvgAnalysis, base: Omit<Detection, "art" | "artSize">, result: AiResult) => {
+    setStage("finishing");
+    const kept = removalBoxes(result, base.boxes);
+    // A frame (PNG) sitting on a photo (JPEG): the photo is the slot.
+    const picks = (result.photos ?? []).map((x) => {
+      const pic = a.pictures.find((p) => p.n === x.p);
+      if (!pic || pic.format === "jpeg") return x;
+      const photo = a.pictures.find((p) => p.format === "jpeg" && p.n !== pic.n && overlapShare(p, pic) > 0.6);
+      return photo && !(result.photos ?? []).some((y) => y.p === photo.n) ? { ...x, p: photo.n } : x;
+    });
+    result = { ...result, photos: picks };
+    const b = await buildSvgLayers(a, kept, picks, Object.fromEntries((result.bands ?? []).map((x) => [x.b, x.key])));
+    const layers = await Promise.all(
+      result.layers.map(async (l) => {
+        if (l.role === "ignore") return l;
+        for (const n of l.boxes) {
+          const shadow = await measureShadow(a, n);
+          if (shadow) return { ...l, shadow };
+        }
+        return l;
+      }),
+    );
+    const byK = new Map(a.leaves.map((l) => [l.k, l]));
+    const glyphs = new Map(a.candidates.map((c) => [c.n, c.ks.map((k) => byK.get(k)!).filter(Boolean).sort((p, q) => p.x - q.x)]));
+    const fm = await matchFonts({ ...result, layers }, base.boxes, await renderTextMask(a, kept), glyphs);
+    const SLOT_NAME = { display: "Headline", body: "Text", accent: "Accent", extra: "Extra" } as const;
+    const fontNotes = fm.report.map(
+      (r) =>
+        `${SLOT_NAME[r.slot]} font: ${r.family} (${Math.round(r.score * 100)}% match${r.others.length ? `; also tried ${r.others.map(([f, v]) => `${f} ${Math.round(v * 100)}%`).join(", ")}` : ""}).`,
+    );
+    setBuild(b);
+    setDet({ ...base, art: b.bands[0].art, artSize: b.bands[0].artSize });
+    artKey.current = layersKey(kept, picks);
+    setAi({
+      ...result,
+      fonts: { ...fm.fonts, display: fm.fonts.display!, body: fm.fonts.body! },
+      layers: layers.map((l, i) => (fm.layers[i] ? { ...l, font: fm.layers[i].font, weight: fm.layers[i].weight } : l)),
+      available: fm.available,
+      fontScore: fm.report.length ? fm.report.reduce((t, r) => t + r.score, 0) / fm.report.length : undefined,
+      // The AI's own font guesses are superseded by the measured match.
+      notes: [...fontNotes, ...result.notes.filter((n) => !/\bfont|typeface|\bface\b/i.test(n))],
+    });
     setStage("review");
   };
 
   const analyse = async () => {
     setError(null);
     if (!label.trim()) return setError("Give the template a name.");
-    if (!designFile || !artFile) return setError("Add both images.");
     try {
-      setStage("measuring");
-      const d = await detectText(designFile, artFile);
-      setDet(d);
-      await askAi(d);
+      if (mode === "svg") {
+        if (!svgFile) return setError("Add the SVG file.");
+        setStage("measuring");
+        const a = await analyseSvg(svgFile);
+        if (!a.candidates.length) throw new Error("Couldn't find any text shapes in this SVG. If the text was flattened into a picture, use the two-image method instead.");
+        setSvgA(a);
+        const base = await svgDetection(a);
+        setDet({ ...base, art: new File([], "artwork.webp"), artSize: { w: base.width, h: base.height } });
+        await finishSvg(a, base, await askAi(base, "svg", a));
+      } else {
+        if (!designFile || !artFile) return setError("Add both images.");
+        setStage("measuring");
+        const d = await detectText(designFile, artFile);
+        setDet(d);
+        setAi(await askAi(d, "images"));
+        setStage("review");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStage(det && ai ? "review" : "upload");
     }
   };
+
+  const retryAi = async () => {
+    if (!det) return;
+    setError(null);
+    try {
+      if (mode === "svg" && svgA) await finishSvg(svgA, det, await askAi(det, "svg"));
+      else {
+        setAi(await askAi(det, "images"));
+        setStage("review");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setStage("review");
+    }
+  };
+
+  // SVG import: when a box is switched to/from "not text", or a picture
+  // to/from "customer photo", rebuild the layers so the art matches.
+  const artKey = useRef("");
+  const keptKey = ai && mode === "svg" && det ? layersKey(removalBoxes(ai, det.boxes), ai.photos ?? []) : "";
+  useEffect(() => {
+    if (!svgA || !ai || !keptKey || stage !== "review" || keptKey === artKey.current) return;
+    let live = true;
+    const t = setTimeout(async () => {
+      const b = await buildSvgLayers(svgA, removalBoxes(ai, det!.boxes), ai.photos ?? [], Object.fromEntries((ai.bands ?? []).map((x) => [x.b, x.key])));
+      if (!live) return;
+      artKey.current = keptKey;
+      setBuild(b);
+      setDet((d) => (d ? { ...d, art: b.bands[0].art, artSize: b.bands[0].artSize } : d));
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keptKey, svgA, stage]);
 
   // Re-measure whenever the wording or fonts change (not on palette/role edits).
   const measureKey = ai ? JSON.stringify([ai.fonts.display.family, ai.fonts.body.family, ai.layers.map((l) => [l.lines, l.font, l.weight, l.italic, l.uppercase, l.letterSpacing])]) : "";
@@ -85,14 +220,17 @@ export default function TemplateImportPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measureKey]);
-  const rawSpec = useMemo(() => (det && ai ? assembleSpec(det, ai, metrics) : null), [det, ai, metrics]);
-  const artUrl = useMemo(() => (det ? URL.createObjectURL(det.art) : null), [det]);
-  useEffect(() => () => void (artUrl && URL.revokeObjectURL(artUrl)), [artUrl]);
+  const svgBuild = mode === "svg" ? build : null;
+  const rawSpec = useMemo(() => (det && ai ? assembleSpec(det, ai, metrics, svgBuild ?? undefined) : null), [det, ai, metrics, svgBuild]);
+  // Every art file the template uses (background per band + on-top layers).
+  const files = useMemo(() => (svgBuild ? [...svgBuild.bands.map((b) => b.art), ...svgBuild.overlays.map((o) => o.file)] : det ? [det.art] : []), [svgBuild, det]);
+  const fileUrls = useMemo(() => new Map(files.map((f) => [f.name, URL.createObjectURL(f)])), [files]);
+  useEffect(() => () => fileUrls.forEach((u) => URL.revokeObjectURL(u)), [fileUrls]);
   const parsed = useMemo(() => {
-    if (!rawSpec || !artUrl) return null;
-    const preview = { ...rawSpec, assets: { artwork: { ...rawSpec.assets.artwork, url: artUrl } } };
-    return parseSpec(preview);
-  }, [rawSpec, artUrl]);
+    if (!rawSpec) return null;
+    const assets = Object.fromEntries(Object.entries(rawSpec.assets).map(([k, v]) => [k, { ...v, url: fileUrls.get(v.url) ?? v.url }]));
+    return parseSpec({ ...rawSpec, assets });
+  }, [rawSpec, fileUrls]);
   const spec = parsed && "spec" in parsed ? parsed.spec : null;
 
   const save = async () => {
@@ -101,7 +239,7 @@ export default function TemplateImportPage() {
     setError(null);
     try {
       const id = templateIdFrom(label);
-      await createDraftVersion({ templateId: id, label: label.trim(), tier, eventTypes: ai.eventTypes, rawSpec, files: [det.art], isNew: true });
+      await createDraftVersion({ templateId: id, label: label.trim(), tier, eventTypes: ai.eventTypes, rawSpec, files, isNew: true, ingestReport: { importedFrom: mode, fileName: (mode === "svg" ? svgFile : designFile)?.name, match: score, notes: ai.notes } });
       navigate(`/studio/templates/${id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save.");
@@ -119,7 +257,7 @@ export default function TemplateImportPage() {
       </Link>
       <StudioHeader
         title="Import a design with AI"
-        sub="Upload the design twice — once as it is, once with the text hidden. The AI makes the text editable; you check it and save a draft."
+        sub="Upload the design’s SVG file. The AI finds the text, makes it editable and cleans it out of the artwork; you check the result and save a draft."
       />
 
       {stage !== "review" ? (
@@ -136,11 +274,32 @@ export default function TemplateImportPage() {
             </Field>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <DropZone icon="ri-image-line" title="Full design" sub="Exactly as guests should see it, with sample names and date" file={designFile} onFile={setDesignFile} />
-            <DropZone icon="ri-image-edit-line" title="Same design, text hidden" sub="Everything else stays exactly in place" file={artFile} onFile={setArtFile} />
+          <div className="mt-6">
+            <FilterTabs<Mode>
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: "svg", label: "One SVG file" },
+                { value: "images", label: "Two images" },
+              ]}
+            />
           </div>
-          <details className="mt-4 text-[13px] text-[var(--slate)]">
+          {mode === "svg" ? (
+            <>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <DropZone icon="ri-file-code-line" title="Design SVG" sub="Canva: Share → Download → SVG" file={svgFile} onFile={setSvgFile} accept="image/svg+xml,.svg" />
+              </div>
+              <p className="mt-3 text-[13px] text-[var(--slate)]">
+                Works when the text is still text in the design tool (not flattened into a picture). If the import can’t find the text, use “Two images”.
+              </p>
+            </>
+          ) : (
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <DropZone icon="ri-image-line" title="Full design" sub="Exactly as guests should see it, with sample names and date" file={designFile} onFile={setDesignFile} />
+              <DropZone icon="ri-image-edit-line" title="Same design, text hidden" sub="Everything else stays exactly in place" file={artFile} onFile={setArtFile} />
+            </div>
+          )}
+          <details className="mt-4 text-[13px] text-[var(--slate)]" hidden={mode === "svg"}>
             <summary className="cursor-pointer font-medium text-[var(--ink)]">How to export the two images</summary>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>Canva: Share → Download → PNG. Then select the text you want customers to change, plus any wording, delete it, and download again. Undo afterwards.</li>
@@ -158,27 +317,85 @@ export default function TemplateImportPage() {
 
           <ErrorText>{error}</ErrorText>
           <PrimaryButton className="mt-6" onClick={analyse} disabled={stage !== "upload"}>
-            {stage === "measuring" ? "Finding the text…" : stage === "thinking" ? "AI is reading the design…" : "Analyse design"}
+            {stage === "measuring"
+              ? mode === "svg"
+                ? "Reading the file…"
+                : "Finding the text…"
+              : stage === "thinking"
+                ? "AI is reading the design…"
+                : stage === "finishing"
+                  ? "Matching fonts and cleaning the artwork…"
+                  : "Analyse design"}
           </PrimaryButton>
-          {stage === "thinking" ? <p className="mt-3 text-[13px] text-[var(--slate)]">Found {det?.boxes.length} pieces of text. This usually takes 20–60 seconds.</p> : null}
+          {stage === "thinking" ? (
+            <p className="mt-3 text-[13px] text-[var(--slate)]">
+              Found {det?.boxes.length} {mode === "svg" ? "lines that look like text" : "pieces of text"}
+              {svgA ? ` among ${svgA.leaves.length.toLocaleString()} elements` : ""}. This usually takes 10–60 seconds.
+            </p>
+          ) : null}
         </OutlineCard>
       ) : null}
 
       {stage === "review" && det && ai ? (
         <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
-          <ReviewPreview spec={spec} det={det} ai={ai} errors={parsed && "errors" in parsed ? parsed.errors : []} />
+          <ReviewPreview
+            spec={spec}
+            det={det}
+            ai={ai}
+            build={svgBuild}
+            errors={parsed && "errors" in parsed ? parsed.errors : []}
+            sources={(rawSpec as { __sources?: Record<string, Source> } | null)?.__sources ?? {}}
+            onScore={setScore}
+          />
           <aside className="space-y-5">
             <OutlineCard className="p-5">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Text ({ai.layers.length})</p>
-                <PillButton onClick={() => askAi(det).catch((e: Error) => (setError(e.message), setStage("review")))}>Ask AI again</PillButton>
+                <PillButton onClick={retryAi}>Ask AI again</PillButton>
               </div>
               <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
                 {ai.layers.map((l, i) => (
-                  <LayerRow key={i} layer={l} onChange={(p) => updateLayer(i, p)} />
+                  <LayerRow key={i} layer={l} slots={(["display", "body", "accent", "extra"] as const).filter((k) => ai.fonts[k])} onChange={(p) => updateLayer(i, p)} />
                 ))}
               </div>
             </OutlineCard>
+
+            {mode === "svg" && svgA?.pictures.length ? (
+              <OutlineCard className="p-5">
+                <p className="mb-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">
+                  Photos ({(ai.photos ?? []).length} of {svgA.pictures.length} pictures)
+                </p>
+                <p className="mb-3 text-[12px] text-[var(--slate)]">Ticked pictures become photo slots customers fill with their own. The rest stay part of the design.</p>
+                <div className="grid max-h-[40vh] grid-cols-3 gap-2 overflow-y-auto pr-1">
+                  {svgA.pictures.map((pic) => {
+                    const on = (ai.photos ?? []).some((x) => x.p === pic.n);
+                    return (
+                      <label key={pic.n} className="cursor-pointer rounded-lg border p-1 text-[11px]" style={{ borderColor: on ? "var(--acc-blue)" : "var(--line)" }}>
+                        <div
+                          className="w-full rounded"
+                          style={{
+                            aspectRatio: `${pic.w * det.width} / ${pic.h * det.height}`,
+                            backgroundImage: `url(${det.designUrl})`,
+                            backgroundSize: `${100 / pic.w}% ${100 / pic.h}%`,
+                            backgroundPosition: `${pic.w < 1 ? (pic.x / (1 - pic.w)) * 100 : 0}% ${pic.h < 1 ? (pic.y / (1 - pic.h)) * 100 : 0}%`,
+                          }}
+                        />
+                        <span className="mt-1 flex items-center gap-1">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={() =>
+                              setAi({ ...ai, photos: on ? (ai.photos ?? []).filter((x) => x.p !== pic.n) : [...(ai.photos ?? []), { p: pic.n, hint: "Photo" }] })
+                            }
+                          />
+                          P{pic.n}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </OutlineCard>
+            ) : null}
 
             {ai.notes.length ? (
               <OutlineCard className="p-5">
@@ -193,15 +410,14 @@ export default function TemplateImportPage() {
 
             <OutlineCard className="p-5">
               <p className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Fonts & colours</p>
-              {(["display", "body"] as const).map((k) => (
-                <label key={k} className="mb-2 flex items-center gap-2 text-[13px]">
-                  <span className="w-16 text-[var(--slate)]">{k === "display" ? "Headline" : "Text"}</span>
-                  <Input
-                    value={ai.fonts[k].family}
-                    onChange={(e) => setAi({ ...ai, fonts: { ...ai.fonts, [k]: { ...ai.fonts[k], family: e.target.value } } })}
-                  />
-                </label>
-              ))}
+              {(["display", "body", "accent", "extra"] as const)
+                .filter((k) => ai.fonts[k])
+                .map((k) => (
+                  <label key={k} className="mb-2 flex items-center gap-2 text-[13px]">
+                    <span className="w-16 text-[var(--slate)]">{FONT_SLOT_LABEL[k]}</span>
+                    <Input value={ai.fonts[k]!.family} onChange={(e) => setAi({ ...ai, fonts: { ...ai.fonts, [k]: { ...ai.fonts[k]!, family: e.target.value } } })} />
+                  </label>
+                ))}
               <div className="mt-3 flex flex-wrap gap-2">
                 {(Object.keys(ai.palette) as (keyof AiResult["palette"])[]).map((k) => (
                   <label key={k} className="flex flex-col items-center gap-1 text-[11px] text-[var(--slate)]">
@@ -234,7 +450,21 @@ export default function TemplateImportPage() {
   );
 }
 
-function DropZone({ icon, title, sub, file, onFile }: { icon: string; title: string; sub: string; file: File | null; onFile: (f: File | null) => void }) {
+function DropZone({
+  icon,
+  title,
+  sub,
+  file,
+  onFile,
+  accept = "image/png,image/jpeg,image/webp,image/svg+xml",
+}: {
+  icon: string;
+  title: string;
+  sub: string;
+  file: File | null;
+  onFile: (f: File | null) => void;
+  accept?: string;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   return (
@@ -256,7 +486,7 @@ function DropZone({ icon, title, sub, file, onFile }: { icon: string; title: str
         <p className="mt-2 font-semibold text-[var(--ink)]">{title}</p>
         <p className="truncate text-[13px] text-[var(--slate)]">{file ? `${file.name} ✓` : sub}</p>
       </button>
-      <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
+      <input ref={ref} type="file" accept={accept} className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
     </>
   );
 }
@@ -267,7 +497,9 @@ const ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "ignore", label: "Not text — ignore" },
 ];
 
-function LayerRow({ layer, onChange }: { layer: AiLayer; onChange: (p: Partial<AiLayer>) => void }) {
+const FONT_SLOT_LABEL = { display: "Headline", body: "Text", accent: "Accent", extra: "Extra" } as const;
+
+function LayerRow({ layer, slots, onChange }: { layer: AiLayer; slots: FontSlot[]; onChange: (p: Partial<AiLayer>) => void }) {
   const value = layer.role === "field" ? layer.field ?? "static" : layer.role;
   const formats = layer.role === "field" && layer.field ? BINDING_INFO[layer.field].formats : undefined;
   const scale = layer.scale ?? 1;
@@ -302,6 +534,15 @@ function LayerRow({ layer, onChange }: { layer: AiLayer; onChange: (p: Partial<A
             ))}
           </select>
         ) : null}
+        {layer.role !== "ignore" && slots.length > 1 ? (
+          <select value={layer.font} onChange={(e) => onChange({ font: e.target.value as FontSlot })} className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[12px]" title="Font">
+            {slots.map((k) => (
+              <option key={k} value={k}>
+                {FONT_SLOT_LABEL[k]} font
+              </option>
+            ))}
+          </select>
+        ) : null}
         {layer.role !== "ignore" ? (
           <span className="ml-auto inline-flex items-center gap-1 text-[12px] text-[var(--slate)]">
             Size
@@ -321,21 +562,81 @@ function LayerRow({ layer, onChange }: { layer: AiLayer; onChange: (p: Partial<A
 
 /** The design's own wording as event content, so the comparison view
  *  should match the original exactly when the template is right. */
-function designContent(ai: AiResult): EventContent {
+/** Parse "4:00 PM" / "13:00" into an ISO time on the given day. */
+function timeOn(day: string, text: string | undefined): string {
+  const m = text?.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i);
+  const d = day.slice(0, 10) || "2026-12-12";
+  if (!m) return `${d}T00:00:00`;
+  let h = +m[1];
+  if (/p/i.test(m[3] ?? "") && h < 12) h += 12;
+  if (/a/i.test(m[3] ?? "") && h === 12) h = 0;
+  return `${d}T${String(Math.min(23, h)).padStart(2, "0")}:${m[2] ?? "00"}:00`;
+}
+
+function designContent(ai: AiResult, build?: SvgBuild | null): EventContent {
   const base = normalizeEventContent(isabellaAndMateo);
-  const text = (field: string, format?: string) => ai.layers.find((l) => l.role === "field" && l.field === field && (!format || l.format === format))?.lines.join(" ");
+  // Multi-line details (an address) keep the design's line breaks; paragraphs re-wrap.
+  const text = (field: string, format?: string) => {
+    const l = ai.layers.find((x) => x.role === "field" && x.field === field && (!format || x.format === format));
+    if (!l) return undefined;
+    const avg = l.lines.reduce((n, t) => n + t.length, 0) / l.lines.length;
+    return l.lines.join(l.lines.length === 2 && avg <= 25 ? "\n" : " ");
+  };
   const names = text("hosts.names");
   const h0 = text("hosts.0.name");
   const h1 = text("hosts.1.name");
   const joiner = ai.layers.find((l) => l.field === "hosts.names")?.joiner ?? "&";
   const hostNames = h0 || h1 ? [h0, h1].filter(Boolean) : names ? names.split(new RegExp(`\\s*(?:${joiner.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}|\\n)\\s*`, "i")) : [];
   const venue = text("venue.name") ?? text("venue.nameOrAddress");
-  return {
+  const eventDate = designDate(ai) ?? base.eventDate;
+
+  // Repeating content straight from the design's own wording.
+  const val = (group: string, i: number, part: string) => text(`${group}.${i}.${part}`);
+  const count = (group: string) => {
+    let n = 0;
+    for (const l of ai.layers) {
+      const m = l.role === "field" && l.field?.match(/^(\w+)\.(\d+)\./);
+      if (m && m[1] === group) n = Math.max(n, +m[2] + 1);
+    }
+    return n;
+  };
+  const range = (group: string) => Array.from({ length: count(group) }, (_, i) => i);
+  const content: EventContent = {
     ...base,
-    eventDate: designDate(ai) ?? base.eventDate,
+    eventDate,
     hosts: hostNames.length ? hostNames.map((name, i) => ({ id: `h${i}`, name: name as string })) : base.hosts,
     primaryLocation: { ...base.primaryLocation, name: venue ?? base.primaryLocation.name, addressLine: text("venue.address") ?? base.primaryLocation.addressLine },
   };
+  if (count("schedule"))
+    content.schedule = range("schedule").map((i) => ({
+      id: `s${i}`,
+      label: val("schedule", i, "label") ?? "",
+      startTime: timeOn(eventDate, val("schedule", i, "time")),
+      description: val("schedule", i, "description"),
+      location: val("schedule", i, "place") ? { id: `l${i}`, name: val("schedule", i, "place")!, addressLine: "" } : undefined,
+    }));
+  if (count("faqs")) content.faqs = range("faqs").map((i) => ({ id: `f${i}`, order: i, question: val("faqs", i, "question") ?? "", answer: val("faqs", i, "answer") ?? "" }));
+  if (count("travel")) content.travelInformation = range("travel").map((i) => ({ id: `t${i}`, title: val("travel", i, "title") ?? "", body: val("travel", i, "body") ?? "" }));
+  if (count("stay"))
+    content.accommodations = range("stay").map((i) => ({ id: `a${i}`, name: val("stay", i, "name") ?? "", addressLine: val("stay", i, "address") ?? "", notes: val("stay", i, "notes") }));
+  if (count("people")) content.keyPeople = range("people").map((i) => ({ id: `p${i}`, name: val("people", i, "name") ?? "", role: val("people", i, "role") }));
+  if (count("registry")) content.registryLinks = range("registry").map((i) => ({ id: `r${i}`, storeName: val("registry", i, "store") ?? "", url: "#" }));
+  if (count("story")) content.story = range("story").map((i) => val("story", i, "text") ?? "").join("\n\n");
+  else if (text("story.first")) content.story = text("story.first");
+  // The design's own photos in its photo slots.
+  if (build?.photos.length) {
+    content.galleries = [
+      {
+        id: "design",
+        items: build.photos.map((ph, i) => ({
+          id: `ph${i}`,
+          order: i,
+          image: { id: `img${i}`, masterUrl: ph.src, width: 1000, height: 1000, alt: "", focalPoint: { x: 0.5, y: 0.5 }, createdAt: "" },
+        })),
+      },
+    ];
+  }
+  return content;
 }
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
@@ -369,32 +670,151 @@ function designDate(ai: AiResult): string | undefined {
   return `${y}-${pad(m + 1)}-${pad(d)}T${pad(hh)}:${pad(mm)}:00`;
 }
 
-function ReviewPreview({ spec, det, ai, errors }: { spec: TemplateSpec | null; det: Detection; ai: AiResult; errors: string[] }) {
+export interface MatchScore {
+  /** 0–100 overall. */
+  total: number;
+  placement: number;
+  fit: number;
+  fonts: number | null;
+  /** Text layers enlarged on a phone to stay readable (wide designs). */
+  phoneEnlarged: number;
+  textLayers: number;
+  /** Lines that are furthest off, worst first. */
+  worst: { id: string; text: string; score: number; fits: boolean }[];
+}
+
+type Source = { canvas: string; x: number; y: number; w: number; h: number };
+
+/**
+ * Measure the rendered template against the original: where each line of
+ * text actually lands vs. where its letters are in the design, whether it
+ * fits its box, plus the font match. Rendered at the design's real width.
+ */
+function measureMatch(root: HTMLElement, sources: Record<string, Source>, spec: TemplateSpec, fontScore: number | null): MatchScore {
+  let wsum = 0, psum = 0, fitW = 0;
+  const lines: MatchScore["worst"] = [];
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>("[data-layer-id]"))) {
+    const id = el.dataset.layerId!;
+    const src = sources[id];
+    const canvas = el.parentElement;
+    const span = el.firstElementChild as HTMLElement | null;
+    if (!src || !canvas || !span || !span.textContent?.trim()) continue;
+    const c = canvas.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    const r = range.getBoundingClientRect();
+    if (!c.width || !r.width) continue;
+    const rx = (r.left - c.left) / c.width, ry = (r.top - c.top) / c.height, rw = r.width / c.width, rh = r.height / c.height;
+    const rotated = /rotate/.test(el.style.transform);
+    const dx = Math.abs(rx + rw / 2 - (src.x + src.w / 2)) / Math.max(src.w, 0.02);
+    const dy = Math.abs(ry + rh / 2 - (src.y + src.h / 2)) / Math.max(src.h, 0.005);
+    const dw = rotated ? 0 : Math.abs(rw / src.w - 1);
+    const score = Math.exp(-(dx + dy * 0.5 + dw));
+    const fits = span.offsetHeight <= el.clientHeight + 2 && span.scrollWidth <= el.clientWidth + 2;
+    const w = Math.max(src.w * src.h, 1e-5);
+    wsum += w;
+    psum += w * score;
+    fitW += fits ? w : 0;
+    lines.push({ id, text: span.textContent.trim().slice(0, 48), score: Math.round(score * 100), fits });
+  }
+  // Phone: a 390px screen; canvas text below the 11px floor gets enlarged.
+  let phoneEnlarged = 0, textLayers = 0;
+  for (const sec of spec.sections) {
+    if (sec.kind !== "canvas") continue;
+    const phoneW = Math.min(sec.maxWidth, sec.padding === "none" ? 390 : 390 - 2 * 12);
+    for (const l of sec.layers) {
+      if (l.type !== "text") continue;
+      textLayers++;
+      if ((l.size / 100) * phoneW < 11) phoneEnlarged++;
+    }
+  }
+  const placement = wsum ? psum / wsum : 1;
+  const fit = wsum ? fitW / wsum : 1;
+  const total = fontScore === null ? 0.65 * placement + 0.35 * fit : 0.45 * placement + 0.25 * fit + 0.3 * fontScore;
+  return {
+    total: Math.round(total * 100),
+    placement: Math.round(placement * 100),
+    fit: Math.round(fit * 100),
+    fonts: fontScore === null ? null : Math.round(fontScore * 100),
+    phoneEnlarged,
+    textLayers,
+    worst: lines.filter((x) => x.score < 80 || !x.fits).sort((p, q) => p.score - q.score).slice(0, 6),
+  };
+}
+
+function ReviewPreview({
+  spec,
+  det,
+  ai,
+  build,
+  errors,
+  sources,
+  onScore,
+}: {
+  spec: TemplateSpec | null;
+  det: Detection;
+  ai: AiResult;
+  build: SvgBuild | null;
+  errors: string[];
+  sources: Record<string, Source>;
+  onScore: (s: MatchScore | null) => void;
+}) {
   const [mode, setMode] = useState<"compare" | "site">("compare");
+  const [device, setDevice] = useState<"desktop" | "phone">("phone");
   const [fixtureId, setFixtureId] = useState(FIXTURES[0].id);
   const [mix, setMix] = useState(0.5);
   const [difference, setDifference] = useState(false);
-  const own = useMemo(() => designContent(ai), [ai]);
+  const own = useMemo(() => designContent(ai, build), [ai, build]);
   const heroOnly = useMemo(() => (spec ? { ...spec, sections: spec.sections.filter((s) => s.kind === "canvas") } : null), [spec]);
-  const wrap = useRef<HTMLDivElement>(null);
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [innerH, setInnerH] = useState(0);
   const [canvasRect, setCanvasRect] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [score, setScore] = useState<MatchScore | null>(null);
 
-  // Find the rendered canvas so the original can sit exactly on top of it.
+  // Render at the design's real width (so text sizes are true), scaled to fit.
+  const first = heroOnly?.sections.find((s) => s.kind === "canvas");
+  const designW = first && first.kind === "canvas" ? first.maxWidth + (first.padding === "none" ? 0 : 48) : 600;
+
   useLayoutEffect(() => {
-    if (mode !== "compare" || !wrap.current) return;
-    const el = wrap.current;
+    if (mode !== "compare" || !outer.current || !inner.current) return;
+    const o = outer.current;
+    const el = inner.current;
     const measure = () => {
+      const k = Math.min(1, o.clientWidth / designW);
+      setScale(k);
+      setInnerH(el.offsetHeight * k);
       const canvas = el.querySelector<HTMLElement>("[data-spec-root] section > div");
       if (!canvas) return;
       const a = el.getBoundingClientRect();
       const b = canvas.getBoundingClientRect();
-      setCanvasRect({ left: b.left - a.left, top: b.top - a.top, width: b.width });
+      setCanvasRect({ left: (b.left - a.left) / k, top: (b.top - a.top) / k, width: b.width / k });
     };
     measure();
     const ro = new ResizeObserver(measure);
+    ro.observe(o);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [mode, heroOnly]);
+  }, [mode, heroOnly, designW]);
+
+  // Score once fonts have loaded and text has been fitted.
+  useEffect(() => {
+    if (mode !== "compare" || !inner.current || !heroOnly) return;
+    let live = true;
+    const run = () => {
+      if (!live || !inner.current) return;
+      const s = measureMatch(inner.current, sources, heroOnly, ai.fontScore ?? null);
+      setScore(s);
+      onScore(s);
+    };
+    const t = setTimeout(() => document.fonts.ready.then(() => setTimeout(run, 400)), 300);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, heroOnly, own, sources]);
 
   if (!spec || !heroOnly) {
     return (
@@ -410,9 +830,46 @@ function ReviewPreview({ spec, det, ai, errors }: { spec: TemplateSpec | null; d
   }
   const fixture = FIXTURES.find((f) => f.id === fixtureId) ?? FIXTURES[0];
   const settings = { paletteId: spec.tokens.defaultPaletteId, fontPairingId: "", sectionVisibility: { ...defaultSectionVisibility } };
+  const tone = (v: number) => (v >= 90 ? "#3d5a12" : v >= 75 ? "#8a6100" : "#c2412d");
 
   return (
     <section className="min-w-0">
+      {score ? (
+        <div className="mb-4 rounded-[18px] border border-[var(--line)] bg-white px-5 py-4">
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">
+              Match <span className="ml-1 font-serif text-[28px] normal-case tracking-normal" style={{ color: tone(score.total) }}>{score.total}%</span>
+            </p>
+            <p className="text-[13px] text-[var(--slate)]">
+              Text placement <b style={{ color: tone(score.placement) }}>{score.placement}%</b> · Fits its boxes <b style={{ color: tone(score.fit) }}>{score.fit}%</b>
+              {score.fonts !== null ? (
+                <>
+                  {" "}
+                  · Fonts <b style={{ color: tone(score.fonts) }}>{score.fonts}%</b>
+                </>
+              ) : null}
+            </p>
+          </div>
+          {score.phoneEnlarged ? (
+            <p className="mt-2 text-[12px] text-[#8a6100]">
+              On phones, {score.phoneEnlarged} of {score.textLayers} text boxes are below a readable size and get enlarged, so they may crowd. Designs made at phone width (about 400–600px wide) avoid this.
+            </p>
+          ) : null}
+          {score.worst.length ? (
+            <details className="mt-2 text-[12px] text-[var(--slate)]">
+              <summary className="cursor-pointer">Lines to check ({score.worst.length})</summary>
+              <ul className="mt-1 space-y-0.5 pl-4">
+                {score.worst.map((w) => (
+                  <li key={w.id}>
+                    “{w.text}” — {w.score}% placed{w.fits ? "" : ", doesn’t fit its box"}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <FilterTabs<"compare" | "site">
           value={mode}
@@ -435,35 +892,47 @@ function ReviewPreview({ spec, det, ai, errors }: { spec: TemplateSpec | null; d
             </label>
           </>
         ) : (
-          <select value={fixtureId} onChange={(e) => setFixtureId(e.target.value)} className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-[13px]">
-            {FIXTURES.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.label}
-              </option>
-            ))}
-          </select>
+          <>
+            <FilterTabs<"desktop" | "phone">
+              value={device}
+              onChange={setDevice}
+              options={[
+                { value: "phone", label: "Phone" },
+                { value: "desktop", label: "Desktop" },
+              ]}
+            />
+            <select value={fixtureId} onChange={(e) => setFixtureId(e.target.value)} className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-[13px]">
+              {FIXTURES.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </>
         )}
       </div>
 
       {mode === "compare" ? (
         <div className="rounded-[22px] border border-[var(--line)] bg-white p-4">
-          <div ref={wrap} className="relative mx-auto" style={{ width: det.width > det.height ? "100%" : "min(100%, 520px)" }}>
-            <SpecTemplate spec={heroOnly} content={own} settings={settings} />
-            {canvasRect ? (
-              <img
-                src={det.designUrl}
-                alt="Original design"
-                className="pointer-events-none absolute"
-                style={{
-                  left: canvasRect.left,
-                  top: canvasRect.top,
-                  width: canvasRect.width,
-                  zIndex: 60, // above every template layer (layers use z 0–50)
-                  opacity: difference ? 1 : mix,
-                  mixBlendMode: difference ? "difference" : "normal",
-                }}
-              />
-            ) : null}
+          <div ref={outer} className="relative mx-auto w-full overflow-hidden" style={{ height: innerH || undefined, maxWidth: designW }}>
+            <div ref={inner} className="absolute left-0 top-0" style={{ width: designW, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
+              <SpecTemplate spec={heroOnly} content={own} settings={settings} />
+              {canvasRect ? (
+                <img
+                  src={det.designUrl}
+                  alt="Original design"
+                  className="pointer-events-none absolute"
+                  style={{
+                    left: canvasRect.left,
+                    top: canvasRect.top,
+                    width: canvasRect.width,
+                    zIndex: 60, // above every template layer (layers use z 0–50)
+                    opacity: difference ? 1 : mix,
+                    mixBlendMode: difference ? "difference" : "normal",
+                  }}
+                />
+              ) : null}
+            </div>
           </div>
           <p className="mt-3 text-center text-[12px] text-[var(--slate)]">
             {difference ? "Black means a perfect match; bright outlines show text that’s off." : "Slide to fade between the template (with the design’s own wording) and the original."}
@@ -471,7 +940,7 @@ function ReviewPreview({ spec, det, ai, errors }: { spec: TemplateSpec | null; d
         </div>
       ) : (
         <div className="flex h-[78vh] flex-col overflow-hidden rounded-[22px] border border-[var(--line)]">
-          <PreviewCanvas deviceWidth={390}>
+          <PreviewCanvas deviceWidth={device === "phone" ? 390 : 1024}>
             <SpecTemplate spec={spec} content={fixture.content} editorPreview={fixture.editor} settings={settings} />
           </PreviewCanvas>
         </div>

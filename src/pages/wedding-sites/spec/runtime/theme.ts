@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect } from "react";
 import { palettes as globalPalettes } from "../../presentation/palettes";
 import type { BaseTemplateSettings } from "../../presentation/types";
-import type { ColorToken, PaletteSpec, TemplateSpec } from "../schema";
+import type { ColorToken, FontSlot, PaletteSpec, TemplateSpec } from "../schema";
 
 // Resolved look of one spec template for one event: colours from the
 // template's own palettes (or a platform palette when the template allows
@@ -12,6 +12,8 @@ export interface SpecTheme {
   colors: Record<ColorToken, string>;
   displayFont: string;
   bodyFont: string;
+  /** CSS font-family for any slot (accent/extra fall back to body). */
+  fonts: Record<FontSlot, string>;
   /** Corner radius for cards, inputs and buttons (px; 999 = pill). */
   radius: { card: number; control: number };
 }
@@ -29,13 +31,15 @@ export function resolveSpecTheme(spec: TemplateSpec, settings?: Pick<BaseTemplat
     own?.colors ??
     (global ? fromGlobal(global.swatches) : undefined) ??
     spec.tokens.palettes.find((p) => p.id === spec.tokens.defaultPaletteId)!.colors;
-  const { display, body } = spec.tokens.fonts;
+  const { display, body, accent, extra } = spec.tokens.fonts;
+  const css = (f: { family: string; fallback: string }) => `"${f.family}", ${f.fallback}`;
   const radius =
     spec.tokens.radius === "none" ? { card: 0, control: 0 } : spec.tokens.radius === "round" ? { card: 22, control: 999 } : { card: 12, control: 10 };
   return {
     colors,
-    displayFont: `"${display.family}", ${display.fallback}`,
-    bodyFont: `"${body.family}", ${body.fallback}`,
+    displayFont: css(display),
+    bodyFont: css(body),
+    fonts: { display: css(display), body: css(body), accent: css(accent ?? body), extra: css(extra ?? body) },
     radius,
   };
 }
@@ -58,16 +62,25 @@ export function colorOf(theme: SpecTheme, ref: string): string {
  * their own fonts, so nothing has to be added to index.html per design.
  */
 export function useSpecFonts(spec: TemplateSpec) {
-  const { display, body } = spec.tokens.fonts;
-  const href = buildGoogleFontsHref([display, body]);
+  const { display, body, accent, extra } = spec.tokens.fonts;
+  // One request per family: Google Fonts rejects a whole request if any
+  // family or weight in it doesn't exist, which would take every font down.
+  const hrefs = [display, body, accent, extra]
+    .filter((f): f is NonNullable<typeof f> => !!f)
+    .map((f) => buildGoogleFontsHref([f]))
+    .filter((h, i, a) => h && a.indexOf(h) === i);
+  const key = hrefs.join("|");
   useEffect(() => {
-    if (!href || document.querySelector(`link[data-spec-fonts="${CSS.escape(href)}"]`)) return;
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = href;
-    link.dataset.specFonts = href;
-    document.head.appendChild(link);
-  }, [href]);
+    for (const href of hrefs) {
+      if (document.querySelector(`link[data-spec-fonts="${CSS.escape(href)}"]`)) continue;
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = href;
+      link.dataset.specFonts = href;
+      document.head.appendChild(link);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 }
 
 export function buildGoogleFontsHref(fonts: { family: string; weights: number[]; italic: boolean }[]): string {

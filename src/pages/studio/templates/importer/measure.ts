@@ -1,4 +1,5 @@
 import { buildGoogleFontsHref } from "@/pages/wedding-sites/spec/runtime/theme";
+import type { FontSlot } from "@/pages/wedding-sites/spec/schema";
 import type { AiResult } from "./assemble";
 
 // AI import, step 2b: measure each piece of text in the font the AI chose.
@@ -11,16 +12,18 @@ export type LineMetrics = { w: number; h: number }[] | null;
 
 const withTimeout = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
 
+const fontFor = (ai: AiResult, slot: FontSlot) => ai.fonts[slot] ?? ai.fonts.body;
+
 async function loadFonts(ai: AiResult) {
-  const weights = (k: "display" | "body") => [...new Set([400, ...ai.layers.filter((l) => l.font === k).map((l) => l.weight)])];
-  const href = buildGoogleFontsHref(
-    (["display", "body"] as const).map((k) => ({
-      family: ai.fonts[k].family,
-      weights: weights(k),
-      italic: ai.fonts[k].italic || ai.layers.some((l) => l.font === k && l.italic),
-    })),
-  );
-  if (href && !document.querySelector(`link[data-spec-fonts="${CSS.escape(href)}"]`)) {
+  // One request per family (a bad family/weight fails the whole request).
+  for (const slot of ["display", "body", "accent", "extra"] as const) {
+    const f = ai.fonts[slot];
+    if (!f) continue;
+    const served = ai.available?.[f.family.trim()];
+    const want = [...new Set([400, ...ai.layers.filter((l) => l.font === slot).map((l) => l.weight)])];
+    const weights = served?.weights.length ? want.filter((w) => served.weights.includes(w)) : want;
+    const href = buildGoogleFontsHref([{ family: f.family, weights: weights.length ? weights : served?.weights ?? [400], italic: (served?.italic ?? false) && ai.layers.some((l) => l.font === slot && l.italic) }]);
+    if (!href || document.querySelector(`link[data-spec-fonts="${CSS.escape(href)}"]`)) continue;
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = href;
@@ -31,7 +34,7 @@ async function loadFonts(ai: AiResult) {
   }
   await withTimeout(
     Promise.all(
-      ai.layers.map((l) => document.fonts.load(`${l.italic ? "italic " : ""}${l.weight} 100px "${ai.fonts[l.font].family}"`, l.lines.join(" ") || "Ag")),
+      ai.layers.map((l) => document.fonts.load(`${l.italic ? "italic " : ""}${l.weight} 100px "${fontFor(ai, l.font).family}"`, l.lines.join(" ") || "Ag")),
     ),
     6000,
   );
@@ -41,7 +44,7 @@ export async function measureLayers(ai: AiResult): Promise<LineMetrics[]> {
   await loadFonts(ai).catch(() => undefined);
   const ctx = document.createElement("canvas").getContext("2d")!;
   return ai.layers.map((l) => {
-    const css = `${l.italic ? "italic " : ""}${l.weight} 100px "${ai.fonts[l.font].family}"`;
+    const css = `${l.italic ? "italic " : ""}${l.weight} 100px "${fontFor(ai, l.font).family}"`;
     if (!document.fonts.check(css)) return null;
     ctx.font = css;
     return l.lines.map((line) => {
