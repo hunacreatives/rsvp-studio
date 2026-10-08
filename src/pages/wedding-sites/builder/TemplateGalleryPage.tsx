@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/pages/home/components/Navbar";
-import { listTemplateDefinitions, type TemplateArchetype, type TemplateDefinition } from "../engine/registry";
+import { type TemplateArchetype, type TemplateDefinition } from "../engine/registry";
+import { useTemplateCatalog } from "../engine/catalog";
 import type { PresentationState } from "../presentation/types";
 import { useEventSiteDraft } from "./useEventSiteDraft";
 import TemplateMockupPreview from "./components/TemplateMockupPreview";
@@ -96,7 +97,7 @@ export default function TemplateGalleryPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { status, errorDetail, presentation, setPresentation, save } = useEventSiteDraft(eventId);
-  const templates = listTemplateDefinitions();
+  const { templates } = useTemplateCatalog();
   const [eventType, setEventType] = useState<string | null>(null);
   const [archetypeFilter, setArchetypeFilter] = useState<TemplateArchetype | "all">("all");
 

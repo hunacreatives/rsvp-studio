@@ -9,6 +9,16 @@ import { cinematicDemoBirthday } from "../content/fixtures/cinematic-demo";
 import { listTemplateDefinitions } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
 import type { PresentationState } from "../presentation/types";
+import { parseSpec } from "../spec/schema";
+import { definitionFromSpec } from "../spec/definitionFromSpec";
+import { botanicalSpec } from "../spec/samples/botanical";
+
+// Uploadable-template specs rendered through the generic spec runtime
+// (template id "spec:<name>"), so a spec can be compared side by side with
+// the hand-coded template it reproduces.
+const specSamples: Record<string, { label: string; spec: unknown }> = {
+  "spec:botanical": { label: "Botanical — as uploaded spec", spec: botanicalSpec },
+};
 
 // Internal, dev-only harness for rendering an event-site template against
 // fixture content without needing a real client account or Supabase row.
@@ -49,7 +59,15 @@ export default function PreviewHarnessPage() {
   const templates = listTemplateDefinitions();
   const rawFixture = fixtures[fixtureId] ?? scrapbookDemoWedding;
   const content = normalizeEventContent(rawFixture);
-  const resolved = templateId ? resolveTemplate(buildPreviewPresentation(templateId)) : undefined;
+  const sample = specSamples[templateId];
+  const parsed = sample ? parseSpec(sample.spec) : undefined;
+  const specDefinition =
+    sample && parsed && "spec" in parsed ? definitionFromSpec({ id: templateId, label: sample.label, tier: "free", spec: parsed.spec }) : undefined;
+  const resolved = specDefinition
+    ? { definition: specDefinition, settings: specDefinition.defaultSettings }
+    : templateId
+      ? resolveTemplate(buildPreviewPresentation(templateId))
+      : undefined;
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f2" }}>
@@ -140,11 +158,21 @@ export default function PreviewHarnessPage() {
                 {t.label} ({t.archetype})
               </option>
             ))}
+            {Object.entries(specSamples).map(([id, s]) => (
+              <option key={id} value={id}>
+                {s.label}
+              </option>
+            ))}
           </select>
         </label>
       </div>
 
-      {resolved ? (
+      {parsed && "errors" in parsed ? (
+        <div style={{ padding: 32, color: "#c2412d", fontFamily: "monospace", fontSize: 13 }}>
+          <strong>Spec failed validation:</strong>
+          <ul>{parsed.errors.map((e) => <li key={e}>{e}</li>)}</ul>
+        </div>
+      ) : resolved ? (
         <div style={{ width: previewWidth ?? "100%", maxWidth: "100%", margin: "0 auto" }}>
           <resolved.definition.component content={content} settings={resolved.settings} editorPreview={editorPreview} />
         </div>

@@ -34,6 +34,10 @@ import StudioProjects from "../pages/studio/pages/ProjectsPage";
 import StudioInboxPage from "../pages/studio/pages/InboxPage";
 import StudioInvoices from "../pages/studio/pages/InvoicesPage";
 import StudioClients from "../pages/studio/pages/ClientsPage";
+import StudioTemplates from "../pages/studio/templates/TemplatesPage";
+import StudioTemplateNew from "../pages/studio/templates/TemplateNewPage";
+import StudioTemplateDetail from "../pages/studio/templates/TemplateDetailPage";
+import StudioTemplateImport from "../pages/studio/templates/TemplateImportPage";
 import PreviewHarnessPage from "../pages/wedding-sites/preview/PreviewHarnessPage";
 import PublicEventSitePage from "../pages/wedding-sites/public/PublicEventSitePage";
 import BuilderShellPage from "../pages/wedding-sites/builder/BuilderShellPage";
@@ -83,6 +87,10 @@ const routes: RouteObject[] = [
       { path: "inbox", element: <StudioInboxPage /> },
       { path: "invoices", element: <StudioInvoices /> },
       { path: "clients", element: <StudioClients /> },
+      { path: "templates", element: <StudioTemplates /> },
+      { path: "templates/new", element: <StudioTemplateNew /> },
+      { path: "templates/import", element: <StudioTemplateImport /> },
+      { path: "templates/:templateId", element: <StudioTemplateDetail /> },
     ],
   },
   { path: "/invite/:slug", element: <PublicEventSitePage /> },

@@ -14,7 +14,7 @@ const GUTTER = 24;
  * size from their own container (see the Scrapbook template's container
  * queries), so nothing preview-specific leaks into the published page.
  */
-export default function PreviewCanvas({ children }: { children: ReactNode }) {
+export default function PreviewCanvas({ children, deviceWidth = DESKTOP_WIDTH }: { children: ReactNode; deviceWidth?: number }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -25,10 +25,10 @@ export default function PreviewCanvas({ children }: { children: ReactNode }) {
     const content = contentRef.current;
     if (!outer || !content) return;
     const available = Math.max(outer.clientWidth - GUTTER * 2, 240);
-    const nextScale = Math.min(1, available / DESKTOP_WIDTH);
+    const nextScale = Math.min(1, available / deviceWidth);
     setScale(nextScale);
     setScaledHeight(content.scrollHeight * nextScale);
-  }, []);
+  }, [deviceWidth]);
 
   useEffect(() => {
     measure();
@@ -50,7 +50,7 @@ export default function PreviewCanvas({ children }: { children: ReactNode }) {
     >
       <div
         style={{
-          width: DESKTOP_WIDTH * scale,
+          width: deviceWidth * scale,
           height: scaledHeight,
           margin: "0 auto",
           position: "relative",
@@ -60,7 +60,7 @@ export default function PreviewCanvas({ children }: { children: ReactNode }) {
         <div
           ref={contentRef}
           style={{
-            width: DESKTOP_WIDTH,
+            width: deviceWidth,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
             position: "absolute",

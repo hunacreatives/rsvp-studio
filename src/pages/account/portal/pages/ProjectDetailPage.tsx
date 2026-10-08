@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import GuestTable from "../../components/GuestTable";
 import { getTemplateDefinition } from "@/pages/wedding-sites/engine/registry";
+import { useTemplateCatalog } from "@/pages/wedding-sites/engine/catalog";
 import { usePortal } from "../PortalContext";
 import * as api from "../api";
 import { ActivityList, InvoiceTable, ProjectStatusPill, TaskList, useProjectCover } from "../components/blocks";
@@ -121,6 +122,7 @@ export default function ProjectDetailPage() {
 function WebsiteTab({ project }: { project: Project }) {
   const { sites } = usePortal();
   const navigate = useNavigate();
+  useTemplateCatalog(); // so uploaded templates show their real name
   const site = sites[project.id];
   const builder = `/account/events/${project.id}/site-builder`;
 

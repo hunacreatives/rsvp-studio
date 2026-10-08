@@ -1,4 +1,4 @@
-import { listTemplateDefinitions } from "../../engine/registry";
+import { useTemplateCatalog } from "../../engine/catalog";
 import { usePrefersReducedMotion } from "../../engine/motion";
 import { palettes } from "../../presentation/palettes";
 import { fontPairings } from "../../presentation/fontPairings";
@@ -31,7 +31,7 @@ const CARD_SPECS: FloatingCardSpec[] = [
 
 export default function FloatingTemplateSamples() {
   const prefersReducedMotion = usePrefersReducedMotion();
-  const templates = listTemplateDefinitions();
+  const { templates } = useTemplateCatalog();
   if (templates.length === 0) return null;
 
   const looks: BaseTemplateSettings[] = CARD_SPECS.map((_, index) => {

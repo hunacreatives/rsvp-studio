@@ -28,6 +28,7 @@ const NAV = [
   { to: "/studio/inbox", label: "Inbox", icon: "ri-inbox-2-line" },
   { to: "/studio/invoices", label: "Invoices", icon: "ri-file-list-3-line" },
   { to: "/studio/clients", label: "Clients", icon: "ri-group-line" },
+  { to: "/studio/templates", label: "Templates", icon: "ri-layout-masonry-line" },
 ];
 
 export default function StudioLayout() {

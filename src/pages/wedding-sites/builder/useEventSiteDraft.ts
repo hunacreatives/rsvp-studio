@@ -5,6 +5,7 @@ import { slugify } from "../content/slugify";
 import type { EventContent } from "../content/types";
 import type { PresentationState } from "../presentation/types";
 import { defaultBaseTemplateSettings } from "../engine/render";
+import { getCatalogEntry } from "../engine/registry";
 
 // Data layer for the builder shell. Talks to the `wedding_sites` table
 // added in supabase/wedding-sites-schema.sql — that migration must be run
@@ -198,6 +199,10 @@ export function useEventSiteDraft(eventId: string | undefined) {
     const nowIso = new Date().toISOString();
     // Guests' RSVP forms post content.slug — make sure it's the real one.
     const publishedContent = { ...content, slug: slug || content.slug };
+    // Uploaded (spec) templates: pin the live site to the template version
+    // it was published with, so later template edits never change it.
+    const entry = getCatalogEntry(presentation.activeTemplateId);
+    const pin = entry ? { published_template_version_id: entry.kind === "spec" ? entry.currentVersionId : null } : {};
     const { error } = await supabase
       .from("wedding_sites")
       .update({
@@ -206,6 +211,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
         published_content: publishedContent,
         published_presentation: presentation,
         published_at: nowIso,
+        ...pin,
       })
       .eq("id", siteId);
     if (!error) setPublishedAt(nowIso);

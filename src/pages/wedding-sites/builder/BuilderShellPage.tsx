@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getTemplateDefinition } from "../engine/registry";
+import { useTemplateCatalog } from "../engine/catalog";
 import { resolveTemplate } from "../engine/render";
 import ContentEditor from "./ContentEditor";
 import PreviewCanvas from "./components/PreviewCanvas";
@@ -24,11 +25,12 @@ export default function BuilderShellPage() {
     publish,
   } = useEventSiteDraft(eventId);
 
+  const catalog = useTemplateCatalog();
   const resolved = resolveTemplate(presentation);
   const activeDefinition = getTemplateDefinition(presentation.activeTemplateId);
   const [editorCollapsed, setEditorCollapsed] = useState(false);
 
-  if (status === "loading") {
+  if (status === "loading" || (!resolved && presentation.activeTemplateId && !catalog.ready)) {
     return <div style={{ padding: 48, color: "var(--slate)" }}>Loading your event site…</div>;
   }
   if (status === "error") {

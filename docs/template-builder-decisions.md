@@ -540,3 +540,31 @@ detailed reasoning if you need it.
   DevTools Protocol with an actual `setTimeout` wait before
   `Page.captureScreenshot`) are what actually verifies staged-reveal
   animations, not `--virtual-time-budget`.
+
+## Uploadable templates: a spec + one generic runtime (Phase 1a, Oct 2026)
+- Goal: studio staff upload a design and customers can use it in Build
+  Your Website with no developer and no deploy. Hand-coded templates
+  (700–1,550 lines each) can't get there, so templates can now be DATA:
+  a `TemplateSpec` (src/pages/wedding-sites/spec/schema.ts) rendered by
+  one runtime (spec/runtime/SpecTemplate.tsx).
+- A spec = tokens (own palettes, Google fonts, corner style) + assets +
+  sections. Sections are either `canvas` (the designer's art: background
+  image + text/photo/image/RSVP-button layers in normalized 0..1 boxes,
+  sizes in `cqw` of the card) or `block` (shared library in
+  spec/runtime/blocks.tsx: story, keyPeople, schedule, venue — with map +
+  add-to-calendar —, gallery, registry, faqs, rsvp, footer).
+- Text binds only to a closed list of fields (spec/bindings.ts) so the
+  Studio mapping UI can offer a dropdown, never an arbitrary path.
+- Long real names shrink toward `minSize`; canvas text never renders under
+  11px (MIN_PX) — on phones it wraps instead of becoming unreadable.
+- `zod` added for runtime validation of uploaded specs (revisiting
+  "No validation library" — staff-uploaded JSON loaded at runtime is the
+  second real need). Types are hand-written next to the schema because the
+  project compiles with strict: false, where z.infer makes every field
+  optional; parseSpec() is the only way in, so the schema stays the source
+  of truth.
+- Proof: spec/samples/botanical.ts reproduces the coded Botanical hero
+  (positions measured from its render) — compare at
+  /internal/event-site-preview?template=spec:botanical.
+- Known: the Botanical card art itself has a baked "8" smudge and a stray
+  vertical line (inpainting leftovers) — visible in both versions.

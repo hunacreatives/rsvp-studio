@@ -5,6 +5,10 @@ import { normalizeEventContent } from "../content/normalize";
 import { resolveTemplate } from "../engine/render";
 import type { PresentationState } from "../presentation/types";
 import NotFound from "../../NotFound";
+import { getTemplateDefinition, registerTemplate } from "../engine/registry";
+import { loadTemplateCatalog } from "../engine/catalog";
+import { parseSpec } from "../spec/schema";
+import { definitionFromSpec } from "../spec/definitionFromSpec";
 
 // The live, public event site: /invite/:slug. Reads ONLY the published_*
 // columns (never draft_*) — see the RLS note in
@@ -30,7 +34,7 @@ export default function PublicEventSitePage() {
       // get_public_site() returns only the published columns for one slug
       // (supabase/site-security-fixes.sql). Until that SQL is applied, fall
       // back to the direct table read so live sites never go dark.
-      type Row = { published_content: unknown; published_presentation: unknown };
+      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown };
       let data: Row | null = null;
       let error: { code?: string } | null = null;
       const rpc = await supabase.rpc("get_public_site", { p_slug: slug });
@@ -53,6 +57,21 @@ export default function PublicEventSitePage() {
         setState({ status: "not-found" });
         return;
       }
+
+      // Uploaded template: render the exact version this site was published
+      // with (pinned), not whatever the template looks like today.
+      const presentation = (data.published_presentation as PresentationState) ?? { activeTemplateId: "", byTemplate: {} };
+      if (data.template_spec && presentation.activeTemplateId) {
+        const parsed = parseSpec(data.template_spec);
+        if ("spec" in parsed) {
+          registerTemplate(
+            definitionFromSpec({ id: presentation.activeTemplateId, label: presentation.activeTemplateId, tier: "free", spec: parsed.spec }),
+          );
+        }
+      } else if (presentation.activeTemplateId && !getTemplateDefinition(presentation.activeTemplateId)) {
+        await loadTemplateCatalog();
+      }
+      if (cancelled) return;
 
       setState({
         status: "ready",
