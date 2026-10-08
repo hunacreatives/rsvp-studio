@@ -2,6 +2,35 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
+type Provider = "google" | "facebook";
+const SOCIAL: { provider: Provider; icon: string; label: string }[] = [
+  { provider: "google", icon: "ri-google-fill", label: "Google" },
+  { provider: "facebook", icon: "ri-facebook-fill", label: "Facebook" },
+];
+
+/**
+ * Which social sign-ins are switched on in Supabase. The buttons light up by
+ * themselves once a provider is enabled there — no code change or deploy.
+ */
+let providersCache: Promise<Partial<Record<Provider, boolean>>> | null = null;
+function useProviders() {
+  const [providers, setProviders] = useState<Partial<Record<Provider, boolean>> | null>(null);
+  useEffect(() => {
+    providersCache ??= fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+    })
+      .then((r) => r.json())
+      .then((d: { external?: Partial<Record<Provider, boolean>> }) => d.external ?? {})
+      .catch(() => ({}));
+    let live = true;
+    providersCache.then((p) => live && setProviders(p));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return providers;
+}
+
 const TRANSITION_MS = 600;
 const EASE = "cubic-bezier(0.42, 0, 0.58, 1)";
 
@@ -212,6 +241,7 @@ function AuthForm({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const providers = useProviders();
   const [unconfirmed, setUnconfirmed] = useState(false);
   const [resent, setResent] = useState<"idle" | "sending" | "sent">("idle");
 
@@ -254,6 +284,21 @@ function AuthForm({
     setLoading(false);
     if (error) return setError("That code didn’t work — try the latest one from your app.");
     onAuthed();
+  };
+
+  // Google / Facebook: Supabase sends them to the provider and back to their
+  // dashboard (staff are redirected to the Studio from there).
+  const continueWith = async (provider: Provider) => {
+    setError(null);
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/account` },
+    });
+    if (error) {
+      setLoading(false);
+      setError(error.message);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -358,18 +403,23 @@ function AuthForm({
       </h2>
 
       <div className="flex gap-3 mt-6">
-        {["ri-google-fill", "ri-facebook-fill"].map((icon) => (
-          <button
-            key={icon}
-            type="button"
-            disabled
-            title="Coming soon"
-            className="w-11 h-11 grid place-items-center rounded-xl border transition-colors opacity-40 cursor-not-allowed"
-            style={{ borderColor: "var(--line)", color: "var(--ink)" }}
-          >
-            <i className={`${icon} text-lg`} />
-          </button>
-        ))}
+        {SOCIAL.map(({ provider, icon, label }) => {
+          const on = providers?.[provider] === true;
+          return (
+            <button
+              key={provider}
+              type="button"
+              disabled={!on || loading}
+              onClick={() => continueWith(provider)}
+              title={on ? `${mode === "signin" ? "Sign in" : "Sign up"} with ${label}` : `${label} sign-in isn’t available yet`}
+              aria-label={`Continue with ${label}`}
+              className={`w-11 h-11 grid place-items-center rounded-xl border transition-colors ${on ? "hover:bg-[var(--paper)]" : "opacity-40 cursor-not-allowed"}`}
+              style={{ borderColor: "var(--line)", color: "var(--ink)" }}
+            >
+              <i className={`${icon} text-lg`} />
+            </button>
+          );
+        })}
       </div>
 
       <p className="eyebrow mt-6 mb-3">

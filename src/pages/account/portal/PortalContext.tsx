@@ -59,7 +59,11 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
       return;
     }
     // First visit after verifying their email → send the welcome email once.
-    if (user.user_metadata?.welcomed === false && user.email_confirmed_at) {
+    // Google/Facebook sign-ups never verify by email: welcome them on their
+    // first visit (their account is minutes old and has never been welcomed).
+    const viaProvider = user.app_metadata?.provider && user.app_metadata.provider !== "email";
+    const brandNew = Date.now() - new Date(user.created_at).getTime() < 15 * 60 * 1000;
+    if ((user.user_metadata?.welcomed === false && user.email_confirmed_at) || (viaProvider && brandNew && user.user_metadata?.welcomed === undefined)) {
       supabase.auth.updateUser({ data: { welcomed: true } });
       fetch("/api/send-welcome-email", {
         method: "POST",
