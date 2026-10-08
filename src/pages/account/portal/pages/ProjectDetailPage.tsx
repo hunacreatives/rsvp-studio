@@ -196,9 +196,9 @@ function WebsiteTab({ project }: { project: Project }) {
 }
 
 const DEMO_GUESTS: api.Guest[] = [
-  { id: "g1", name: "Maria Santos", email: "maria@example.com", message: "Can’t wait to celebrate with you both!", created_at: new Date().toISOString() },
-  { id: "g2", name: "Paolo Cruz", email: "paolo@example.com", message: null, created_at: new Date(Date.now() - 86_400_000).toISOString() },
-  { id: "g3", name: "Bea Reyes", email: "bea@example.com", message: "See you there 💛", created_at: new Date(Date.now() - 3 * 86_400_000).toISOString() },
+  { id: "g1", name: "Maria Santos", email: "maria@example.com", message: "Can’t wait to celebrate with you both!", created_at: new Date().toISOString(), attending: true, guest_count: 2, dietary: "Vegetarian" },
+  { id: "g2", name: "Paolo Cruz", email: "paolo@example.com", message: null, created_at: new Date(Date.now() - 86_400_000).toISOString(), attending: false, guest_count: 0 },
+  { id: "g3", name: "Bea Reyes", email: "bea@example.com", message: "See you there 💛", created_at: new Date(Date.now() - 3 * 86_400_000).toISOString(), attending: true, guest_count: 1 },
 ];
 
 function GuestsTab({ project }: { project: Project }) {

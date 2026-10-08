@@ -477,7 +477,22 @@ export function findLetterLines(leaves: SvgLeaf[], aspect: number): SvgCandidate
     }
     return rows;
   };
-  const allRows = runs.flatMap((run) => rowsOf(run).map((row) => ({ row, run })));
+  // Split a row wherever the gap between letters is far wider than a word
+  // space: columns that happen to share a baseline ("MAEVA + ALEC" … "OCTOBER
+  // 22, 2030", or a heading beside a paragraph) are separate pieces of text.
+  const splitColumns = (row: SvgLeaf[]) => {
+    const sorted = [...row].sort((a, b) => a.x - b.x);
+    const letterH = median(sorted.filter((q) => !folded.has(q)).map((q) => q.h * aspect).filter((h) => h > 0)) || 0.01;
+    const out: SvgLeaf[][] = [[sorted[0]]];
+    let right = sorted[0].x + sorted[0].w;
+    for (const q of sorted.slice(1)) {
+      if (q.x - right > letterH * 1.6 && !folded.has(q)) out.push([q]);
+      else out[out.length - 1].push(q);
+      right = Math.max(right, q.x + q.w);
+    }
+    return out;
+  };
+  const allRows = runs.flatMap((run) => rowsOf(run).flatMap((row) => splitColumns(row).map((part) => ({ row: part, run }))));
   const shape = (row: SvgLeaf[]) => {
     const hm = median(row.map((s) => s.h));
     const similar = row.filter((s) => s.h > hm * 0.35 && s.h < hm * 3).length / row.length;

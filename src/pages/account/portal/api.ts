@@ -39,6 +39,8 @@ export type Guest = {
   created_at: string | null;
   bringing?: string | null;
   guest_count?: number | null;
+  attending?: boolean | null;
+  dietary?: string | null;
 };
 
 const PROFILE_COLS =

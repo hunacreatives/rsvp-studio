@@ -17,10 +17,12 @@ function devApi(): Plugin {
     name: "dev-api",
     apply: "serve",
     configureServer(server) {
-      for (const [k, v] of Object.entries(loadEnv("development", process.cwd(), ""))) process.env[k] ??= v;
+      for (const [k, v] of Object.entries(loadEnv(server.config.mode, process.cwd(), ""))) process.env[k] ??= v;
       server.middlewares.use(async (req, res, next) => {
         const name = req.url?.match(/^\/api\/([\w-]+)/)?.[1];
-        if (!name || !DEV_API.includes(name)) return next();
+        // Staging mode also runs the RSVP endpoint (test data only, never live guests).
+        const allowed = server.config.mode === "staging" ? [...DEV_API, "wedding-rsvp"] : DEV_API;
+        if (!name || !allowed.includes(name)) return next();
         try {
           const chunks: Buffer[] = [];
           for await (const c of req) chunks.push(c as Buffer);

@@ -17,7 +17,10 @@ import { clean, esc, isEmail, safeUrl, sendChecked } from "./_lib/email.js";
 //   spray confirmation emails at an address).
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-const resend = new Resend(process.env.RESEND_API_KEY!);
+// No key (local dev, preview builds): RSVPs still save; emails are skipped.
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const sendEmail = (payload: Parameters<typeof sendChecked>[1]) =>
+  resend ? sendChecked(resend, payload) : Promise.resolve(console.warn(`RESEND_API_KEY not set — skipped email "${payload.subject}"`));
 const FROM = "The RSVP Studio <hello@thersvpstudio.com>";
 const STUDIO_INBOX = "hello@thersvpstudio.com";
 
@@ -70,6 +73,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const name = clean(body.name, 120);
   const email = clean(body.email, 254).toLowerCase();
   const message = clean(body.message, 1000);
+  // Optional RSVP details (sent by the newer forms; older templates omit them).
+  const attendingRaw = body.attending;
+  const attending: boolean | null =
+    attendingRaw === true || attendingRaw === "yes" ? true : attendingRaw === false || attendingRaw === "no" ? false : null;
+  const guestsNum = Number(body.guests);
+  const guestCount = attending === false ? 0 : Number.isInteger(guestsNum) && guestsNum >= 1 && guestsNum <= 20 ? guestsNum : attending ? 1 : null;
+  const dietary = attending === false ? "" : clean(body.dietary, 300);
 
   if (!slug || !/^[a-z0-9-]+$/.test(slug) || !name || !isEmail(email)) {
     res.status(400).json({ error: "Please enter your name and a valid email." });
@@ -113,11 +123,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: existing } = await priorQuery;
   const prior = existing?.[0] as { id: string } | undefined;
 
+  // The shared table stores the details in their own columns. Legacy
+  // per-event tables don't have them, so the details ride along in message.
+  const details = [
+    attending === null ? "" : attending ? `Attending${guestCount ? ` (${guestCount})` : ""}` : "Not attending",
+    dietary ? `Dietary: ${dietary}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const extra = event.table_name ? {} : { attending, guest_count: guestCount, dietary: dietary || null };
+  const legacyMessage = [details, message].filter(Boolean).join(" — ") || null;
+  const row = event.table_name ? { name, message: legacyMessage } : { name, message: message || null, ...extra };
   const write = prior
-    ? await supabaseAdmin.from(table).update({ name, message: message || null }).eq("id", prior.id)
+    ? await supabaseAdmin.from(table).update(row).eq("id", prior.id)
     : await supabaseAdmin
         .from(table)
-        .insert(event.table_name ? { name, email, message: message || null } : { event_id: site.event_id, name, email, message: message || null });
+        .insert(event.table_name ? { ...row, email } : { ...row, event_id: site.event_id, email });
   if (write.error) {
     console.error("RSVP write error:", write.error);
     res.status(500).json({ error: "Failed to save RSVP" });
@@ -132,11 +153,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const safeName = esc(name);
   const safeEmail = esc(email);
   const safeMessage = esc(message);
+  const safeDietary = esc(dietary);
+  const declined = attending === false;
 
   const sends: Promise<unknown>[] = [];
   const recipients = await hostRecipients(site.event_id);
   sends.push(
-    sendChecked(resend, {
+    sendEmail({
       from: FROM,
       to: recipients,
       replyTo: email,
@@ -147,6 +170,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
             <tr><td style="padding: 8px 0; color: #666; width: 140px;">Name</td><td style="padding: 8px 0; font-weight: 600;">${safeName}</td></tr>
             <tr><td style="padding: 8px 0; color: #666;">Email</td><td style="padding: 8px 0;">${safeEmail}</td></tr>
+            ${attending === null ? "" : `<tr><td style="padding: 8px 0; color: #666;">Coming?</td><td style="padding: 8px 0; font-weight: 600;">${attending ? `Yes${guestCount ? ` — ${guestCount} ${guestCount === 1 ? "guest" : "guests"}` : ""}` : "No, can’t make it"}</td></tr>`}
+            ${safeDietary ? `<tr><td style="padding: 8px 0; color: #666; vertical-align: top;">Dietary</td><td style="padding: 8px 0;">${safeDietary}</td></tr>` : ""}
             ${safeMessage ? `<tr><td style="padding: 8px 0; color: #666; vertical-align: top;">Message</td><td style="padding: 8px 0; font-style: italic;">"${safeMessage}"</td></tr>` : ""}
           </table>
           <p style="margin-top: 24px; color: #868697; font-size: 12px;">See every response in your RSVP Studio dashboard → Projects → Guests.</p>
@@ -157,15 +182,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!prior) {
     sends.push(
-      sendChecked(resend, {
+      sendEmail({
         from: FROM,
         to: email,
-        subject: `You're on the list — ${formatHostNames(content)}!`,
+        subject: declined ? `Thanks for letting us know — ${formatHostNames(content)}` : `You're on the list — ${formatHostNames(content)}!`,
         html: `
           <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #4a4a4a;">
             <p style="font-size: 40px; text-align: center; margin: 0 0 8px;">🥂</p>
-            <h2 style="text-align: center; color: #333333; font-size: 24px; margin: 0 0 4px;">You're on the list, ${safeName}!</h2>
-            <p style="text-align: center; color: #8a8478; font-size: 14px; margin: 0 0 28px;">Thank you for RSVPing — we can't wait to celebrate with you.</p>
+            <h2 style="text-align: center; color: #333333; font-size: 24px; margin: 0 0 4px;">${declined ? `Thanks for letting us know, ${safeName}` : `You're on the list, ${safeName}!`}</h2>
+            <p style="text-align: center; color: #8a8478; font-size: 14px; margin: 0 0 28px;">${declined ? "We’ll miss you — thank you for replying." : "Thank you for RSVPing — we can't wait to celebrate with you."}</p>
             <div style="background: #faf9f6; border: 1px solid #e5ded0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
               <p style="text-align: center; text-transform: uppercase; letter-spacing: 0.1em; font-size: 12px; font-weight: 700; color: #9a9a9a; margin: 0 0 12px;">You&#39;re Invited</p>
               <p style="text-align: center; font-size: 20px; font-weight: 700; color: #333333; margin: 0 0 20px;">${hostNames}</p>
@@ -178,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 ? `<table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;"><tr><td style="text-align:center;"><a href="${esc(mapsUrl)}" target="_blank" style="display: inline-block; background: #333333; color: #ffffff; text-decoration: none; border-radius: 999px; padding: 12px 24px; font-size: 13px; font-weight: 700;">📍 View Map</a></td></tr></table>`
                 : ""
             }
-            <p style="text-align: center; font-size: 13px; color: #9a9a9a; margin: 0 0 32px;">See you there!</p>
+            <p style="text-align: center; font-size: 13px; color: #9a9a9a; margin: 0 0 32px;">${declined ? "You can update your reply anytime from the invitation." : "See you there!"}</p>
             <div style="border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
               <p style="font-size: 12px; color: #9a9a9a; line-height: 1.7; margin: 0 0 12px;">
                 This invite was crafted by <strong style="color: #666;">The RSVP Studio</strong> — digital invitations &amp; RSVP sites for weddings and celebrations.

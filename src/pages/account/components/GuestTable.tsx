@@ -8,11 +8,16 @@ export type Guest = {
   created_at: string | null;
   bringing?: string | null;
   guest_count?: number | null;
+  attending?: boolean | null;
+  dietary?: string | null;
 };
 
 export default function GuestTable({ guests }: { guests: Guest[] }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "with" | "without">("all");
+  const [filter, setFilter] = useState<"all" | "with" | "without" | "coming" | "declined">("all");
+  // Only newer RSVP forms ask whether guests are coming; older event
+  // tables don't have these answers, so the columns appear only when used.
+  const hasDetails = guests.some((g) => g.attending !== undefined && g.attending !== null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -20,17 +25,26 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
       if (q && !`${g.name ?? ""} ${g.email ?? ""}`.toLowerCase().includes(q)) return false;
       if (filter === "with" && !g.message) return false;
       if (filter === "without" && g.message) return false;
+      if (filter === "coming" && g.attending !== true) return false;
+      if (filter === "declined" && g.attending !== false) return false;
       return true;
     });
   }, [guests, query, filter]);
 
   const withMessage = guests.filter((g) => g.message).length;
+  const coming = guests.filter((g) => g.attending === true);
+  const declined = guests.filter((g) => g.attending === false).length;
+  const headcount = coming.reduce((n, g) => n + (g.guest_count ?? 1), 0);
+  const dietaryNotes = coming.filter((g) => g.dietary).length;
 
   const exportCsv = () => {
-    const header = ["Name", "Email", "Bringing", "Message", "Submitted"];
+    const header = ["Name", "Email", ...(hasDetails ? ["Coming", "Party size", "Dietary"] : []), "Bringing", "Message", "Submitted"];
     const rows = filtered.map((g) => [
       g.name ?? "",
       g.email ?? "",
+      ...(hasDetails
+        ? [g.attending === true ? "Yes" : g.attending === false ? "No" : "", g.attending ? String(g.guest_count ?? 1) : "", (g.dietary ?? "").replace(/"/g, '""')]
+        : []),
       g.bringing ?? "",
       (g.message ?? "").replace(/"/g, '""'),
       g.created_at ? new Date(g.created_at).toLocaleDateString() : "",
@@ -59,7 +73,7 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
           style={{ background: "#fff", border: "1px solid var(--line)" }}
         />
         <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid var(--line)" }}>
-          {(["all", "with", "without"] as const).map((f) => (
+          {(hasDetails ? (["all", "coming", "declined", "with"] as const) : (["all", "with", "without"] as const)).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -69,7 +83,7 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
                 color: filter === f ? "#fff" : "var(--slate)",
               }}
             >
-              {f === "all" ? "All" : f === "with" ? "With Message" : "No Message"}
+              {f === "all" ? "All" : f === "with" ? "With Message" : f === "without" ? "No Message" : f === "coming" ? "Coming" : "Declined"}
             </button>
           ))}
         </div>
@@ -87,6 +101,13 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
             <tr style={{ background: "var(--paper)", color: "var(--slate)" }}>
               <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Name</th>
               <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Email</th>
+              {hasDetails ? (
+                <>
+                  <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Coming?</th>
+                  <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Party</th>
+                  <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Dietary</th>
+                </>
+              ) : null}
               <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Message</th>
               <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Submitted</th>
             </tr>
@@ -96,6 +117,21 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
               <tr key={g.id} style={{ borderTop: "1px solid var(--line)" }}>
                 <td className="px-5 py-3">{g.name}</td>
                 <td className="px-5 py-3" style={{ color: "var(--slate)" }}>{g.email}</td>
+                {hasDetails ? (
+                  <>
+                    <td className="px-5 py-3">
+                      {g.attending === true ? (
+                        <span className="rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#ecfbcc", color: "#3d5a12" }}>Yes</span>
+                      ) : g.attending === false ? (
+                        <span className="rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#ececec", color: "#55556a" }}>No</span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-5 py-3">{g.attending ? g.guest_count ?? 1 : "—"}</td>
+                    <td className="px-5 py-3" style={{ color: "var(--slate)" }}>{g.dietary || "—"}</td>
+                  </>
+                ) : null}
                 <td className="px-5 py-3 italic" style={{ color: "var(--slate)" }}>{g.message || "—"}</td>
                 <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
                   {g.created_at ? new Date(g.created_at).toLocaleDateString() : "—"}
@@ -104,7 +140,7 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-5 py-8 text-center" style={{ color: "var(--slate)" }}>
+                <td colSpan={hasDetails ? 7 : 4} className="px-5 py-8 text-center" style={{ color: "var(--slate)" }}>
                   No RSVPs match.
                 </td>
               </tr>
@@ -114,7 +150,9 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
       </div>
 
       <p className="mt-3 text-[13px]" style={{ color: "var(--slate)" }}>
-        {withMessage} of {guests.length} left a message.
+        {hasDetails
+          ? `${coming.length} coming (${headcount} ${headcount === 1 ? "person" : "people"} in total) · ${declined} can’t make it${dietaryNotes ? ` · ${dietaryNotes} with dietary needs` : ""} · ${withMessage} left a message.`
+          : `${withMessage} of ${guests.length} left a message.`}
       </p>
     </div>
   );

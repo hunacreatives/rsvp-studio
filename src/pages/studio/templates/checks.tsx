@@ -152,7 +152,9 @@ export function renderChecks(spec: TemplateSpec): Promise<CheckResult[]> {
             </Catch>,
           );
           setTimeout(() => {
-            const empty = !error && host.innerText.trim().length < 20;
+            // textContent, not innerText: the test render is hidden, and
+            // innerText reports hidden text as empty.
+            const empty = !error && (host.textContent ?? "").trim().length < 20;
             root.unmount();
             host.remove();
             resolve({

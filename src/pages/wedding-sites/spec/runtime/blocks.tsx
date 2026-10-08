@@ -494,6 +494,9 @@ function RsvpBlock({ section, content, editorPreview }: BlockProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [attending, setAttending] = useState<"yes" | "no" | null>(null);
+  const [guests, setGuests] = useState(1);
+  const [dietary, setDietary] = useState("");
   const [website, setWebsite] = useState(""); // honeypot
   const [state, setState] = useState<SubmitState>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -501,13 +504,27 @@ function RsvpBlock({ section, content, editorPreview }: BlockProps) {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (editorPreview) return;
+    if (!attending) {
+      setError("Please let us know if you can come.");
+      setState("error");
+      return;
+    }
     setState("submitting");
     setError(null);
     try {
       const res = await fetch("/api/wedding-rsvp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: content.slug, name, email, message, website }),
+        body: JSON.stringify({
+          slug: content.slug,
+          name,
+          email,
+          message,
+          website,
+          attending,
+          guests: attending === "yes" ? guests : 0,
+          dietary: attending === "yes" ? dietary : "",
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Something went wrong — please try again.");
@@ -535,12 +552,68 @@ function RsvpBlock({ section, content, editorPreview }: BlockProps) {
     <Frame section={section} width={460} id="rsvp">
       {state === "success" ? (
         <p style={body(theme, { fontStyle: "italic" })}>
-          Thank you, {name.split(" ")[0]} — your RSVP is in. A confirmation is on its way to your inbox.
+          {attending === "no"
+            ? `Thank you, ${name.split(" ")[0]} — we’ll miss you. Your reply has been sent.`
+            : `Thank you, ${name.split(" ")[0]} — your RSVP is in. A confirmation is on its way to your inbox.`}
         </p>
       ) : (
         <form onSubmit={submit} style={{ display: "grid", gap: 12, textAlign: "left" }}>
           <input required aria-label="Full name" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} style={input} />
           <input required type="email" aria-label="Email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
+          <fieldset style={{ border: 0, padding: 0, margin: "4px 0 0", display: "grid", gap: 8 }}>
+            <legend style={small(theme, { fontSize: 14, marginBottom: 8, color: colorOf(theme, "ink") })}>Will you be joining us?</legend>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {(
+                [
+                  ["yes", "Joyfully accepts"],
+                  ["no", "Regretfully declines"],
+                ] as const
+              ).map(([value, label]) => {
+                const on = attending === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setAttending(value)}
+                    style={{
+                      ...input,
+                      cursor: "pointer",
+                      textAlign: "center",
+                      fontSize: 14,
+                      background: on ? colorOf(theme, "accent") : colorOf(theme, "bg"),
+                      color: on ? colorOf(theme, "onAccent") : colorOf(theme, "ink"),
+                      borderColor: on ? colorOf(theme, "accent") : `${colorOf(theme, "ink")}33`,
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+          {attending === "yes" ? (
+            <>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={small(theme, { fontSize: 14, color: colorOf(theme, "ink") })}>How many in your party (including you)?</span>
+                <select value={guests} onChange={(e) => setGuests(Number(e.target.value))} style={input}>
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <input
+                aria-label="Dietary restrictions (optional)"
+                placeholder="Dietary restrictions (optional)"
+                maxLength={300}
+                value={dietary}
+                onChange={(e) => setDietary(e.target.value)}
+                style={input}
+              />
+            </>
+          ) : null}
           <textarea
             aria-label="Message (optional)"
             placeholder="Message (optional)"
