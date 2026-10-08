@@ -185,7 +185,7 @@ export async function loadSnapshot(userId: string): Promise<PortalSnapshot | nul
 
 export async function updateProfile(id: string, patch: Partial<Profile>) {
   const { error } = await supabase.from("profiles").update(patch).eq("id", id);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   // Keep the auth metadata name in sync — the navbar reads it.
   if (patch.full_name !== undefined) await supabase.auth.updateUser({ data: { full_name: patch.full_name } });
 }
@@ -194,7 +194,7 @@ export async function uploadAvatar(userId: string, file: File) {
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${userId}/avatar-${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
   await updateProfile(userId, { avatar_url: url });
   return url;
@@ -202,7 +202,7 @@ export async function uploadAvatar(userId: string, file: File) {
 
 export async function setTaskDone(taskId: string, done: boolean) {
   const { error } = await supabase.rpc("set_task_done", { task_id: taskId, done });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 }
 
 export async function loadMessages(threadId: string): Promise<Message[]> {
@@ -218,7 +218,7 @@ export async function uploadAttachments(threadId: string, files: File[]): Promis
     const safe = file.name.replace(/[^\w.\- ]+/g, "_");
     const path = `${threadId}/${crypto.randomUUID()}/${safe}`;
     const { error } = await supabase.storage.from("message-files").upload(path, file, { contentType: file.type });
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     out.push({ name: file.name, path, size: file.size, type: file.type });
   }
   return out;
@@ -231,7 +231,7 @@ export async function sendMessage(threadId: string, senderId: string, body: stri
     .insert({ thread_id: threadId, sender_id: senderId, body, attachments })
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   notify({ kind: "message", messageId: data.id });
   return data as Message;
 }
@@ -247,7 +247,7 @@ export async function createThread(input: {
     .insert({ profile_id: input.profileId, event_id: input.eventId, kind: input.kind, subject: input.subject })
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Thread;
 }
 
@@ -264,7 +264,7 @@ export async function attachmentUrl(path: string) {
 
 export async function changePassword(password: string, profileId: string) {
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   await supabase.from("profiles").update({ password_changed_at: new Date().toISOString() }).eq("id", profileId);
 }
 

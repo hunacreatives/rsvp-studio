@@ -294,8 +294,11 @@ alter table messages enable row level security;
 alter table thread_reads enable row level security;
 
 drop policy if exists "threads_select" on message_threads;
+-- profile_id = auth.uid() first: on INSERT ... RETURNING the security-definer
+-- lookup inside can_access_thread() can't see the row being inserted, so
+-- without the direct check every new thread failed RLS.
 create policy "threads_select" on message_threads
-  for select using (can_access_thread(id));
+  for select using (profile_id = auth.uid() or can_access_thread(id));
 drop policy if exists "threads_insert_own" on message_threads;
 create policy "threads_insert_own" on message_threads
   for insert with check (
