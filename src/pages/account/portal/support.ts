@@ -1,4 +1,4 @@
-import type { SupportCategory, Thread } from "./types";
+import type { SupportCategory, SupportRating, Thread } from "./types";
 
 // Support requests: topics, numbers, statuses and the reply deadline.
 // The database fills these in and moves the status (supabase/support-tickets.sql).
@@ -38,36 +38,65 @@ export const STATUS_STYLE: Record<"open" | "you" | "done" | "late", { background
   late: { background: "#fde4df", color: "#c2412d" },
 };
 
-// Reply promise: within 1 business day — Mon–Fri, 9 AM–6 PM Manila (UTC+8, no DST).
+// Reply promise: within 1 business day — Mon–Fri, 9 AM–6 PM Manila (UTC+8, no DST),
+// skipping Philippine holidays (support_holidays, editable under Support → Report).
 const OPEN = 9;
 const CLOSE = 18;
 const MANILA = 8 * 3_600_000;
-const BUSINESS_DAY_MS = (CLOSE - OPEN) * 3_600_000;
+export const BUSINESS_DAY_MS = (CLOSE - OPEN) * 3_600_000;
 
-/** The moment a reply is due: 9 working hours after the customer wrote, counting only office hours. */
-export function replyDueAt(since: string | Date): Date {
-  let left = BUSINESS_DAY_MS;
+/** Holiday days ("YYYY-MM-DD"). Loaded once by the Studio; empty until then. */
+export type Holidays = ReadonlySet<string>;
+const NO_HOLIDAYS: Holidays = new Set();
+
+/**
+ * Walk Manila office hours from `since`: either until `budget` working ms are used up
+ * (→ the moment reached), or until `until` (→ the working ms in between).
+ * Keep in step with api/_lib/support-mail.ts (replyDueAt).
+ */
+function walk(since: Date, holidays: Holidays, budget: number, until = Infinity) {
+  let left = budget;
+  let used = 0;
   // Work in Manila wall-clock time, as a UTC-based Date shifted by +8h.
-  let t = new Date(new Date(since).getTime() + MANILA);
-  for (let guard = 0; guard < 30 && left > 0; guard++) {
+  let t = new Date(since.getTime() + MANILA);
+  const stop = until + MANILA;
+  for (let guard = 0; guard < 4000 && left > 0 && t.getTime() < stop; guard++) {
     const day = t.getUTCDay();
     const start = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), OPEN);
     const end = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), CLOSE);
-    if (day === 0 || day === 6 || t.getTime() >= end) {
+    if (day === 0 || day === 6 || t.getTime() >= end || holidays.has(t.toISOString().slice(0, 10))) {
       t = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + 1, OPEN));
       continue;
     }
     const from = Math.max(t.getTime(), start);
-    const take = Math.min(left, end - from);
+    const take = Math.max(0, Math.min(left, end - from, stop - from));
     left -= take;
+    used += take;
     t = new Date(from + take);
   }
-  return new Date(t.getTime() - MANILA);
+  return { at: new Date(t.getTime() - MANILA), used };
 }
 
+/** The moment a reply is due: 9 working hours after the customer wrote, counting only office hours. */
+export const replyDueAt = (since: string | Date, holidays: Holidays = NO_HOLIDAYS): Date => walk(new Date(since), holidays, BUSINESS_DAY_MS).at;
+
+/** Office-hours time between two moments, in ms (for the Report's medians). */
+export const businessMs = (from: string | Date, to: string | Date, holidays: Holidays = NO_HOLIDAYS) =>
+  walk(new Date(from), holidays, Infinity, new Date(to).getTime()).used;
+
 /** Needs a reply and the 1-business-day promise has passed. */
-export const isOverdue = (t: Pick<Thread, "status" | "last_customer_at" | "last_message_at">, now = Date.now()) =>
-  t.status === "needs_reply" && replyDueAt(t.last_customer_at ?? t.last_message_at).getTime() < now;
+export const isOverdue = (t: Pick<Thread, "status" | "last_customer_at" | "last_message_at">, holidays: Holidays = NO_HOLIDAYS, now = Date.now()) =>
+  t.status === "needs_reply" && replyDueAt(t.last_customer_at ?? t.last_message_at, holidays).getTime() < now;
+
+/** On hold: no reminder or auto-close until after this day. */
+export const onHold = (t: Pick<Thread, "status" | "hold_until">) =>
+  t.status !== "resolved" && !!t.hold_until && t.hold_until >= new Date(Date.now() + MANILA).toISOString().slice(0, 10);
+
+export const RATING_LABEL: Record<SupportRating, { emoji: string; label: string }> = {
+  great: { emoji: "😊", label: "Great" },
+  okay: { emoji: "😐", label: "Okay" },
+  not_good: { emoji: "🙁", label: "Not good" },
+};
 
 /** Parse "1042", "#1042", "SUP-1042", "sup 1042" → 1042. */
 export function parseTicket(q: string): number | null {

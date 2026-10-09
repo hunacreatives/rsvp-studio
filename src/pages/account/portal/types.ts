@@ -101,7 +101,18 @@ export type Thread = {
   last_customer_at?: string | null;
   /** Team member handling the request. */
   assigned_to?: string | null;
+  /** Lifecycle (supabase/support-lifecycle.sql). */
+  waiting_since?: string | null;
+  reminder_sent_at?: string | null;
+  auto_closed_at?: string | null;
+  /** No reminder or auto-close until after this day (YYYY-MM-DD). */
+  hold_until?: string | null;
+  rating?: SupportRating | null;
+  rating_comment?: string | null;
+  rated_at?: string | null;
 };
+
+export type SupportRating = "great" | "okay" | "not_good";
 
 export type Attachment = { name: string; path: string; size: number; type: string };
 

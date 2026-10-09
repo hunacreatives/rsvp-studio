@@ -11,7 +11,8 @@ const isPreview = process.env.IS_PREVIEW ? true : false;
 // API functions locally so Studio features that need them can be tested.
 // Deliberately an allowlist: email/RSVP functions stay off in dev so local
 // testing never emails real people.
-const DEV_API = ["template-ai"];
+// support-rating only emails on a "Not good", and only when RESEND_API_KEY is set (not locally).
+const DEV_API = ["template-ai", "support-rating"];
 function devApi(): Plugin {
   return {
     name: "dev-api",
@@ -27,7 +28,8 @@ function devApi(): Plugin {
           const chunks: Buffer[] = [];
           for await (const c of req) chunks.push(c as Buffer);
           const raw = Buffer.concat(chunks).toString();
-          const r = req as typeof req & { body?: unknown };
+          const r = req as typeof req & { body?: unknown; query?: Record<string, string> };
+          r.query = Object.fromEntries(new URL(req.url ?? "/", "http://localhost").searchParams); // as Vercel does
           r.body = raw && String(req.headers["content-type"]).includes("json") ? JSON.parse(raw) : raw;
           const out = res as typeof res & { status: (c: number) => typeof out; json: (o: unknown) => typeof out };
           out.status = (c) => ((res.statusCode = c), out);

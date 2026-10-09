@@ -5,8 +5,9 @@ import { usePortal } from "@/pages/account/portal/PortalContext";
 import * as api from "@/pages/account/portal/api";
 import ChatPane from "@/pages/account/portal/components/ChatPane";
 import { formatDate, inboxStamp } from "@/pages/account/portal/format";
-import { categoryLabel, isClosed, isOverdue, parseTicket, replyDueAt, STAFF_STATUS, STATUS_STYLE, SUPPORT_CATEGORIES, ticketCode } from "@/pages/account/portal/support";
+import { categoryLabel, isClosed, isOverdue, onHold, parseTicket, RATING_LABEL, replyDueAt, STAFF_STATUS, STATUS_STYLE, SUPPORT_CATEGORIES, ticketCode, type Holidays } from "@/pages/account/portal/support";
 import type { SupportCategory, SupportStatus, ThreadSummary } from "@/pages/account/portal/types";
+import SupportReport from "./SupportReport";
 import { Avatar, ErrorText, Field, Input, Modal, PillButton, PrimaryButton, Textarea } from "@/pages/account/portal/ui";
 import { formatMoney } from "@/pages/account/portal/format";
 import { isOverdue as invoiceOverdue } from "@/pages/account/portal/components/blocks";
@@ -14,13 +15,14 @@ import { Link } from "react-router-dom";
 import { StudioHeader, useStudio } from "../StudioLayout";
 import * as studio from "../studioApi";
 
-type Tab = "needs_reply" | "waiting" | "resolved" | "all";
+type Tab = "needs_reply" | "waiting" | "resolved" | "all" | "report";
 type Who = "everyone" | "mine" | "unassigned";
 const TABS: { id: Tab; label: string }[] = [
   { id: "needs_reply", label: "Needs reply" },
   { id: "waiting", label: "Waiting on customer" },
   { id: "resolved", label: "Resolved" },
   { id: "all", label: "All" },
+  { id: "report", label: "Report" },
 ];
 
 /**
@@ -40,6 +42,7 @@ export default function SupportPage() {
   const [tab, setTab] = useState<Tab>("needs_reply");
   const [query, setQuery] = useState("");
   const [textHits, setTextHits] = useState<Set<string> | null>(null);
+  const { days: holidays } = studio.useHolidays();
 
   const requests = useMemo(() => threads.filter((t) => t.kind === "support" && t.ticket_number), [threads]);
   const emailOf = (t: ThreadSummary) => people[t.profile_id]?.email ?? "";
@@ -64,10 +67,10 @@ export default function SupportPage() {
     const c = { needs_reply: 0, waiting: 0, resolved: 0, all: requests.length, overdue: 0 };
     for (const t of requests) {
       if (t.status) c[t.status]++;
-      if (isOverdue(t)) c.overdue++;
+      if (isOverdue(t, holidays)) c.overdue++;
     }
     return c;
-  }, [requests]);
+  }, [requests, holidays]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -80,7 +83,7 @@ export default function SupportPage() {
           textHits?.has(t.id) ||
           [t.counterpartName, emailOf(t), categoryLabel(t.category), projectOf(t)?.name, t.lastMessage?.body].some((v) => v?.toLowerCase().includes(q)),
       );
-    } else if (tab !== "all") list = list.filter((t) => t.status === tab);
+    } else if (tab !== "all" && tab !== "report") list = list.filter((t) => t.status === tab);
     if (!q && who === "mine") list = list.filter((t) => t.assigned_to === profile.id);
     if (!q && who === "unassigned") list = list.filter((t) => !t.assigned_to);
     const waitingSince = (t: ThreadSummary) => new Date(t.last_customer_at ?? t.last_message_at).getTime();
@@ -122,7 +125,7 @@ export default function SupportPage() {
             onClick={() => (setTab(t.id), setQuery(""))}
             className={`rounded-full border px-4 py-2 text-[13px] transition-colors ${tab === t.id && !query ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"}`}
           >
-            {t.label} <span className="opacity-60">{counts[t.id]}</span>
+            {t.label} {t.id !== "report" ? <span className="opacity-60">{counts[t.id]}</span> : null}
           </button>
         ))}
         <span className="ml-auto inline-flex rounded-full border border-[var(--line)] bg-white p-0.5 text-[13px]">
@@ -134,6 +137,9 @@ export default function SupportPage() {
         </span>
       </div>
 
+      {tab === "report" && !query ? (
+        <SupportReport requests={requests} holidays={holidays} />
+      ) : (
       <div className={`grid h-[720px] overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:grid-cols-[320px_1fr] ${active ? "xl:grid-cols-[300px_1fr_280px]" : ""}`}>
         <div className={`min-h-0 flex-col border-r border-[var(--line)] ${active ? "hidden md:flex" : "flex"}`}>
           <div className="p-4">
@@ -146,7 +152,7 @@ export default function SupportPage() {
           </div>
           <ul className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
             {shown.map((t) => {
-              const late = isOverdue(t);
+              const late = isOverdue(t, holidays);
               return (
                 <li key={t.id}>
                   <button
@@ -167,6 +173,9 @@ export default function SupportPage() {
                         {t.urgent ? <Chip tone="late">Urgent</Chip> : null}
                         {t.assigned_to ? <Chip tone="open">{t.assigned_to === profile.id ? "You" : (people[t.assigned_to]?.full_name ?? "Team").split(" ")[0]}</Chip> : null}
                         {late ? <Chip tone="late">Overdue</Chip> : null}
+                        {onHold(t) ? <Chip tone="you">On hold</Chip> : null}
+                        {t.auto_closed_at && t.status === "resolved" ? <Chip tone="done">Auto-closed</Chip> : null}
+                        {t.rating ? <span title={`Rated ${RATING_LABEL[t.rating].label}`} className="text-[12px]">{RATING_LABEL[t.rating].emoji}</span> : null}
                         {tab === "all" || query ? <Chip tone={t.status === "resolved" ? "done" : t.status === "waiting" ? "you" : "open"}>{STAFF_STATUS[t.status ?? "needs_reply"]}</Chip> : null}
                         <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--slate)]">
                           {t.lastMessage?.internal ? <span className="font-medium text-[#8a6a00]">Note: </span> : null}
@@ -193,7 +202,7 @@ export default function SupportPage() {
               thread={active}
               header={`${ticketCode(active.ticket_number)} · ${categoryLabel(active.category)}${projectOf(active) ? ` · ${projectOf(active)!.name}` : ""}`}
               onBack={() => open(null)}
-              toolbar={<StaffToolbar t={active} email={emailOf(active)} eventDate={projectOf(active)?.event_date ?? null} />}
+              toolbar={<StaffToolbar t={active} email={emailOf(active)} eventDate={projectOf(active)?.event_date ?? null} holidays={holidays} />}
               allowNotes
               composerExtras={(insert) => (
                 <SavedReplies replies={saved} reload={reloadSaved} firstName={(active.counterpartName || "").split(" ")[0]} onPick={insert} />
@@ -205,6 +214,7 @@ export default function SupportPage() {
         </div>
         {active ? <CustomerPanel t={active} requests={requests} onOpen={open} /> : null}
       </div>
+      )}
     </>
   );
 }
@@ -218,12 +228,12 @@ function Chip({ tone, children }: { tone: keyof typeof STATUS_STYLE; children: R
 }
 
 /** Status, topic and urgency for the request that's open, plus when a reply is due. */
-function StaffToolbar({ t, email, eventDate }: { t: ThreadSummary; email: string; eventDate: string | null }) {
+function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; email: string; eventDate: string | null; holidays: Holidays }) {
   const { refresh, demo, people, profile } = usePortal();
   const team = Object.values(people).filter((p) => p.is_staff);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const save = async (patch: { status?: SupportStatus; urgent?: boolean; category?: SupportCategory; assigned_to?: string | null }) => {
+  const save = async (patch: { status?: SupportStatus; urgent?: boolean; category?: SupportCategory; assigned_to?: string | null; hold_until?: string | null }) => {
     setBusy(true);
     setError(null);
     try {
@@ -235,13 +245,22 @@ function StaffToolbar({ t, email, eventDate }: { t: ThreadSummary; email: string
     }
     setBusy(false);
   };
-  const due = t.status === "needs_reply" ? replyDueAt(t.last_customer_at ?? t.last_message_at) : null;
+  const due = t.status === "needs_reply" ? replyDueAt(t.last_customer_at ?? t.last_message_at, holidays) : null;
+  const late = isOverdue(t, holidays);
   return (
     <>
       <Chip tone={t.status === "resolved" ? "done" : t.status === "waiting" ? "you" : "open"}>{isClosed(t) ? "Closed" : STAFF_STATUS[t.status ?? "needs_reply"]}</Chip>
       {due ? (
-        <span className={`text-[12px] ${isOverdue(t) ? "font-medium text-[#c2412d]" : "text-[var(--slate)]"}`}>
-          {isOverdue(t) ? "Overdue — " : ""}reply due {due.toLocaleString("en-PH", { timeZone: "Asia/Manila", weekday: "short", hour: "numeric", minute: "2-digit" })}
+        <span className={`text-[12px] ${late ? "font-medium text-[#c2412d]" : "text-[var(--slate)]"}`}>
+          {late ? "Overdue — " : ""}reply due {due.toLocaleString("en-PH", { timeZone: "Asia/Manila", weekday: "short", hour: "numeric", minute: "2-digit" })}
+        </span>
+      ) : null}
+      {t.status === "waiting" && t.reminder_sent_at ? <span className="text-[12px] text-[var(--slate)]">Reminder sent {formatDate(t.reminder_sent_at)}</span> : null}
+      {t.auto_closed_at && t.status === "resolved" ? <Chip tone="done">Auto-closed {formatDate(t.auto_closed_at)} · no reply</Chip> : null}
+      {t.rating ? (
+        <span className="text-[12px] text-[var(--ink)]" title={t.rating_comment ?? undefined}>
+          Rated {RATING_LABEL[t.rating].emoji} {RATING_LABEL[t.rating].label}
+          {t.rating_comment ? <span className="text-[var(--slate)]"> · “{t.rating_comment.length > 60 ? `${t.rating_comment.slice(0, 60)}…` : t.rating_comment}”</span> : null}
         </span>
       ) : null}
       <span className="text-[12px] text-[var(--slate)]">
@@ -277,6 +296,27 @@ function StaffToolbar({ t, email, eventDate }: { t: ThreadSummary; email: string
             <option key={c.id} value={c.id}>{c.label}</option>
           ))}
         </select>
+        {t.status !== "resolved" ? (
+          <label
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] ${onHold(t) ? "border-[#8a5a00] text-[#8a5a00]" : "border-[var(--line)] text-[var(--ink)]"}`}
+            title="No reminder or auto-close until after this date — e.g. waiting on their venue or photos."
+          >
+            {onHold(t) ? "On hold until" : "Hold until"}
+            <input
+              type="date"
+              value={t.hold_until ?? ""}
+              min={new Date().toISOString().slice(0, 10)}
+              disabled={busy}
+              onChange={(e) => save({ hold_until: e.target.value || null })}
+              className="bg-transparent text-[12px] outline-none"
+            />
+            {t.hold_until ? (
+              <button type="button" disabled={busy} onClick={() => save({ hold_until: null })} aria-label="Clear hold" className="opacity-60 hover:opacity-100">
+                ×
+              </button>
+            ) : null}
+          </label>
+        ) : null}
         <button
           disabled={busy}
           onClick={() => save({ urgent: !t.urgent })}

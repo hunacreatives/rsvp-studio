@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { sendChecked } from "./_lib/email.js";
+import { esc } from "./_lib/email.js";
+import { backAt, code, FROM, layout, makeSendMail, ratingButtons, SERVICE_FOOTER, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -11,8 +12,6 @@ const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.S
 // No key (local dev, preview builds): everything else still runs; emails are skipped.
 const resendClient = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-const FROM = "The RSVP Studio <hello@thersvpstudio.com>";
-const STUDIO_INBOX = "hello@thersvpstudio.com";
 
 type Person = {
   id: string;
@@ -26,25 +25,7 @@ type Person = {
 
 const PERSON_COLS = "id, full_name, email, is_staff, billing_email, notify_project_updates, notify_billing_updates";
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-
-const sendMail = (payload: Parameters<typeof sendChecked>[1]) =>
-  resendClient ? sendChecked(resendClient, payload) : Promise.resolve(console.warn(`RESEND_API_KEY not set — skipped email "${payload.subject}" to ${payload.to}`));
-
-const SERVICE_FOOTER = "You’re receiving this because you contacted The RSVP Studio support. Reply in your dashboard or to this email.";
-
-function layout(heading: string, body: string, cta: { label: string; url: string }, footer = "You’re receiving this because of your notification settings. Change them anytime under Account → Notifications.") {
-  return `<!doctype html><html><head><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head>
-<body style="margin:0;background:#f5f5f2;" bgcolor="#f5f5f2">
-<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#f5f5f2" style="background:#f5f5f2;padding:32px 12px;"><tr><td align="center">
-<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:540px;background:#ffffff;border-radius:20px;padding:36px 32px;font-family:Inter,Arial,sans-serif;color:#000727 !important;">
-<tr><td style="font-family:Georgia,serif;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#868697 !important;">The RSVP Studio</td></tr>
-<tr><td style="padding-top:14px;font-family:Georgia,serif;font-size:26px;line-height:1.25;color:#000727 !important;">${heading}</td></tr>
-<tr><td style="padding-top:14px;font-size:15px;line-height:1.6;color:#25265e !important;">${body}</td></tr>
-<tr><td style="padding-top:26px;"><a href="${cta.url}" style="display:inline-block;background:#2f61d5;color:#ffffff !important;text-decoration:none;border-radius:999px;padding:13px 26px;font-size:14px;">${cta.label}</a></td></tr>
-<tr><td style="padding-top:30px;font-size:12px;color:#868697 !important;">${footer}</td></tr>
-</table></td></tr></table></body></html>`;
-}
+const sendMail = makeSendMail(resendClient);
 
 async function recipientsFor(eventId: string | null, extraProfileId: string | null, pref: "notify_project_updates" | "notify_billing_updates") {
   const ids = new Set<string>();
@@ -58,38 +39,6 @@ async function recipientsFor(eventId: string | null, extraProfileId: string | nu
   if (!ids.size) return [];
   const { data } = await supabaseAdmin.from("profiles").select(PERSON_COLS).in("id", [...ids]);
   return ((data ?? []) as Person[]).filter((p) => !p.is_staff && p[pref] && (p.email || p.billing_email));
-}
-
-// ---------------------------------------------------------------------------
-// Support requests (supabase/support-tickets.sql)
-
-const SUPPORT_TOPIC: Record<string, string> = {
-  website: "Website",
-  invitations: "Invitations & RSVPs",
-  stationery: "Printed stationery",
-  billing: "Billing & payments",
-  account: "Account & login",
-  other: "Something else",
-};
-const code = (n: number) => `SUP-${n}`;
-/** Thread every email about one request together in Gmail/Outlook. */
-const threadHeaders = (n: number, auto = false): Record<string, string> => ({
-  References: `<sup-${n}@thersvpstudio.com>`,
-  "In-Reply-To": `<sup-${n}@thersvpstudio.com>`,
-  ...(auto ? { "Auto-Submitted": "auto-replied", "X-Auto-Response-Suppress": "All" } : {}),
-});
-
-/** Outside Mon–Fri 9 AM–6 PM Manila: when we're next in, in words ("Monday at 9 AM"). */
-function backAt(now = new Date()): string | null {
-  const m = new Date(now.getTime() + 8 * 3_600_000); // Manila wall clock (UTC+8)
-  const day = m.getUTCDay();
-  const hour = m.getUTCHours();
-  if (day >= 1 && day <= 5 && hour >= 9 && hour < 18) return null;
-  let add = hour < 9 && day >= 1 && day <= 5 ? 0 : 1;
-  while ([0, 6].includes((day + add) % 7)) add++;
-  if (add === 0) return "at 9 AM";
-  if (add === 1) return "tomorrow at 9 AM";
-  return `${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][(day + add) % 7]} at 9 AM`;
 }
 
 const peso = (n: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 }).format(n);
@@ -157,7 +106,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const first = (count ?? 0) <= 1;
           const recent = thread.auto_reply_at && Date.now() - new Date(thread.auto_reply_at).getTime() < 10 * 60_000;
           if (caller.email && (first || !recent)) {
-            const away = backAt();
+            const { data: hol } = await supabaseAdmin.from("support_holidays").select("day").gte("day", new Date().toISOString().slice(0, 10)).limit(60);
+            const away = backAt(new Date(), new Set((hol ?? []).map((h) => h.day as string)));
             const when = away ? `We’re away right now and will be back ${away} (Philippine time).` : "We reply within 1 business day — Monday to Friday, 9 AM–6 PM Philippine time.";
             const hi = `Hi ${esc((caller.full_name || "").split(" ")[0] || "there")},`;
             sends.push(
@@ -216,7 +166,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             headers: threadHeaders(n),
             html: layout(
               "Your request has been resolved",
-              `Hi ${esc((customer.full_name || "").split(" ")[0] || "there")},<br><br>We’ve marked request <strong>${code(n)}</strong> (${esc(SUPPORT_TOPIC[thread.category ?? "other"] ?? "Support")}) as resolved. If anything still isn’t right, just reply within 7 days and it reopens.`,
+              `Hi ${esc((customer.full_name || "").split(" ")[0] || "there")},<br><br>We’ve marked request <strong>${code(n)}</strong> (${esc(SUPPORT_TOPIC[thread.category ?? "other"] ?? "Support")}) as resolved. If anything still isn’t right, just reply within 7 days and it reopens.${ratingButtons(origin, thread.id)}`,
               { label: "View your request", url: `${origin}/account/messages?thread=${thread.id}` },
               SERVICE_FOOTER,
             ),

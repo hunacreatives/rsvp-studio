@@ -6,6 +6,12 @@
       "destination": "/index.html"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/support-cron",
+      "schedule": "0 1 * * *"
+    }
+  ],
   "functions": {
     "api/template-ai.ts": {
       "maxDuration": 60

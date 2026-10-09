@@ -250,7 +250,10 @@ export async function resolveMyRequest(threadId: string) {
 }
 
 /** Staff: change a support request's status / urgency (resolving emails the customer). */
-export async function updateSupportRequest(threadId: string, patch: { status?: SupportStatus; urgent?: boolean; category?: SupportCategory; assigned_to?: string | null }) {
+export async function updateSupportRequest(
+  threadId: string,
+  patch: { status?: SupportStatus; urgent?: boolean; category?: SupportCategory; assigned_to?: string | null; hold_until?: string | null },
+) {
   const { error } = await supabase.from("message_threads").update(patch).eq("id", threadId);
   if (error) throw new Error(error.message);
   if (patch.status === "resolved") notify({ kind: "support_resolved", threadId });

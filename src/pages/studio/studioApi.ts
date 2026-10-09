@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { notify } from "@/pages/account/portal/api";
 import type { InvoiceStatus, PersonLite, Project } from "@/pages/account/portal/types";
@@ -204,4 +205,50 @@ export async function saveSavedReply(reply: { id?: string; title: string; body: 
 
 export async function deleteSavedReply(id: string) {
   must(await supabase.from("support_saved_replies").delete().eq("id", id));
+}
+
+// ---------------------------------------------------------------------------
+// Support: holidays (business-hours clock) and the daily job's heartbeat
+// (supabase/support-lifecycle.sql).
+
+export type Holiday = { day: string; name: string };
+
+let holidayCache: Holiday[] | null = null;
+const holidayListeners = new Set<(h: Holiday[]) => void>();
+
+export async function loadHolidays(force = false) {
+  if (holidayCache && !force) return holidayCache;
+  const { data, error } = await supabase.from("support_holidays").select("day, name").order("day");
+  holidayCache = error ? [] : ((data ?? []) as Holiday[]);
+  holidayListeners.forEach((fn) => fn(holidayCache!));
+  return holidayCache;
+}
+
+/** Holiday days as a Set, for the reply clock. Shared by every Studio page; reloads after edits. */
+export function useHolidays() {
+  const [list, setList] = useState<Holiday[]>(holidayCache ?? []);
+  useEffect(() => {
+    holidayListeners.add(setList);
+    loadHolidays().then(setList);
+    return () => void holidayListeners.delete(setList);
+  }, []);
+  const days = useMemo(() => new Set(list.map((h) => h.day)), [list]);
+  return { list, days };
+}
+
+export async function saveHoliday(h: Holiday) {
+  must(await supabase.from("support_holidays").upsert({ day: h.day, name: h.name.trim() }));
+  await loadHolidays(true);
+}
+
+export async function deleteHoliday(day: string) {
+  must(await supabase.from("support_holidays").delete().eq("day", day));
+  await loadHolidays(true);
+}
+
+export type JobRun = { job: string; last_run_at: string; details: { reminders?: number; closed?: number; digest?: boolean; errors?: string[] } | null };
+
+export async function loadJobRun(job = "support-daily") {
+  const { data } = await supabase.from("support_job_runs").select("job, last_run_at, details").eq("job", job).maybeSingle();
+  return (data ?? null) as JobRun | null;
 }

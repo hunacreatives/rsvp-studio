@@ -6,6 +6,7 @@ import { formatDate, formatMoney, inboxStamp } from "@/pages/account/portal/form
 import { Avatar } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import { isOverdue as replyOverdue } from "@/pages/account/portal/support";
+import { useHolidays } from "../studioApi";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -16,7 +17,8 @@ export default function OverviewPage() {
   const active = projects.filter((p) => p.project_status === "in_progress");
   const waiting = threads.filter((t) => t.unread && t.kind !== "support");
   const support = threads.filter((t) => t.kind === "support" && t.status === "needs_reply");
-  const supportLate = support.filter((t) => replyOverdue(t));
+  const { days: holidays } = useHolidays();
+  const supportLate = support.filter((t) => replyOverdue(t, holidays));
   const open = invoices.filter((i) => i.status === "open");
   const overdue = open.filter(isOverdue);
   const outstanding = open.reduce((s, i) => s + i.amount, 0);
