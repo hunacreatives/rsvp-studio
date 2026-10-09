@@ -2,7 +2,8 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { esc } from "./_lib/email.js";
-import { code, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, SERVICE_FOOTER, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
+import { processInbound } from "./_lib/support-inbound.js";
+import { code, customerReplyTo, emailRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
 
 // The daily support job — Vercel Cron, ~9 AM Manila (vercel.json: "0 1 * * *" UTC).
 //   1. "Still need help?" reminder: waiting on the customer 3 days (1 day if urgent).
@@ -14,7 +15,8 @@ import { code, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueA
 // sends with the same idempotency key — a double run can't double-email.
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-const sendMail = makeSendMail(process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null);
+const resendClient = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const sendMail = makeSendMail(resendClient);
 const SITE = "https://thersvpstudio.com";
 
 type Thread = {
@@ -29,6 +31,7 @@ type Thread = {
   last_customer_at: string | null;
   last_message_at: string;
   hold_until: string | null;
+  reply_key?: string | null;
 };
 
 const fmtDay = (d: Date) => d.toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric", timeZone: "Asia/Manila" });
@@ -39,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!secret) return res.status(500).json({ error: "CRON_SECRET is not set" });
   if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
 
-  const report = { reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, errors: [] as string[] };
+  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, errors: [] as string[] };
   const today = new Date();
   const dayKey = today.toISOString().slice(0, 10);
   const { data: hol } = await supabaseAdmin.from("support_holidays").select("day").gte("day", new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10));
@@ -50,6 +53,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data } = await supabaseAdmin.from("profiles").select("id, email, full_name, notify_project_updates").in("id", ids);
     return new Map((data ?? []).map((p) => [p.id as string, p as { email: string | null; full_name: string | null; notify_project_updates: boolean }]));
   };
+
+  // 0. Email replies: anything the webhook missed in the last 3 days (when switched on).
+  if (emailRepliesOn() && resendClient) {
+    try {
+      const since = Date.now() - 3 * 86_400_000;
+      const { data: list, error } = await resendClient.emails.receiving.list({ limit: 100 });
+      if (error) throw new Error(error.message);
+      const recent = (list?.data ?? []).filter((e) => Date.parse(e.created_at) > since);
+      const { data: seen } = recent.length
+        ? await supabaseAdmin.from("support_inbound_emails").select("email_id, outcome").in("email_id", recent.map((e) => e.id))
+        : { data: [] };
+      const done = new Map((seen ?? []).map((r) => [r.email_id as string, r.outcome as string]));
+      for (const e of recent) {
+        if (done.has(e.id) && done.get(e.id) !== "error") continue;
+        try {
+          await processInbound(e.id, { db: supabaseAdmin, receiving: resendClient.emails.receiving, sendMail, origin: SITE });
+          report.inboundCaughtUp++;
+        } catch (err) {
+          report.errors.push(`email ${e.id}: ${err instanceof Error ? err.message : err}`);
+        }
+      }
+    } catch (e) {
+      report.errors.push(`email catch-up: ${e instanceof Error ? e.message : e}`);
+    }
+  }
 
   // 1. Reminders
   const { data: due, error: e1 } = await supabaseAdmin.rpc("support_claim_reminders");
@@ -80,14 +108,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           from: FROM,
           to: p.email,
           subject: `[${code(t.ticket_number)}] Still need help?`,
-          headers: threadHeaders(t.ticket_number, true),
+          replyTo: customerReplyTo(t),
+          headers: threadHeaders(t.ticket_number, true, t.reply_key),
           html: layout(
             "Still need help?",
             `Hi ${firstName(p.full_name)},<br><br>We replied to your ${esc(topicOf(t.category))} request (<strong>${code(t.ticket_number)}</strong>) and haven’t heard back. If you still need anything, just reply in your dashboard — we’re here.<br><br>No action needed if you’re all set.${
               willClose ? ` If we don’t hear from you, we’ll close it around ${fmtDay(closesOn)}; after that you can always start a new request.` : ""
             }`,
             { label: "View your request", url: `${SITE}/account/messages?thread=${t.id}` },
-            SERVICE_FOOTER,
+            serviceFooter(),
           ),
         },
         `support-reminder-${t.id}-${t.waiting_since ?? ""}`,
@@ -116,12 +145,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           from: FROM,
           to: p.email,
           subject: `[${code(t.ticket_number)}] We’ve closed your request`,
-          headers: threadHeaders(t.ticket_number, true),
+          replyTo: customerReplyTo(t),
+          headers: threadHeaders(t.ticket_number, true, t.reply_key),
           html: layout(
             "We’ve closed your request",
             `Hi ${firstName(p.full_name)},<br><br>We didn’t hear back about <strong>${code(t.ticket_number)}</strong> (${esc(topicOf(t.category))}), so we’ve closed it. If it still needs attention, reply within 7 days and it reopens — or start a new request any time.`,
             { label: "View your request", url: `${SITE}/account/messages?thread=${t.id}` },
-            SERVICE_FOOTER,
+            serviceFooter(),
           ),
         },
         `support-autoclose-${t.id}`,

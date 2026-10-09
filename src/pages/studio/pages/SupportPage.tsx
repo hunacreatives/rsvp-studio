@@ -204,6 +204,9 @@ export default function SupportPage() {
               onBack={() => open(null)}
               toolbar={<StaffToolbar t={active} email={emailOf(active)} eventDate={projectOf(active)?.event_date ?? null} holidays={holidays} />}
               allowNotes
+              messageActions={(m) =>
+                m.sender_id === active.profile_id && !m.internal ? <SplitButton messageId={m.id} onDone={open} /> : null
+              }
               composerExtras={(insert) => (
                 <SavedReplies replies={saved} reload={reloadSaved} firstName={(active.counterpartName || "").split(" ")[0]} onPick={insert} />
               )}
@@ -216,6 +219,30 @@ export default function SupportPage() {
       </div>
       )}
     </>
+  );
+}
+
+/** Customer raised something unrelated in the same request: give it its own number. */
+function SplitButton({ messageId, onDone }: { messageId: string; onDone: (id: string) => void }) {
+  const { refresh, demo } = usePortal();
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    if (demo) return window.alert("Changes are turned off in demo mode.");
+    if (!window.confirm("Move this message to a new request? Both requests get a note saying where it went.")) return;
+    setBusy(true);
+    try {
+      const id = await studio.splitSupportMessage(messageId);
+      await refresh();
+      onDone(id);
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Couldn’t move it.");
+    }
+    setBusy(false);
+  };
+  return (
+    <button onClick={run} disabled={busy} className="text-[11px] text-[var(--slate)] hover:text-[var(--ink)] hover:underline">
+      {busy ? "Moving…" : "Move to new request"}
+    </button>
   );
 }
 
@@ -475,6 +502,8 @@ function CustomerPanel({ t, requests, onOpen }: { t: ThreadSummary; requests: Th
         {open.length ? `${formatMoney(open.reduce((s, i) => s + i.amount, 0))} open${late.length ? ` · ${late.length} overdue` : ""}` : "Nothing outstanding"}
       </p>
 
+      <ReplyAddress t={t} />
+
       <h3 className="mt-6 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Other requests</h3>
       {others.length ? (
         others.map((r) => (
@@ -490,6 +519,34 @@ function CustomerPanel({ t, requests, onOpen }: { t: ThreadSummary; requests: Th
         <p className="mt-2 text-[var(--slate)]">None — this is their first.</p>
       )}
     </aside>
+  );
+}
+
+/** The request's email reply address, and a way to retire it (e.g. it was forwarded to the wrong person). */
+function ReplyAddress({ t }: { t: ThreadSummary }) {
+  const { refresh, demo } = usePortal();
+  const [busy, setBusy] = useState(false);
+  if (!t.reply_key || !t.ticket_number) return null;
+  const reset = async () => {
+    if (demo) return;
+    if (!window.confirm("Give this request a new reply address? Replies to the old address will no longer reach it — they’ll come to you to check instead.")) return;
+    setBusy(true);
+    try {
+      await studio.rotateReplyKey(t.id);
+      await refresh();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Couldn’t reset it.");
+    }
+    setBusy(false);
+  };
+  return (
+    <>
+      <h3 className="mt-6 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Email reply address</h3>
+      <p className="mt-2 break-all text-[12px] text-[var(--ink)]">sup-{t.ticket_number}.{t.reply_key}@reply.thersvpstudio.com</p>
+      <button onClick={reset} disabled={busy} className="mt-1 text-[12px] text-[var(--acc-blue)] hover:underline">
+        {busy ? "Resetting…" : "Reset address"}
+      </button>
+    </>
   );
 }
 

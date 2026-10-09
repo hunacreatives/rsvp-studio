@@ -7,7 +7,18 @@ import { esc, sendChecked } from "./email.js";
 
 export const FROM = "The RSVP Studio <hello@thersvpstudio.com>";
 export const STUDIO_INBOX = "hello@thersvpstudio.com";
+
+// Email replies (Phase 3B). Off until launch: Resend receiving on REPLY_DOMAIN,
+// the /api/support-inbound webhook, then SUPPORT_EMAIL_REPLIES=on in Vercel.
+export const REPLY_DOMAIN = "reply.thersvpstudio.com";
+export const emailRepliesOn = () => process.env.SUPPORT_EMAIL_REPLIES === "on";
+
 export const SERVICE_FOOTER = "You’re receiving this because you contacted The RSVP Studio support. Reply in your dashboard or to this email.";
+/** Footer for emails about a request: says replying by email works once it does. */
+export const serviceFooter = () =>
+  emailRepliesOn()
+    ? "You’re receiving this because you contacted The RSVP Studio support. Just reply to this email — it goes straight to your request — or reply in your dashboard."
+    : SERVICE_FOOTER;
 const SETTINGS_FOOTER = "You’re receiving this because of your notification settings. Change them anytime under Account → Notifications.";
 
 /** Sends through Resend, or logs and skips when there's no key (local dev, preview builds). */
@@ -51,12 +62,27 @@ export const topicOf = (c: string | null | undefined) => SUPPORT_TOPIC[c ?? "oth
 export const code = (n: number) => `SUP-${n}`;
 export const firstName = (name: string | null | undefined) => esc((name || "").split(" ")[0] || "there");
 
-/** Thread every email about one request together in Gmail/Outlook. */
-export const threadHeaders = (n: number, auto = false): Record<string, string> => ({
-  References: `<sup-${n}@thersvpstudio.com>`,
-  "In-Reply-To": `<sup-${n}@thersvpstudio.com>`,
-  ...(auto ? { "Auto-Submitted": "auto-replied", "X-Auto-Response-Suppress": "All" } : {}),
-});
+/**
+ * Thread every email about one request together in Gmail/Outlook. With email replies on,
+ * the request's private key rides along too, so a reply can be matched by its headers
+ * even if the Reply-To address was changed.
+ */
+export const threadHeaders = (n: number, auto = false, key?: string | null): Record<string, string> => {
+  const ref = `<sup-${n}@thersvpstudio.com>`;
+  const keyed = key && emailRepliesOn() ? ` <sup-${n}.${key}@thersvpstudio.com>` : "";
+  return {
+    References: ref + keyed,
+    "In-Reply-To": ref,
+    ...(auto ? { "Auto-Submitted": "auto-replied", "X-Auto-Response-Suppress": "All" } : {}),
+  };
+};
+
+/** sup-1042.<key>@reply.thersvpstudio.com — where a customer's reply about this request goes. */
+export const replyAddress = (n: number, key: string) => `sup-${n}.${key}@${REPLY_DOMAIN}`;
+
+/** Reply-To for an email to the customer about a request (nothing while email replies are off). */
+export const customerReplyTo = (t: { ticket_number: number | null; reply_key?: string | null }) =>
+  emailRepliesOn() && t.ticket_number && t.reply_key ? replyAddress(t.ticket_number, t.reply_key) : undefined;
 
 const MANILA = 8 * 3_600_000;
 const manilaDay = (t: Date) => new Date(t.getTime() + MANILA).toISOString().slice(0, 10);

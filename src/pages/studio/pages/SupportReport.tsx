@@ -180,6 +180,8 @@ export default function SupportReport({ requests, holidays }: { requests: Thread
         </Card>
       </div>
 
+      <EmailRepliesCard onOpen={openRequest} />
+
       <div className="grid gap-5 lg:grid-cols-2">
         <HolidaysCard />
         <JobCard />
@@ -296,6 +298,72 @@ function JobCard() {
         Each morning: a “Still need help?” email after 3 days waiting on the customer (1 day if urgent); closes it 2+ days later at 7 days, never urgent ones, held ones, or
         within 14 days of their event. Then a digest to hello@ on working days, only when something needs attention.
       </p>
+    </Card>
+  );
+}
+
+const OUTCOME: Record<studio.InboundEmail["outcome"], { label: string; tone: string }> = {
+  posted: { label: "Added to request", tone: "bg-[#e6f4e6] text-[#2f6b2f]" },
+  new_request: { label: "New request", tone: "bg-[#e8eeff] text-[#1d4fd7]" },
+  note: { label: "Needs a look", tone: "bg-[#fff1d6] text-[#8a5a00]" },
+  unmatched: { label: "Couldn’t match", tone: "bg-[#fff1d6] text-[#8a5a00]" },
+  ignored: { label: "Ignored", tone: "bg-[var(--paper)] text-[var(--slate)]" },
+  error: { label: "Error", tone: "bg-[#fde4df] text-[#c2412d]" },
+  processing: { label: "Processing", tone: "bg-[var(--paper)] text-[var(--slate)]" },
+};
+
+/** Customers replying by email: what happened to each email — or, before launch, how to switch it on. */
+function EmailRepliesCard({ onOpen }: { onOpen: (id: string) => void }) {
+  const [rows, setRows] = useState<studio.InboundEmail[] | null | undefined>(undefined);
+  useEffect(() => {
+    studio.loadInboundEmails().then(setRows);
+  }, []);
+  return (
+    <Card title="Email replies">
+      {rows === undefined ? (
+        <Empty>Checking…</Empty>
+      ) : !rows?.length ? (
+        <div className="text-[13px] text-[var(--ink)]">
+          <p>
+            <strong>Switched off until launch.</strong> Once on, customers can answer any support email by just replying — it lands on the right request, files
+            included. Emails we can’t confirm came from the customer become internal notes instead.
+          </p>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-[var(--slate)]">
+            <li>
+              Resend → Domains: add <strong className="text-[var(--ink)]">reply.thersvpstudio.com</strong> with receiving on, then add the MX record it shows in Namecheap
+              (host <strong className="text-[var(--ink)]">reply</strong>). First check this doesn’t change how hello@ is forwarded.
+            </li>
+            <li>
+              Resend → Webhooks: add <strong className="text-[var(--ink)]">https://thersvpstudio.com/api/support-inbound</strong> for “email.received”, and put its
+              signing secret in Vercel as <strong className="text-[var(--ink)]">RESEND_WEBHOOK_SECRET</strong>.
+            </li>
+            <li>
+              Vercel: add <strong className="text-[var(--ink)]">SUPPORT_EMAIL_REPLIES = on</strong> and redeploy.
+            </li>
+          </ol>
+        </div>
+      ) : (
+        <ul className="divide-y divide-[var(--line)]">
+          {rows.map((r) => (
+            <li key={r.email_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-[13px]">
+              <span className="w-[120px] shrink-0 text-[12px] text-[var(--slate)]">
+                {new Date(r.received_at ?? r.created_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+              </span>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${OUTCOME[r.outcome].tone}`}>{OUTCOME[r.outcome].label}</span>
+              <span className="min-w-0 flex-1 truncate text-[var(--ink)]">
+                {r.from_address ?? "—"}
+                {r.subject ? <span className="text-[var(--slate)]"> · {r.subject}</span> : null}
+                {r.reason ? <span className="block truncate text-[12px] text-[var(--slate)]">{r.reason}</span> : null}
+              </span>
+              {r.thread_id ? (
+                <button onClick={() => onOpen(r.thread_id!)} className="shrink-0 text-[12px] text-[var(--acc-blue)] hover:underline">
+                  Open request
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }

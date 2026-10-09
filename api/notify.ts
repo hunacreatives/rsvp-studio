@@ -2,7 +2,8 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { esc } from "./_lib/email.js";
-import { backAt, code, FROM, layout, makeSendMail, ratingButtons, SERVICE_FOOTER, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
+import { code, customerReplyTo, FROM, layout, makeSendMail, ratingButtons, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
+import { customerMessageEmails } from "./_lib/support-notify.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -64,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (msg.internal) return res.status(200).json({ sent: 0, failed: 0 });
       const { data: thread } = await supabaseAdmin
         .from("message_threads")
-        .select("id, profile_id, event_id, kind, subject, ticket_number, category, urgent, auto_reply_at")
+        .select("id, profile_id, event_id, kind, subject, ticket_number, category, urgent, auto_reply_at, reply_key")
         .eq("id", msg.thread_id)
         .maybeSingle();
       if (!thread) return res.status(404).json({ error: "Thread not found" });
@@ -83,51 +84,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               sendMail({
                 from: FROM,
                 to: customer.email,
+                replyTo: customerReplyTo(thread),
                 subject: `[${code(n)}] New reply from The RSVP Studio`,
-                headers: threadHeaders(n),
-                html: layout(`${esc(caller.full_name || "The RSVP Studio")} replied`, `${snippet}<br><br><span style="color:#868697">Request ${code(n)} · ${esc(topic)}</span>`, { label: "Reply in your dashboard", url: link }, SERVICE_FOOTER),
+                headers: threadHeaders(n, false, thread.reply_key),
+                html: layout(`${esc(caller.full_name || "The RSVP Studio")} replied`, `${snippet}<br><br><span style="color:#868697">Request ${code(n)} · ${esc(topic)}</span>`, { label: "Reply in your dashboard", url: link }, serviceFooter()),
               }),
             );
           }
         } else {
-          // To the studio inbox…
-          sends.push(
-            sendMail({
-              from: FROM,
-              to: STUDIO_INBOX,
-              replyTo: caller.email ?? undefined,
-              subject: `[${code(n)}] ${thread.urgent ? "URGENT · " : ""}${topic} — ${caller.full_name || caller.email}`,
-              headers: threadHeaders(n),
-              html: layout(`${code(n)} · ${esc(topic)}`, snippet, { label: "Open in Studio Console", url: `${origin}/studio/support?thread=${thread.id}` }),
-            }),
-          );
-          // …and an instant auto-response to the customer (one per 10 minutes at most).
-          const { count } = await supabaseAdmin.from("messages").select("id", { count: "exact", head: true }).eq("thread_id", thread.id);
-          const first = (count ?? 0) <= 1;
-          const recent = thread.auto_reply_at && Date.now() - new Date(thread.auto_reply_at).getTime() < 10 * 60_000;
-          if (caller.email && (first || !recent)) {
-            const { data: hol } = await supabaseAdmin.from("support_holidays").select("day").gte("day", new Date().toISOString().slice(0, 10)).limit(60);
-            const away = backAt(new Date(), new Set((hol ?? []).map((h) => h.day as string)));
-            const when = away ? `We’re away right now and will be back ${away} (Philippine time).` : "We reply within 1 business day — Monday to Friday, 9 AM–6 PM Philippine time.";
-            const hi = `Hi ${esc((caller.full_name || "").split(" ")[0] || "there")},`;
-            sends.push(
-              sendMail({
-                from: FROM,
-                to: caller.email,
-                subject: first ? `We’ve received your request [${code(n)}]` : `We got your message [${code(n)}]`,
-                headers: threadHeaders(n, true),
-                html: first
-                  ? layout(
-                      "We’ve received your request",
-                      `${hi}<br><br>Thanks for getting in touch. Your request number is <strong>${code(n)}</strong> (${esc(topic)}). ${when}<br><br><span style="color:#868697">Your message:</span><br>${snippet}<br><br>Is your event in the next 7 days? Message us on Instagram <strong>@rsvpstudioo</strong> as well and we’ll prioritise it.`,
-                      { label: "View your request", url: link },
-                      SERVICE_FOOTER,
-                    )
-                  : layout("We got your message", `${hi}<br><br>It’s been added to request <strong>${code(n)}</strong>. ${when}`, { label: "View your request", url: link }, SERVICE_FOOTER),
-              }),
-            );
-            await supabaseAdmin.from("message_threads").update({ auto_reply_at: new Date().toISOString() }).eq("id", thread.id);
-          }
+          sends.push(...customerMessageEmails(supabaseAdmin, sendMail, { thread: { ...thread, ticket_number: n }, customer: caller, message: msg, origin }));
         }
       } else if (caller.is_staff) {
         const to = await recipientsFor(thread.event_id, thread.profile_id, "notify_project_updates");
@@ -153,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
       }
     } else if (body.kind === "support_resolved" && body.threadId && caller.is_staff) {
-      const { data: thread } = await supabaseAdmin.from("message_threads").select("id, profile_id, ticket_number, category, status").eq("id", body.threadId).maybeSingle();
+      const { data: thread } = await supabaseAdmin.from("message_threads").select("id, profile_id, ticket_number, category, status, reply_key").eq("id", body.threadId).maybeSingle();
       if (!thread?.ticket_number || thread.status !== "resolved") return res.status(404).json({ error: "Not a resolved request" });
       const { data: customer } = await supabaseAdmin.from("profiles").select("email, full_name").eq("id", thread.profile_id).maybeSingle();
       if (customer?.email) {
@@ -162,13 +127,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           sendMail({
             from: FROM,
             to: customer.email,
+            replyTo: customerReplyTo(thread),
             subject: `[${code(n)}] Your request has been resolved`,
-            headers: threadHeaders(n),
+            headers: threadHeaders(n, false, thread.reply_key),
             html: layout(
               "Your request has been resolved",
               `Hi ${esc((customer.full_name || "").split(" ")[0] || "there")},<br><br>We’ve marked request <strong>${code(n)}</strong> (${esc(SUPPORT_TOPIC[thread.category ?? "other"] ?? "Support")}) as resolved. If anything still isn’t right, just reply within 7 days and it reopens.${ratingButtons(origin, thread.id)}`,
               { label: "View your request", url: `${origin}/account/messages?thread=${thread.id}` },
-              SERVICE_FOOTER,
+              serviceFooter(),
             ),
           }),
         );

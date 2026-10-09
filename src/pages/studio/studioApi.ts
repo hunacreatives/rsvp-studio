@@ -252,3 +252,36 @@ export async function loadJobRun(job = "support-daily") {
   const { data } = await supabase.from("support_job_runs").select("job, last_run_at, details").eq("job", job).maybeSingle();
   return (data ?? null) as JobRun | null;
 }
+
+// ---------------------------------------------------------------------------
+// Support: email replies (supabase/support-email-replies.sql)
+
+export type InboundEmail = {
+  email_id: string;
+  received_at: string | null;
+  created_at: string;
+  from_address: string | null;
+  subject: string | null;
+  outcome: "processing" | "posted" | "new_request" | "note" | "unmatched" | "ignored" | "error";
+  reason: string | null;
+  thread_id: string | null;
+};
+
+export async function loadInboundEmails(limit = 15) {
+  const { data, error } = await supabase
+    .from("support_inbound_emails")
+    .select("email_id, received_at, created_at, from_address, subject, outcome, reason, thread_id")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return error ? null : ((data ?? []) as InboundEmail[]);
+}
+
+/** Move one customer message into a new request; returns the new request's id. */
+export async function splitSupportMessage(messageId: string) {
+  return must(await supabase.rpc("support_split_message", { p_message: messageId })) as string;
+}
+
+/** A new email reply address for a request — the old one stops working. */
+export async function rotateReplyKey(threadId: string) {
+  return must(await supabase.rpc("support_rotate_reply_key", { p_thread: threadId })) as string;
+}

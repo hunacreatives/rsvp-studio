@@ -110,6 +110,8 @@ export type Thread = {
   rating?: SupportRating | null;
   rating_comment?: string | null;
   rated_at?: string | null;
+  /** Private part of the request's email reply address. */
+  reply_key?: string | null;
 };
 
 export type SupportRating = "great" | "okay" | "not_good";
@@ -125,6 +127,8 @@ export type Message = {
   created_at: string;
   /** Staff-only note on a support request (customers never receive these). */
   internal?: boolean;
+  /** Arrived as an email reply (supabase/support-email-replies.sql). */
+  via?: "email" | null;
 };
 
 /** Thread as shown in an inbox: joined with its latest message + unread flag. */

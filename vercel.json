@@ -15,6 +15,12 @@
   "functions": {
     "api/template-ai.ts": {
       "maxDuration": 60
+    },
+    "api/support-inbound.ts": {
+      "maxDuration": 30
+    },
+    "api/support-cron.ts": {
+      "maxDuration": 60
     }
   }
 }

@@ -75,6 +75,7 @@ export default function ChatPane({
   closedNote,
   allowNotes,
   composerExtras,
+  messageActions,
 }: {
   thread: ThreadSummary;
   header?: ReactNode;
@@ -87,6 +88,8 @@ export default function ChatPane({
   allowNotes?: boolean;
   /** Extra composer tools (saved replies…); `insert` puts text into the reply box. */
   composerExtras?: (insert: (text: string) => void) => ReactNode;
+  /** Staff tools under a message (support: move it to a new request). */
+  messageActions?: (m: Message) => ReactNode;
 }) {
   const { profile, people, getMessages, sendMessage, onMessage, markRead, demo } = usePortal();
   const [messages, setMessages] = useState<Message[] | null>(null);
@@ -185,12 +188,21 @@ export default function ChatPane({
                           </p>
                         ) : null}
                         <p className="whitespace-pre-line">{m.body}</p>
-                        <p className={`mt-2 text-[11px] text-[var(--slate)] ${mine ? "text-right" : ""}`}>{formatTime(m.created_at)}</p>
+                        <p className={`mt-2 text-[11px] text-[var(--slate)] ${mine ? "text-right" : ""}`}>
+                          {formatTime(m.created_at)}
+                          {m.via === "email" ? (
+                            <span title="Sent as an email reply">
+                              {" · "}
+                              <i className="ri-mail-line" /> by email
+                            </span>
+                          ) : null}
+                        </p>
                       </div>
                     ) : null}
                     {m.attachments.map((a) => (
                       <AttachmentCard key={a.path + a.name} a={a} demo={demo} />
                     ))}
+                    {messageActions?.(m)}
                   </div>
                 </div>
               </Fragment>
