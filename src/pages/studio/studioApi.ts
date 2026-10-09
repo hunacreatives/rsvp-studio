@@ -131,3 +131,77 @@ export async function loadClientDirectory() {
     created_at: string;
   }[];
 }
+
+// ---------------------------------------------------------------------------
+// Team & roles (supabase/team-roles.sql). Role changes only happen through
+// the database's team functions, which check that the owner is asking.
+
+export type StaffRole = "owner" | "admin";
+export type TeamMember = { id: string; full_name: string | null; email: string | null; avatar_url: string | null; staff_role: StaffRole; created_at: string };
+export type StaffInvite = { id: string; email: string; role: "admin"; created_at: string; last_sent_at: string };
+export type TeamEvent = { id: string; email: string | null; action: string; from_role: string | null; to_role: string | null; actor_id: string | null; created_at: string };
+
+/** The team, pending invites and recent changes. `ready: false` = team-roles.sql hasn't been run. */
+export async function loadTeam(myId: string) {
+  const [members, invites, events] = await Promise.all([
+    supabase.from("profiles").select("id, full_name, email, avatar_url, staff_role, created_at").not("staff_role", "is", null),
+    supabase.from("staff_invites").select("id, email, role, created_at, last_sent_at").is("accepted_at", null).is("cancelled_at", null).order("created_at", { ascending: false }),
+    supabase.from("staff_role_events").select("id, email, action, from_role, to_role, actor_id, created_at").order("created_at", { ascending: false }).limit(20),
+  ]);
+  if (members.error) return { ready: false as const, error: members.error.message };
+  const team = ((members.data ?? []) as TeamMember[]).sort((a, b) => (a.staff_role === b.staff_role ? (a.full_name ?? a.email ?? "").localeCompare(b.full_name ?? b.email ?? "") : a.staff_role === "owner" ? -1 : 1));
+  return {
+    ready: true as const,
+    team,
+    myRole: team.find((m) => m.id === myId)?.staff_role ?? null,
+    invites: (invites.data ?? []) as StaffInvite[],
+    events: (events.data ?? []) as TeamEvent[],
+  };
+}
+
+/** Add an admin by email: added now if they have an account, otherwise invited (and emailed). */
+export async function inviteAdmin(email: string) {
+  const out = must(await supabase.rpc("invite_admin", { p_email: email })) as { status: "added" | "invited"; profile_id?: string; invite_id?: string; resent?: boolean };
+  notify(out.status === "added" ? { kind: "staff_added", profileId: out.profile_id } : { kind: "staff_invite", inviteId: out.invite_id });
+  return out;
+}
+
+export async function resendStaffInvite(email: string) {
+  return inviteAdmin(email);
+}
+
+export async function cancelStaffInvite(id: string) {
+  must(await supabase.rpc("cancel_staff_invite", { p_invite: id }));
+}
+
+export async function removeAdmin(profileId: string) {
+  must(await supabase.rpc("remove_admin", { p_profile: profileId }));
+}
+
+export async function transferOwnership(profileId: string) {
+  must(await supabase.rpc("transfer_ownership", { p_profile: profileId }));
+}
+
+// ---------------------------------------------------------------------------
+// Support saved replies (supabase/support-team-tools.sql). Staff only.
+
+export type SavedReply = { id: string; title: string; body: string; updated_at: string };
+
+export async function loadSavedReplies() {
+  const { data, error } = await supabase.from("support_saved_replies").select("id, title, body, updated_at").order("title");
+  if (error) return [] as SavedReply[];
+  return (data ?? []) as SavedReply[];
+}
+
+export async function saveSavedReply(reply: { id?: string; title: string; body: string }) {
+  const row = { title: reply.title.trim(), body: reply.body.trim(), updated_at: new Date().toISOString() };
+  if (reply.id) must(await supabase.from("support_saved_replies").update(row).eq("id", reply.id));
+  else {
+    const { data } = await supabase.auth.getUser();
+    must(await supabase.from("support_saved_replies").insert({ ...row, created_by: data.user?.id ?? null }));
+  }
+}
+
+export async function deleteSavedReply(id: string) {
+  must(await supabase.from("support_saved_replies").delete().eq("id", id));
+}

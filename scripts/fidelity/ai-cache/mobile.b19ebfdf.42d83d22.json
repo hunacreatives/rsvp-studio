@@ -1,0 +1,198 @@
+{
+ "case": "mobile",
+ "sha": "b19ebfdf",
+ "promptVer": "42d83d22",
+ "boxesSig": "297ecaa4",
+ "recordedAt": "2026-10-09T11:17:36.986Z",
+ "seconds": 9.058,
+ "usage": {
+  "input_tokens": 9220,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 1206,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "result": {
+  "eventTypes": [
+   "birthday"
+  ],
+  "paletteLabel": "Princess Pink & Cream",
+  "palette": {
+   "bg": "#fbe3e8",
+   "surface": "#fff4f1",
+   "ink": "#5a2a38",
+   "muted": "#8a5a68",
+   "accent": "#b94f6c",
+   "onAccent": "#ffffff"
+  },
+  "fonts": {
+   "display": {
+    "family": "Pinyon Script",
+    "fallback": "cursive",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Great Vibes",
+     "Allura",
+     "Parisienne"
+    ]
+   },
+   "body": {
+    "family": "Gloock",
+    "fallback": "serif",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "DM Serif Display",
+     "Playfair Display",
+     "Cormorant Garamond"
+    ]
+   }
+  },
+  "radius": "round",
+  "layers": [
+   {
+    "boxes": [
+     1
+    ],
+    "lines": [
+     "Frances Jash"
+    ],
+    "role": "field",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any",
+    "field": "hosts.names",
+    "format": "joined",
+    "joiner": "&",
+    "editorHint": "Name"
+   },
+   {
+    "boxes": [
+     2,
+     3,
+     4
+    ],
+    "lines": [
+     "A Royal",
+     "Celebration",
+     "Awaits"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": -0.02
+   },
+   {
+    "boxes": [
+     5
+    ],
+    "lines": [
+     ""
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     6
+    ],
+    "lines": [
+     "Click Here"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   }
+  ],
+  "sections": [
+   {
+    "block": "schedule",
+    "band": "bg",
+    "divider": "dots",
+    "heading": "Party Details"
+   },
+   {
+    "block": "venue",
+    "band": "surface",
+    "divider": "dots",
+    "heading": "Where the Magic Happens"
+   },
+   {
+    "block": "gallery",
+    "band": "bg",
+    "divider": "dots",
+    "heading": "Royal Moments"
+   },
+   {
+    "block": "faqs",
+    "band": "surface",
+    "divider": "dots",
+    "heading": "Good to Know"
+   },
+   {
+    "block": "rsvp",
+    "band": "bg",
+    "divider": "dots",
+    "heading": "Join the Celebration"
+   },
+   {
+    "block": "footer",
+    "band": "surface",
+    "divider": "none"
+   }
+  ],
+  "bands": [
+   {
+    "b": 1,
+    "key": "hero"
+   },
+   {
+    "b": 2,
+    "key": "hero"
+   },
+   {
+    "b": 3,
+    "key": "rsvp"
+   }
+  ],
+  "photos": [],
+  "notes": [
+   "Box 1 shows 'Frances Jash' on the ribbon — treated as the celebrant's name field.",
+   "Box 5 is a tiny fragment inside 'Awaits', ignored.",
+   "'Click Here' button is static; presumably links to RSVP.",
+   "Fonts are guesses: script looks like Pinyon Script; serif headline resembles Gloock or similar high-contrast display serif.",
+   "All pictures are illustrations (castle, princesses, butterflies), so no customer photos."
+  ]
+ }
+}

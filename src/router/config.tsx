@@ -34,6 +34,8 @@ import StudioProjects from "../pages/studio/pages/ProjectsPage";
 import StudioInboxPage from "../pages/studio/pages/InboxPage";
 import StudioInvoices from "../pages/studio/pages/InvoicesPage";
 import StudioClients from "../pages/studio/pages/ClientsPage";
+import StudioTeam from "../pages/studio/pages/TeamPage";
+import StudioSupport from "../pages/studio/pages/SupportPage";
 import StudioTemplates from "../pages/studio/templates/TemplatesPage";
 import StudioTemplateNew from "../pages/studio/templates/TemplateNewPage";
 import StudioTemplateDetail from "../pages/studio/templates/TemplateDetailPage";
@@ -85,8 +87,10 @@ const routes: RouteObject[] = [
       { index: true, element: <StudioOverview /> },
       { path: "projects", element: <StudioProjects /> },
       { path: "inbox", element: <StudioInboxPage /> },
+      { path: "support", element: <StudioSupport /> },
       { path: "invoices", element: <StudioInvoices /> },
       { path: "clients", element: <StudioClients /> },
+      { path: "team", element: <StudioTeam /> },
       { path: "templates", element: <StudioTemplates /> },
       { path: "templates/new", element: <StudioTemplateNew /> },
       { path: "templates/import", element: <StudioTemplateImport /> },

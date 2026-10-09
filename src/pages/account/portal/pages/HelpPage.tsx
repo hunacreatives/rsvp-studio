@@ -4,6 +4,10 @@ import { PageHeader } from "../PortalLayout";
 import { GUIDES, SUPPORT, TOP_QUESTIONS, TOPICS } from "../help-data";
 import type { QA } from "../help-data";
 import { PillButton, PrimaryButton } from "../ui";
+import { usePortal } from "../PortalContext";
+import { inboxStamp } from "../format";
+import { categoryLabel, parseTicket, ticketCode } from "../support";
+import { SupportChip } from "./MessagesPage";
 
 export default function HelpPage() {
   const [params, setParams] = useSearchParams();
@@ -45,6 +49,8 @@ export default function HelpPage() {
         />
         <i className="ri-search-line text-xl text-[var(--ink)]" />
       </label>
+
+      <MyRequests />
 
       {searchHits ? (
         <section className="mt-10">
@@ -183,5 +189,59 @@ function Accordion({ items }: { items: QA[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** The customer's own support requests: number, topic, status, last update. */
+function MyRequests() {
+  const { threads } = usePortal();
+  const [q, setQ] = useState("");
+  const [all, setAll] = useState(false);
+  const mine = threads.filter((t) => t.kind === "support" && t.ticket_number);
+  if (!mine.length) return null;
+  const n = parseTicket(q);
+  const term = q.trim().toLowerCase();
+  const shown = mine.filter(
+    (t) => !term || (n !== null ? t.ticket_number === n : [ticketCode(t.ticket_number), categoryLabel(t.category), t.lastMessage?.body].some((v) => v?.toLowerCase().includes(term))),
+  );
+  const list = all || term ? shown : shown.slice(0, 4);
+  return (
+    <section className="mt-10">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-[1.6rem] font-semibold text-[var(--ink)]">My support requests</h2>
+          <p className="text-[13px] text-[var(--slate)]">Find one by its number (like {ticketCode(mine[0].ticket_number)}) or a word from it.</p>
+        </div>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search requests"
+          className="w-full rounded-full border border-[var(--line)] bg-white px-4 py-2 text-[13px] outline-none focus:border-[var(--ink)] sm:w-56"
+        />
+      </div>
+      <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--line)] bg-white">
+        {list.map((t) => (
+          <Link
+            key={t.id}
+            to={`/account/messages?thread=${t.id}`}
+            className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--line)] px-5 py-3 last:border-0 hover:bg-[var(--paper)]"
+          >
+            <span className="w-[86px] shrink-0 font-medium text-[var(--ink)]">{ticketCode(t.ticket_number)}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] text-[var(--ink)]">{categoryLabel(t.category)}</span>
+              <span className="block truncate text-[12px] text-[var(--slate)]">{t.lastMessage?.body || "Sent a file"}</span>
+            </span>
+            <SupportChip t={t} />
+            <span className="w-[70px] shrink-0 text-right text-[12px] text-[var(--slate)]">{inboxStamp(t.last_message_at)}</span>
+          </Link>
+        ))}
+        {!list.length ? <p className="px-5 py-6 text-center text-[13px] text-[var(--slate)]">No request matches “{q.trim()}”.</p> : null}
+      </div>
+      {!all && !term && shown.length > 4 ? (
+        <button onClick={() => setAll(true)} className="mt-2 text-[13px] text-[var(--acc-blue)] hover:underline">
+          Show all {shown.length}
+        </button>
+      ) : null}
+    </section>
   );
 }

@@ -1,17 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type {
-  Activity,
-  Attachment,
-  Invoice,
-  Message,
-  PersonLite,
-  Profile,
-  Project,
-  Task,
-  Thread,
-  ThreadKind,
-  ThreadSummary,
-} from "./types";
+import type { Activity, Attachment, Invoice, Message, PersonLite, Profile, Project, Task, Thread, ThreadKind, ThreadSummary, SupportCategory, SupportStatus } from "./types";
 
 export type SiteInfo = {
   slug: string;
@@ -226,15 +214,16 @@ export async function uploadAttachments(threadId: string, files: File[]): Promis
   return out;
 }
 
-export async function sendMessage(threadId: string, senderId: string, body: string, files: File[]) {
+export async function sendMessage(threadId: string, senderId: string, body: string, files: File[], opts: { internal?: boolean } = {}) {
   const attachments = files.length ? await uploadAttachments(threadId, files) : [];
   const { data, error } = await supabase
     .from("messages")
-    .insert({ thread_id: threadId, sender_id: senderId, body, attachments })
+    .insert({ thread_id: threadId, sender_id: senderId, body, attachments, ...(opts.internal ? { internal: true } : {}) })
     .select("*")
     .single();
   if (error) throw new Error(error.message);
-  notify({ kind: "message", messageId: data.id });
+  // Notes stay inside the team: no emails.
+  if (!opts.internal) notify({ kind: "message", messageId: data.id });
   return data as Message;
 }
 
@@ -243,14 +232,28 @@ export async function createThread(input: {
   eventId: string | null;
   kind: ThreadKind;
   subject: string;
+  category?: SupportCategory;
 }) {
   const { data, error } = await supabase
     .from("message_threads")
-    .insert({ profile_id: input.profileId, event_id: input.eventId, kind: input.kind, subject: input.subject })
+    .insert({ profile_id: input.profileId, event_id: input.eventId, kind: input.kind, subject: input.subject, ...(input.category ? { category: input.category } : {}) })
     .select("*")
     .single();
   if (error) throw new Error(error.message);
   return data as Thread;
+}
+
+/** Customer: mark their own support request solved. */
+export async function resolveMyRequest(threadId: string) {
+  const { error } = await supabase.rpc("resolve_my_request", { p_thread: threadId });
+  if (error) throw new Error(error.message);
+}
+
+/** Staff: change a support request's status / urgency (resolving emails the customer). */
+export async function updateSupportRequest(threadId: string, patch: { status?: SupportStatus; urgent?: boolean; category?: SupportCategory; assigned_to?: string | null }) {
+  const { error } = await supabase.from("message_threads").update(patch).eq("id", threadId);
+  if (error) throw new Error(error.message);
+  if (patch.status === "resolved") notify({ kind: "support_resolved", threadId });
 }
 
 export async function markThreadRead(threadId: string, profileId: string) {

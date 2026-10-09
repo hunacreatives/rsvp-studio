@@ -21,7 +21,7 @@ function devApi(): Plugin {
       server.middlewares.use(async (req, res, next) => {
         const name = req.url?.match(/^\/api\/([\w-]+)/)?.[1];
         // Staging mode also runs the RSVP endpoint (test data only, never live guests).
-        const allowed = server.config.mode === "staging" ? [...DEV_API, "wedding-rsvp"] : DEV_API;
+        const allowed = server.config.mode === "staging" ? [...DEV_API, "wedding-rsvp", "notify"] : DEV_API;
         if (!name || !allowed.includes(name)) return next();
         try {
           const chunks: Buffer[] = [];

@@ -1,0 +1,629 @@
+{
+ "case": "redblack",
+ "sha": "561c95c5",
+ "promptVer": "42d83d22",
+ "boxesSig": "8a3585a9",
+ "recordedAt": "2026-10-09T11:14:07.125Z",
+ "seconds": 26.723,
+ "usage": {
+  "input_tokens": 11631,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 4601,
+  "output_tokens_details": {
+   "thinking_tokens": 1038
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "result": {
+  "eventTypes": [
+   "wedding"
+  ],
+  "paletteLabel": "Rust & White",
+  "palette": {
+   "bg": "#ffffff",
+   "surface": "#f7efe9",
+   "ink": "#111111",
+   "muted": "#5c5550",
+   "accent": "#b02a07",
+   "onAccent": "#ffffff"
+  },
+  "fonts": {
+   "display": {
+    "family": "Inter Tight",
+    "fallback": "sans-serif",
+    "weights": [
+     300,
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Hanken Grotesk",
+     "Instrument Sans",
+     "Archivo"
+    ]
+   },
+   "body": {
+    "family": "Inter Tight",
+    "fallback": "sans-serif",
+    "weights": [
+     300,
+     400,
+     600
+    ],
+    "italic": false,
+    "alternatives": [
+     "Hanken Grotesk",
+     "Albert Sans",
+     "Work Sans"
+    ]
+   }
+  },
+  "radius": "soft",
+  "layers": [
+   {
+    "boxes": [
+     1
+    ],
+    "lines": [
+     "MAEVA + ALEC"
+    ],
+    "role": "field",
+    "field": "hosts.names",
+    "format": "joined",
+    "joiner": "+",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     2
+    ],
+    "lines": [
+     "OCTOBER 22, 2030"
+    ],
+    "role": "field",
+    "field": "eventDate",
+    "format": "long",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     3
+    ],
+    "lines": [
+     "RSVP NOW"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     4
+    ],
+    "lines": [
+     "JOIN US AS WE SAY I DO"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 300,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": -0.03,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     5,
+     7
+    ],
+    "lines": [
+     "MAKE OUR",
+     "DAY SPECIAL"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 300,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": -0.03,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     6
+    ],
+    "lines": [
+     "Your name"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     8,
+     10
+    ],
+    "lines": [
+     "Let us know if you can celebrate",
+     "this unforgettable moment with us."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     9
+    ],
+    "lines": [
+     "Are you coming?"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     11
+    ],
+    "lines": [
+     "Absolutely, wouldn't miss it!"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     12
+    ],
+    "lines": [
+     "Sadly cannot make it"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     13
+    ],
+    "lines": [
+     "Let us know if you have any dietary restrictions."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     14
+    ],
+    "lines": [
+     "Nominate a song for our playlist!"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     15
+    ],
+    "lines": [
+     "RSVP now"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 600,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     16
+    ],
+    "lines": [
+     "Your Canva profile name won't be shared. Never submit passwords."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     17
+    ],
+    "lines": [
+     "OUR STORY"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 300,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": -0.03,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     18,
+     19
+    ],
+    "lines": [
+     "From our first coffee date to this very moment, it's been an",
+     "adventure filled with laughter, love, and late-night snacks."
+    ],
+    "role": "field",
+    "field": "story.first",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     20
+    ],
+    "lines": [
+     "THE BIG DAY"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 300,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": -0.03,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     21,
+     24
+    ],
+    "lines": [
+     "Let us know if you can celebrate this",
+     "unforgettable moment with us."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     22,
+     25,
+     26,
+     27
+    ],
+    "lines": [
+     "Venue: Skyview Terrace, 123 Anywhere St",
+     "Date: October 22, 2030",
+     "Time: 2 PM",
+     "Dress Code: Garden party"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     23
+    ],
+    "lines": [
+     "Reception to follow"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "right",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     28,
+     29
+    ],
+    "lines": [
+     "EXCITED TO CELEBRATE",
+     "OUR DAY WITH YOU"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 300,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": -0.03,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     30
+    ],
+    "lines": [
+     "In lieu of gifts, we'd be grateful for contributions toward our future together."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     31,
+     34,
+     37
+    ],
+    "lines": [
+     "Maeva + Alec ©2030 | Our wedding",
+     "All rights reserved",
+     "#ForeverAndEver / #TheDaySaylDo"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     32
+    ],
+    "lines": [
+     "Maeva + Alec"
+    ],
+    "role": "field",
+    "field": "hosts.names",
+    "format": "joined",
+    "joiner": "+",
+    "font": "body",
+    "weight": 600,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     35,
+     38
+    ],
+    "lines": [
+     "123 Anywhere St.",
+     "Any City, ST 12345"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     33,
+     36,
+     39
+    ],
+    "lines": [
+     "Questions? Reach out!",
+     "Tel: 123-456-789",
+     "Email: hello@reallygreatsite.com"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 300,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   }
+  ],
+  "photos": [
+   {
+    "p": 1,
+    "hint": "Couple photo (wide banner)"
+   },
+   {
+    "p": 2,
+    "hint": "Couple photo"
+   },
+   {
+    "p": 8,
+    "hint": "Couple photo (wide)"
+   },
+   {
+    "p": 9,
+    "hint": "Couple photo"
+   },
+   {
+    "p": 3,
+    "hint": "Gallery photo"
+   },
+   {
+    "p": 4,
+    "hint": "Gallery photo"
+   },
+   {
+    "p": 5,
+    "hint": "Gallery photo"
+   },
+   {
+    "p": 6,
+    "hint": "Gallery photo"
+   },
+   {
+    "p": 7,
+    "hint": "Gallery photo"
+   }
+  ],
+  "bands": [
+   {
+    "b": 1,
+    "key": "hero"
+   },
+   {
+    "b": 2,
+    "key": "gallery"
+   },
+   {
+    "b": 3,
+    "key": "rsvp"
+   },
+   {
+    "b": 4,
+    "key": "hostIntro"
+   },
+   {
+    "b": 5,
+    "key": "schedule"
+   },
+   {
+    "b": 6,
+    "key": "gallery"
+   },
+   {
+    "b": 7,
+    "key": "registry"
+   }
+  ],
+  "sections": [
+   {
+    "block": "keyPeople",
+    "band": "bg",
+    "divider": "line",
+    "heading": "Our people"
+   },
+   {
+    "block": "venue",
+    "band": "surface",
+    "divider": "line",
+    "heading": "Where we'll be"
+   },
+   {
+    "block": "faqs",
+    "band": "bg",
+    "divider": "line",
+    "heading": "Good to know"
+   },
+   {
+    "block": "rsvp",
+    "band": "surface",
+    "divider": "line",
+    "heading": "Make our day special"
+   },
+   {
+    "block": "footer",
+    "band": "bg",
+    "divider": "none"
+   }
+  ],
+  "notes": [
+   "Font is a light neo-grotesque (looks like Neue Haas/Helvetica Now); Inter Tight is a best guess.",
+   "Venue, date, time and dress code in the Big Day band are static text; customers must edit them by hand.",
+   "Footer address, phone, email and hashtag are static sample text and need changing per customer.",
+   "RSVP form labels and the 'Your Canva profile name...' disclaimer are static design wording; the disclaimer may need removing.",
+   "Hashtag in box 37 read as '#TheDaySaylDo' (likely 'SayIDo'); check.",
+   "Gift note (box 30) is static; the registry band has no store fields."
+  ]
+ }
+}

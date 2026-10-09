@@ -1,0 +1,642 @@
+{
+ "case": "landing",
+ "sha": "718b11bf",
+ "promptVer": "42d83d22",
+ "boxesSig": "a51a37d6",
+ "recordedAt": "2026-10-09T11:18:23.959Z",
+ "seconds": 28.214,
+ "usage": {
+  "input_tokens": 13071,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 5040,
+  "output_tokens_details": {
+   "thinking_tokens": 1446
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "result": {
+  "eventTypes": [
+   "birthday"
+  ],
+  "paletteLabel": "Blush Pink & Sage",
+  "palette": {
+   "bg": "#fdf3f4",
+   "surface": "#f9e1e6",
+   "ink": "#4f4e36",
+   "muted": "#76755a",
+   "accent": "#b5546b",
+   "onAccent": "#ffffff"
+  },
+  "fonts": {
+   "display": {
+    "family": "Great Vibes",
+    "fallback": "cursive",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Pinyon Script",
+     "Allura",
+     "Monsieur La Doulaise"
+    ]
+   },
+   "body": {
+    "family": "Playfair Display",
+    "fallback": "serif",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Cormorant Garamond",
+     "Bodoni Moda",
+     "DM Serif Display"
+    ]
+   },
+   "accent": {
+    "family": "Bodoni Moda",
+    "fallback": "serif",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Playfair Display",
+     "Gilda Display",
+     "Cormorant Garamond"
+    ]
+   },
+   "extra": {
+    "family": "Arimo",
+    "fallback": "sans-serif",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Montserrat",
+     "Lato",
+     "Inter"
+    ]
+   }
+  },
+  "radius": "round",
+  "layers": [
+   {
+    "boxes": [
+     1
+    ],
+    "lines": [
+     "JOIN US FOR A"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     2
+    ],
+    "lines": [
+     "BIRTHDAY CELEBRATION"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     3
+    ],
+    "lines": [
+     "THAT'S"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     4
+    ],
+    "lines": [
+     ""
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     5
+    ],
+    "lines": [
+     "ONE-CE"
+    ],
+    "role": "static",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     6
+    ],
+    "lines": [
+     "Upon a Time"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     7
+    ],
+    "lines": [
+     "OUR LITTLE PRINCESS"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     8
+    ],
+    "lines": [
+     "IS TURNING ONE!"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     9
+    ],
+    "lines": [
+     "Friday, September 18"
+    ],
+    "role": "field",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any",
+    "field": "eventDate",
+    "format": "long",
+    "editorHint": "Party date"
+   },
+   {
+    "boxes": [
+     10
+    ],
+    "lines": [
+     ""
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     11
+    ],
+    "lines": [
+     "at 5:30 PM"
+    ],
+    "role": "field",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any",
+    "field": "eventDate",
+    "format": "time",
+    "editorHint": "Start time"
+   },
+   {
+    "boxes": [
+     12
+    ],
+    "lines": [
+     "Jan Water Park Hall"
+    ],
+    "role": "field",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any",
+    "field": "venue.name",
+    "editorHint": "Venue name"
+   },
+   {
+    "boxes": [
+     13
+    ],
+    "lines": [
+     "Ubbong, Badtasan, Kiamba"
+    ],
+    "role": "field",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any",
+    "field": "venue.address",
+    "editorHint": "Venue address"
+   },
+   {
+    "boxes": [
+     14
+    ],
+    "lines": [
+     "Find Us on the Map"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     16,
+     15,
+     17
+    ],
+    "lines": [
+     "Once",
+     "Upon A",
+     "Year"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": true,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     18
+    ],
+    "lines": [
+     "WILL YOU JOIN US?"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     19
+    ],
+    "lines": [
+     "Name"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     20
+    ],
+    "lines": [
+     "Email Address"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     21
+    ],
+    "lines": [
+     ""
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     22
+    ],
+    "lines": [
+     "A Thoughtful Message"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     23
+    ],
+    "lines": [
+     "RSVP"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     24
+    ],
+    "lines": [
+     "GIFT RAFFLE"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     25
+    ],
+    "lines": [
+     "GIFT GUIDE"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     26,
+     30,
+     32
+    ],
+    "lines": [
+     "Bring ANY gift for a",
+     "chance to win an",
+     "exciting prize!"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     28,
+     33
+    ],
+    "lines": [
+     "",
+     ""
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     27,
+     29,
+     31,
+     34,
+     35,
+     36,
+     37
+    ],
+    "lines": [
+     "Baby Bath",
+     "Diaper pants Large- XL",
+     "Monetary",
+     "Toys",
+     "Terno",
+     "Sando/Pambahay",
+     "Dresses"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     38
+    ],
+    "lines": [
+     "MADE WITH LOVE RSVP STUDIO"
+    ],
+    "role": "static",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   }
+  ],
+  "photos": [
+   {
+    "p": 16,
+    "hint": "Month 1 baby photo"
+   },
+   {
+    "p": 19,
+    "hint": "Month 2 baby photo"
+   },
+   {
+    "p": 17,
+    "hint": "Month 3 baby photo"
+   },
+   {
+    "p": 18,
+    "hint": "Month 4 baby photo"
+   },
+   {
+    "p": 30,
+    "hint": "Month 5 baby photo"
+   },
+   {
+    "p": 29,
+    "hint": "Month 6 baby photo"
+   },
+   {
+    "p": 31,
+    "hint": "Month 7 baby photo"
+   },
+   {
+    "p": 32,
+    "hint": "Month 8 baby photo"
+   },
+   {
+    "p": 40,
+    "hint": "Month 9 baby photo"
+   },
+   {
+    "p": 39,
+    "hint": "Month 10 baby photo"
+   },
+   {
+    "p": 41,
+    "hint": "Month 11 baby photo"
+   }
+  ],
+  "sections": [
+   {
+    "block": "schedule",
+    "band": "bg",
+    "divider": "dots",
+    "heading": "The Celebration"
+   },
+   {
+    "block": "venue",
+    "band": "surface",
+    "divider": "dots",
+    "heading": "Where the Magic Happens"
+   },
+   {
+    "block": "faqs",
+    "band": "bg",
+    "divider": "dots",
+    "heading": "Good to Know"
+   },
+   {
+    "block": "rsvp",
+    "band": "surface",
+    "divider": "dots",
+    "heading": "Will You Join Us?"
+   },
+   {
+    "block": "footer",
+    "band": "bg",
+    "divider": "none"
+   }
+  ],
+  "notes": [
+   "The child's name ('Frances Jash') is part of the banner artwork, not editable text, so customers would need a new banner image.",
+   "Static wording ('ONE-CE Upon a Time', 'Once Upon A Year', 'OUR LITTLE PRINCESS', 'IS TURNING ONE!') is birthday-specific; the gift raffle text and gift guide list (Baby Bath, Diaper pants, etc.) are also static and would need changing per customer.",
+   "Boxes 4, 10, 21, 28, 33 look like tiny artefacts and were ignored.",
+   "Date box 9 shows weekday + month + day without year; 'long' format may add the year, check the render.",
+   "Fonts are best guesses: the thin didone caps could be Bodoni Moda or Playfair Display; the script could be a different Google script."
+  ]
+ }
+}

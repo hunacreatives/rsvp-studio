@@ -254,8 +254,7 @@ export async function detectText(designFile: File, artFile: File): Promise<Detec
     ctx.strokeRect(x, y, b.w * W + 6, b.h * H + 6);
     const tag = String(b.n);
     const tw = ctx.measureText(tag).width + 8;
-    const lx = x - tw - 2 >= 0 ? x - tw - 2 : x;
-    const ly = x - tw - 2 >= 0 ? y : Math.max(0, y - 18);
+    const [lx, ly] = tagSpot(b, tw, boxes, W, H);
     ctx.fillStyle = "#ff00aa";
     ctx.fillRect(lx, ly, tw, 17);
     ctx.fillStyle = "#ffffff";
@@ -283,4 +282,25 @@ export async function detectText(designFile: File, artFile: File): Promise<Detec
     art: exported.file,
     artSize: { w: exported.w, h: exported.h },
   };
+}
+
+/** Where a box's number tag goes: left of it, else right, else above, else
+ *  below — the first spot that covers no other box's text and stays on the
+ *  image. A tag over a neighbouring line hides its first word from the AI. */
+export function tagSpot(b: { x: number; y: number; w: number; h: number }, tw: number, all: { x: number; y: number; w: number; h: number }[], W: number, H: number): [number, number] {
+  const x = b.x * W - 3;
+  const y = b.y * H - 3;
+  const bw = b.w * W + 6;
+  const bh = b.h * H + 6;
+  const spots: [number, number][] = [
+    [x - tw - 2, y],
+    [x + bw + 2, y],
+    [x, y - 19],
+    [x, y + bh + 2],
+  ];
+  const free = ([sx, sy]: [number, number]) =>
+    sx >= 0 && sy >= 0 && sx + tw <= W && sy + 17 <= H &&
+    all.every((o) => o === b || sx + tw <= o.x * W - 3 || sx >= (o.x + o.w) * W + 3 || sy + 17 <= o.y * H - 3 || sy >= (o.y + o.h) * H + 3);
+  const spot = spots.find(free) ?? spots.find(([sx, sy]) => sx >= 0 && sy >= 0 && sx + tw <= W) ?? [Math.max(0, x), Math.max(0, y - 19)];
+  return spot;
 }

@@ -12,7 +12,7 @@ const FEATURES = [
     copy: "Make every response simple and seamless.",
   },
   {
-    icon: "ri-group-line",
+    icon: "ri-group-fill",
     title: "Guest Management",
     copy: "Keep every guest, all in one place.",
   },
@@ -27,12 +27,12 @@ const FEATURES = [
     copy: "Make getting there effortless with integrated location details.",
   },
   {
-    icon: "ri-calendar-event-line",
+    icon: "ri-calendar-2-line",
     title: "Calendar Integration",
     copy: "Add your celebration to their calendar in one tap.",
   },
   {
-    icon: "ri-music-2-line",
+    icon: "ri-music-2-fill",
     title: "Music & Media",
     copy: "Bring your story to life with music, photos, and video.",
   },
@@ -58,11 +58,11 @@ export default function IncludedGrid() {
             <Reveal
               key={f.title}
               delay={(i % 4) * 0.06}
-              className="rounded-2xl border border-[var(--line)] bg-white p-7 shadow-[0_20px_40px_-28px_rgba(0,7,39,0.2)]"
+              className="flex flex-col items-center rounded-2xl border border-[var(--line)] bg-white p-7 text-center shadow-[0_20px_40px_-28px_rgba(0,7,39,0.2)]"
             >
-              <i className={`${f.icon} text-2xl text-[var(--acc-blue)]`} />
+              <i className={`${f.icon} text-[2.2rem] leading-none text-[var(--ink)]`} />
               <h3 className="mt-5 font-semibold text-[var(--ink)]">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--slate)]">
+              <p className="mt-2 max-w-[15rem] text-sm leading-relaxed text-[var(--slate)]">
                 {f.copy}
               </p>
             </Reveal>

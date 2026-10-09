@@ -9,6 +9,8 @@
 //      repainted, no second export needed.
 
 export interface SvgLeaf {
+  /** data-k of the element. Letters split out of a Figma text path get
+   *  k + (i+1)/10000 — Math.floor(k) is always the real element. */
   k: number;
   tag: string;
   x: number;
@@ -17,6 +19,16 @@ export interface SvgLeaf {
   h: number;
   fill: string;
   opacity: number;
+  /** Shape details (website mode: buttons, inputs, dividers, cards). */
+  stroke?: string;
+  /** Stroke width as a fraction of the design width. */
+  strokeW?: number;
+  fillOpacity?: number;
+  strokeOpacity?: number;
+  /** "fill": a solid rectangle (rounded or not); "outline": a stroked or ring-shaped rectangle. */
+  rect?: "fill" | "outline";
+  /** Corner radius as a fraction of the design width. */
+  radius?: number;
 }
 
 export interface SvgCandidate {
@@ -57,6 +69,16 @@ export interface SvgPicture {
   rh: number;
   rotate: number;
   format: "jpeg" | "png" | "other";
+  /** Spans (nearly) the full design width — a full-bleed photo or a texture. */
+  bleed: boolean;
+  /** Fills its whole section edge to edge: a background texture, never a photo slot. */
+  background?: boolean;
+  /** A cut-out PNG (masked sticker, illustration or frame): never a photo slot. */
+  masked?: boolean;
+  /** Where the visible crop sits inside the full image (CSS object-position, 0–1). */
+  focal: { x: number; y: number };
+  /** The visible part of the image (0–1 of its width/height): the designer's crop and zoom. */
+  crop: { x: number; y: number; w: number; h: number };
   /** The picture's own image data (for previewing the design's photo in its slot). */
   src: string;
 }
@@ -131,8 +153,16 @@ export async function analyseSvg(file: File): Promise<SvgAnalysis> {
       if (!b || (b.width <= 0 && b.height <= 0)) continue;
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden") continue;
+      const k = Number(el.getAttribute("data-k"));
+      // Figma writes a whole text box as ONE path of letter outlines: split
+      // it so the letter detector sees individual letters.
+      const letters = el.tagName.toLowerCase() === "path" && cs.fill.startsWith("rgb") ? splitSubpaths(el as SVGPathElement, clipped, R, k) : null;
+      if (letters) {
+        for (const l of letters) leaves.push({ ...l, fill: cs.fill, opacity: Number(cs.opacity) * Number(cs.fillOpacity || 1) });
+        continue;
+      }
       leaves.push({
-        k: Number(el.getAttribute("data-k")),
+        k,
         tag: el.tagName.toLowerCase(),
         x: (b.left - R.left) / R.width,
         y: (b.top - R.top) / R.height,
@@ -140,10 +170,22 @@ export async function analyseSvg(file: File): Promise<SvgAnalysis> {
         h: b.height / R.height,
         fill: cs.fill,
         opacity: Number(cs.opacity) * Number(cs.fillOpacity || 1),
+        ...shapeDetails(el, cs, R),
       });
     }
     const aspect = height / width;
-    const candidates = findLetterLines(leaves, aspect);
+    // A rectangle on its own (a button, an input box) is never a word.
+    const byK = new Map(leaves.map((l) => [l.k, l]));
+    const lone = (ks: number[]) => {
+      const l = ks.length === 1 ? byK.get(ks[0]) : undefined;
+      return !!l?.rect && (l.tag === "rect" || (l.radius ?? 0) > 0);
+    };
+    const candidates = findLetterLines(leaves, aspect)
+      .filter((c) => !lone(c.ks))
+      .map((c, i) => ({ ...c, n: i + 1 }));
+    // Letters aren't UI shapes (a big "O" passes the outline test).
+    const letterKs = new Set(candidates.flatMap((c) => c.ks));
+    for (const l of leaves) if (l.rect && letterKs.has(l.k)) (delete l.rect, delete l.radius);
     const effects = new Set(candidates.flatMap((c) => c.effects));
     return {
       tagged,
@@ -152,8 +194,7 @@ export async function analyseSvg(file: File): Promise<SvgAnalysis> {
       leaves,
       candidates,
       images: leaves.filter((l) => l.tag === "image" || l.tag === "use"),
-      pictures: measurePictures(live, R, effects),
-      cuts: findCuts(leaves, aspect),
+      ...withBackgrounds(measurePictures(live, R, effects), findCuts(leaves, aspect), candidates),
     };
   } finally {
     host.remove();
@@ -161,6 +202,103 @@ export async function analyseSvg(file: File): Promise<SvgAnalysis> {
 }
 
 type Pt = { x: number; y: number };
+
+/** Split a multi-letter Figma text path into one pseudo-leaf per subpath (letter). */
+function splitSubpaths(el: SVGPathElement, clipped: (e: SVGGraphicsElement) => { left: number; top: number; width: number; height: number } | null, R: DOMRect, k: number) {
+  const d = el.getAttribute("d") ?? "";
+  // Only absolute subpaths (Figma) can be split safely; lowercase m is relative.
+  const parts = d.split(/(?=M)/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 6 || /(?<=[\d.\s]|[zZ])m/.test(d)) return null;
+  const out: SvgLeaf[] = [];
+  const probe = el.cloneNode(false) as SVGPathElement;
+  probe.removeAttribute("data-k");
+  el.parentNode!.insertBefore(probe, el.nextSibling);
+  try {
+    parts.forEach((part, i) => {
+      probe.setAttribute("d", part);
+      const b = clipped(probe);
+      if (!b || b.width <= 0 || b.height <= 0) return;
+      out.push({
+        k: k + (i + 1) / 10000,
+        tag: "path",
+        x: (b.left - R.left) / R.width,
+        y: (b.top - R.top) / R.height,
+        w: b.width / R.width,
+        h: b.height / R.height,
+        fill: "",
+        opacity: 1,
+      });
+    });
+  } finally {
+    probe.remove();
+  }
+  // Letters are small and many: one big subpath means this isn't text.
+  if (!out.length || out.some((l) => l.h > 0.2 && l.w > 0.2)) return null;
+  return out;
+}
+
+/** Outline, rectangle-ness and corner radius of a shape (for buttons, inputs, cards, dividers). */
+function shapeDetails(el: SVGGraphicsElement, cs: CSSStyleDeclaration, R: DOMRect): Partial<SvgLeaf> {
+  const m = el.getScreenCTM();
+  const scale = m ? Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) : 1;
+  const hasStroke = cs.stroke !== "none" && !cs.stroke.startsWith("url") && parseFloat(cs.strokeWidth) > 0;
+  const details: Partial<SvgLeaf> = {
+    fillOpacity: Number(cs.fillOpacity || 1),
+    ...(hasStroke ? { stroke: cs.stroke, strokeW: (parseFloat(cs.strokeWidth) * scale) / R.width, strokeOpacity: Number(cs.strokeOpacity || 1) } : {}),
+  };
+  const tag = el.tagName.toLowerCase();
+  if (tag !== "path" && tag !== "rect") return details;
+  const geo = el as SVGGeometryElement;
+  let bb: DOMRect;
+  try {
+    bb = geo.getBBox();
+  } catch {
+    return details;
+  }
+  // Big enough to be a UI shape (≥ ~12px on screen each way).
+  if (bb.width * scale < 12 || bb.height * scale < 6 || typeof geo.isPointInFill !== "function") return details;
+  const P = (fx: number, fy: number) => new DOMPoint(bb.x + bb.width * fx, bb.y + bb.height * fy);
+  const filled = cs.fill !== "none";
+  const inFill = (fx: number, fy: number) => filled && geo.isPointInFill(P(fx, fy));
+  const inStroke = (fx: number, fy: number) => hasStroke && geo.isPointInStroke(P(fx, fy));
+  try {
+    const inner = [
+      [0.5, 0.5],
+      [0.12, 0.12],
+      [0.88, 0.12],
+      [0.12, 0.88],
+      [0.88, 0.88],
+    ].every(([x, y]) => inFill(x, y));
+    // Edge midpoints, probed at several depths: Canva draws thin outlines as
+    // ~1px filled rings, so a fixed inset would step right over them.
+    const depths = [0.3, 0.7, 1.2, 2, 3].map((px) => px / scale);
+    const onEdge = (side: number) =>
+      depths.some((d) => {
+        const pt =
+          side === 0 ? new DOMPoint(bb.x + bb.width / 2, bb.y + d)
+          : side === 1 ? new DOMPoint(bb.x + bb.width - d, bb.y + bb.height / 2)
+          : side === 2 ? new DOMPoint(bb.x + bb.width / 2, bb.y + bb.height - d)
+          : new DOMPoint(bb.x + d, bb.y + bb.height / 2);
+        return (hasStroke && geo.isPointInStroke(pt)) || (filled && geo.isPointInFill(pt));
+      });
+    const outline = !inFill(0.5, 0.5) && [0, 1, 2, 3].every(onEdge);
+    if (!inner && !outline) return details;
+    details.rect = inner ? "fill" : "outline";
+    // Corner radius: walk in along the diagonal from the top-left corner
+    // until we hit the shape; a rounded corner of radius r is reached at
+    // r·(1 − 1/√2) along each axis.
+    const hit = (x: number, y: number) => (inner ? geo.isPointInFill(new DOMPoint(x, y)) : geo.isPointInStroke(new DOMPoint(x, y)) || geo.isPointInFill(new DOMPoint(x, y)));
+    const maxT = Math.min(bb.width, bb.height) / 2;
+    let t = 0;
+    const step = maxT / 60;
+    while (t < maxT && !hit(bb.x + t, bb.y + t)) t += step;
+    const r = Math.min(maxT, t / (1 - Math.SQRT1_2));
+    details.radius = (r * scale) / R.width;
+  } catch {
+    /* isPointInFill unsupported for this element */
+  }
+  return details;
+}
 type Rect = { left: number; top: number; width: number; height: number };
 
 /**
@@ -258,6 +396,7 @@ function measurePictures(live: SVGSVGElement, R: DOMRect, effects: Set<number>):
       return { x0: Math.min(...u.map((p) => p.x)), y0: Math.min(...u.map((p) => p.y)), x1: Math.max(...u.map((p) => p.x)), y1: Math.max(...u.map((p) => p.y)) };
     };
     let r = box(corners(el));
+    const full = r;
     for (let a: Element | null = el; a && a !== live; a = a.parentElement) {
       const ref = a.getAttribute("clip-path")?.match(/url\(#([^)]+)\)/)?.[1];
       const clip = ref ? live.querySelector(`#${CSS.escape(ref)}`) : null;
@@ -303,11 +442,26 @@ function measurePictures(live: SVGSVGElement, R: DOMRect, effects: Set<number>):
     const w = (ax1 - ax0) / R.width;
     const h = (ay1 - ay0) / R.height;
     // Skip specks and full-width backgrounds/textures.
-    if (w * h < 0.004 || w > 0.85) continue;
+    // Skip specks. Full-width pictures are kept (a website's hero photo is
+    // edge to edge) and marked as such; the AI tells photos from textures.
+    if (w * h < 0.004) continue;
     const href = el.getAttribute("href") ?? el.getAttribute("xlink:href") ?? "";
     let format: SvgPicture["format"] = "other";
     const target = href.startsWith("#") ? live.querySelector(`#${CSS.escape(href.slice(1))}`) : null;
-    const src = target ? (target.getAttribute("href") ?? target.getAttribute("xlink:href") ?? "") : href;
+    const filled = href ? null : patternImage(el, live);
+    const src = filled ? filled.src : target ? (target.getAttribute("href") ?? target.getAttribute("xlink:href") ?? "") : href;
+    // The part of the element's own box that shows (after clips), 0–1.
+    const fw = full.x1 - full.x0;
+    const fh = full.y1 - full.y0;
+    const seen = { x0: (r.x0 - full.x0) / fw, y0: (r.y0 - full.y0) / fh, x1: (r.x1 - full.x0) / fw, y1: (r.y1 - full.y0) / fh };
+    // Figma: the pattern scales and offsets the image inside the box.
+    const crop = filled?.toImage
+      ? (() => {
+          const a0 = filled.toImage({ x: seen.x0, y: seen.y0 });
+          const a1 = filled.toImage({ x: seen.x1, y: seen.y1 });
+          return { x: clamp01(a0.x), y: clamp01(a0.y), w: clamp01(a1.x) - clamp01(a0.x), h: clamp01(a1.y) - clamp01(a0.y) };
+        })()
+      : { x: Math.max(0, seen.x0), y: Math.max(0, seen.y0), w: Math.min(1, seen.x1 - seen.x0), h: Math.min(1, seen.y1 - seen.y0) };
     if (/^data:image\/jpe?g/i.test(src)) format = "jpeg";
     else if (/^data:image\/png/i.test(src)) format = "png";
     out.push({
@@ -323,10 +477,65 @@ function measurePictures(live: SVGSVGElement, R: DOMRect, effects: Set<number>):
       rh: rh / R.height,
       rotate: +((angle * 180) / Math.PI).toFixed(2),
       format,
+      bleed: w >= 0.9,
+      // object-position that reproduces the designer's crop under object-fit: cover.
+      focal: { x: crop.w < 0.99 ? clamp01(crop.x / (1 - crop.w)) : 0.5, y: crop.h < 0.99 ? clamp01(crop.y / (1 - crop.h)) : 0.5 },
+      crop,
+      // Canva masks photos too (soft edges); a masked PNG is a cut-out sticker/illustration/frame.
+      masked: format !== "jpeg" && (!!el.closest("[mask]") || (el.getAttribute("style") ?? "").includes("mask")),
       src: /^data:image\//.test(src) ? src : "",
     });
   }
   return out.sort((a, b) => a.y - b.y || a.x - b.x).map((p, i) => ({ ...p, n: i + 1 }));
+}
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+/**
+ * Figma fills a shape with a pattern that holds the image (directly or via
+ * <use>), scaled into the shape's bounding box. Returns the image data and a
+ * map from box fractions (0–1) to image fractions (0–1).
+ */
+function patternImage(el: Element, live: SVGSVGElement): { src: string; toImage?: (p: Pt) => Pt } | null {
+  const id = (el.getAttribute("fill") ?? "").match(/url\(#([^)]+)\)/)?.[1];
+  const pattern = id ? live.querySelector(`#${CSS.escape(id)}`) : null;
+  if (!pattern) return null;
+  const inner = pattern.querySelector("use, image");
+  if (!inner) return null;
+  const ref = inner.getAttribute("href") ?? inner.getAttribute("xlink:href") ?? "";
+  const image = inner.tagName.toLowerCase() === "use" && ref.startsWith("#") ? live.querySelector(`#${CSS.escape(ref.slice(1))}`) : inner;
+  if (!image) return null;
+  const src = image.getAttribute("href") ?? image.getAttribute("xlink:href") ?? "";
+  const iw = Number(image.getAttribute("width")) || 0;
+  const ih = Number(image.getAttribute("height")) || 0;
+  // matrix(), scale(), translate() — let the browser combine them.
+  const m = (inner as SVGGraphicsElement).transform?.baseVal?.consolidate()?.matrix;
+  const [a, d, e, f] = m ? [m.a, m.d, m.e, m.f] : [1, 1, 0, 0];
+  const bbox = pattern.getAttribute("patternContentUnits") === "objectBoundingBox";
+  if (!bbox || !iw || !ih || !a || !d) return { src };
+  return { src, toImage: (p) => ({ x: (p.x - e) / (a * iw), y: (p.y - f) / (d * ih) }) };
+}
+
+/**
+ * Mark background textures: a full-width picture filling its section WITH
+ * other content (text or pictures) sitting on it. A full-width hero photo
+ * has nothing on top, so it stays a photo candidate. Numbering is kept.
+ */
+function withBackgrounds(pictures: SvgPicture[], cuts: number[], lines: SvgCandidate[]) {
+  const edges = [0, ...cuts, 1];
+  const inside = (o: { x: number; y: number; w: number; h: number }, p: SvgPicture) => {
+    const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+    return cx > p.x && cx < p.x + p.w && cy > p.y && cy < p.y + p.h;
+  };
+  for (const p of pictures) {
+    if (!p.bleed) continue;
+    const mid = p.y + p.h / 2;
+    const j = edges.findIndex((e, i) => i < edges.length - 1 && mid >= e && mid < edges[i + 1]);
+    const bandH = j >= 0 ? edges[j + 1] - edges[j] : 1;
+    const covered = lines.some((l) => inside(l, p)) || pictures.some((q) => q !== p && q.k > p.k && inside(q, p));
+    if (p.h >= bandH * 0.85 && covered) p.background = true;
+  }
+  return { pictures, cuts };
 }
 
 /**
@@ -409,6 +618,9 @@ export function findLetterLines(leaves: SvgLeaf[], aspect: number): SvgCandidate
   const shapes = leaves.filter((l) => l.tag === "path" || l.tag === "polygon" || l.tag === "rect" || l.tag === "circle" || l.tag === "ellipse");
   const runs: SvgLeaf[][] = [];
   let cur: SvgLeaf[] = [];
+  // Paint-order adjacency by position in the measured list (split Figma
+  // letters share an element, so their k values aren't consecutive integers).
+  const order = new Map(leaves.map((l, i) => [l.k, i]));
   let lastK = -2;
   for (const s of shapes) {
     const solid = s.fill.startsWith("rgb") && s.opacity > 0.05;
@@ -417,7 +629,7 @@ export function findLetterLines(leaves: SvgLeaf[], aspect: number): SvgCandidate
     const prev = cur[cur.length - 1];
     const near =
       prev &&
-      s.k === lastK + 1 &&
+      order.get(s.k) === (order.get(lastK) ?? -2) + 1 &&
       s.fill === prev.fill &&
       Math.abs(s.y + s.h / 2 - (prev.y + prev.h / 2)) * aspect < Math.max(s.h, prev.h) * aspect * 3 &&
       Math.abs(s.x - (prev.x + prev.w)) < 0.25;

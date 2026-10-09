@@ -4,11 +4,62 @@ import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
 import ChatPane, { FileChips, pickFiles } from "../components/ChatPane";
 import { inboxStamp } from "../format";
+import * as api from "../api";
+import { categoryLabel, customerStatus, isClosed, STATUS_STYLE, ticketCode } from "../support";
+import { Link } from "react-router-dom";
 import type { ThreadSummary } from "../types";
 import { Avatar, ErrorText, Field, Input, Modal, PrimaryButton, Select, Textarea } from "../ui";
 
 export function threadContext(t: ThreadSummary, projectName: (id: string) => string | undefined) {
+  if (t.kind === "support" && t.ticket_number) return `${ticketCode(t.ticket_number)} · ${categoryLabel(t.category)}`;
   return (t.event_id && projectName(t.event_id)) || t.subject;
+}
+
+/** A status chip for support requests, in the customer's words. */
+export function SupportChip({ t }: { t: ThreadSummary }) {
+  if (t.kind !== "support" || !t.status) return null;
+  const s = customerStatus(t);
+  return (
+    <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={STATUS_STYLE[s.tone]}>
+      {s.label}
+    </span>
+  );
+}
+
+/** Under a support request's title: its status and "Mark as solved". */
+function SupportToolbar({ t }: { t: ThreadSummary }) {
+  const { refresh, demo } = usePortal();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const solved = t.status === "resolved";
+  return (
+    <>
+      <SupportChip t={t} />
+      <span className="text-[12px] text-[var(--slate)]">
+        {solved ? "Reply within 7 days of it being solved to reopen it." : t.status === "waiting" ? "We’ve replied — over to you." : "We reply within 1 business day."}
+      </span>
+      {!solved ? (
+        <button
+          disabled={busy || demo}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            try {
+              await api.resolveMyRequest(t.id);
+              await refresh();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Couldn’t update it.");
+            }
+            setBusy(false);
+          }}
+          className="ml-auto rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[12px] font-medium text-[var(--ink)] hover:border-[var(--ink)] disabled:opacity-50"
+        >
+          {busy ? "Saving…" : "Mark as solved"}
+        </button>
+      ) : null}
+      {error ? <span className="w-full text-[12px] text-[#c2412d]">{error}</span> : null}
+    </>
+  );
 }
 
 export default function MessagesPage() {
@@ -88,7 +139,10 @@ export default function MessagesPage() {
                       <span className={`truncate text-[13px] text-[var(--ink)] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>
                       <span className="shrink-0 text-[10px] text-[var(--slate)]">{inboxStamp(t.last_message_at)}</span>
                     </span>
-                    <span className="block truncate text-[13px] text-[var(--ink)]">{threadContext(t, projectName)}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-[var(--ink)]">{threadContext(t, projectName)}</span>
+                      <SupportChip t={t} />
+                    </span>
                     <span className="flex items-center gap-2">
                       <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--slate)]">{t.lastMessage?.body || (t.lastMessage?.attachments.length ? "Sent a file" : "")}</span>
                       {t.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--acc-blue)]" aria-label="Unread" /> : null}
@@ -107,7 +161,24 @@ export default function MessagesPage() {
 
         <div className={`min-h-0 ${active ? "flex flex-col" : "hidden md:flex md:flex-col"}`}>
           {active ? (
-            <ChatPane key={active.id} thread={active} header={threadContext(active, projectName)} onBack={() => open(null)} />
+            <ChatPane
+              key={active.id}
+              thread={active}
+              header={threadContext(active, projectName)}
+              onBack={() => open(null)}
+              toolbar={active.kind === "support" && active.status ? <SupportToolbar t={active} /> : undefined}
+              closedNote={
+                active.kind === "support" && isClosed(active) ? (
+                  <>
+                    This request is closed.{" "}
+                    <Link to="/account/help/contact" className="font-medium text-[var(--acc-blue)] hover:underline">
+                      Start a new request
+                    </Link>{" "}
+                    and mention {ticketCode(active.ticket_number)} if it&rsquo;s related.
+                  </>
+                ) : undefined
+              }
+            />
           ) : (
             <div className="grid flex-1 place-items-center p-8 text-center text-[14px] text-[var(--slate)]">
               <div>

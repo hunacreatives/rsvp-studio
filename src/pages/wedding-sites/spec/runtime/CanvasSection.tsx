@@ -1,9 +1,10 @@
-import { useLayoutEffect, useRef } from "react";
-import type { CSSProperties } from "react";
+import { createContext, useContext, useLayoutEffect, useRef } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { EventContent } from "../../content/types";
-import { bindingSample, resolveBinding } from "../bindings";
-import type { CanvasSectionSpec, LayerSpec, TemplateSpec, TextLayerSpec } from "../schema";
+import { bindingSample, boundText } from "../bindings";
+import type { CanvasSectionSpec, FieldLayerSpec, LayerSpec, LinkLayerSpec, TemplateSpec, TextLayerSpec } from "../schema";
 import { colorOf, useSpecTheme } from "./theme";
+import { useRsvpForm } from "./useRsvpForm";
 
 // The art-directed part of an uploaded design: a background image with
 // layers placed in normalized boxes. All sizes are `cqw` of the canvas
@@ -33,25 +34,183 @@ export default function CanvasSection({ section, spec, content, editorPreview }:
     return true;
   };
 
+  const frame: CSSProperties = {
+    position: "relative",
+    width: `min(${section.maxWidth}px, 100%)`,
+    margin: "0 auto",
+    aspectRatio: `${w} / ${h}`,
+    containerType: "inline-size",
+  };
+  const inner = (
+    <>
+      {bg ? <img src={bg.url} alt="" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} /> : null}
+      {section.layers.filter(visible).map((layer) => (
+        <Layer key={layer.id} layer={layer} spec={spec} content={content} editorPreview={editorPreview} />
+      ))}
+    </>
+  );
+  const hasForm = section.layers.some((l) => l.type === "field");
+
   return (
     <section style={{ background: colorOf(theme, section.band), padding: section.padding === "none" ? 0 : "clamp(24px, 6cqw, 64px) clamp(12px, 3cqw, 24px)" }}>
-      <div
-        style={{
-          position: "relative",
-          width: `min(${section.maxWidth}px, 100%)`,
-          margin: "0 auto",
-          aspectRatio: `${w} / ${h}`,
-          containerType: "inline-size",
-        }}
-      >
-        {bg ? (
-          <img src={bg.url} alt="" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : null}
-        {section.layers.filter(visible).map((layer) => (
-          <Layer key={layer.id} layer={layer} spec={spec} content={content} editorPreview={editorPreview} />
-        ))}
-      </div>
+      {hasForm ? (
+        <DrawnForm section={section} content={content} editorPreview={editorPreview} style={frame}>
+          {inner}
+        </DrawnForm>
+      ) : (
+        <div style={frame}>{inner}</div>
+      )}
     </section>
+  );
+}
+
+/** The union of some layers' boxes (canvas fractions). */
+function unionBox(layers: LayerSpec[]) {
+  const x0 = Math.min(...layers.map((l) => l.box.x));
+  const y0 = Math.min(...layers.map((l) => l.box.y));
+  const x1 = Math.max(...layers.map((l) => l.box.x + l.box.w));
+  const y1 = Math.max(...layers.map((l) => l.box.y + l.box.h));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+/**
+ * A traced design whose drawing includes an RSVP form: the section is a real
+ * <form>; its field layers are inputs over the drawn boxes and its "submit"
+ * link is the drawn button. Thanks / errors appear over the drawn form.
+ */
+function DrawnForm({ section, content, editorPreview, style, children }: { section: CanvasSectionSpec; content: EventContent; editorPreview?: boolean; style: CSSProperties; children: ReactNode }) {
+  const theme = useSpecTheme();
+  const form = useRsvpForm(content, editorPreview, { asksAttending: false });
+  const parts = section.layers.filter((l) => l.type === "field" || (l.type === "link" && l.action === "submit"));
+  const area = unionBox(parts);
+  const submitBox = section.layers.find((l): l is LinkLayerSpec => l.type === "link" && l.action === "submit")?.box;
+  const note = (text: string, color: string): ReactNode => (
+    <p
+      role="status"
+      style={{
+        position: "absolute",
+        left: `${area.x * 100}%`,
+        width: `${area.w * 100}%`,
+        top: `${((submitBox ? submitBox.y + submitBox.h : area.y + area.h) + 0.004) * 100}%`,
+        zIndex: 60,
+        margin: 0,
+        textAlign: "center",
+        fontFamily: theme.bodyFont,
+        fontSize: "max(2.2cqw, 12px)",
+        color,
+      }}
+    >
+      {text}
+    </p>
+  );
+  return (
+    <form id="rsvp" data-rsvp onSubmit={form.submit} style={style}>
+      <style>{".rs-drawn-field::placeholder{color:var(--ph);opacity:1}"}</style>
+      <FormCtx.Provider value={form}>{children}</FormCtx.Provider>
+      <input tabIndex={-1} autoComplete="off" aria-hidden value={form.website} onChange={(e) => form.setWebsite(e.target.value)} style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
+      {form.state === "success" ? (
+        <div
+          role="status"
+          style={{
+            position: "absolute",
+            left: `${area.x * 100}%`,
+            top: `${area.y * 100}%`,
+            width: `${area.w * 100}%`,
+            height: `${area.h * 100}%`,
+            zIndex: 70,
+            display: "grid",
+            placeItems: "center",
+            padding: "4cqw",
+            boxSizing: "border-box",
+            textAlign: "center",
+            background: `${colorOf(theme, "bg")}f2`,
+            borderRadius: "3cqw",
+            fontFamily: theme.bodyFont,
+            fontSize: "max(3cqw, 15px)",
+            color: colorOf(theme, "ink"),
+          }}
+        >
+          Thank you — your RSVP is in. A confirmation is on its way to your inbox.
+        </div>
+      ) : null}
+      {form.error ? note(form.error, "#c2412d") : null}
+      {editorPreview ? note("Guests can RSVP once your site is published.", colorOf(theme, "muted")) : null}
+    </form>
+  );
+}
+
+const FormCtx = createContext<ReturnType<typeof useRsvpForm> | null>(null);
+
+function FieldLayer({ layer }: { layer: FieldLayerSpec }) {
+  const theme = useSpecTheme();
+  const form = useContext(FormCtx);
+  const css: CSSProperties = {
+    ...boxStyle(layer),
+    boxSizing: "border-box",
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    borderRadius: `${layer.radius}cqw`,
+    padding: layer.multiline ? `${layer.inset}cqw` : `0 ${layer.inset}cqw`,
+    fontFamily: theme.fonts[layer.font] ?? theme.bodyFont,
+    // 16px on phones keeps iOS from zooming into the field.
+    fontSize: `max(${layer.size.toFixed(3)}cqw, 16px)`,
+    // The design's colour is for its placeholder; what guests type reads in ink.
+    color: colorOf(theme, "ink"),
+    resize: "none",
+  };
+  const common = {
+    name: layer.key,
+    "aria-label": layer.placeholder || layer.key,
+    placeholder: layer.placeholder,
+    value: form?.values[layer.key] ?? "",
+    className: "rs-drawn-field",
+    style: { ...css, "--ph": colorOf(theme, layer.color) } as CSSProperties,
+  };
+  const change = (v: string) => form?.set(layer.key, v);
+  return layer.multiline ? (
+    <textarea {...common} onChange={(e) => change(e.target.value)} />
+  ) : (
+    <input
+      {...common}
+      type={layer.key === "email" ? "email" : layer.key === "guests" ? "number" : "text"}
+      required={layer.key === "name" || layer.key === "email"}
+      min={layer.key === "guests" ? 1 : undefined}
+      max={layer.key === "guests" ? 20 : undefined}
+      onChange={(e) => change(e.target.value)}
+    />
+  );
+}
+
+/** The first VISIBLE element matching (two-version designs have one per screen). */
+function visibleTarget(selector: string): HTMLElement | null {
+  return Array.from(document.querySelectorAll<HTMLElement>(selector)).find((el) => el.getClientRects().length > 0) ?? null;
+}
+
+function LinkLayer({ layer, content }: { layer: LinkLayerSpec; content: EventContent }) {
+  const form = useContext(FormCtx);
+  const css: CSSProperties = { ...boxStyle(layer), display: "block", background: "transparent", border: "none", padding: 0, cursor: "pointer", borderRadius: `${layer.radius}cqw` };
+  if (layer.action === "submit") {
+    return <button type="submit" aria-label={layer.label || "Send RSVP"} disabled={form?.state === "submitting"} style={css} />;
+  }
+  if (layer.action === "map") {
+    const loc = content.primaryLocation;
+    const href = loc?.mapUrl || (loc && (loc.name || loc.addressLine) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([loc.name, loc.addressLine].filter(Boolean).join(", "))}` : undefined);
+    if (!href) return null;
+    return <a href={href} target="_blank" rel="noopener noreferrer" aria-label={layer.label || "Open the map"} style={css} />;
+  }
+  return (
+    <a
+      href="#rsvp"
+      aria-label={layer.label || "RSVP"}
+      onClick={(e) => {
+        const target = visibleTarget("[data-rsvp], #rsvp");
+        if (!target) return;
+        e.preventDefault();
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }}
+      style={css}
+    />
   );
 }
 
@@ -82,7 +241,7 @@ function Layer({ layer, spec, content, editorPreview }: { layer: LayerSpec; spec
       const frame = layer.frameAssetId ? spec.assets[layer.frameAssetId] : undefined;
       if (!item && !editorPreview) return null;
       return (
-        <div style={{ ...boxStyle(layer), borderRadius: `${layer.radius}cqw`, overflow: "hidden" }}>
+        <div style={{ ...boxStyle(layer), borderRadius: layer.shape === "oval" ? "50%" : `${layer.radius}cqw`, overflow: "hidden" }}>
           {item ? (
             <img
               src={item.image.masterUrl}
@@ -116,6 +275,10 @@ function Layer({ layer, spec, content, editorPreview }: { layer: LayerSpec; spec
         </div>
       );
     }
+    case "field":
+      return <FieldLayer layer={layer} />;
+    case "link":
+      return <LinkLayer layer={layer} content={content} />;
     case "rsvpButton":
       return (
         <a
@@ -157,7 +320,7 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
   const boxRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
 
-  const bound = layer.bind ? resolveBinding(content, layer.bind.field, layer.bind.format, layer.bind.joiner) : "";
+  const bound = layer.bind ? boundText(content, layer.bind) : "";
   const isHint = Boolean(layer.bind && !bound && editorPreview);
   const value = layer.bind
     ? bound || (editorPreview ? layer.editorHint ?? bindingSample(layer.bind.field, layer.bind.format) : layer.text ?? "")

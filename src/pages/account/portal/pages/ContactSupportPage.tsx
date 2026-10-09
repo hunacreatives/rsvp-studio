@@ -5,15 +5,16 @@ import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
 import { FileChips, pickFiles } from "../components/ChatPane";
 import { SUPPORT, TOPICS } from "../help-data";
+import { categoryLabel, SUPPORT_CATEGORIES, ticketCode } from "../support";
+import type { SupportCategory, Thread } from "../types";
 import { ErrorText, Field, PrimaryButton, Select, Textarea } from "../ui";
-
-const SUBJECTS = [...TOPICS.map((t) => t.title), "Account & login", "Something else"];
 
 export default function ContactSupportPage() {
   const { projects, startThread } = usePortal();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [subject, setSubject] = useState("");
+  const [category, setCategory] = useState<SupportCategory | "">("");
+  const [sent, setSent] = useState<Thread | null>(null);
   const [projectId, setProjectId] = useState("");
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -21,14 +22,19 @@ export default function ContactSupportPage() {
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
 
+  // Help answers for the chosen topic, shown above the message box.
+  const helpTopic = TOPICS.find((t) => t.slug === SUPPORT_CATEGORIES.find((c) => c.id === category)?.help);
+  const suggestions = helpTopic?.items.slice(0, 3) ?? [];
+
   const submit = async () => {
-    if (!subject) return setError("Choose a topic.");
+    if (!category) return setError("Choose what this is about.");
     if (!body.trim()) return setError("Write your message.");
     setBusy(true);
     setError(null);
     try {
-      const t = await startThread({ eventId: projectId || null, kind: "support", subject: `Support: ${subject}`, body: body.trim(), files });
-      navigate(`/account/messages?thread=${t.id}`);
+      const t = await startThread({ eventId: projectId || null, kind: "support", subject: categoryLabel(category), category, body: body.trim(), files });
+      setSent(t);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t send — please try again.");
       setBusy(false);
@@ -40,6 +46,31 @@ export default function ContactSupportPage() {
     setFiles(r.files);
     setError(r.error);
   };
+
+  if (sent) {
+    return (
+      <>
+        <PageHeader title="Contact Support" sub="We’re here to help." />
+        <div className="max-w-2xl rounded-[22px] border border-[rgba(0,7,39,0.16)] bg-white px-6 py-9 text-center md:px-10">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#e6f4e6] text-2xl text-[#2f6b2f]">
+            <i className="ri-check-line" />
+          </span>
+          <p className="mt-5 text-[13px] uppercase tracking-[0.08em] text-[var(--slate)]">Request received</p>
+          <h2 className="mt-1 font-display text-[2rem] font-semibold text-[var(--ink)]">{ticketCode(sent.ticket_number) || "Thank you"}</h2>
+          <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-[var(--slate)]">
+            Thanks — we’ve got your message about <strong className="text-[var(--ink)]">{categoryLabel(sent.category)}</strong>. We reply within 1 business day, and
+            we’ve emailed you a copy with your request number.
+          </p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <PrimaryButton onClick={() => navigate(`/account/messages?thread=${sent.id}`)}>View your request</PrimaryButton>
+            <Link to="/account/help" className="btn btn-ghost">
+              Back to Help
+            </Link>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -62,14 +93,30 @@ export default function ContactSupportPage() {
           <h2 className="font-display text-[1.7rem] font-semibold text-[var(--ink)]">Send us a message</h2>
           <p className="mt-1 text-[13px] text-[var(--slate)]">Fill out the form below and we’ll get back to you soon.</p>
           <div className="mt-6 space-y-5">
-            <Field label="Subject">
-              <Select value={subject} onChange={(e) => setSubject(e.target.value)}>
-                <option value="">Select a topic</option>
-                {SUBJECTS.map((s) => (
-                  <option key={s}>{s}</option>
+            <Field label="What’s this about?">
+              <Select value={category} onChange={(e) => setCategory(e.target.value as SupportCategory | "")}>
+                <option value="">Choose a topic</option>
+                {SUPPORT_CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
                 ))}
               </Select>
             </Field>
+            {suggestions.length ? (
+              <div className="rounded-xl bg-[var(--paper)] px-4 py-3">
+                <p className="text-[13px] font-medium text-[var(--ink)]">These might answer it right away</p>
+                <div className="mt-1 divide-y divide-[var(--line)]">
+                  {suggestions.map((qa) => (
+                    <details key={qa.q} className="py-2 text-[13px]">
+                      <summary className="cursor-pointer text-[var(--ink)]">{qa.q}</summary>
+                      <p className="mt-1.5 leading-relaxed text-[var(--slate)]">{qa.a}</p>
+                    </details>
+                  ))}
+                </div>
+                <Link to={`/account/help?topic=${helpTopic!.slug}`} className="mt-1 inline-block text-[12px] text-[var(--acc-blue)] hover:underline">
+                  More about {helpTopic!.title.toLowerCase()} →
+                </Link>
+              </div>
+            ) : null}
             <Field label="Project (optional)">
               <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
                 <option value="">Select a project</option>
@@ -114,6 +161,13 @@ export default function ContactSupportPage() {
           <PrimaryButton className="mt-6" onClick={submit} disabled={busy}>
             {busy ? "Sending…" : "Send Message →"}
           </PrimaryButton>
+          <p className="mt-3 text-[12px] text-[var(--slate)]">
+            We reply within 1 business day ({SUPPORT.hours}). Event in the next 7 days? Also message us on{" "}
+            <a href={SUPPORT.instagramUrl} target="_blank" rel="noreferrer" className="text-[var(--acc-blue)] hover:underline">
+              Instagram {SUPPORT.instagram}
+            </a>
+            .
+          </p>
         </div>
 
         <aside className="lg:border-l lg:border-[var(--line)] lg:pl-6">

@@ -1,14 +1,11 @@
 import { useRef } from "react";
 import { Reveal } from "@/lib/Reveal";
 import InvitePlaceholder from "./InvitePlaceholder";
-
 const CARDS = [
-  { title: "Interactive", copy: "The wow starts with the first click." },
+  { title: "Interactive", copy: "The first \u201cwow\u201d before anything else." },
   { title: "Personal", copy: "Designed around you." },
   { title: "Effortless", copy: "RSVPs made simple." },
-  { title: "Unique Invitation", copy: "Hand-crafted, only for you." },
-  { title: "Custom RSVP", copy: "Seamless guest confirmations." },
-  { title: "Multi-Language", copy: "One invitation, in every language." },
+  { title: "Export to sheet", copy: "Guest list ready." },
 ];
 
 export default function ValueProps() {
@@ -58,10 +55,8 @@ export default function ValueProps() {
                 i === 0 ? "ml-6" : ""
               } ${i === CARDS.length - 1 ? "mr-6" : ""}`}
             >
-              <InvitePlaceholder
-                seed={i + 2}
-                className="w-full aspect-[3/4]"
-              />
+              {/* Placeholder until the studio's own photos are ready. */}
+              <InvitePlaceholder seed={i + 2} className="w-full aspect-[3/4]" />
               <h3 className="mt-5 font-display text-xl font-semibold text-[var(--ink)]">
                 {c.title}
               </h3>

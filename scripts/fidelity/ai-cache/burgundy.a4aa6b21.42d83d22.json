@@ -1,0 +1,477 @@
+{
+ "case": "burgundy",
+ "sha": "a4aa6b21",
+ "promptVer": "42d83d22",
+ "boxesSig": "1e1ae5ea",
+ "recordedAt": "2026-10-09T11:15:00.399Z",
+ "seconds": 19.38,
+ "usage": {
+  "input_tokens": 8544,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 3482,
+  "output_tokens_details": {
+   "thinking_tokens": 740
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "result": {
+  "eventTypes": [
+   "wedding"
+  ],
+  "paletteLabel": "Burgundy & Cream",
+  "palette": {
+   "bg": "#fdf1e0",
+   "surface": "#f6e3cb",
+   "ink": "#520606",
+   "muted": "#7a4a44",
+   "accent": "#520606",
+   "onAccent": "#fff4e4"
+  },
+  "fonts": {
+   "display": {
+    "family": "Rouge Script",
+    "fallback": "cursive",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Great Vibes",
+     "Italianno",
+     "Bilbo Swash Caps"
+    ]
+   },
+   "body": {
+    "family": "Cormorant Garamond",
+    "fallback": "serif",
+    "weights": [
+     400,
+     500
+    ],
+    "italic": false,
+    "alternatives": [
+     "EB Garamond",
+     "Cormorant",
+     "Playfair Display"
+    ]
+   },
+   "accent": {
+    "family": "Abril Fatface",
+    "fallback": "serif",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Playfair Display",
+     "Bodoni Moda",
+     "DM Serif Display"
+    ]
+   },
+   "extra": {
+    "family": "Gelasio",
+    "fallback": "serif",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Georgia",
+     "Libre Caslon Text",
+     "Lora"
+    ]
+   }
+  },
+  "radius": "round",
+  "layers": [
+   {
+    "boxes": [
+     1
+    ],
+    "lines": [
+     "Wedding invitation"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     2
+    ],
+    "lines": [
+     "Dani Martinez"
+    ],
+    "role": "field",
+    "field": "hosts.0.name",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "two",
+    "editorHint": "First name"
+   },
+   {
+    "boxes": [
+     3
+    ],
+    "lines": [
+     "&"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "two"
+   },
+   {
+    "boxes": [
+     4
+    ],
+    "lines": [
+     "Olivia Wilson"
+    ],
+    "role": "field",
+    "field": "hosts.1.name",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "two",
+    "editorHint": "Second name"
+   },
+   {
+    "boxes": [
+     10
+    ],
+    "lines": [
+     "DEC"
+    ],
+    "role": "field",
+    "field": "eventDate",
+    "format": "monthShort",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     14
+    ],
+    "lines": [
+     "23"
+    ],
+    "role": "field",
+    "field": "eventDate",
+    "format": "day",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     20
+    ],
+    "lines": [
+     "2026"
+    ],
+    "role": "field",
+    "field": "eventDate",
+    "format": "year",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     12
+    ],
+    "lines": [
+     "08:00 PM"
+    ],
+    "role": "field",
+    "field": "eventDate",
+    "format": "timePadded",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     16,
+     17,
+     21
+    ],
+    "lines": [
+     "LOCATION",
+     "DETAILS",
+     "HERE"
+    ],
+    "role": "field",
+    "field": "venue.nameOrAddress",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any",
+    "editorHint": "Venue"
+   },
+   {
+    "boxes": [
+     5,
+     7
+    ],
+    "lines": [
+     "GUEST",
+     "ARRIVAL"
+    ],
+    "role": "field",
+    "field": "schedule.0.label",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     8
+    ],
+    "lines": [
+     "13:00 PM"
+    ],
+    "role": "field",
+    "field": "schedule.0.time",
+    "format": "time24",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     9,
+     13
+    ],
+    "lines": [
+     "WEDDING",
+     "CEREMONY"
+    ],
+    "role": "field",
+    "field": "schedule.1.label",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     15
+    ],
+    "lines": [
+     "13:00 PM"
+    ],
+    "role": "field",
+    "field": "schedule.1.time",
+    "format": "time24",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     18
+    ],
+    "lines": [
+     "FOOD SERVED"
+    ],
+    "role": "field",
+    "field": "schedule.2.label",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     22
+    ],
+    "lines": [
+     "14:30 PM"
+    ],
+    "role": "field",
+    "field": "schedule.2.time",
+    "format": "time24",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     23
+    ],
+    "lines": [
+     "RUKHSATI"
+    ],
+    "role": "field",
+    "field": "schedule.3.label",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     25
+    ],
+    "lines": [
+     "17:00 PM"
+    ],
+    "role": "field",
+    "field": "schedule.3.time",
+    "format": "time24",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.02,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     26,
+     27
+    ],
+    "lines": [
+     "123 Anywhere St., Any City,",
+     "ST 12345"
+    ],
+    "role": "field",
+    "field": "venue.address",
+    "font": "extra",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any",
+    "editorHint": "Venue address"
+   }
+  ],
+  "sections": [
+   {
+    "block": "story",
+    "band": "bg",
+    "divider": "leaf",
+    "heading": "Our Story"
+   },
+   {
+    "block": "keyPeople",
+    "band": "surface",
+    "divider": "leaf",
+    "heading": "Wedding Party"
+   },
+   {
+    "block": "venue",
+    "band": "bg",
+    "divider": "leaf",
+    "heading": "The Venue"
+   },
+   {
+    "block": "gallery",
+    "band": "surface",
+    "divider": "leaf",
+    "heading": "Moments Together"
+   },
+   {
+    "block": "registry",
+    "band": "bg",
+    "divider": "leaf",
+    "heading": "Gift Registry"
+   },
+   {
+    "block": "faqs",
+    "band": "surface",
+    "divider": "leaf",
+    "heading": "Good to Know"
+   },
+   {
+    "block": "rsvp",
+    "band": "bg",
+    "divider": "leaf",
+    "heading": "Will You Join Us?"
+   },
+   {
+    "block": "footer",
+    "band": "surface",
+    "divider": "none"
+   }
+  ],
+  "notes": [
+   "Script font for the names is a best guess (Rouge Script / Great Vibes style) – check the match.",
+   "Bold date font looks like a high-contrast Didone display face (Abril Fatface used).",
+   "'LOCATION DETAILS HERE' is placeholder text, treated as the venue field.",
+   "Schedule times show '13:00 PM' in the design; displayed in 24-hour format, customers' times will follow their own entry.",
+   "Schedule rows are limited to four in the artwork, each with its own icon illustration (rings, glasses, doves) that won't change with the text."
+  ]
+ }
+}

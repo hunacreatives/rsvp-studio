@@ -367,12 +367,12 @@ function VenueBlock({ section, content, visibility, editorPreview }: BlockProps)
                 {a.notes ? <p style={small(theme, { marginTop: 4 })}>{a.notes}</p> : null}
                 <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
                   {a.bookingUrl ? (
-                    <a href={a.bookingUrl} target="_blank" rel="noopener noreferrer" style={small(theme, { color: colorOf(theme, "accent"), fontWeight: 600 })}>
+                    <a href={a.bookingUrl} target="_blank" rel="noopener noreferrer" style={small(theme, { color: colorOf(theme, "accent"), fontWeight: 600, display: "inline-flex", alignItems: "center", minHeight: 32 })}>
                       Book
                     </a>
                   ) : null}
                   {a.mapUrl ? (
-                    <a href={a.mapUrl} target="_blank" rel="noopener noreferrer" style={small(theme, { color: colorOf(theme, "accent"), fontWeight: 600 })}>
+                    <a href={a.mapUrl} target="_blank" rel="noopener noreferrer" style={small(theme, { color: colorOf(theme, "accent"), fontWeight: 600, display: "inline-flex", alignItems: "center", minHeight: 32 })}>
                       Map
                     </a>
                   ) : null}

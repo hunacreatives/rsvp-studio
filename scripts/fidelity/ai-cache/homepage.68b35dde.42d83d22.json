@@ -1,0 +1,388 @@
+{
+ "case": "homepage",
+ "sha": "68b35dde",
+ "promptVer": "42d83d22",
+ "boxesSig": "8bded475",
+ "recordedAt": "2026-10-09T11:16:58.529Z",
+ "seconds": 19.446,
+ "usage": {
+  "input_tokens": 20028,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 3064,
+  "output_tokens_details": {
+   "thinking_tokens": 880
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "result": {
+  "eventTypes": [
+   "other"
+  ],
+  "paletteLabel": "White & Royal Blue",
+  "palette": {
+   "bg": "#ffffff",
+   "surface": "#f5f5f8",
+   "ink": "#111111",
+   "muted": "#5b6170",
+   "accent": "#1d5fe0",
+   "onAccent": "#ffffff"
+  },
+  "fonts": {
+   "display": {
+    "family": "Inter",
+    "fallback": "sans-serif",
+    "weights": [
+     700,
+     600
+    ],
+    "italic": false,
+    "alternatives": [
+     "Manrope",
+     "DM Sans",
+     "Plus Jakarta Sans"
+    ]
+   },
+   "body": {
+    "family": "Inter",
+    "fallback": "sans-serif",
+    "weights": [
+     400,
+     500
+    ],
+    "italic": false,
+    "alternatives": [
+     "Manrope",
+     "DM Sans",
+     "Lato"
+    ]
+   }
+  },
+  "radius": "soft",
+  "bands": [
+   {
+    "b": 1,
+    "key": "hero"
+   },
+   {
+    "b": 2,
+    "key": "hostIntro"
+   },
+   {
+    "b": 3,
+    "key": "schedule"
+   },
+   {
+    "b": 4,
+    "key": "gallery"
+   },
+   {
+    "b": 5,
+    "key": "faqs"
+   },
+   {
+    "b": 6,
+    "key": "rsvp"
+   }
+  ],
+  "layers": [
+   {
+    "boxes": [
+     8,
+     18
+    ],
+    "lines": [
+     "Digital invitations designed to make",
+     "every celebration unforgettable"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 700,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     26,
+     27
+    ],
+    "lines": [
+     "Everything you need to make your",
+     "celebration unforgettable."
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 700,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     40
+    ],
+    "lines": [
+     "All included in every invitation"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 700,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     66,
+     67
+    ],
+    "lines": [
+     "Thoughtfully Designed",
+     "Event Experiences"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 700,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     68
+    ],
+    "lines": [
+     "Elevated Digital Experiences for Life's Most Meaningful Milestones"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     70
+    ],
+    "lines": [
+     "HOW IT WORKS"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.05,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     71
+    ],
+    "lines": [
+     "How we bring your story to life"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 700,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     93,
+     94
+    ],
+    "lines": [
+     "“The first impression of your event starts with the invitation.",
+     "Make it unforgettable.”"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     95
+    ],
+    "lines": [
+     "TESTIMONIALS"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.05,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     96
+    ],
+    "lines": [
+     "What people are saying."
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 700,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     244
+    ],
+    "lines": [
+     "Are you an event planner?"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 700,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     246
+    ],
+    "lines": [
+     "Better experiences begin with better collaborations"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     256
+    ],
+    "lines": [
+     "You asked. We Answered."
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 700,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     259
+    ],
+    "lines": [
+     "Everything you need to know about our services, collections, timelines, and process, all in one place."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     280
+    ],
+    "lines": [
+     "FOLLLOW ALONG ON INSTAGRAM"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 500,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.05,
+    "hostCount": "any"
+   }
+  ],
+  "sections": [
+   {
+    "block": "story",
+    "band": "bg",
+    "divider": "line",
+    "heading": "Our Story"
+   },
+   {
+    "block": "schedule",
+    "band": "surface",
+    "divider": "line",
+    "heading": "The Details"
+   },
+   {
+    "block": "venue",
+    "band": "bg",
+    "divider": "line",
+    "heading": "Where to Celebrate"
+   },
+   {
+    "block": "gallery",
+    "band": "surface",
+    "divider": "line",
+    "heading": "Moments"
+   },
+   {
+    "block": "rsvp",
+    "band": "bg",
+    "divider": "line",
+    "heading": "RSVP"
+   },
+   {
+    "block": "footer",
+    "band": "surface",
+    "divider": "none"
+   }
+  ],
+  "notes": [
+   "This is a screenshot of the RSVP Studio marketing website, not an invitation, so it may not be a real template. Please check.",
+   "No customer fields (names, date, venue) were found, so every layer is static text.",
+   "Over 300 tiny boxes (testimonial cards, FAQ bubbles, footer links, nav, feature cards) were left out as artwork.",
+   "The photos (P7, P8 blurred backgrounds, P2 phone mockup) were not marked as customer photos.",
+   "Font is assumed to be Inter; the match looks close."
+  ]
+ }
+}

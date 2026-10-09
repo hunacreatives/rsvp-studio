@@ -26,9 +26,11 @@ const NAV = [
   { to: "/studio", label: "Overview", icon: "ri-dashboard-3-line", end: true },
   { to: "/studio/projects", label: "Projects", icon: "ri-folder-3-line" },
   { to: "/studio/inbox", label: "Inbox", icon: "ri-inbox-2-line" },
+  { to: "/studio/support", label: "Support", icon: "ri-customer-service-2-line" },
   { to: "/studio/invoices", label: "Invoices", icon: "ri-file-list-3-line" },
   { to: "/studio/clients", label: "Clients", icon: "ri-group-line" },
   { to: "/studio/templates", label: "Templates", icon: "ri-layout-masonry-line" },
+  { to: "/studio/team", label: "Team", icon: "ri-shield-user-line" },
 ];
 
 export default function StudioLayout() {
@@ -61,7 +63,9 @@ function Shell() {
   // Clients who wander here get their own dashboard instead.
   if (!profile.is_staff && !demo) return <Navigate to="/account" replace />;
 
-  const unread = threads.filter((t) => t.unread).length;
+  // Project conversations live in the Inbox; support requests on the Support page.
+  const unread = threads.filter((t) => t.unread && t.kind !== "support").length;
+  const needsReply = threads.filter((t) => t.kind === "support" && t.status === "needs_reply").length;
   const signOut = async () => {
     if (!demo) await supabase.auth.signOut();
     navigate("/");
@@ -92,6 +96,9 @@ function Shell() {
               {item.label}
               {item.to === "/studio/inbox" && unread > 0 ? (
                 <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-[var(--acc-coral)] px-1.5 text-[11px] font-semibold text-white">{unread}</span>
+              ) : null}
+              {item.to === "/studio/support" && needsReply > 0 ? (
+                <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-[var(--acc-coral)] px-1.5 text-[11px] font-semibold text-white">{needsReply}</span>
               ) : null}
             </NavLink>
           ))}

@@ -80,6 +80,9 @@ export type Invoice = {
 
 export type ThreadKind = "project" | "support" | "general";
 
+export type SupportStatus = "needs_reply" | "waiting" | "resolved";
+export type SupportCategory = "website" | "invitations" | "stationery" | "billing" | "account" | "other";
+
 export type Thread = {
   id: string;
   profile_id: string;
@@ -88,6 +91,16 @@ export type Thread = {
   subject: string;
   last_message_at: string;
   created_at: string;
+  /** Support requests only (supabase/support-tickets.sql). */
+  ticket_number?: number | null;
+  category?: SupportCategory | null;
+  status?: SupportStatus | null;
+  urgent?: boolean;
+  first_response_at?: string | null;
+  resolved_at?: string | null;
+  last_customer_at?: string | null;
+  /** Team member handling the request. */
+  assigned_to?: string | null;
 };
 
 export type Attachment = { name: string; path: string; size: number; type: string };
@@ -99,6 +112,8 @@ export type Message = {
   body: string;
   attachments: Attachment[];
   created_at: string;
+  /** Staff-only note on a support request (customers never receive these). */
+  internal?: boolean;
 };
 
 /** Thread as shown in an inbox: joined with its latest message + unread flag. */

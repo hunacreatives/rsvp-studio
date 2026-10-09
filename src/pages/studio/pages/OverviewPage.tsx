@@ -5,6 +5,7 @@ import { ActivityList, isOverdue } from "@/pages/account/portal/components/block
 import { formatDate, formatMoney, inboxStamp } from "@/pages/account/portal/format";
 import { Avatar } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
+import { isOverdue as replyOverdue } from "@/pages/account/portal/support";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -13,7 +14,9 @@ export default function OverviewPage() {
   const name = (id: string) => projects.find((p) => p.id === id)?.name ?? "";
 
   const active = projects.filter((p) => p.project_status === "in_progress");
-  const waiting = threads.filter((t) => t.unread);
+  const waiting = threads.filter((t) => t.unread && t.kind !== "support");
+  const support = threads.filter((t) => t.kind === "support" && t.status === "needs_reply");
+  const supportLate = support.filter((t) => replyOverdue(t));
   const open = invoices.filter((i) => i.status === "open");
   const overdue = open.filter(isOverdue);
   const outstanding = open.reduce((s, i) => s + i.amount, 0);
@@ -36,7 +39,13 @@ export default function OverviewPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Active projects" value={String(active.length)} sub={`${projects.length} total`} to="/studio/projects" />
-        <Stat label="Awaiting reply" value={String(waiting.length)} sub="client messages" to="/studio/inbox" tone={waiting.length ? "coral" : undefined} />
+        <Stat
+          label="Support"
+          value={String(support.length)}
+          sub={`need a reply${supportLate.length ? ` · ${supportLate.length} overdue` : ""} · ${waiting.length} unread messages`}
+          to="/studio/support"
+          tone={supportLate.length ? "coral" : undefined}
+        />
         <Stat label="Outstanding" value={formatMoney(outstanding)} sub={`${open.length} open · ${overdue.length} overdue`} to="/studio/invoices" tone={overdue.length ? "coral" : undefined} />
         <Stat label="Paid this month" value={formatMoney(paidThisMonth)} sub="from client invoices" to="/studio/invoices" />
       </div>

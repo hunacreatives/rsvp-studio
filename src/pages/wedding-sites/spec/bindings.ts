@@ -9,6 +9,8 @@ import { parseEventDate } from "../content/parseEventDate";
 const DATE_FORMATS = [
   { id: "long", label: "Saturday, December 12, 2026" },
   { id: "medium", label: "December 12, 2026" },
+  { id: "weekdayMonthDay", label: "No year (Saturday, December 12)" },
+  { id: "monthDay", label: "No year (December 12)" },
   { id: "numeric", label: "12.12.2026" },
   { id: "day", label: "Day number (12)" },
   { id: "month", label: "Month (December)" },
@@ -118,6 +120,10 @@ function formatDate(iso: string, format: string | undefined): string {
   switch (format) {
     case "medium":
       return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    case "weekdayMonthDay":
+      return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    case "monthDay":
+      return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
     case "numeric":
       return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
     case "day":
@@ -139,6 +145,13 @@ function formatDate(iso: string, format: string | undefined): string {
     default:
       return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   }
+}
+
+/** A bound field as shown: its value with the design's own words around it
+ *  ("at 5:30 PM"), or "" when the content is empty (the words go too). */
+export function boundText(content: EventContent, bind: { field: BindingField; format?: string; joiner?: string; before?: string; after?: string }): string {
+  const v = resolveBinding(content, bind.field, bind.format, bind.joiner);
+  return v ? `${bind.before ?? ""}${v}${bind.after ?? ""}` : "";
 }
 
 /** Resolve a bound field to display text ("" when the content is empty). */

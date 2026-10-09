@@ -1,0 +1,42 @@
+{
+ "note": "Design files live outside the repo (~/Downloads). AI answers are cached in ai-cache/ so runs are free and repeatable.",
+ "cases": [
+  {
+   "id": "redblack",
+   "name": "Red Black website",
+   "file": "~/Downloads/Wedding Form Website in White Red Black Warm Elegant Style.svg",
+   "kind": "website"
+  },
+  {
+   "id": "burgundy",
+   "name": "Burgundy invitation card",
+   "file": "~/Downloads/Burgundy White and Pink Traditional Wedding Invitation.svg",
+   "kind": "card"
+  },
+  {
+   "id": "scrapbook",
+   "name": "Madrid scrapbook",
+   "file": "~/Downloads/Dark Red Beige Romantic Scrapbook Style.svg",
+   "kind": "website"
+  },
+  {
+   "id": "homepage",
+   "name": "Figma home page",
+   "file": "~/Downloads/Home Page.svg",
+   "kind": "website"
+  },
+  {
+   "id": "mobile",
+   "name": "Figma RSVP mobile view",
+   "file": "~/Downloads/(RSVP) MOBILE VIEW.svg",
+   "kind": "phone"
+  },
+  {
+   "id": "landing",
+   "name": "Frances Jash landing page (Figma)",
+   "kind": "website",
+   "file": "~/Downloads/landing page/Desktop LANDING PAGE.svg",
+   "mobileFile": "~/Downloads/landing page/Mobile Landing Page.svg"
+  }
+ ]
+}

@@ -45,6 +45,9 @@ const binding = z.object({
   format: z.string().optional(),
   /** hosts.names only: the word between names ("&", "and"). */
   joiner: z.string().max(12).optional(),
+  /** The design's own words around the value ("at " + 5:30 PM). */
+  before: z.string().max(40).optional(),
+  after: z.string().max(40).optional(),
 });
 
 const layerBase = {
@@ -100,6 +103,8 @@ const photoLayer = z.object({
   radius: z.number().min(0).max(50).default(0),
   /** Optional frame drawn over the photo (an asset id). */
   frameAssetId: z.string().optional(),
+  /** "oval": the photo is trimmed to an oval (it sits in an oval frame). */
+  shape: z.enum(["rect", "oval"]).default("rect"),
   editorHint: z.string().max(60).optional(),
 });
 
@@ -119,11 +124,39 @@ const rsvpButtonLayer = z.object({
   size: z.number().positive().max(10).default(2.2),
 });
 
+/** A drawn input box made real: a see-through field over the drawing. */
+const fieldLayer = z.object({
+  ...layerBase,
+  type: z.literal("field"),
+  key: z.enum(["name", "email", "message", "guests", "dietary"]),
+  placeholder: z.string().max(80).default(""),
+  font: z.enum(FONT_SLOTS).default("body"),
+  /** Canvas units, like text layers. */
+  size: z.number().positive().max(40),
+  color: colorRef.default("ink"),
+  multiline: z.boolean().default(false),
+  /** Where the typed text starts inside the box (canvas units). */
+  inset: z.number().min(0).max(20).default(1),
+  radius: z.number().min(0).max(50).default(0),
+});
+
+/** A drawn button made real: a see-through link or submit over the drawing. */
+const linkLayer = z.object({
+  ...layerBase,
+  type: z.literal("link"),
+  /** "submit" sends the section's form; "rsvp" scrolls to the RSVP form; "map" opens the venue map. */
+  action: z.enum(["submit", "rsvp", "map"]),
+  label: z.string().max(60).default(""),
+  radius: z.number().min(0).max(50).default(0),
+});
+
 export const layerSchema = z.discriminatedUnion("type", [
   textLayer, // "needs bind or text" is checked in templateSpecSchema's superRefine
   photoLayer,
   imageLayer,
   rsvpButtonLayer,
+  fieldLayer,
+  linkLayer,
 ]);
 
 export const VISIBILITY_KEYS = [
@@ -139,10 +172,15 @@ export const VISIBILITY_KEYS = [
   "rsvp",
 ] as const;
 
+/** A design uploaded with both a desktop and a phone version: each section
+ *  shows on one kind of screen only (unset = every screen). */
+const screen = z.enum(["desktop", "phone"]).optional();
+
 const canvasSection = z.object({
   id: z.string().min(1).max(60),
   kind: z.literal("canvas"),
   visibilityKey: z.enum(VISIBILITY_KEYS).optional(),
+  screen,
   /** Design size of the canvas in px (only the ratio matters). */
   aspect: z.tuple([z.number().positive(), z.number().positive()]),
   maxWidth: z.number().positive().max(2400).default(640),
@@ -153,6 +191,137 @@ const canvasSection = z.object({
   layers: z.array(layerSchema).max(150),
 });
 
+// ---------------------------------------------------------------------------
+// Website sections ("layout"): a design's section rebuilt as real rows and
+// stacks of elements. Every node keeps its measured box in DESIGN PX
+// (relative to the section's top-left), so at the design's width the page
+// matches it exactly; narrower screens scale it, phones stack rows.
+
+const pxBox = z.object({ x: z.number(), y: z.number(), w: z.number().nonnegative(), h: z.number().nonnegative() });
+const shadowPx = z.object({ x: z.number(), y: z.number(), blur: z.number().min(0), color: z.string() }).optional();
+
+const layoutText = z.object({
+  t: z.literal("text"),
+  /** The traced layer this came from (match score / editor). */
+  id: z.string().max(80).optional(),
+  box: pxBox,
+  /** Width the text may use (px): its column, up to the next element. */
+  room: z.number().positive(),
+  bind: binding.optional(),
+  text: z.string().max(2000).optional(),
+  font: z.enum(FONT_SLOTS).default("body"),
+  size: z.number().positive().max(400),
+  minSize: z.number().positive().max(400).optional(),
+  color: colorRef.default("ink"),
+  align: z.enum(["left", "center", "right"]).default("left"),
+  weight: z.number().int().min(100).max(900).default(400),
+  italic: z.boolean().default(false),
+  uppercase: z.boolean().default(false),
+  letterSpacing: z.number().min(-0.1).max(1).default(0),
+  lineHeight: z.number().min(0.7).max(3).default(1.2),
+  opacity: z.number().min(0).max(1).default(1),
+  hideWhenEmpty: z.boolean().default(false),
+  editorHint: z.string().max(60).optional(),
+  shadow: shadowPx,
+  tag: z.enum(["h1", "h2", "h3", "p", "span"]).default("p"),
+});
+
+const layoutPhoto = z.object({
+  t: z.literal("photo"),
+  box: pxBox,
+  slot: z.number().int().min(0).max(30),
+  rotate: z.number().min(-180).max(180).default(0),
+  radius: z.number().min(0).default(0),
+  /** Where the designer's crop sits in the photo (object-position), 0–1. */
+  focal: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).optional(),
+  editorHint: z.string().max(60).optional(),
+});
+
+const layoutImage = z.object({ t: z.literal("image"), box: pxBox, assetId: z.string(), opacity: z.number().min(0).max(1).default(1) });
+
+const btnStyle = z.object({
+  fill: z.string().optional(),
+  stroke: z.string().optional(),
+  strokeW: z.number().min(0).default(0),
+  radius: z.number().min(0).default(0),
+  font: z.enum(FONT_SLOTS).default("body"),
+  size: z.number().positive().max(200),
+  color: colorRef.default("ink"),
+  weight: z.number().int().min(100).max(900).default(400),
+  uppercase: z.boolean().default(false),
+  letterSpacing: z.number().min(-0.1).max(1).default(0),
+});
+
+const layoutButton = z.object({
+  t: z.literal("button"),
+  box: pxBox,
+  label: z.string().max(60),
+  /** "#rsvp" for the reply form, or "#<sectionId>" to scroll there. */
+  href: z.string().regex(/^#[\w-]+$/),
+  style: btnStyle,
+});
+
+const formField = z.object({
+  key: z.enum(["name", "email", "attending", "guests", "dietary", "message"]),
+  label: z.string().max(200),
+  kind: z.enum(["text", "email", "textarea", "choice", "number"]),
+  options: z.array(z.string().max(120)).max(4).optional(),
+  /** Measured height of the input (px), for the desktop look. */
+  h: z.number().positive().max(400),
+  /** Not in the design (e.g. a required email field we added). */
+  added: z.boolean().optional(),
+  /** Measured spacing (px): above the label, label → input, between options. Falls back to the form's gap. */
+  top: z.number().min(0).max(200).optional(),
+  labelGap: z.number().min(0).max(80).optional(),
+  optGap: z.number().min(0).max(80).optional(),
+});
+
+const layoutForm = z.object({
+  t: z.literal("form"),
+  box: pxBox,
+  panel: z.object({ fill: z.string().optional(), stroke: z.string().optional(), strokeW: z.number().min(0).default(0), radius: z.number().min(0).default(0), pad: z.number().min(0).default(0) }).optional(),
+  fields: z.array(formField).min(1).max(8),
+  gap: z.number().min(0).max(200),
+  labelStyle: z.object({ font: z.enum(FONT_SLOTS).default("body"), size: z.number().positive().max(80), color: colorRef.default("ink"), weight: z.number().int().default(400) }),
+  input: z.object({ stroke: z.string().optional(), strokeW: z.number().min(0).default(1), radius: z.number().min(0).default(0), fill: z.string().optional(), size: z.number().positive().max(60) }),
+  option: z.object({ fill: z.string().optional(), radius: z.number().min(0).default(0) }).optional(),
+  button: btnStyle.extend({ label: z.string().max(60), h: z.number().positive().max(200), top: z.number().min(0).max(200).optional() }),
+  note: z.string().max(400).optional(),
+  /** Gap (px) from the button to the note. */
+  noteGap: z.number().min(0).max(120).optional(),
+});
+
+const layoutDivider = z.object({ t: z.literal("divider"), box: pxBox, color: z.string() });
+
+type LayoutNodeInput = Record<string, unknown>;
+const layoutNode: z.ZodType<LayoutNodeInput> = z.lazy(() =>
+  z.discriminatedUnion("t", [
+    z.object({ t: z.literal("stack"), box: pxBox, children: z.array(layoutNode).max(120) }),
+    z.object({ t: z.literal("row"), box: pxBox, children: z.array(layoutNode).max(40), phone: z.enum(["stack", "keep", "2up"]).default("stack") }),
+    layoutText,
+    layoutPhoto,
+    layoutImage,
+    layoutButton,
+    layoutForm,
+    layoutDivider,
+  ]),
+) as z.ZodType<LayoutNodeInput>;
+
+const layoutSection = z.object({
+  id: z.string().min(1).max(60),
+  kind: z.literal("layout"),
+  visibilityKey: z.enum(VISIBILITY_KEYS).optional(),
+  screen,
+  /** The design's width (px) — everything inside is measured at this width. */
+  designWidth: z.number().positive().max(4000),
+  /** Section height in design px. */
+  height: z.number().positive(),
+  bg: colorRef.default("bg"),
+  /** Decorative art behind the section (cover). */
+  bgAssetId: z.string().optional(),
+  root: layoutNode,
+});
+
 export const BLOCK_TYPES = ["story", "keyPeople", "schedule", "venue", "gallery", "registry", "faqs", "rsvp", "footer"] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
@@ -161,13 +330,14 @@ const blockSection = z.object({
   kind: z.literal("block"),
   block: z.enum(BLOCK_TYPES),
   visibilityKey: z.enum(VISIBILITY_KEYS).optional(),
+  screen,
   band: colorRef.default("bg"),
   heading: z.string().max(60).optional(),
   divider: z.enum(["none", "line", "leaf", "dots"]).default("line"),
   align: z.enum(["center", "left"]).default("center"),
 });
 
-export const sectionSchema = z.discriminatedUnion("kind", [canvasSection, blockSection]);
+export const sectionSchema = z.discriminatedUnion("kind", [canvasSection, blockSection, layoutSection]);
 
 const palette = z.object({
   id: z.string().min(1).max(40),
@@ -223,6 +393,17 @@ export const templateSpecSchema = z
     spec.sections.forEach((section, si) => {
       if (ids.has(section.id)) ctx.addIssue({ code: "custom", path: ["sections", si, "id"], message: `duplicate section id "${section.id}"` });
       ids.add(section.id);
+      if (section.kind === "layout") {
+        if (section.bgAssetId && !spec.assets[section.bgAssetId]) {
+          ctx.addIssue({ code: "custom", path: ["sections", si, "bgAssetId"], message: `unknown asset "${section.bgAssetId}"` });
+        }
+        const walk = (n: LayoutNodeInput) => {
+          if (n.t === "image" && !spec.assets[n.assetId as string]) ctx.addIssue({ code: "custom", path: ["sections", si], message: `unknown asset "${n.assetId}"` });
+          for (const c of (n.children as LayoutNodeInput[] | undefined) ?? []) walk(c);
+        };
+        walk(section.root as LayoutNodeInput);
+        return;
+      }
       if (section.kind !== "canvas") return;
       if (section.backgroundAssetId && !spec.assets[section.backgroundAssetId]) {
         ctx.addIssue({ code: "custom", path: ["sections", si, "backgroundAssetId"], message: `unknown asset "${section.backgroundAssetId}"` });
@@ -254,7 +435,7 @@ interface LayerBase { id: string; box: Box; z: number; rotate: number; when?: { 
 
 export interface TextLayerSpec extends LayerBase {
   type: "text";
-  bind?: { field: BindingField; format?: string; joiner?: string };
+  bind?: { field: BindingField; format?: string; joiner?: string; before?: string; after?: string };
   text?: string;
   font: FontSlot;
   size: number;
@@ -272,16 +453,30 @@ export interface TextLayerSpec extends LayerBase {
   editorHint?: string;
   shadow?: { x: number; y: number; blur: number; color: string };
 }
-export interface PhotoLayerSpec extends LayerBase { type: "photo"; slot: number; radius: number; frameAssetId?: string; editorHint?: string }
+export interface PhotoLayerSpec extends LayerBase { type: "photo"; slot: number; radius: number; frameAssetId?: string; shape: "rect" | "oval"; editorHint?: string }
 export interface ImageLayerSpec extends LayerBase { type: "image"; assetId: string; opacity: number }
 export interface RsvpButtonLayerSpec extends LayerBase { type: "rsvpButton"; label: string; color: ColorRef; fill: ColorRef; size: number }
-export type LayerSpec = TextLayerSpec | PhotoLayerSpec | ImageLayerSpec | RsvpButtonLayerSpec;
+export interface FieldLayerSpec extends LayerBase {
+  type: "field";
+  key: "name" | "email" | "message" | "guests" | "dietary";
+  placeholder: string;
+  font: FontSlot;
+  size: number;
+  color: ColorRef;
+  multiline: boolean;
+  inset: number;
+  radius: number;
+}
+export interface LinkLayerSpec extends LayerBase { type: "link"; action: "submit" | "rsvp" | "map"; label: string; radius: number }
+export type LayerSpec = TextLayerSpec | PhotoLayerSpec | ImageLayerSpec | RsvpButtonLayerSpec | FieldLayerSpec | LinkLayerSpec;
 
 type VisibilityKey = (typeof VISIBILITY_KEYS)[number];
+type Screen = "desktop" | "phone";
 export interface CanvasSectionSpec {
   id: string;
   kind: "canvas";
   visibilityKey?: VisibilityKey;
+  screen?: Screen;
   aspect: [number, number];
   maxWidth: number;
   band: ColorRef;
@@ -294,12 +489,70 @@ export interface BlockSectionSpec {
   kind: "block";
   block: BlockType;
   visibilityKey?: VisibilityKey;
+  screen?: Screen;
   band: ColorRef;
   heading?: string;
   divider: "none" | "line" | "leaf" | "dots";
   align: "center" | "left";
 }
-export type SpecSection = CanvasSectionSpec | BlockSectionSpec;
+type PxBox = { x: number; y: number; w: number; h: number };
+export interface LayoutTextNode {
+  t: "text";
+  id?: string;
+  box: PxBox;
+  room: number;
+  bind?: { field: BindingField; format?: string; joiner?: string; before?: string; after?: string };
+  text?: string;
+  font: FontSlot;
+  size: number;
+  minSize?: number;
+  color: ColorRef;
+  align: "left" | "center" | "right";
+  weight: number;
+  italic: boolean;
+  uppercase: boolean;
+  letterSpacing: number;
+  lineHeight: number;
+  opacity: number;
+  hideWhenEmpty: boolean;
+  editorHint?: string;
+  shadow?: { x: number; y: number; blur: number; color: string };
+  tag: "h1" | "h2" | "h3" | "p" | "span";
+}
+export interface LayoutPhotoNode { t: "photo"; box: PxBox; slot: number; rotate: number; radius: number; focal?: { x: number; y: number }; editorHint?: string }
+export interface LayoutImageNode { t: "image"; box: PxBox; assetId: string; opacity: number }
+export interface LayoutBtnStyle { fill?: string; stroke?: string; strokeW: number; radius: number; font: FontSlot; size: number; color: ColorRef; weight: number; uppercase: boolean; letterSpacing: number }
+export interface LayoutButtonNode { t: "button"; box: PxBox; label: string; href: string; style: LayoutBtnStyle }
+export interface LayoutFormField { key: "name" | "email" | "attending" | "guests" | "dietary" | "message"; label: string; kind: "text" | "email" | "textarea" | "choice" | "number"; options?: string[]; h: number; added?: boolean; top?: number; labelGap?: number; optGap?: number }
+export interface LayoutFormNode {
+  t: "form";
+  box: PxBox;
+  panel?: { fill?: string; stroke?: string; strokeW: number; radius: number; pad: number };
+  fields: LayoutFormField[];
+  gap: number;
+  labelStyle: { font: FontSlot; size: number; color: ColorRef; weight: number };
+  input: { stroke?: string; strokeW: number; radius: number; fill?: string; size: number };
+  option?: { fill?: string; radius: number };
+  button: LayoutBtnStyle & { label: string; h: number; top?: number };
+  note?: string;
+  noteGap?: number;
+}
+export interface LayoutDividerNode { t: "divider"; box: PxBox; color: string }
+export interface LayoutStackNode { t: "stack"; box: PxBox; children: LayoutNode[] }
+export interface LayoutRowNode { t: "row"; box: PxBox; children: LayoutNode[]; phone: "stack" | "keep" | "2up" }
+export type LayoutNode = LayoutStackNode | LayoutRowNode | LayoutTextNode | LayoutPhotoNode | LayoutImageNode | LayoutButtonNode | LayoutFormNode | LayoutDividerNode;
+export interface LayoutSectionSpec {
+  id: string;
+  kind: "layout";
+  visibilityKey?: VisibilityKey;
+  screen?: Screen;
+  designWidth: number;
+  height: number;
+  bg: ColorRef;
+  bgAssetId?: string;
+  root: LayoutNode;
+}
+export type SpecSection = CanvasSectionSpec | BlockSectionSpec | LayoutSectionSpec;
 
 export interface PaletteSpec { id: string; label: string; colors: Record<ColorToken, string> }
 export interface FontRefSpec { family: string; weights: number[]; italic: boolean; fallback: string }

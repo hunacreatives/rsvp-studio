@@ -8,7 +8,9 @@ import { Avatar, ErrorText, Field, Input, Modal, PillButton, PrimaryButton, Sele
 
 /** All client conversations. Studio replies come from the signed-in staff member. */
 export default function StudioInbox({ owners }: { owners: Record<string, PersonLite> }) {
-  const { threads, projects } = usePortal();
+  const { threads: all, projects } = usePortal();
+  // Support requests have their own page (Studio → Support).
+  const threads = useMemo(() => all.filter((t) => t.kind !== "support"), [all]);
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [composeFor, setComposeFor] = useState<string | null>(null);

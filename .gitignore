@@ -6,3 +6,8 @@ out
 .vercel
 .DS_Store
 .env*
+
+# fidelity harness reports (scripts/fidelity)
+fidelity-report/
+scripts/fidelity/snapshots/
+scripts/fidelity/history.jsonl

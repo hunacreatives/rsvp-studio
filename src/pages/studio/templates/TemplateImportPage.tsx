@@ -12,15 +12,27 @@ import SpecTemplate from "@/pages/wedding-sites/spec/runtime/SpecTemplate";
 import { parseSpec, type FontSlot, type TemplateSpec } from "@/pages/wedding-sites/spec/schema";
 import { StudioHeader } from "../StudioLayout";
 import { createDraftVersion, templateIdFrom } from "../templatesApi";
-import { assembleSpec, type AiLayer, type AiResult } from "./importer/assemble";
+import { assembleSpec, curvedToArt, type AiLayer, type AiResult } from "./importer/assemble";
 import { detectText, type DetectedBox, type Detection } from "./importer/detect";
 import { matchFonts } from "./importer/fontMatch";
 import { measureLayers, type LineMetrics } from "./importer/measure";
 import { analyseSvg, type SvgAnalysis } from "./importer/svg";
-import { buildSvgLayers, measureShadow, renderTextMask, svgContext, svgDetection, type SvgBuild } from "./importer/svgImport";
+import { toWebsite } from "./importer/website";
+import { alphaShape, buildSvgLayers, measureShadow, renderTextMask, svgContext, svgDetection, type SvgBuild } from "./importer/svgImport";
 import { FIXTURES } from "./checks";
+import { useFidelityHook } from "./importer/fidelityHook";
+import { mergeVersions, phoneFiles, phonePhotoPicks, reconcilePhone } from "./importer/pair";
+import { withControls } from "./importer/controls";
 
-type Stage = "upload" | "measuring" | "thinking" | "finishing" | "review";
+type Stage = "upload" | "measuring" | "thinking" | "finishing" | "phone" | "review";
+/** The phone version of a two-version design, traced on its own. */
+interface PhoneVersion {
+  a: SvgAnalysis;
+  det: Detection;
+  /** The AI's reading of the phone file (tied to the desktop's at assembly). */
+  raw: AiResult;
+  build: SvgBuild;
+}
 type Mode = "svg" | "images";
 
 /** Share of the smaller box covered by the other. */
@@ -67,8 +79,14 @@ export default function TemplateImportPage() {
   const [hint, setHint] = useState("");
   const [mode, setMode] = useState<Mode>("svg");
   const [svgFile, setSvgFile] = useState<File | null>(null);
+  const [mobileFile, setMobileFile] = useState<File | null>(null);
+  const [phone, setPhone] = useState<PhoneVersion | null>(null);
+  const [phoneMetrics, setPhoneMetrics] = useState<LineMetrics[]>([]);
   const [svgA, setSvgA] = useState<SvgAnalysis | null>(null);
   const [build, setBuild] = useState<SvgBuild | null>(null);
+  // Website mode: tall, page-shaped designs become real responsive websites
+  // (art-heavy bands inside them stay traced). Cards stay traced.
+  const [websiteMode, setWebsiteMode] = useState(true);
   const [designFile, setDesignFile] = useState<File | null>(null);
   const [artFile, setArtFile] = useState<File | null>(null);
   const [stage, setStage] = useState<Stage>("upload");
@@ -79,7 +97,7 @@ export default function TemplateImportPage() {
   const [saving, setSaving] = useState(false);
   const [score, setScore] = useState<MatchScore | null>(null);
 
-  const askAi = async (d: Pick<Detection, "tiles" | "width" | "height" | "boxes">, m: Mode, a: SvgAnalysis | null = svgA): Promise<AiResult> => {
+  const askAi = async (d: Pick<Detection, "tiles" | "width" | "height" | "boxes">, m: Mode, a: SvgAnalysis | null = svgA, note?: string): Promise<AiResult> => {
     setStage("thinking");
     const { data } = await supabase.auth.getSession();
     const r = await fetch("/api/template-ai", {
@@ -89,7 +107,7 @@ export default function TemplateImportPage() {
         tiles: d.tiles,
         width: d.width,
         height: d.height,
-        hint: hint.trim() || undefined,
+        hint: [note, hint.trim()].filter(Boolean).join(" ") || undefined,
         mode: m,
         ...(m === "svg" && a ? svgContext(a) : {}),
         boxes: d.boxes.map((b) => ({ n: b.n, x: +b.x.toFixed(3), y: +b.y.toFixed(3), w: +b.w.toFixed(3), h: +b.h.toFixed(3), color: b.color })),
@@ -101,8 +119,9 @@ export default function TemplateImportPage() {
   };
 
   /** SVG import: remove the confirmed text for clean art, recreate shadows, match fonts. */
-  const finishSvg = async (a: SvgAnalysis, base: Omit<Detection, "art" | "artSize">, result: AiResult) => {
+  const finishSvg = async (a: SvgAnalysis, base: Omit<Detection, "art" | "artSize">, result: AiResult): Promise<AiResult> => {
     setStage("finishing");
+    result = curvedToArt(result, base.boxes);
     const kept = removalBoxes(result, base.boxes);
     // A frame (PNG) sitting on a photo (JPEG): the photo is the slot.
     const picks = (result.photos ?? []).map((x) => {
@@ -111,8 +130,25 @@ export default function TemplateImportPage() {
       const photo = a.pictures.find((p) => p.format === "jpeg" && p.n !== pic.n && overlapShare(p, pic) > 0.6);
       return photo && !(result.photos ?? []).some((y) => y.p === photo.n) ? { ...x, p: photo.n } : x;
     });
-    result = { ...result, photos: picks };
-    const b = await buildSvgLayers(a, kept, picks, Object.fromEntries((result.bands ?? []).map((x) => [x.b, x.key])));
+    // Never a photo slot: background textures, or transparent PNGs (stickers,
+    // illustrations — real photos have no see-through areas).
+    const rejected: string[] = [];
+    const checked = await Promise.all(
+      picks.map(async (x) => {
+        const pic = a.pictures.find((p) => p.n === x.p);
+        if (!pic || pic.background || pic.masked) return rejected.push(`P${x.p}`), null;
+        // See-through means a sticker or illustration, unless it's a photo cut to an oval.
+        const shape = await alphaShape(pic.src, pic.crop);
+        if (shape.clear > 0.1 && !shape.oval) return rejected.push(`P${x.p}`), null;
+        return shape.clear > 0.1 ? { ...x, oval: true, fit: shape.fit } : x;
+      }),
+    );
+    result = {
+      ...result,
+      photos: checked.filter((x): x is NonNullable<typeof x> => !!x),
+      notes: rejected.length ? [...result.notes, `Kept ${rejected.join(", ")} as artwork: see-through illustrations or background textures can't be photo slots.`] : result.notes,
+    };
+    const b = await buildSvgLayers(a, kept, result.photos ?? [], Object.fromEntries((result.bands ?? []).map((x) => [x.b, x.key])));
     const layers = await Promise.all(
       result.layers.map(async (l) => {
         if (l.role === "ignore") return l;
@@ -133,8 +169,8 @@ export default function TemplateImportPage() {
     );
     setBuild(b);
     setDet({ ...base, art: b.bands[0].art, artSize: b.bands[0].artSize });
-    artKey.current = layersKey(kept, picks);
-    setAi({
+    artKey.current = layersKey(kept, result.photos ?? []);
+    const final: AiResult = {
       ...result,
       fonts: { ...fm.fonts, display: fm.fonts.display!, body: fm.fonts.body! },
       layers: layers.map((l, i) => (fm.layers[i] ? { ...l, font: fm.layers[i].font, weight: fm.layers[i].weight } : l)),
@@ -142,8 +178,43 @@ export default function TemplateImportPage() {
       fontScore: fm.report.length ? fm.report.reduce((t, r) => t + r.score, 0) / fm.report.length : undefined,
       // The AI's own font guesses are superseded by the measured match.
       notes: [...fontNotes, ...result.notes.filter((n) => !/\bfont|typeface|\bface\b/i.test(n))],
-    });
-    setStage("review");
+    };
+    setAi(final);
+    return final;
+  };
+
+  /**
+   * The phone version of the design (optional second file): traced like the
+   * desktop one, read by the AI for its text, with its photo slots matched to
+   * the desktop's by image so one set of photos fills both.
+   */
+  const importPhone = async (file: File, deskA: SvgAnalysis, desk: AiResult): Promise<PhoneVersion> => {
+    setStage("phone");
+    const a = await analyseSvg(file);
+    if (!a.candidates.length) throw new Error("Couldn't find any text shapes in the phone version's SVG.");
+    const base = await svgDetection(a);
+    const raw = curvedToArt(await askAi(base, "svg", a, "This file is the PHONE version of the design: the same wording and photos, laid out for a phone screen."), base.boxes);
+    setStage("phone");
+    const picks = await Promise.all(
+      phonePhotoPicks(deskA, desk.photos ?? [], a).map(async (x) => {
+        const pic = a.pictures.find((p) => p.n === x.p)!;
+        const shape = await alphaShape(pic.src, pic.crop);
+        return shape.clear > 0.1 && shape.oval ? { ...x, oval: true, fit: shape.fit } : x;
+      }),
+    );
+    const kept = removalBoxes(raw, base.boxes);
+    const build = await buildSvgLayers(a, kept, picks, Object.fromEntries((raw.bands ?? []).map((x) => [x.b, x.key])));
+    const layers = await Promise.all(
+      raw.layers.map(async (l) => {
+        if (l.role === "ignore") return l;
+        for (const n of l.boxes) {
+          const shadow = await measureShadow(a, n);
+          if (shadow) return { ...l, shadow };
+        }
+        return l;
+      }),
+    );
+    return { a, det: { ...base, art: build.bands[0].art, artSize: build.bands[0].artSize }, raw: { ...raw, layers, photos: picks }, build };
   };
 
   const analyse = async () => {
@@ -154,11 +225,20 @@ export default function TemplateImportPage() {
         if (!svgFile) return setError("Add the SVG file.");
         setStage("measuring");
         const a = await analyseSvg(svgFile);
+        // A tall, desktop-width design is a website; phone-width ones already fit phones.
+        setWebsiteMode(a.width >= 700 && a.height / a.width >= 1.6);
         if (!a.candidates.length) throw new Error("Couldn't find any text shapes in this SVG. If the text was flattened into a picture, use the two-image method instead.");
         setSvgA(a);
         const base = await svgDetection(a);
         setDet({ ...base, art: new File([], "artwork.webp"), artSize: { w: base.width, h: base.height } });
-        await finishSvg(a, base, await askAi(base, "svg", a));
+        const desk = await finishSvg(a, base, await askAi(base, "svg", a));
+        setPhone(null);
+        if (mobileFile) {
+          // Two versions: both are traced exactly; no automatic phone layout.
+          setWebsiteMode(false);
+          setPhone(await importPhone(mobileFile, a, desk));
+        }
+        setStage("review");
       } else {
         if (!designFile || !artFile) return setError("Add both images.");
         setStage("measuring");
@@ -177,7 +257,10 @@ export default function TemplateImportPage() {
     if (!det) return;
     setError(null);
     try {
-      if (mode === "svg" && svgA) await finishSvg(svgA, det, await askAi(det, "svg"));
+      if (mode === "svg" && svgA) {
+        await finishSvg(svgA, det, await askAi(det, "svg"));
+        setStage("review");
+      }
       else {
         setAi(await askAi(det, "images"));
         setStage("review");
@@ -197,10 +280,16 @@ export default function TemplateImportPage() {
     let live = true;
     const t = setTimeout(async () => {
       const b = await buildSvgLayers(svgA, removalBoxes(ai, det!.boxes), ai.photos ?? [], Object.fromEntries((ai.bands ?? []).map((x) => [x.b, x.key])));
+      // The phone version follows the same choices (its text roles come from the desktop's).
+      const pb =
+        phone && phoneAi
+          ? await buildSvgLayers(phone.a, removalBoxes(phoneAi, phone.det.boxes), phone.raw.photos ?? [], Object.fromEntries((phone.raw.bands ?? []).map((x) => [x.b, x.key])))
+          : null;
       if (!live) return;
       artKey.current = keptKey;
       setBuild(b);
       setDet((d) => (d ? { ...d, art: b.bands[0].art, artSize: b.bands[0].artSize } : d));
+      if (pb) setPhone((ph) => (ph ? { ...ph, build: pb, det: { ...ph.det, art: pb.bands[0].art, artSize: pb.bands[0].artSize } } : ph));
     }, 300);
     return () => {
       live = false;
@@ -221,9 +310,33 @@ export default function TemplateImportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measureKey]);
   const svgBuild = mode === "svg" ? build : null;
-  const rawSpec = useMemo(() => (det && ai ? assembleSpec(det, ai, metrics, svgBuild ?? undefined) : null), [det, ai, metrics, svgBuild]);
+  // Two-version designs: the phone text follows the desktop's labels (edits on the review screen included).
+  const phoneAi = useMemo(() => (phone && ai ? reconcilePhone(ai, phone.raw) : null), [phone, ai]);
+  const phoneMeasureKey = phoneAi ? JSON.stringify([phoneAi.fonts.display.family, phoneAi.fonts.body.family, phoneAi.layers.map((l) => [l.lines, l.font, l.weight, l.italic, l.uppercase, l.letterSpacing])]) : "";
+  useEffect(() => {
+    if (!phoneAi) return setPhoneMetrics([]);
+    let live = true;
+    measureLayers(phoneAi).then((m) => live && setPhoneMetrics(m));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phoneMeasureKey]);
+  const rawSpec = useMemo(() => {
+    if (!det || !ai) return null;
+    const assembled = assembleSpec(det, ai, metrics, svgBuild ?? undefined);
+    // Drawn forms and buttons become real controls over the drawing.
+    const live = (raw: ReturnType<typeof assembleSpec>, a: SvgAnalysis, b: SvgBuild) => withControls(raw, a, b).raw as typeof raw;
+    if (phone && phoneAi && svgBuild && svgA) return mergeVersions(live(assembled, svgA, svgBuild), live(assembleSpec(phone.det, phoneAi, phoneMetrics, phone.build), phone.a, phone.build));
+    // Website mode: rebuild traced bands as real responsive sections.
+    if (!svgBuild || !svgA) return assembled;
+    return live(websiteMode ? (toWebsite(assembled, svgA, svgBuild) as typeof assembled) : assembled, svgA, svgBuild);
+  }, [det, ai, metrics, svgBuild, websiteMode, svgA, phone, phoneAi, phoneMetrics]);
   // Every art file the template uses (background per band + on-top layers).
-  const files = useMemo(() => (svgBuild ? [...svgBuild.bands.map((b) => b.art), ...svgBuild.overlays.map((o) => o.file)] : det ? [det.art] : []), [svgBuild, det]);
+  const files = useMemo(
+    () => (svgBuild ? [...svgBuild.bands.map((b) => b.art), ...svgBuild.overlays.map((o) => o.file), ...(phone ? phoneFiles(phone.build) : [])] : det ? [det.art] : []),
+    [svgBuild, det, phone],
+  );
   const fileUrls = useMemo(() => new Map(files.map((f) => [f.name, URL.createObjectURL(f)])), [files]);
   useEffect(() => () => fileUrls.forEach((u) => URL.revokeObjectURL(u)), [fileUrls]);
   const parsed = useMemo(() => {
@@ -233,13 +346,22 @@ export default function TemplateImportPage() {
   }, [rawSpec, fileUrls]);
   const spec = parsed && "spec" in parsed ? parsed.spec : null;
 
+  // DEV: let the fidelity harness (scripts/fidelity) render and measure this import.
+  const fidelityContent = useMemo(() => (ai ? designContent(ai, svgBuild) : null), [ai, svgBuild]);
+  const fidelitySources = useMemo(() => (rawSpec as { __sources?: Record<string, Source> } | null)?.__sources ?? {}, [rawSpec]);
+  const fidelityPhone = useMemo(
+    () => (phone ? { a: phone.a, build: phone.build, sources: (rawSpec as { __phoneSources?: Record<string, Source> } | null)?.__phoneSources ?? {} } : null),
+    [phone, rawSpec],
+  );
+  useFidelityHook({ spec: stage === "review" ? spec : null, content: fidelityContent, det, svgA: mode === "svg" ? svgA : null, build: svgBuild, sources: fidelitySources, score, notes: ai?.notes ?? [], phone: fidelityPhone });
+
   const save = async () => {
     if (!rawSpec || !det || !ai) return;
     setSaving(true);
     setError(null);
     try {
       const id = templateIdFrom(label);
-      await createDraftVersion({ templateId: id, label: label.trim(), tier, eventTypes: ai.eventTypes, rawSpec, files, isNew: true, ingestReport: { importedFrom: mode, fileName: (mode === "svg" ? svgFile : designFile)?.name, match: score, notes: ai.notes } });
+      await createDraftVersion({ templateId: id, label: label.trim(), tier, eventTypes: ai.eventTypes, rawSpec, files, isNew: true, ingestReport: { importedFrom: mode, fileName: (mode === "svg" ? svgFile : designFile)?.name, ...(phone && mobileFile ? { phoneFileName: mobileFile.name } : {}), match: score, notes: ai.notes } });
       navigate(`/studio/templates/${id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save.");
@@ -288,6 +410,14 @@ export default function TemplateImportPage() {
             <>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <DropZone icon="ri-file-code-line" title="Design SVG" sub="Canva: Share → Download → SVG" file={svgFile} onFile={setSvgFile} accept="image/svg+xml,.svg" />
+                <DropZone
+                  icon="ri-smartphone-line"
+                  title="Phone version (optional)"
+                  sub="The same design laid out for phones. Leave empty and the phone layout is made for you."
+                  file={mobileFile}
+                  onFile={setMobileFile}
+                  accept="image/svg+xml,.svg"
+                />
               </div>
               <p className="mt-3 text-[13px] text-[var(--slate)]">
                 Works when the text is still text in the design tool (not flattened into a picture). If the import can’t find the text, use “Two images”.
@@ -325,7 +455,9 @@ export default function TemplateImportPage() {
                 ? "AI is reading the design…"
                 : stage === "finishing"
                   ? "Matching fonts and cleaning the artwork…"
-                  : "Analyse design"}
+                  : stage === "phone"
+                    ? "Reading the phone version…"
+                    : "Analyse design"}
           </PrimaryButton>
           {stage === "thinking" ? (
             <p className="mt-3 text-[13px] text-[var(--slate)]">
@@ -645,13 +777,20 @@ const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "
 function designDate(ai: AiResult): string | undefined {
   const pieces = ai.layers.filter((l) => l.role === "field" && l.field === "eventDate");
   const get = (...formats: string[]) => pieces.find((l) => formats.includes(l.format ?? "long"))?.lines.join(" ");
-  const full = get("long", "medium", "numeric");
+  const full = get("long", "medium", "numeric", "weekdayMonthDay", "monthDay");
   let y: number | undefined, m: number | undefined, d: number | undefined;
   if (full) {
     const numeric = full.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
     const parsed = new Date(full.replace(/(\d)(st|nd|rd|th)\b/gi, "$1"));
     if (numeric) [d, m, y] = [+numeric[1], +numeric[2] - 1, +numeric[3]];
     else if (!Number.isNaN(parsed.getTime())) [y, m, d] = [parsed.getFullYear(), parsed.getMonth(), parsed.getDate()];
+    // No year in the design ("Friday, September 18"): the next year that day is that weekday.
+    if (!numeric && !/\b\d{4}\b/.test(full) && m !== undefined && d !== undefined) {
+      const wd = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].findIndex((w) => new RegExp(`\\b${w}`, "i").test(full));
+      const now = new Date().getFullYear();
+      y = now;
+      for (let k = 0; k < 12 && wd >= 0; k++) if (new Date(now + k, m, d).getDay() === wd) ((y = now + k), (k = 99));
+    }
   }
   const day = get("day")?.match(/\d{1,2}/)?.[0];
   const month = get("month", "monthShort")?.trim().slice(0, 3).toLowerCase();
@@ -696,7 +835,7 @@ function measureMatch(root: HTMLElement, sources: Record<string, Source>, spec: 
   for (const el of Array.from(root.querySelectorAll<HTMLElement>("[data-layer-id]"))) {
     const id = el.dataset.layerId!;
     const src = sources[id];
-    const canvas = el.parentElement;
+    const canvas = (el.closest(".rs-frame") as HTMLElement | null) ?? el.parentElement;
     const span = el.firstElementChild as HTMLElement | null;
     if (!src || !canvas || !span || !span.textContent?.trim()) continue;
     const c = canvas.getBoundingClientRect();
@@ -765,7 +904,7 @@ function ReviewPreview({
   const [mix, setMix] = useState(0.5);
   const [difference, setDifference] = useState(false);
   const own = useMemo(() => designContent(ai, build), [ai, build]);
-  const heroOnly = useMemo(() => (spec ? { ...spec, sections: spec.sections.filter((s) => s.kind === "canvas") } : null), [spec]);
+  const heroOnly = useMemo(() => (spec ? { ...spec, sections: spec.sections.filter((s) => s.kind === "canvas" || s.kind === "layout") } : null), [spec]);
   const outer = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -774,8 +913,8 @@ function ReviewPreview({
   const [score, setScore] = useState<MatchScore | null>(null);
 
   // Render at the design's real width (so text sizes are true), scaled to fit.
-  const first = heroOnly?.sections.find((s) => s.kind === "canvas");
-  const designW = first && first.kind === "canvas" ? first.maxWidth + (first.padding === "none" ? 0 : 48) : 600;
+  const first = heroOnly?.sections.find((s) => s.kind === "canvas" || s.kind === "layout");
+  const designW = !first ? 600 : first.kind === "layout" ? first.designWidth : first.kind === "canvas" ? first.maxWidth + (first.padding === "none" ? 0 : 48) : 600;
 
   useLayoutEffect(() => {
     if (mode !== "compare" || !outer.current || !inner.current) return;
@@ -786,6 +925,7 @@ function ReviewPreview({
       setScale(k);
       setInnerH(el.offsetHeight * k);
       const canvas = el.querySelector<HTMLElement>("[data-spec-root] section > div");
+      // Website sections fill the full width; the canvas finder still lands on the first section.
       if (!canvas) return;
       const a = el.getBoundingClientRect();
       const b = canvas.getBoundingClientRect();

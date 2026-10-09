@@ -184,11 +184,11 @@ export function ActivityList({ items, showProject = true }: { items: Activity[];
   );
 }
 
-export function InvoiceTable({ invoices }: { invoices: Invoice[] }) {
+export function InvoiceTable({ invoices, empty = "No invoices here yet." }: { invoices: Invoice[]; empty?: string }) {
   const { projects } = usePortal();
   const navigate = useNavigate();
   if (!invoices.length) {
-    return <Panel className="px-6 py-10 text-center text-[15px] text-[var(--slate)]">No invoices here yet.</Panel>;
+    return <Panel className="px-6 py-10 text-center text-[15px] text-[var(--slate)]">{empty}</Panel>;
   }
   return (
     <div className="overflow-hidden rounded-[22px] border border-[rgba(0,7,39,0.16)] bg-white">

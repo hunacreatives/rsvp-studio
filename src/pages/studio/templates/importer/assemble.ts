@@ -67,6 +67,7 @@ const VISIBILITY: Partial<Record<BlockType, string>> = {
   rsvp: "rsvp",
 };
 
+const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "");
 const round = (n: number, d = 4) => Math.round(n * 10 ** d) / 10 ** d;
 const median = (a: number[]) => [...a].sort((m, n) => m - n)[a.length >> 1];
 
@@ -125,6 +126,25 @@ function widen(ink: Rect, align: AiLayer["align"], others: Rect[], room?: { x0: 
 const isRepeating = (field: string) => /^(schedule|faqs|travel|stay|people|registry|story)\.\d+\./.test(field);
 const BLOCK_KEY: Partial<Record<BlockType, string>> = { story: "hostIntro", keyPeople: "hostIntro", schedule: "schedule", venue: "venue", gallery: "gallery", registry: "registry", faqs: "faqs" };
 
+/**
+ * Fixed wording set along a curve (each word at its own angle, like a
+ * ribbon banner) can't be rebuilt as one straight text box: it stays part
+ * of the artwork, exactly as drawn.
+ */
+export function curvedToArt(ai: AiResult, boxes: DetectedBox[]): AiResult {
+  const byN = new Map(boxes.map((b) => [b.n, b]));
+  const curved: string[] = [];
+  const layers = ai.layers.map((l) => {
+    if (l.role !== "static" || l.boxes.length < 2) return l;
+    const angles = l.boxes.map((n) => byN.get(n)?.rotate ?? 0);
+    if (Math.max(...angles) - Math.min(...angles) <= 5) return l;
+    curved.push(l.lines.join(" "));
+    return { ...l, role: "ignore" as const };
+  });
+  if (!curved.length) return ai;
+  return { ...ai, layers, notes: [...ai.notes, `Curved wording stays part of the artwork: ${curved.map((t) => `“${t}”`).join(", ")}.`] };
+}
+
 export function assembleSpec(det: Detection, ai: AiResult, metrics: LineMetrics[] = [], build?: SvgBuild) {
   const byN = new Map(det.boxes.map((b) => [b.n, b]));
   const aspect = det.height / det.width; // height in width units
@@ -154,28 +174,30 @@ export function assembleSpec(det: Detection, ai: AiResult, metrics: LineMetrics[
       .filter((x): x is { b: DetectedBox; text: string; idx: number } => !!x.b)
       .map((x) => ({ ...x, b: level(x.b) }))
       .sort((p, q) => p.b.y - q.b.y);
+    // Font size (in canvas units = % of width). Best: the measured width of
+    // each box's words against the same words measured in the chosen font.
+    // Fallback (font didn't load): estimate from the box's ink height.
+    const m = metrics[ai.layers.indexOf(l)];
+    const ems = raw.map((x) => {
+      const lm = m?.[x.idx];
+      if (lm && lm.w > 0) return x.b.w / (lm.w / 100);
+      return (x.b.h * aspect) / inkRatio(x.text || "Ag", l.uppercase, script(l.font));
+    });
     const merged: { b: DetectedBox; text: string; idx: number }[] = [];
     for (const x of raw) {
       const prev = merged[merged.length - 1];
       const ov = prev ? Math.min(prev.b.y + prev.b.h, x.b.y + x.b.h) - Math.max(prev.b.y, x.b.y) : 0;
       if (prev && ov > 0.5 * Math.min(prev.b.h, x.b.h)) {
         const u = union([prev.b, x.b]);
-        const longer = x.text.length > prev.text.length ? x : prev;
-        merged[merged.length - 1] = { b: { ...prev.b, ...u }, text: longer.text, idx: longer.idx };
+        // Same words read twice → keep one; otherwise the words in reading order.
+        const a = norm(prev.text), b = norm(x.text);
+        const text = a.includes(b) ? prev.text : b.includes(a) ? x.text : x.b.x >= prev.b.x ? `${prev.text} ${x.text}` : `${x.text} ${prev.text}`;
+        merged[merged.length - 1] = { b: { ...prev.b, ...u }, text, idx: prev.idx };
       } else merged.push(x);
     }
     const members = merged.map((x) => x.b);
     const lineText = merged.map((x) => x.text);
     const ink = tilted ? union(members) : inks[i];
-    // Font size (in canvas units = % of width). Best: the measured width of
-    // each line against the same words measured in the chosen font. Fallback
-    // (font didn't load): estimate from the line's ink height.
-    const m = metrics[ai.layers.indexOf(l)];
-    const ems = members.map((b, k) => {
-      const lm = m?.[merged[k].idx];
-      if (lm && lm.w > 0) return b.w / (lm.w / 100);
-      return (b.h * aspect) / inkRatio(lineText[k] ?? lineText[0] ?? "Ag", l.uppercase, script(l.font));
-    });
     const em = median(ems) * (l.scale ?? 1);
     const size = round(em * 100, 2);
     const pitches = members.slice(1).map((b, k) => (b.y + b.h / 2 - (members[k].y + members[k].h / 2)) * aspect);
@@ -188,7 +210,8 @@ export function assembleSpec(det: Detection, ai: AiResult, metrics: LineMetrics[
     // Paragraph = several lines, or long lines: it re-wraps naturally.
     // Short stacked lines (an address, "GUEST / ARRIVAL") keep their breaks.
     const avgLen = lineText.reduce((s, t) => s + t.length, 0) / Math.max(1, lineText.length);
-    const paragraph = members.length >= 3 || (members.length > 1 && avgLen > 25);
+    // Centred short lines (a list, a three-line blurb) are set by hand: keep them.
+    const paragraph = (members.length >= 3 || (members.length > 1 && avgLen > 25)) && !(l.align === "center" && avgLen <= 40);
     const { x, w } =
       members.length > 1
         ? l.align === "left"
@@ -245,11 +268,26 @@ export function assembleSpec(det: Detection, ai: AiResult, metrics: LineMetrics[
         else if (/^\d{2}:\d\d$/.test(sample.trim())) format = "time24";
       }
       // A full date without a weekday in the design shouldn't gain one.
-      if (l.field === "eventDate" && (!format || format === "long") && !/(mon|tues|wednes|thurs|fri|satur|sun)day/i.test(sample)) {
+      const weekday = /(mon|tues|wednes|thurs|fri|satur|sun)day/i.test(sample);
+      const monthDay = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/i.test(sample);
+      if (l.field === "eventDate" && (!format || format === "long" || format === "medium") && !/\b\d{4}\b/.test(sample) && monthDay) {
+        // …nor a year it doesn't show.
+        format = weekday ? "weekdayMonthDay" : "monthDay";
+      } else if (l.field === "eventDate" && (!format || format === "long") && !weekday) {
         if (/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}/i.test(sample)) format = "medium";
         else if (/^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$/.test(sample.trim())) format = "numeric";
       }
-      layer.bind = { field: l.field, ...(format ? { format } : {}), ...(l.joiner ? { joiner: l.joiner } : {}) };
+      // Words around a time ("at 5:30 PM", "5 PM onwards") stay as the design has them.
+      const affix: { before?: string; after?: string } = {};
+      const isTime = format === "time" || format === "timePadded" || format === "time24" || /\.time$/.test(l.field);
+      const tm = isTime ? sample.match(/\d{1,2}(?::\d{2})?\s*(?:[ap]\.?m\.?)?/i) : null;
+      if (tm && tm.index !== undefined) {
+        const before = sample.slice(0, tm.index);
+        const after = sample.slice(tm.index + tm[0].length);
+        if (before.trim() && before.length <= 40) affix.before = before;
+        if (after.trim() && after.length <= 40) affix.after = after;
+      }
+      layer.bind = { field: l.field, ...(format ? { format } : {}), ...(l.joiner ? { joiner: l.joiner } : {}), ...affix };
       layer.minSize = round(size * 0.55, 2);
       if (l.editorHint) layer.editorHint = l.editorHint.slice(0, 60);
       if (l.field.startsWith("venue") || l.field === "eventDate" || l.field === "story.first" || isRepeating(l.field)) layer.hideWhenEmpty = true;
@@ -294,6 +332,7 @@ export function assembleSpec(det: Detection, ai: AiResult, metrics: LineMetrics[
         box: { x: round(ph.cx - ph.rw / 2), y: round(ph.cy - ph.rh / 2), w: round(ph.rw), h: round(ph.rh) },
         rotate: ph.rotate,
         z: ph.z,
+        ...(ph.oval ? { shape: "oval" } : {}),
         ...(ph.hint ? { editorHint: ph.hint.slice(0, 60) } : {}),
       });
     }

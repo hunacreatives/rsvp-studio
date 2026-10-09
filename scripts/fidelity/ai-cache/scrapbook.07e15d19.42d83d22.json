@@ -1,0 +1,1007 @@
+{
+ "case": "scrapbook",
+ "sha": "07e15d19",
+ "promptVer": "42d83d22",
+ "boxesSig": "6c9fcf27",
+ "recordedAt": "2026-10-09T11:15:51.585Z",
+ "seconds": 27.554,
+ "usage": {
+  "input_tokens": 16452,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 5653,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "result": {
+  "eventTypes": [
+   "wedding"
+  ],
+  "paletteLabel": "Burgundy & Linen",
+  "palette": {
+   "bg": "#e9dcc6",
+   "surface": "#f3eadb",
+   "ink": "#730f0f",
+   "muted": "#8a4a40",
+   "accent": "#7a1f1f",
+   "onAccent": "#f6ecd9"
+  },
+  "fonts": {
+   "display": {
+    "family": "Monsieur La Doulaise",
+    "fallback": "cursive",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Mrs Saint Delafield",
+     "Herr Von Muellerhoff",
+     "Allura"
+    ]
+   },
+   "body": {
+    "family": "Marcellus",
+    "fallback": "serif",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Cinzel",
+     "Cormorant Garamond",
+     "Philosopher"
+    ]
+   },
+   "accent": {
+    "family": "Mrs Saint Delafield",
+    "fallback": "cursive",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "alternatives": [
+     "Monsieur La Doulaise",
+     "Herr Von Muellerhoff",
+     "Allura"
+    ]
+   }
+  },
+  "radius": "none",
+  "bands": [
+   {
+    "b": 1,
+    "key": "hero"
+   },
+   {
+    "b": 2,
+    "key": "schedule"
+   },
+   {
+    "b": 3,
+    "key": "hostIntro"
+   },
+   {
+    "b": 4,
+    "key": "venue"
+   },
+   {
+    "b": 5,
+    "key": "travelInformation"
+   },
+   {
+    "b": 6,
+    "key": "registry"
+   },
+   {
+    "b": 7,
+    "key": "faqs"
+   },
+   {
+    "b": 8,
+    "key": "rsvp"
+   }
+  ],
+  "photos": [
+   {
+    "p": 3,
+    "hint": "Couple photo"
+   },
+   {
+    "p": 10,
+    "hint": "Couple photo 2"
+   },
+   {
+    "p": 6,
+    "hint": "Venue photo"
+   },
+   {
+    "p": 12,
+    "hint": "Portrait 1"
+   },
+   {
+    "p": 15,
+    "hint": "Portrait 2"
+   },
+   {
+    "p": 18,
+    "hint": "Travel photo"
+   },
+   {
+    "p": 26,
+    "hint": "RSVP couple photo"
+   }
+  ],
+  "layers": [
+   {
+    "boxes": [
+     2
+    ],
+    "lines": [
+     "A SPECIAL NOTE FROM"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     1,
+     3
+    ],
+    "lines": [
+     "Luis and",
+     "Bianca"
+    ],
+    "role": "field",
+    "field": "hosts.names",
+    "format": "joined",
+    "joiner": "and",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     4
+    ],
+    "lines": [
+     "ITINERARY"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     5
+    ],
+    "lines": [
+     "DETAILS"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     6
+    ],
+    "lines": [
+     "WE’RE FINALLY GETTING MARRIED … IN MADRID!"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.1,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     7
+    ],
+    "lines": [
+     "December 7, 2030"
+    ],
+    "role": "field",
+    "field": "eventDate",
+    "format": "long",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     8
+    ],
+    "lines": [
+     "divider"
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     9,
+     10
+    ],
+    "lines": [
+     "123 Calle Dondequeria",
+     "28015 Madrid, Spain"
+    ],
+    "role": "field",
+    "field": "venue.address",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     11
+    ],
+    "lines": [
+     "divider"
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     12
+    ],
+    "lines": [
+     "4:00 PM ’til late"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     13
+    ],
+    "lines": [
+     "monogram"
+    ],
+    "role": "ignore",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     14,
+     15
+    ],
+    "lines": [
+     "A dream wedding, far from",
+     "home but close to the heart."
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     16,
+     17,
+     18,
+     19,
+     20,
+     21
+    ],
+    "lines": [
+     "Share details about your ceremony, reception, or any other",
+     "program related thing here. Share details about your ceremony,",
+     "reception, or any other program related thing here. Share",
+     "details about your ceremony, reception, or any other program",
+     "related thing here. Share details about your ceremony,",
+     "reception, or any other program related thing here."
+    ],
+    "role": "field",
+    "field": "story.first",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     22,
+     23
+    ],
+    "lines": [
+     "About the",
+     "Wedding"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     24
+    ],
+    "lines": [
+     "The Ceremony"
+    ],
+    "role": "static",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     25,
+     26,
+     27
+    ],
+    "lines": [
+     "The",
+     "Reception",
+     "Reception"
+    ],
+    "role": "static",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     28
+    ],
+    "lines": [
+     "Dress Code"
+    ],
+    "role": "static",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     29,
+     32,
+     35,
+     38
+    ],
+    "lines": [
+     "The wedding will take place at a charming",
+     "garden venue just outside central Madrid.",
+     "Exact location and time will be shared",
+     "privately with confirmed guests."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     30,
+     33,
+     36,
+     39
+    ],
+    "lines": [
+     "Following the ceremony, we’ll",
+     "gather for an intimate dinner with",
+     "tapas, music, and wine under the",
+     "Spanish sky."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     31,
+     34,
+     37,
+     40
+    ],
+    "lines": [
+     "Garden formal. Think soft fabrics,",
+     "flowy dresses, and linen suits —",
+     "comfortable enough for warm weather",
+     "but elegant enough for photos!"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     41
+    ],
+    "lines": [
+     "Airfare"
+    ],
+    "role": "field",
+    "field": "travel.0.title",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     42,
+     43,
+     44
+    ],
+    "lines": [
+     "Guests are kindly asked to book their own flights. We",
+     "recommend arriving in Madrid no later than December 5 to",
+     "allow time for rest and sightseeing before the wedding."
+    ],
+    "role": "field",
+    "field": "travel.0.body",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     45
+    ],
+    "lines": [
+     "Accommodations"
+    ],
+    "role": "field",
+    "field": "travel.1.title",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     46,
+     47,
+     48
+    ],
+    "lines": [
+     "We’ve reserved a block of rooms at Hotel Maravillosa and will",
+     "provide discount codes via email. You’re also welcome to stay",
+     "anywhere nearby — central Madrid and Retiro are great areas."
+    ],
+    "role": "field",
+    "field": "travel.1.body",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     49
+    ],
+    "lines": [
+     "Details"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     51
+    ],
+    "lines": [
+     "decoration"
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     50
+    ],
+    "lines": [
+     "Itinerary"
+    ],
+    "role": "field",
+    "field": "travel.2.title",
+    "font": "accent",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     52,
+     53,
+     54
+    ],
+    "lines": [
+     "A full itinerary will be emailed to confirmed guests. Expect a",
+     "welcome dinner, optional city tour, and of course, the wedding",
+     "day celebration."
+    ],
+    "role": "field",
+    "field": "travel.2.body",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     55,
+     56,
+     57,
+     58,
+     59
+    ],
+    "lines": [
+     "Your",
+     "presence in",
+     "Madrid is",
+     "",
+     "the greatest gift of all."
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     60,
+     61
+    ],
+    "lines": [
+     "However, if you’d like to contribute to our new chapter together, we welcome gifts through our Sining Spaces",
+     "registry. Email hello@reallygreatsite.com with the Registry No. 12345 as the subject line for our updated gift list."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     62,
+     63
+    ],
+    "lines": [
+     "If you prefer to support us as we begin our married life, a contribution to our future would mean so much.",
+     "Email us at hello@reallygreatsite.com for our details."
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     64,
+     68
+    ],
+    "lines": [
+     "Frequently",
+     "Asked Qs"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     65
+    ],
+    "lines": [
+     "DO I NEED A VISA TO TRAVEL TO SPAIN?"
+    ],
+    "role": "field",
+    "field": "faqs.0.question",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     66,
+     67
+    ],
+    "lines": [
+     "Yes, Philippine passport holders will need a Schengen visa. We recommend",
+     "applying at least 3 months in advance. We’ll share a guide to help with this!"
+    ],
+    "role": "field",
+    "field": "faqs.0.answer",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     69
+    ],
+    "lines": [
+     "CAN I BRING A PLUS ONE?"
+    ],
+    "role": "field",
+    "field": "faqs.1.question",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     70,
+     71
+    ],
+    "lines": [
+     "This is an intimate destination wedding with limited seating. Kindly note",
+     "that only named guests in the invitation are included."
+    ],
+    "role": "field",
+    "field": "faqs.1.answer",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     72
+    ],
+    "lines": [
+     "WILL TRANSPORTATION BE PROVIDED?"
+    ],
+    "role": "field",
+    "field": "faqs.2.question",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     73,
+     74,
+     75,
+     76
+    ],
+    "lines": [
+     "Yes, for the wedding day, shuttle service will be arranged to and from the",
+     "venue for all guests staying at the partner hotel. PWD assistance is also",
+     "available – please don’t hesitate to reach out to us so we can make",
+     "arrangements for you, if needed."
+    ],
+    "role": "field",
+    "field": "faqs.2.answer",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "left",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     77
+    ],
+    "lines": [
+     "card"
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     78
+    ],
+    "lines": [
+     "Rsvp by"
+    ],
+    "role": "static",
+    "font": "display",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     79,
+     80
+    ],
+    "lines": [
+     "O",
+     "CTOBER 15, 2030"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": true,
+    "align": "center",
+    "letterSpacing": 0.05,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     81,
+     82,
+     83,
+     84
+    ],
+    "lines": [
+     "Contact",
+     "questions or",
+     "concerns",
+     "any"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     85,
+     88
+    ],
+    "lines": [
+     "divider",
+     "divider"
+    ],
+    "role": "ignore",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     86,
+     87
+    ],
+    "lines": [
+     "Mobile Number",
+     "(123) 456-7890"
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   },
+   {
+    "boxes": [
+     90,
+     92,
+     89,
+     91
+    ],
+    "lines": [
+     "Email",
+     "Address",
+     "hello@reallygreatsite.com",
+     ""
+    ],
+    "role": "static",
+    "font": "body",
+    "weight": 400,
+    "italic": false,
+    "uppercase": false,
+    "align": "center",
+    "letterSpacing": 0,
+    "hostCount": "any"
+   }
+  ],
+  "sections": [
+   {
+    "block": "story",
+    "band": "bg",
+    "divider": "line"
+   },
+   {
+    "block": "gallery",
+    "band": "surface",
+    "divider": "line"
+   },
+   {
+    "block": "rsvp",
+    "band": "bg",
+    "divider": "line"
+   },
+   {
+    "block": "footer",
+    "band": "surface",
+    "divider": "none"
+   }
+  ],
+  "notes": [
+   "Script fonts are rough matches; check display and accent faces.",
+   "Time '4:00 PM ’til late', the dress code, registry wording, RSVP date and contact details are static in the design; customers must edit them in the artwork.",
+   "Boxes 25-27 and 81-84, 89-92 overlap, so their text groupings are guesses.",
+   "Faqs, travel, registry and rsvp bands are already in the design, so the sections here are minimal.",
+   "Palette is sampled from the burgundy and linen tones."
+  ]
+ }
+}

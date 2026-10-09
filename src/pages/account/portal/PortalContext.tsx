@@ -6,7 +6,7 @@ import Navbar, { PROFILE_EVENT } from "@/pages/home/components/Navbar";
 import AuthModal from "@/pages/home/components/AuthModal";
 import * as api from "./api";
 import { demoMessages, demoSnapshot, isDemoMode } from "./demo";
-import type { Message, Profile, Thread, ThreadKind } from "./types";
+import type { Message, Profile, SupportCategory, Thread, ThreadKind } from "./types";
 
 type Ctx = api.PortalSnapshot & {
   demo: boolean;
@@ -15,8 +15,8 @@ type Ctx = api.PortalSnapshot & {
   uploadAvatar: (file: File) => Promise<void>;
   toggleTask: (taskId: string, done: boolean) => Promise<void>;
   getMessages: (threadId: string) => Promise<Message[]>;
-  sendMessage: (threadId: string, body: string, files: File[]) => Promise<Message>;
-  startThread: (input: { eventId: string | null; kind: ThreadKind; subject: string; body: string; files: File[]; profileId?: string }) => Promise<Thread>;
+  sendMessage: (threadId: string, body: string, files: File[], opts?: { internal?: boolean }) => Promise<Message>;
+  startThread: (input: { eventId: string | null; kind: ThreadKind; subject: string; body: string; files: File[]; profileId?: string; category?: SupportCategory }) => Promise<Thread>;
   markRead: (threadId: string) => void;
   /** Called with every new message the viewer can see (realtime). */
   onMessage: (cb: (m: Message) => void) => () => void;
@@ -141,10 +141,10 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
         if (demo) return (demoThreads.current[threadId] ??= demoMessages(threadId));
         return api.loadMessages(threadId);
       },
-      sendMessage: async (threadId, body, files) => {
+      sendMessage: async (threadId, body, files, opts) => {
         if (demo) {
           const m: Message = {
-            id: crypto.randomUUID(), thread_id: threadId, sender_id: me.id, body,
+            id: crypto.randomUUID(), thread_id: threadId, sender_id: me.id, body, internal: !!opts?.internal,
             attachments: files.map((f) => ({ name: f.name, path: "demo", size: f.size, type: f.type })),
             created_at: new Date().toISOString(),
           };
@@ -152,21 +152,24 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
           setSnap((s) => s && { ...s, threads: s.threads.map((t) => (t.id === threadId ? { ...t, lastMessage: m, last_message_at: m.created_at } : t)) });
           return m;
         }
-        const m = await api.sendMessage(threadId, me.id, body, files);
+        const m = await api.sendMessage(threadId, me.id, body, files, opts);
         await refreshThreads();
         return m;
       },
-      startThread: async ({ eventId, kind, subject, body, files, profileId }) => {
+      startThread: async ({ eventId, kind, subject, body, files, profileId, category }) => {
         if (demo) {
           const now = new Date().toISOString();
-          const t: Thread = { id: crypto.randomUUID(), profile_id: me.id, event_id: eventId, kind, subject, last_message_at: now, created_at: now };
+          const t: Thread = {
+            id: crypto.randomUUID(), profile_id: me.id, event_id: eventId, kind, subject, last_message_at: now, created_at: now,
+            ...(kind === "support" ? { ticket_number: 1000 + Math.floor(Math.random() * 900), category: category ?? "other", status: "needs_reply" as const, urgent: false, last_customer_at: now } : {}),
+          };
           demoThreads.current[t.id] = [];
           const m: Message = { id: crypto.randomUUID(), thread_id: t.id, sender_id: me.id, body, attachments: [], created_at: now };
           demoThreads.current[t.id].push(m);
           setSnap((s) => s && { ...s, threads: [{ ...t, lastMessage: m, unread: false, counterpartName: "The RSVP Studio", counterpartAvatar: null }, ...s.threads] });
           return t;
         }
-        const t = await api.createThread({ profileId: profileId ?? me.id, eventId, kind, subject });
+        const t = await api.createThread({ profileId: profileId ?? me.id, eventId, kind, subject, category });
         await api.sendMessage(t.id, me.id, body, files);
         await refreshThreads();
         return t;

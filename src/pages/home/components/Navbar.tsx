@@ -41,6 +41,20 @@ export default function Navbar({
     return matchesPath(path);
   };
   const [authOpen, setAuthOpen] = useState(false);
+  // Email links (e.g. a team invite) open the sign-up/log-in form directly:
+  // /?auth=signup&email=name@example.com
+  const [authPreset, setAuthPreset] = useState<{ mode: "signin" | "signup"; email: string } | null>(null);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const mode = q.get("auth");
+    if (mode !== "signup" && mode !== "signin") return;
+    setAuthPreset({ mode, email: q.get("email") ?? "" });
+    setAuthOpen(true);
+    q.delete("auth");
+    q.delete("email");
+    const rest = q.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${rest ? `?${rest}` : ""}${window.location.hash}`);
+  }, []);
   const [accountName, setAccountName] = useState<string | null>(cachedAccountName);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(cachedAvatarUrl);
   const [isStaff, setIsStaff] = useState(cachedIsStaff);
@@ -477,7 +491,12 @@ export default function Navbar({
         </div>
       )}
 
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal
+        open={authOpen}
+        onClose={() => (setAuthOpen(false), setAuthPreset(null))}
+        initialMode={authPreset?.mode}
+        initialEmail={authPreset?.email}
+      />
     </header>
   );
 }

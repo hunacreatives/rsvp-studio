@@ -1,4 +1,4 @@
-import type { DetectedBox, Detection } from "./detect";
+import { tagSpot, type DetectedBox, type Detection } from "./detect";
 import { renderSvg, type SvgAnalysis } from "./svg";
 
 // Glue between the one-SVG analysis (svg.ts) and the shared import steps:
@@ -37,15 +37,15 @@ export async function svgDetection(a: SvgAnalysis): Promise<Omit<Detection, "art
     ctx.strokeRect(x, y, b.w * W + 6, b.h * H + 6);
     const tag = String(b.n);
     const tw = ctx.measureText(tag).width + 8;
-    const lx = x - tw - 2 >= 0 ? x - tw - 2 : x;
-    const ly = x - tw - 2 >= 0 ? y : Math.max(0, y - 18);
+    const [lx, ly] = tagSpot(b, tw, boxes, W, H);
     ctx.fillStyle = "#ff00aa";
     ctx.fillRect(lx, ly, tw, 17);
     ctx.fillStyle = "#ffffff";
     ctx.fillText(tag, lx + 4, ly + 13);
   }
   // Pictures that could be photos: cyan outlines (tilt included), "P<n>".
-  for (const p of a.pictures) {
+  // Background textures aren't offered (they can never be photo slots).
+  for (const p of a.pictures.filter((x) => !x.background && !x.masked)) {
     ctx.save();
     ctx.translate(p.cx * W, p.cy * H);
     ctx.rotate((p.rotate * Math.PI) / 180);
@@ -88,12 +88,63 @@ export async function svgDetection(a: SvgAnalysis): Promise<Omit<Detection, "art
   return { width: W, height: H, boxes, tiles, designUrl: full.toDataURL("image/jpeg", 0.88) };
 }
 
+/** Share of an image's pixels that are (mostly) transparent — stickers and illustrations, not photos. */
+export async function transparentShare(src: string, crop?: { x: number; y: number; w: number; h: number }): Promise<number> {
+  return (await alphaShape(src, crop)).clear;
+}
+
+/**
+ * How see-through the visible part of a picture is, and whether it's an
+ * oval cut-out (a photo trimmed to fit an oval frame: solid inside the oval,
+ * clear outside it) — that's still a photo, unlike a sticker or illustration.
+ */
+export async function alphaShape(
+  src: string,
+  crop?: { x: number; y: number; w: number; h: number },
+): Promise<{ clear: number; oval: boolean; fit?: { x: number; y: number; w: number; h: number } }> {
+  if (!src.startsWith("data:image/png")) return { clear: 0, oval: false };
+  try {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const c = crop && crop.w > 0 && crop.h > 0 ? crop : { x: 0, y: 0, w: 1, h: 1 };
+    const S = 64;
+    const cv = document.createElement("canvas");
+    cv.width = S;
+    cv.height = S;
+    const ctx = cv.getContext("2d", { willReadFrequently: true })!;
+    ctx.drawImage(img, c.x * img.naturalWidth, c.y * img.naturalHeight, c.w * img.naturalWidth, c.h * img.naturalHeight, 0, 0, S, S);
+    const d = ctx.getImageData(0, 0, S, S).data;
+    const solid = (x: number, y: number) => d[(y * S + x) * 4 + 3] >= 200;
+    // The oval is fitted to the solid pixels (it needn't fill the frame's box).
+    let x0 = S, y0 = S, x1 = -1, y1 = -1, clear = 0;
+    for (let y = 0; y < S; y++)
+      for (let x = 0; x < S; x++) {
+        if (!solid(x, y)) clear++;
+        else (x0 = Math.min(x0, x), y0 = Math.min(y0, y), x1 = Math.max(x1, x), y1 = Math.max(y1, y));
+      }
+    if (x1 < 0) return { clear: 1, oval: false };
+    const ex = (x0 + x1 + 1) / 2, ey = (y0 + y1 + 1) / 2, rx = (x1 - x0 + 1) / 2, ry = (y1 - y0 + 1) / 2;
+    let inside = 0, insideClear = 0, outside = 0, outsideSolid = 0;
+    for (let y = y0; y <= y1; y++)
+      for (let x = x0; x <= x1; x++) {
+        const e = ((x + 0.5 - ex) / rx) ** 2 + ((y + 0.5 - ey) / ry) ** 2;
+        if (e < 0.8) (inside++, !solid(x, y) && insideClear++);
+        else if (e > 1.2) (outside++, solid(x, y) && outsideSolid++);
+      }
+    const oval = rx > 6 && ry > 6 && insideClear / Math.max(1, inside) < 0.06 && outsideSolid / Math.max(1, outside) < 0.25;
+    return { clear: clear / (S * S), oval, fit: { x: x0 / S, y: y0 / S, w: (x1 - x0 + 1) / S, h: (y1 - y0 + 1) / S } };
+  } catch {
+    return { clear: 0, oval: false };
+  }
+}
+
 /** What the AI is told about pictures and bands (alongside the text boxes). */
 export function svgContext(a: SvgAnalysis) {
   const r = (v: number) => +v.toFixed(3);
   const edges = [0, ...a.cuts, 1];
   return {
-    pictures: a.pictures.map((p) => ({ p: p.n, x: r(p.x), y: r(p.y), w: r(p.w), h: r(p.h), format: p.format, tilt: Math.round(p.rotate) })),
+    pictures: a.pictures.filter((p) => !p.background && !p.masked).map((p) => ({ p: p.n, x: r(p.x), y: r(p.y), w: r(p.w), h: r(p.h), format: p.format, tilt: Math.round(p.rotate) })),
     bands: a.cuts.length ? edges.slice(0, -1).map((y0, j) => ({ b: j + 1, y0: r(y0), y1: r(edges[j + 1]) })) : [],
   };
 }
@@ -105,7 +156,8 @@ export function elementsFor(a: SvgAnalysis, boxNumbers: Iterable<number>): Set<n
   for (const n of boxNumbers) {
     const c = byN.get(n);
     if (!c) continue;
-    c.ks.forEach((k) => ks.add(k));
+    // Split Figma letters (fractional k) live in one real element: floor(k).
+    c.ks.forEach((k) => (ks.add(k), ks.add(Math.floor(k))));
     c.effects.forEach((k) => ks.add(k));
   }
   return ks;
@@ -195,7 +247,7 @@ export async function renderTextMask(a: SvgAnalysis, boxNumbers: number[]) {
   const color = new Map<number, string>();
   for (const c of lines) {
     const [r, g, b] = maskColor(c.n);
-    for (const k of c.ks) color.set(k, `rgb(${r},${g},${b})`);
+    for (const k of c.ks) color.set(Math.floor(k), `rgb(${r},${g},${b})`);
   }
   for (const el of Array.from(doc.querySelectorAll("[data-k]"))) {
     const k = Number(el.getAttribute("data-k"));
@@ -223,11 +275,11 @@ export async function renderTextMask(a: SvgAnalysis, boxNumbers: number[]) {
 
 export interface SvgBuild {
   /** Customer photo slots, in slot order. Positions normalized to the whole design. */
-  photos: { slot: number; hint?: string; cx: number; cy: number; rw: number; rh: number; rotate: number; z: number; src: string }[];
+  photos: { slot: number; hint?: string; cx: number; cy: number; rw: number; rh: number; rotate: number; z: number; src: string; focal: { x: number; y: number }; k: number; oval?: boolean }[];
   /** Artwork drawn ON TOP of photos (tape, stamps, overlapping frames). */
   overlays: { id: string; file: File; x: number; y: number; w: number; h: number; z: number }[];
   /** Bands top to bottom (one band = the whole design). Each has its own background art. */
-  bands: { y0: number; y1: number; key?: string; color: string; art: File; artSize: { w: number; h: number } }[];
+  bands: { y0: number; y1: number; key?: string; color: string; art: File; artSize: { w: number; h: number }; uniform: boolean }[];
   /** The design's width in its own units (to pick a sensible max width). */
   designWidth: number;
   /** Per text box: how far it can widen while staying on the same background. */
@@ -304,6 +356,20 @@ function alphaBox(c: HTMLCanvasElement) {
   return x1 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
 
+/** True when a slice is (nearly) one flat colour — no art worth shipping as an image. */
+function isUniform(c: HTMLCanvasElement) {
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  const d = ctx.getImageData(0, 0, c.width, c.height).data;
+  const step = Math.max(4, Math.floor(d.length / 4 / 20000)) * 4;
+  let n = 0, odd = 0;
+  const r0 = d[0], g0 = d[1], b0 = d[2], a0 = d[3];
+  for (let i = 0; i < d.length; i += step) {
+    n++;
+    if (Math.abs(d[i] - r0) + Math.abs(d[i + 1] - g0) + Math.abs(d[i + 2] - b0) + Math.abs(d[i + 3] - a0) > 24) odd++;
+  }
+  return odd / n < 0.004;
+}
+
 /** Dominant colour along a band's left and right edges (what to extend it with on wide screens). */
 function edgeColor(c: HTMLCanvasElement, y0: number, y1: number) {
   const ctx = c.getContext("2d", { willReadFrequently: true })!;
@@ -327,7 +393,7 @@ const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: num
 export async function buildSvgLayers(
   a: SvgAnalysis,
   textBoxes: number[],
-  photoPicks: { p: number; hint?: string }[],
+  photoPicks: { p: number; hint?: string; oval?: boolean; fit?: { x: number; y: number; w: number; h: number }; slot?: number }[],
   bandKeys: Record<number, string>,
 ): Promise<SvgBuild> {
   const ART_W = Math.min(ART_MAX_W, Math.max(1000, Math.round(a.width)));
@@ -346,7 +412,7 @@ export async function buildSvgLayers(
     byPaint.forEach((ph, i) => {
       if (ph.pic.k < l.k && overlaps(l, ph.pic)) top = i;
     });
-    if (top >= 0) chunks[top].add(l.k);
+    if (top >= 0) chunks[top].add(Math.floor(l.k));
   }
 
   const overlays: SvgBuild["overlays"] = [];
@@ -369,19 +435,50 @@ export async function buildSvgLayers(
     const y1 = edges[j + 1];
     const slice = edges.length === 2 ? base : crop(base, 0, y0 * base.height, base.width, (y1 - y0) * base.height);
     const enc = await encodeWebp(slice, edges.length === 2 ? "artwork.webp" : `artwork-${j + 1}.webp`);
-    bands.push({ y0, y1, key: bandKeys[j + 1], color: edgeColor(base, y0 * base.height, y1 * base.height), art: enc.file, artSize: { w: enc.w, h: enc.h } });
+    bands.push({ y0, y1, key: bandKeys[j + 1], color: edgeColor(base, y0 * base.height, y1 * base.height), art: enc.file, artSize: { w: enc.w, h: enc.h }, uniform: isUniform(slice) });
   }
 
   const room = roomFor(base, a.candidates.filter((c) => textBoxes.includes(c.n)));
 
   return {
     room,
-    photos: photos.map((x, slot) => {
-      const order = byPaint.findIndex((b) => b.p === x.p);
-      return { slot, hint: x.hint, cx: x.pic.cx, cy: x.pic.cy, rw: x.pic.rw, rh: x.pic.rh, rotate: x.pic.rotate, z: 2 + order * 2, src: x.pic.src };
-    }),
+    photos: await Promise.all(
+      photos.map(async (x, slot) => {
+        const order = byPaint.findIndex((b) => b.p === x.p);
+        // An oval photo inside a bigger frame box: the slot is the oval itself.
+        const f = x.oval && x.fit ? x.fit : { x: 0, y: 0, w: 1, h: 1 };
+        const rad = (x.pic.rotate * Math.PI) / 180;
+        const ox = (f.x + f.w / 2 - 0.5) * x.pic.rw * a.width;
+        const oy = (f.y + f.h / 2 - 0.5) * x.pic.rh * a.height;
+        const cx = x.pic.cx + (ox * Math.cos(rad) - oy * Math.sin(rad)) / a.width;
+        const cy = x.pic.cy + (ox * Math.sin(rad) + oy * Math.cos(rad)) / a.height;
+        const c = x.pic.crop;
+        const crop = { x: c.x + f.x * c.w, y: c.y + f.y * c.h, w: f.w * c.w, h: f.h * c.h };
+        return { slot: x.slot ?? slot, hint: x.hint, cx, cy, rw: x.pic.rw * f.w, rh: x.pic.rh * f.h, rotate: x.pic.rotate, z: 2 + order * 2, src: await cropSrc(x.pic.src, crop), focal: x.pic.focal, k: x.pic.k, ...(x.oval ? { oval: true } : {}) };
+      }),
+    ),
     overlays,
     bands,
     designWidth: a.width,
   };
+}
+
+/** The design's photo as the designer framed it (their crop and zoom), so the preview matches. */
+async function cropSrc(src: string, c: { x: number; y: number; w: number; h: number } | undefined): Promise<string> {
+  if (!src || !c || (c.w > 0.98 && c.h > 0.98)) return src;
+  try {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const sx = c.x * img.naturalWidth, sy = c.y * img.naturalHeight, sw = c.w * img.naturalWidth, sh = c.h * img.naturalHeight;
+    const k = Math.min(1, 1600 / Math.max(sw, sh));
+    const cv = document.createElement("canvas");
+    cv.width = Math.max(1, Math.round(sw * k));
+    cv.height = Math.max(1, Math.round(sh * k));
+    cv.getContext("2d")!.drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+    // WebP keeps see-through edges (a photo cut to an oval); JPEG would turn them black.
+    return cv.toDataURL(src.startsWith("data:image/png") ? "image/webp" : "image/jpeg", 0.88);
+  } catch {
+    return src;
+  }
 }

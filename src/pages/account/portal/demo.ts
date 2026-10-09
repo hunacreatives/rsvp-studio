@@ -120,6 +120,9 @@ function clientSnapshot(): PortalSnapshot {
       thread("th2", SOPHIA, "project", "Sophia & Ren", "Thank you! That works for us.", ME, day, false),
       thread("th3", null, "general", "Project Kickoff", "Welcome to The RSVP Studio! We’re so glad you’re here.", NICOLE, 4 * day, false),
       thread("th4", FRANCIS, "project", "Francis’ 31st", "Got it, thanks!", ME, 6 * day, false),
+      { ...thread("th5", NIKKI, "support", "Billing & payments", "Hi! Can I pay the balance in two parts?", ME, 30 * 3600_000, false), ticket_number: 1042, category: "billing" as const, status: "needs_reply" as const, urgent: true, last_customer_at: ago(30 * 3600_000), first_response_at: null, resolved_at: null },
+      { ...thread("th6", null, "support", "Website", "That fixed it, thank you!", ME, 3 * day, false), ticket_number: 1039, category: "website" as const, status: "resolved" as const, urgent: false, last_customer_at: ago(3 * day), first_response_at: ago(4 * day), resolved_at: ago(3 * day) },
+      { ...thread("th7", SOPHIA, "support", "Invitations & RSVPs", "Could you check the RSVP deadline on our site? It still shows last month.", NICOLE, 5 * 3600_000, false), ticket_number: 1044, category: "invitations" as const, status: "waiting" as const, urgent: false, last_customer_at: ago(9 * 3600_000), first_response_at: ago(5 * 3600_000), resolved_at: null },
     ],
     people: {
       [ME]: { id: ME, full_name: "Gel Lim", avatar_url: null, is_staff: false, email: "gel@gmail.com" },
@@ -134,7 +137,7 @@ function clientSnapshot(): PortalSnapshot {
 function thread(
   id: string,
   eventId: string | null,
-  kind: "project" | "general",
+  kind: "project" | "general" | "support",
   subject: string,
   body: string,
   sender: string,
