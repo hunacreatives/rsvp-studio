@@ -5,6 +5,7 @@ import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
 import InvitePlaceholder from "@/pages/home/components/InvitePlaceholder";
 import { Reveal } from "@/lib/Reveal";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 type EventType = "Wedding" | "Baby Shower" | "Birthday" | "Engagement";
 
@@ -46,6 +47,7 @@ const fromHash = <T extends string>(options: readonly T[], hash: string, fallbac
 
 function CollectionsGrid() {
   const { hash } = useLocation();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>(() => fromHash(FILTERS, hash, "All"));
   useEffect(() => setFilter(fromHash(FILTERS, hash, "All")), [hash]);
   const shown = useMemo(
@@ -78,22 +80,28 @@ function CollectionsGrid() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 md:gap-8">
           {shown.map((c, i) => (
             <Reveal key={c.name} delay={(i % 3) * 0.05}>
-              <div className="group">
+              {/* The whole card asks about this design (Semi-Custom website, this collection). */}
+              <button
+                type="button"
+                onClick={() => navigate(inquiryLink({ service: "website", design: "semi-custom", collection: c.name, occasion: filter === "All" ? undefined : filter }))}
+                className="group block w-full text-left"
+                aria-label={`Ask about the ${c.name} collection`}
+              >
                 <div className="relative">
                   <InvitePlaceholder
                     seed={c.seed}
                     label={c.name}
                     className="w-full aspect-[3/4]"
                   />
-                  <span className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/85 text-[var(--ink)] opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
-                    <i className="ri-eye-line" />
+                  <span className="absolute inset-x-3 bottom-3 rounded-full bg-white/90 px-4 py-2 text-center text-[13px] font-medium text-[var(--ink)] opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    Use this design →
                   </span>
                 </div>
                 <h3 className="mt-4 font-display text-xl font-semibold text-[var(--ink)]">
                   {c.name}
                 </h3>
                 <p className="mt-1 text-sm text-[var(--slate)]">{c.tagline}</p>
-              </div>
+              </button>
             </Reveal>
           ))}
           {shown.length === 0 && (
@@ -162,7 +170,7 @@ function BroughtToLife() {
         </div>
 
         <div className="mt-12 text-center">
-          <button className="btn btn-ghost" onClick={() => navigate("/portfolio")}>
+          <button className="btn btn-ghost" onClick={() => navigate("/portfolio#milestone")}>
             See More
           </button>
         </div>
@@ -208,7 +216,7 @@ function BespokeBanner() {
           </p>
           <button
             className="btn btn-primary mt-8"
-            onClick={() => navigate("/enquire#start")}
+            onClick={() => navigate(inquiryLink({ service: "website", design: "custom" }))}
           >
             Ask about Custom design
           </button>

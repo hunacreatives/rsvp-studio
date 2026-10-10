@@ -203,15 +203,14 @@ export default function FaqsPage() {
         </section>
 
         {/* Still have questions */}
-        <section className="py-20 md:py-24" style={{ background: "var(--paper)" }}>
+        <section id="ask" className="py-20 md:py-24" style={{ background: "var(--paper)" }}>
           <div className="container-x">
             <div className="grid items-start gap-14 lg:grid-cols-2">
               <Reveal>
                 <h2 className="h-section text-[var(--ink)]">Still have questions?</h2>
                 <p className="mt-4 max-w-sm text-[var(--slate)]">
                   We&apos;d love to hear about your event and help bring your vision
-                  to life. Send us a message and we&apos;ll be in touch within 24
-                  hours.
+                  to life. Send us a message and we&apos;ll reply within 1 business day.
                 </p>
               </Reveal>
               <Reveal delay={0.08}>

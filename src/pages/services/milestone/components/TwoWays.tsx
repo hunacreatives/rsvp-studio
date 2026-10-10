@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
+import { goTo } from "@/lib/goTo";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 const OPTIONS = [
   {
@@ -14,7 +16,7 @@ const OPTIONS = [
     title: "Custom",
     lines: ["Designed around your story.", "Every detail, entirely yours."],
     cta: "Begin your project",
-    to: "/enquire#start",
+    to: inquiryLink({ service: "website", design: "custom" }),
     img: "/services/milestone/tailored-page.webp",
     alt: "Custom wedding website — Our Story page",
   },
@@ -22,15 +24,8 @@ const OPTIONS = [
 
 export default function TwoWays() {
   const navigate = useNavigate();
-  const go = (to: string) => {
-    const [p, h] = to.split("#");
-    navigate(p || "/");
-    if (h)
-      setTimeout(
-        () => document.getElementById(h)?.scrollIntoView({ behavior: "smooth" }),
-        300,
-      );
-  };
+  const go = (to: string) => goTo(navigate, to);
+
 
   return (
     <section className="py-16 md:py-32" style={{ background: "var(--warm-white)" }}>

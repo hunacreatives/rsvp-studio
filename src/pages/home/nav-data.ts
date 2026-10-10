@@ -113,10 +113,10 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     label: "Inquire",
-    to: "/enquire",
+    to: "/enquire#start",
     mega: {
       exploreEyebrow: "Work with us",
-      exploreCta: { label: "Start an inquiry", to: "/enquire" },
+      exploreCta: { label: "Start an inquiry", to: "/enquire#start" },
       groups: [
         {
           title: "For Clients",

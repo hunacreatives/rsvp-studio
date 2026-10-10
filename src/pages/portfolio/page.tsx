@@ -6,6 +6,8 @@ import FooterSection from "@/pages/home/components/FooterSection";
 import InvitePlaceholder from "@/pages/home/components/InvitePlaceholder";
 import { Reveal } from "@/lib/Reveal";
 import { WORKS } from "./works";
+import { inquiryLink } from "@/pages/enquire/prefill";
+import { inquiryFor } from "./inquiry";
 
 type Category =
   | "All"
@@ -36,7 +38,7 @@ const EVENT_GROUPS: Group[] = [
 ];
 
 const MONOGRAM_GROUPS: Group[] = [
-  { label: "Monogram", tags: ["Single", "Couple", "Crest"] },
+  { label: "Monogram", tags: ["Signature", "Duo", "Crest"] },
 ];
 
 const SUBFILTERS: Record<Exclude<Category, "All">, Group[]> = {
@@ -150,13 +152,11 @@ export default function PortfolioPage() {
                       ) : (
                         <InvitePlaceholder seed={w.seed} className="w-full aspect-[3/4]" />
                       )}
-                      {w.liveUrl && (
-                        <span className="absolute inset-0 flex items-end justify-center bg-black/0 pb-6 opacity-0 transition-all duration-200 group-hover:bg-black/20 group-hover:opacity-100">
-                          <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink)]">
-                            View Project
-                          </span>
+                      <span className="absolute inset-0 flex items-end justify-center bg-black/0 pb-6 opacity-0 transition-all duration-200 group-hover:bg-black/20 group-hover:opacity-100 group-focus-visible:opacity-100">
+                        <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink)]">
+                          {w.liveUrl ? "View Project" : "Ask about this"}
                         </span>
-                      )}
+                      </span>
                     </div>
                     <h3 className="mt-3 font-display text-lg font-semibold text-[var(--ink)]">
                       {w.title}
@@ -166,7 +166,8 @@ export default function PortfolioPage() {
                 );
                 return (
                   <Reveal key={w.slug} delay={(i % 4) * 0.04}>
-                    {w.liveUrl ? <Link to={`/portfolio/${w.slug}`}>{card}</Link> : card}
+                    {/* Live sites open their case study; the rest go straight to an inquiry like this one. */}
+                    <Link to={w.liveUrl ? `/portfolio/${w.slug}` : inquiryLink(inquiryFor(w))}>{card}</Link>
                   </Reveal>
                 );
               })}

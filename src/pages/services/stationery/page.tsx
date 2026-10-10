@@ -5,6 +5,7 @@ import FooterSection from "@/pages/home/components/FooterSection";
 import { Reveal } from "@/lib/Reveal";
 import StationeryHero from "./components/StationeryHero";
 import ExploreSuites from "./components/ExploreSuites";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 function CtaStrip() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ function CtaStrip() {
         <Reveal delay={0.06}>
           <button
             className="btn btn-primary whitespace-nowrap"
-            onClick={() => navigate("/enquire#start")}
+            onClick={() => navigate(inquiryLink({ service: "stationery" }))}
           >
             Start Your Suite
           </button>

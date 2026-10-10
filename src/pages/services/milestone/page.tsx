@@ -8,6 +8,7 @@ import SharedSection from "./components/SharedSection";
 import TwoWays from "./components/TwoWays";
 import ChooseExperience from "./components/ChooseExperience";
 import BuiltAround from "./components/BuiltAround";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 function CtaStrip() {
   const navigate = useNavigate();
@@ -23,12 +24,17 @@ function CtaStrip() {
           </p>
         </Reveal>
         <Reveal delay={0.06}>
-          <button
-            className="btn btn-primary whitespace-nowrap"
-            onClick={() => navigate("/enquire#start")}
-          >
-            Start Your Event Website
-          </button>
+          <div className="flex flex-col items-start gap-2 md:items-end">
+            <button
+              className="btn btn-primary whitespace-nowrap"
+              onClick={() => navigate(inquiryLink({ service: "website" }))}
+            >
+              Start Your Event Website
+            </button>
+            <button onClick={() => navigate("/build")} className="text-[14px] text-[var(--slate)] underline underline-offset-4 hover:text-[var(--ink)]">
+              Or make it yourself →
+            </button>
+          </div>
         </Reveal>
       </div>
     </section>

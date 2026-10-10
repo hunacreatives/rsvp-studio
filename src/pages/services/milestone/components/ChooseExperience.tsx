@@ -1,4 +1,6 @@
+import { useNavigate } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 const PLANS = [
   {
@@ -28,6 +30,7 @@ const PLANS = [
 ];
 
 export default function ChooseExperience() {
+  const navigate = useNavigate();
   return (
     <section className="py-16 md:py-32" style={{ background: "var(--paper)" }}>
       <div className="container-x">
@@ -48,6 +51,23 @@ export default function ChooseExperience() {
                 starts at{" "}
                 <span className="font-semibold text-[var(--acc-blue)]">{p.price}</span>
               </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => navigate(inquiryLink({ service: "website", design: p.title === "Custom" ? "custom" : "semi-custom" }))}
+                >
+                  Get a {p.title} quote
+                </button>
+                {p.title === "Semi-Custom" ? (
+                  <button className="btn btn-ghost" onClick={() => navigate("/collections")}>
+                    See the designs
+                  </button>
+                ) : (
+                  <button className="btn btn-ghost" onClick={() => navigate("/portfolio#milestone")}>
+                    See our work
+                  </button>
+                )}
+              </div>
 
               <ul className="mt-10 space-y-8">
                 {p.features.map((f) => (

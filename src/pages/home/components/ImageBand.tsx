@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { goTo } from "@/lib/goTo";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -69,18 +70,7 @@ export default function ImageBand({
         <p className="mt-4 text-white/85 text-lg mx-auto max-w-xl">{subtitle}</p>
         <button
           className="btn btn-white mt-8"
-          onClick={() => {
-            const [path, hash] = ctaTo.split("#");
-            navigate(path || "/");
-            if (hash)
-              setTimeout(
-                () =>
-                  document
-                    .getElementById(hash)
-                    ?.scrollIntoView({ behavior: "smooth" }),
-                300,
-              );
-          }}
+          onClick={() => goTo(navigate, ctaTo)}
         >
           {ctaLabel}
         </button>

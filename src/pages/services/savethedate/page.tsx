@@ -8,6 +8,7 @@ import ModernWay from "./components/ModernWay";
 import DesignedShared from "./components/DesignedShared";
 import ReflectYou from "./components/ReflectYou";
 import SimpleSteps from "./components/SimpleSteps";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 function CtaBanner() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ function CtaBanner() {
         <Reveal delay={0.06}>
           <button
             className="btn btn-primary mt-8"
-            onClick={() => navigate("/enquire#start")}
+            onClick={() => navigate(inquiryLink({ service: "save-the-date" }))}
           >
             Start Your Save the Date
           </button>

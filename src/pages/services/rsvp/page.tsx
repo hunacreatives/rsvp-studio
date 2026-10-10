@@ -7,6 +7,7 @@ import RsvpHero from "./components/RsvpHero";
 import BuiltToSimplify from "./components/BuiltToSimplify";
 import LessTime from "./components/LessTime";
 import SeamlessExperience from "./components/SeamlessExperience";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 function CtaStrip() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ function CtaStrip() {
         <Reveal delay={0.06}>
           <button
             className="btn btn-primary whitespace-nowrap"
-            onClick={() => navigate("/enquire#start")}
+            onClick={() => navigate(inquiryLink({ service: "rsvp" }))}
           >
             Start Your Event Website
           </button>

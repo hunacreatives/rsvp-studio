@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
+import { goTo } from "@/lib/goTo";
 
 type Props = {
   id?: string;
@@ -30,13 +31,7 @@ export default function ServiceRow({
   const navigate = useNavigate();
   const go = () => {
     if (!ctaTo) return;
-    const [p, h] = ctaTo.split("#");
-    navigate(p || "/");
-    if (h)
-      setTimeout(
-        () => document.getElementById(h)?.scrollIntoView({ behavior: "smooth" }),
-        300,
-      );
+    goTo(navigate, ctaTo);
   };
 
   return (

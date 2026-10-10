@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NAV_ITEMS, type NavItem } from "../nav-data";
+import { FAQ_CATEGORIES } from "@/pages/faqs/faq-data";
 import { lenisRef } from "@/lib/lenis";
 import { supabase } from "@/lib/supabase";
 import AuthModal from "./AuthModal";
 import { defaultAvatar } from "@/pages/account/portal/format";
+import { goTo } from "@/lib/goTo";
 
 const LOGO = "/brand/logotype-dark.png";
 
@@ -67,6 +69,8 @@ export default function Navbar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const searchHits = useMemo(() => siteSearch(searchQ), [searchQ]);
   const headerRef = useRef<HTMLElement | null>(null);
   const [panelTop, setPanelTop] = useState(64);
   const scrollYRef = useRef(0);
@@ -158,16 +162,8 @@ export default function Navbar({
     setOpenMega(null);
     setMobileOpen(false);
     setSearchOpen(false);
-    const [path, hash] = to.split("#");
-    navigate(path || "/");
-    if (hash) {
-      setTimeout(
-        () => document.getElementById(hash)?.scrollIntoView({ behavior: "smooth" }),
-        350,
-      );
-    } else {
-      window.scrollTo({ top: 0 });
-    }
+    goTo(navigate, to);
+    if (!to.includes("#")) window.scrollTo({ top: 0 });
   };
 
   const activeItem: NavItem | undefined = NAV_ITEMS.find(
@@ -327,22 +323,45 @@ export default function Navbar({
                 <i className="ri-search-line text-xl text-[var(--slate)]" />
                 <input
                   autoFocus
-                  placeholder="Search The RSVP Studio"
+                  value={searchQ}
+                  onChange={(e) => setSearchQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && searchHits[0]) go(searchHits[0].to);
+                  }}
+                  placeholder="Search pages and questions — e.g. monogram, price, RSVP"
+                  aria-label="Search The RSVP Studio"
                   className="w-full bg-transparent outline-none text-lg font-display placeholder:text-[var(--slate)]"
                 />
               </div>
-              <p className="eyebrow mt-6 mb-3">Quick Links</p>
-              <div className="flex gap-6">
-                {["/services", "/collections"].map((to, i) => (
-                  <button
-                    key={to}
-                    onClick={() => go(to)}
-                    className="text-[var(--indigo)] hover:text-[var(--acc-blue)] transition-colors"
-                  >
-                    {["Services", "Collections"][i]}
-                  </button>
-                ))}
-              </div>
+              {searchQ.trim() ? (
+                <ul className="mt-4 space-y-1">
+                  {searchHits.map((h) => (
+                    <li key={h.to + h.label}>
+                      <button onClick={() => go(h.to)} className="w-full rounded-lg px-2 py-2 text-left hover:bg-black/5">
+                        <span className="block text-[15px] text-[var(--ink)]">{h.label}</span>
+                        <span className="block text-[12px] text-[var(--slate)]">{h.where}</span>
+                      </button>
+                    </li>
+                  ))}
+                  {!searchHits.length ? (
+                    <li className="px-2 py-2 text-[14px] text-[var(--slate)]">
+                      Nothing found.{" "}
+                      <button onClick={() => go("/faqs#ask")} className="underline underline-offset-2">Ask us a question</button>
+                    </li>
+                  ) : null}
+                </ul>
+              ) : (
+                <>
+                  <p className="eyebrow mt-6 mb-3">Quick Links</p>
+                  <div className="flex flex-wrap gap-6">
+                    {[["Services", "/services"], ["Collections", "/collections"], ["Our work", "/portfolio"], ["FAQ", "/faqs"], ["Get a quote", "/enquire#start"]].map(([label, to]) => (
+                      <button key={to} onClick={() => go(to)} className="text-[var(--indigo)] hover:text-[var(--acc-blue)] transition-colors">
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -499,4 +518,27 @@ export default function Navbar({
       />
     </header>
   );
+}
+
+/** Pages (menu + mega-menu links) and FAQ questions, best matches first. */
+const SEARCH_INDEX = [
+  ...NAV_ITEMS.flatMap((i) => [
+    { label: i.label, to: i.to, where: "Page", text: i.label },
+    ...(i.mega?.groups ?? []).flatMap((g) => g.links.map((l) => ({ label: l.label, to: l.to, where: `${i.label} · ${g.title}`, text: `${l.label} ${g.title} ${i.label}` }))),
+  ]),
+  ...FAQ_CATEGORIES.flatMap((c) => c.items.map((it) => ({ label: it.q, to: `/faqs#${c.slug}`, where: `FAQ · ${c.category}`, text: `${it.q} ${it.a}` }))),
+];
+function siteSearch(q: string) {
+  const words = q.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
+  if (!words.length) return [];
+  const seen = new Set<string>();
+  return SEARCH_INDEX.map((e) => {
+    const label = e.label.toLowerCase();
+    const text = e.text.toLowerCase();
+    const score = words.reduce((n, w) => n + (label.includes(w) ? 3 : text.includes(w) ? 1 : -100), 0);
+    return { ...e, score };
+  })
+    .filter((e) => e.score > 0 && !seen.has(e.to + e.label) && seen.add(e.to + e.label))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 7);
 }

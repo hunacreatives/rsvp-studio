@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import { goTo } from "@/lib/goTo";
 
 const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   {
@@ -24,7 +25,6 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     links: [
       { label: "Start a Project", to: "/enquire#start" },
       { label: "Become a Partner", to: "/enquire/partner" },
-      { label: "Inquire", to: "/enquire" },
     ],
   },
 ];
@@ -71,18 +71,7 @@ export default function FooterSection() {
                   {col.links.map((l) => (
                     <li key={l.label}>
                       <button
-                        onClick={() => {
-                          const [p, h] = l.to.split("#");
-                          navigate(p || "/");
-                          if (h)
-                            setTimeout(
-                              () =>
-                                document
-                                  .getElementById(h)
-                                  ?.scrollIntoView({ behavior: "smooth" }),
-                              300,
-                            );
-                        }}
+                        onClick={() => goTo(navigate, l.to)}
                         className="text-sm text-white/70 hover:text-white transition-colors text-left"
                       >
                         {l.label}

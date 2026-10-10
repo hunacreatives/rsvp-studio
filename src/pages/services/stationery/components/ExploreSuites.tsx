@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 const SHARED_NOTES = [
   "One (1) format is included per project: either print-ready or website format.",
@@ -194,7 +195,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
               </button>
               <button
                 className="btn btn-ghost"
-                onClick={() => navigate("/enquire#start")}
+                onClick={() => navigate(inquiryLink({ service: "stationery", pkg: `${suite.tab} Suite` }))}
               >
                 Book Now
               </button>
@@ -252,7 +253,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
                   </span>
                   <button
                     className="ml-auto rounded-full bg-[var(--ink)] px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white"
-                    onClick={() => navigate("/enquire#start")}
+                    onClick={() => navigate(inquiryLink({ service: "stationery", pkg: `${suite.tab} Suite` }))}
                   >
                     Book Now
                   </button>
@@ -332,7 +333,7 @@ function AdditionsPanel() {
         <p className="mt-8 text-center text-sm text-[var(--slate)]">and more…</p>
 
         <div className="mt-8 text-center">
-          <button className="btn btn-primary" onClick={() => navigate("/collections")}>
+          <button className="btn btn-primary" onClick={() => navigate("/portfolio#stationery")}>
             See All Stationery
           </button>
         </div>

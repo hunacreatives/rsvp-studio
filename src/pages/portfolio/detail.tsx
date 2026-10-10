@@ -1,4 +1,6 @@
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { inquiryLink } from "@/pages/enquire/prefill";
+import { CATEGORY_HASH, inquiryFor } from "./inquiry";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -8,8 +10,11 @@ import { WORKS } from "./works";
 export default function PortfolioDetail() {
   const { slug } = useParams();
   const work = WORKS.find((w) => w.slug === slug);
+  const navigate = useNavigate();
 
+  // Only delivered sites have a case study page; anything else asks about it instead.
   if (!work) return <Navigate to="/portfolio" replace />;
+  if (!work.liveUrl) return <Navigate to={inquiryLink(inquiryFor(work))} replace />;
 
   return (
     <>
@@ -22,7 +27,7 @@ export default function PortfolioDetail() {
         >
           <div className="container-x">
             <Link
-              to="/portfolio"
+              to={`/portfolio#${CATEGORY_HASH[work.category]}`}
               className="block text-left text-xs font-medium uppercase tracking-[0.12em] text-[var(--slate)] hover:text-[var(--ink)]"
             >
               ← Back to Featured Work
@@ -62,6 +67,14 @@ export default function PortfolioDetail() {
             <p className="mx-auto mt-10 max-w-xl text-center text-lg text-[var(--slate)] md:text-xl">
               {work.description}
             </p>
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
+              <button className="btn btn-primary" onClick={() => navigate(inquiryLink(inquiryFor(work)))}>
+                Ask about something like this
+              </button>
+              <button className="btn btn-ghost" onClick={() => navigate(`/portfolio#${CATEGORY_HASH[work.category]}`)}>
+                See more like this
+              </button>
+            </div>
           </div>
         </section>
       </main>

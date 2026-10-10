@@ -7,6 +7,7 @@ import MonogramHero from "./components/MonogramHero";
 import ThreeWays from "./components/ThreeWays";
 import BelongEverywhere from "./components/BelongEverywhere";
 import BroughtToLife from "./components/BroughtToLife";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 function CtaStrip() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ function CtaStrip() {
         <Reveal delay={0.06}>
           <button
             className="btn btn-primary whitespace-nowrap"
-            onClick={() => navigate("/enquire#start")}
+            onClick={() => navigate(inquiryLink({ service: "monogram" }))}
           >
             Begin Your Monogram
           </button>

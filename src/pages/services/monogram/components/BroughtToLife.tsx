@@ -7,7 +7,7 @@ const GALLERY = [
   { img: "/services/monogram/crest-cj.png", name: "C J", kind: "Crest" },
   { img: "/services/monogram/crest-jl.webp", name: "J L", kind: "Crest" },
   { img: "/services/monogram/mono-ra.png", name: "R A", kind: "Duo" },
-  { img: "/services/monogram/crest-th.png", name: "T H", kind: "Signature" },
+  { img: "/services/monogram/crest-th.png", name: "T H", kind: "Duo" },
   { img: "/services/monogram/crest-b.webp", name: "B", kind: "Crest" },
 ];
 
@@ -40,7 +40,7 @@ export default function BroughtToLife() {
 
           <div className="mt-8 text-center">
             <button
-              onClick={() => navigate("/portfolio")}
+              onClick={() => navigate("/portfolio#monogram")}
               className="text-[var(--acc-blue)] font-medium hover:underline underline-offset-4"
             >
               See More ›

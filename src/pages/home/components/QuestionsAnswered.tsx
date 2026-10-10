@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
+import { goTo } from "@/lib/goTo";
 
 /**
  * Real questions people ask, floating around the heading (tilts follow the
@@ -7,12 +8,13 @@ import { Reveal } from "@/lib/Reveal";
  * Below the large breakpoint they wrap under the heading instead.
  */
 const QUESTIONS = [
-  { q: "What does RSVP management include?", x: 33, y: 1, r: 2.64 },
-  { q: "I need an urgent website. Can you rush my order?", x: 1, y: 16, r: -6.11 },
-  { q: "Can our website be password protected?", x: 62, y: 13, r: 2.9 },
-  { q: "Can we have a custom domain?", x: 2, y: 74, r: 9 },
-  { q: "How many revisions do you offer?", x: 35, y: 86, r: -2.21 },
-  { q: "What happens if guests don\u2019t RSVP?", x: 66, y: 76, r: -9 },
+  // `to`: the FAQ section that answers it.
+  { q: "What does RSVP management include?", to: "/faqs#rsvp", x: 33, y: 1, r: 2.64 },
+  { q: "I need an urgent website. Can you rush my order?", to: "/faqs#website", x: 1, y: 16, r: -6.11 },
+  { q: "Can our website be password protected?", to: "/faqs#website", x: 62, y: 13, r: 2.9 },
+  { q: "Can we have a custom domain?", to: "/faqs#website", x: 2, y: 74, r: 9 },
+  { q: "How many revisions do you offer?", to: "/faqs#website", x: 35, y: 86, r: -2.21 },
+  { q: "What happens if guests don\u2019t RSVP?", to: "/faqs#rsvp", x: 66, y: 76, r: -9 },
 ];
 
 const pillClass =
@@ -29,7 +31,8 @@ export default function QuestionsAnswered() {
           {QUESTIONS.map((p) => (
             <Link
               key={p.q}
-              to="/faqs"
+              to={p.to}
+              onClick={(e) => (e.preventDefault(), goTo(navigate, p.to))}
               className={`${pillClass} absolute hidden h-[40px] whitespace-nowrap lg:inline-flex`}
               style={{ ...pillStyle, left: `${p.x}%`, top: `${p.y}%`, transform: `rotate(${p.r}deg)` }}
             >
@@ -51,7 +54,7 @@ export default function QuestionsAnswered() {
         {/* Phones: the same questions, wrapped under the heading */}
         <div className="mt-8 flex flex-wrap justify-center gap-2.5 lg:hidden">
           {QUESTIONS.map((p, i) => (
-            <Link key={p.q} to="/faqs" className={`${pillClass} py-2.5 text-center`} style={{ ...pillStyle, transform: `rotate(${i % 2 ? -2 : 2}deg)` }}>
+            <Link key={p.q} to={p.to} onClick={(e) => (e.preventDefault(), goTo(navigate, p.to))} className={`${pillClass} py-2.5 text-center`} style={{ ...pillStyle, transform: `rotate(${i % 2 ? -2 : 2}deg)` }}>
               {p.q}
             </Link>
           ))}

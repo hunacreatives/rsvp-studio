@@ -1,4 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { lenisRef } from "@/lib/lenis";
+import { readInquiryParams } from "./prefill";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -36,12 +39,60 @@ export default function ProjectInquiry() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
-  const [v, setV] = useState<Values>({ services: [] });
+  // A CTA elsewhere can open the form already filled in (see ./prefill.ts).
+  const [prefill] = useState(() => readInquiryParams(window.location.search));
+  const [v, setV] = useState<Values>(() => ({ services: [], ...prefill.values }));
+  const [askingAbout, setAskingAbout] = useState(prefill.summary);
+  const clearPrefill = () => {
+    setV((p) => {
+      const next = { ...p, services: [] as string[] };
+      for (const k of ["interested_in", "design_type", "semi_collections", "bespoke_collections"]) delete next[k];
+      return next;
+    });
+    setAskingAbout(null);
+  };
+
+  // Clicking another inquiry link while already here (e.g. the menu's Inquire)
+  // applies that link's choices too.
+  const location = useLocation();
+  const [seenSearch, setSeenSearch] = useState(location.search);
+  useEffect(() => {
+    if (location.search === seenSearch) return;
+    setSeenSearch(location.search);
+    const next = readInquiryParams(location.search);
+    if (!next.summary) return;
+    setV((p) => ({ ...p, services: [], ...next.values }));
+    setAskingAbout(next.summary);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+
+  // Links end in #start: bring the form into view (the router itself doesn't
+  // scroll to hashes, and the page starts at the top on every navigation).
+  useEffect(() => {
+    if (location.hash !== "#start") return;
+    const t = setTimeout(() => {
+      const el = document.getElementById("start");
+      if (!el) return;
+      if (lenisRef.current) lenisRef.current.scrollTo(el, { offset: -90, duration: 0.8 });
+      else el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => clearTimeout(t);
+  }, [location.key, location.hash]);
   const [files, setFiles] = useState<PickedFile[]>([]);
 
   const getStr = (k: string) => (v[k] as string) || "";
   const getArr = (k: string) => (v[k] as string[]) || [];
-  const set = (k: string, val: string | string[]) => setV((p) => ({ ...p, [k]: val }));
+  const set = (k: string, val: string | string[]) =>
+    setV((p) => {
+      const next = { ...p, [k]: val };
+      // Switching Custom ↔ Semi-Custom drops the other branch's picks, so hidden
+      // choices never end up in the email.
+      if (k === "design_type") {
+        if (val === "bespoke") delete next.semi_collections, delete next.addons;
+        if (val === "semi-custom") delete next.bespoke_collections;
+      }
+      return next;
+    });
 
   const occasion = useMemo(
     () => OCCASIONS.find((o) => o.key === getStr("occasion")),
@@ -150,6 +201,18 @@ export default function ProjectInquiry() {
                 style={{ border: "1px solid var(--line)" }}
               >
                 <Honeypot value={getStr("website")} onChange={(val) => set("website", val)} />
+                {askingAbout ? (
+                  <div className="mb-8 flex items-start gap-3 rounded-xl bg-[var(--paper)] px-4 py-3 text-[14px] text-[var(--ink)]">
+                    <i className="ri-sparkling-line mt-0.5 text-[var(--acc-blue)]" aria-hidden />
+                    <p className="flex-1">
+                      You’re asking about: <strong>{askingAbout}</strong>
+                      <span className="block text-[12px] text-[var(--slate)]">We’ve filled that in for you on step 3 — you can change it there.</span>
+                    </p>
+                    <button type="button" onClick={clearPrefill} className="text-[13px] text-[var(--slate)] underline underline-offset-2 hover:text-[var(--ink)]">
+                      Clear
+                    </button>
+                  </div>
+                ) : null}
                 {/* Step indicator */}
                 <div className="mb-10 flex items-center gap-3">
                   {STEP_LABELS.map((label, i) => {
@@ -286,7 +349,7 @@ export default function ProjectInquiry() {
 
                     {getStr("design_type") === "bespoke" && (
                       <PillGroup
-                        label="Want a printed stationery suite too? (optional)"
+                        label={getArr("services").includes("Stationery Design") ? "Which stationery suite?" : "Want a printed stationery suite too? (optional)"}
                         options={BESPOKE_COLLECTIONS}
                         multi
                         value={getArr("bespoke_collections")}

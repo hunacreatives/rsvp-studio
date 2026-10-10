@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
+import { inquiryLink } from "@/pages/enquire/prefill";
 
 const TIERS = [
   {
@@ -9,7 +10,7 @@ const TIERS = [
     body: "A refined monogram built from a single initial.",
     price: "₱2,500",
     img: "/services/monogram/mono-m-black.png",
-    to: "/enquire#start",
+    to: "",
   },
   {
     name: "Duo",
@@ -18,7 +19,7 @@ const TIERS = [
     body: "Your initials thoughtfully combined into one balanced mark.",
     price: "₱3,500",
     img: "/services/monogram/mono-ra.png",
-    to: "/enquire#start",
+    to: "",
   },
   {
     name: "Crest",
@@ -27,7 +28,7 @@ const TIERS = [
     body: "An illustrated crest inspired by your story, your places, and your celebration.",
     price: "₱8,500",
     img: "/services/monogram/crest-m-floral.png",
-    to: "/enquire#start",
+    to: "",
   },
 ];
 
@@ -71,7 +72,7 @@ export default function ThreeWays() {
                 <p className="text-[var(--slate)]">{t.tagline}</p>
                 <p className="mt-5 text-[var(--ink)]">{t.body}</p>
                 <button
-                  onClick={() => navigate(t.to)}
+                  onClick={() => navigate(inquiryLink({ service: "monogram", pkg: t.name }))}
                   className="mt-auto self-start pt-6 text-[var(--acc-blue)] font-medium hover:underline underline-offset-4"
                 >
                   Inquire About {t.name} ›

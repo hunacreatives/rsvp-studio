@@ -35,7 +35,7 @@ export default function Services() {
           title="Monogram Design"
           subtitle="A signature that belongs only to you."
           body="A custom monogram or crest that threads through your invitation, stationery, and website for one cohesive identity."
-          ctaLabel="Create Your Monogram"
+          ctaLabel="Explore Monograms"
           ctaTo="/services/monogram"
           reverse
           tone="paper"
