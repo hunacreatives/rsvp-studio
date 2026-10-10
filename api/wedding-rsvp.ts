@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { clean, esc, isEmail, safeUrl, sendChecked } from "./_lib/email.js";
+import { clean, esc, isEmail, normalizePhone, safeMapUrl, sendChecked } from "./_lib/email.js";
 
 // One RSVP endpoint for every event site. Which table to write to and the
 // email copy are resolved server-side from `slug` — never trusted from the
@@ -11,10 +11,14 @@ import { clean, esc, isEmail, safeUrl, sendChecked } from "./_lib/email.js";
 // - input is validated, length-capped, and HTML-escaped before any email;
 // - only published sites accept RSVPs;
 // - a hidden honeypot field rejects naive bots;
-// - a per-event burst cap limits floods;
-// - a repeat RSVP from the same email updates the existing row and does
-//   NOT send another guest confirmation (so the form can't be used to
-//   spray confirmation emails at an address).
+// - only studio-provisioned per-event tables (`*_rsvps`) are ever written;
+// - a per-event burst cap (new AND updated replies) limits floods;
+// - a repeat RSVP from the same email or mobile updates the existing row,
+//   at most UPDATE_MAX times an hour, and does NOT send another guest
+//   confirmation (so the form can't be used to spray emails at an address);
+// - guest confirmations per event per day are capped, and map links in
+//   them must come from a real map service.
+// Guests answer with an email OR a mobile number (lolos/lolas without email).
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 // No key (local dev, preview builds): RSVPs still save; emails are skipped.
@@ -25,7 +29,10 @@ const FROM = "The RSVP Studio <hello@thersvpstudio.com>";
 const STUDIO_INBOX = "hello@thersvpstudio.com";
 
 const BURST_WINDOW_MIN = 10;
-const BURST_MAX = 40; // RSVPs per event per window
+const BURST_MAX = 40; // RSVPs (new or updated) per event per window
+const UPDATE_MAX = 5; // changes per guest per hour
+const GUEST_EMAILS_PER_DAY = 300; // confirmation emails per event per day
+const LEGACY_TABLE = /^[a-z0-9_]+_rsvps$/;
 
 interface PublishedContentForEmail {
   hosts?: { name?: string }[];
@@ -71,7 +78,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const slug = clean(body.slug, 80).toLowerCase();
   const name = clean(body.name, 120);
-  const email = clean(body.email, 254).toLowerCase();
+  // One "Email or mobile number" field (`contact`), or the older separate fields.
+  const contact = clean(body.contact, 254);
+  const emailRaw = (contact.includes("@") ? contact : clean(body.email, 254)).toLowerCase();
+  const email = isEmail(emailRaw) ? emailRaw : "";
+  const phone = normalizePhone(contact && !contact.includes("@") ? contact : body.phone);
   const message = clean(body.message, 1000);
   // Optional RSVP details (sent by the newer forms; older templates omit them).
   const attendingRaw = body.attending;
@@ -81,8 +92,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const guestCount = attending === false ? 0 : Number.isInteger(guestsNum) && guestsNum >= 1 && guestsNum <= 20 ? guestsNum : attending ? 1 : null;
   const dietary = attending === false ? "" : clean(body.dietary, 300);
 
-  if (!slug || !/^[a-z0-9-]+$/.test(slug) || !name || !isEmail(email)) {
-    res.status(400).json({ error: "Please enter your name and a valid email." });
+  if (!slug || !/^[a-z0-9-]+$/.test(slug) || !name) {
+    res.status(400).json({ error: "Please enter your name." });
+    return;
+  }
+  if (!email && !phone) {
+    res.status(400).json({ error: "Please enter your email or mobile number (e.g. 0917 123 4567)." });
     return;
   }
 
@@ -103,13 +118,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Legacy studio-built events keep their own per-event table; self-serve
-  // events share `rsvps`, keyed by event_id.
+  // events share `rsvps`, keyed by event_id. Only a studio-style table name
+  // is ever honoured (customers can't set table_name — see hardening.sql).
+  if (event.table_name && !LEGACY_TABLE.test(event.table_name)) {
+    console.error("RSVP refused: unexpected table_name", event.table_name);
+    res.status(404).json({ error: "That event site isn't available" });
+    return;
+  }
+  const legacy = !!event.table_name;
   const table = event.table_name ?? "rsvps";
-  const eventId = event.table_name ? null : (site.event_id as string);
+  const eventId = legacy ? null : (site.event_id as string);
+  // Legacy tables only have an email column.
+  if (legacy && !email) {
+    res.status(400).json({ error: "Please enter your email so we can send your confirmation." });
+    return;
+  }
 
-  // Burst cap per event.
+  // Burst cap per event (new replies, and changed ones on the shared table).
   const since = new Date(Date.now() - BURST_WINDOW_MIN * 60_000).toISOString();
-  let countQuery = supabaseAdmin.from(table).select("id", { count: "exact", head: true }).gte("created_at", since);
+  let countQuery = supabaseAdmin.from(table).select("id", { count: "exact", head: true }).gte(legacy ? "created_at" : "updated_at", since);
   if (eventId) countQuery = countQuery.eq("event_id", eventId);
   const { count } = await countQuery;
   if ((count ?? 0) >= BURST_MAX) {
@@ -117,11 +144,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // One response per email per event: a repeat updates the existing row.
-  let priorQuery = supabaseAdmin.from(table).select("id").ilike("email", email.replace(/[%_\\]/g, "\\$&")).limit(1);
-  if (eventId) priorQuery = priorQuery.eq("event_id", eventId);
-  const { data: existing } = await priorQuery;
-  const prior = existing?.[0] as { id: string } | undefined;
+  // One response per guest per event: a repeat (same email, or same mobile) updates the existing row.
+  type Prior = { id: string; update_count?: number; updated_at?: string };
+  const cols = legacy ? "id" : "id, update_count, updated_at";
+  let prior: Prior | undefined;
+  if (email) {
+    let q = supabaseAdmin.from(table).select(cols).ilike("email", email.replace(/[%_\\]/g, "\\$&")).limit(1);
+    if (eventId) q = q.eq("event_id", eventId);
+    prior = ((await q).data?.[0] ?? undefined) as Prior | undefined;
+  }
+  if (!prior && phone && !legacy) {
+    const { data } = await supabaseAdmin.from(table).select(cols).eq("event_id", eventId!).eq("phone", phone).limit(1);
+    prior = (data?.[0] ?? undefined) as Prior | undefined;
+  }
+  // Changing an answer is fine; changing it over and over isn't.
+  const recentChange = prior?.updated_at && Date.now() - Date.parse(prior.updated_at) < 3_600_000;
+  if (prior && !legacy && recentChange && (prior.update_count ?? 0) >= UPDATE_MAX) {
+    res.status(429).json({ error: "You’ve changed your reply a few times already — please try again in an hour, or message the host." });
+    return;
+  }
 
   // The shared table stores the details in their own columns. Legacy
   // per-event tables don't have them, so the details ride along in message.
@@ -131,14 +172,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const extra = event.table_name ? {} : { attending, guest_count: guestCount, dietary: dietary || null };
+  const extra = legacy
+    ? {}
+    : {
+        attending,
+        guest_count: guestCount,
+        dietary: dietary || null,
+        ...(email ? { email } : {}),
+        ...(phone ? { phone } : {}),
+        updated_at: new Date().toISOString(),
+        ...(prior ? { update_count: recentChange ? (prior.update_count ?? 0) + 1 : 1 } : {}),
+      };
   const legacyMessage = [details, message].filter(Boolean).join(" — ") || null;
-  const row = event.table_name ? { name, message: legacyMessage } : { name, message: message || null, ...extra };
+  const row = legacy ? { name, message: legacyMessage } : { name, message: message || null, ...extra };
   const write = prior
     ? await supabaseAdmin.from(table).update(row).eq("id", prior.id)
-    : await supabaseAdmin
-        .from(table)
-        .insert(event.table_name ? { ...row, email } : { ...row, event_id: site.event_id, email });
+    : await supabaseAdmin.from(table).insert(legacy ? { ...row, email } : { ...row, event_id: site.event_id });
   if (write.error) {
     console.error("RSVP write error:", write.error);
     res.status(500).json({ error: "Failed to save RSVP" });
@@ -149,9 +198,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const hostNames = esc(formatHostNames(content));
   const venueName = esc(content.primaryLocation?.name ?? "");
   const venueAddress = esc(content.primaryLocation?.addressLine ?? "");
-  const mapsUrl = safeUrl(content.primaryLocation?.mapUrl);
+  const mapsUrl = safeMapUrl(content.primaryLocation?.mapUrl);
   const safeName = esc(name);
-  const safeEmail = esc(email);
+  const safeContact = [email, phone].filter(Boolean).map((c) => esc(c!)).join(" · ");
   const safeMessage = esc(message);
   const safeDietary = esc(dietary);
   const declined = attending === false;
@@ -162,14 +211,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sendEmail({
       from: FROM,
       to: recipients,
-      replyTo: email,
+      replyTo: email || undefined,
       subject: `${prior ? "Updated RSVP" : "New RSVP"} from ${name} — ${formatHostNames(content)}`,
       html: `
         <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #3a3a3a;">${prior ? "Updated RSVP" : "New RSVP"} — ${hostNames}</h2>
           <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
             <tr><td style="padding: 8px 0; color: #666; width: 140px;">Name</td><td style="padding: 8px 0; font-weight: 600;">${safeName}</td></tr>
-            <tr><td style="padding: 8px 0; color: #666;">Email</td><td style="padding: 8px 0;">${safeEmail}</td></tr>
+            <tr><td style="padding: 8px 0; color: #666;">Contact</td><td style="padding: 8px 0;">${safeContact}</td></tr>
             ${attending === null ? "" : `<tr><td style="padding: 8px 0; color: #666;">Coming?</td><td style="padding: 8px 0; font-weight: 600;">${attending ? `Yes${guestCount ? ` — ${guestCount} ${guestCount === 1 ? "guest" : "guests"}` : ""}` : "No, can’t make it"}</td></tr>`}
             ${safeDietary ? `<tr><td style="padding: 8px 0; color: #666; vertical-align: top;">Dietary</td><td style="padding: 8px 0;">${safeDietary}</td></tr>` : ""}
             ${safeMessage ? `<tr><td style="padding: 8px 0; color: #666; vertical-align: top;">Message</td><td style="padding: 8px 0; font-style: italic;">"${safeMessage}"</td></tr>` : ""}
@@ -180,7 +229,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }),
   );
 
-  if (!prior) {
+  // Guest confirmation: first reply only, only with an email, and within the event's daily cap.
+  let underDailyCap = true;
+  if (!prior && email && !legacy) {
+    const { count: today } = await supabaseAdmin
+      .from("rsvps")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", site.event_id)
+      .not("email", "is", null)
+      .gte("created_at", new Date(Date.now() - 86_400_000).toISOString());
+    underDailyCap = (today ?? 0) <= GUEST_EMAILS_PER_DAY;
+    if (!underDailyCap) console.warn("RSVP guest email cap reached", site.event_id);
+  }
+  if (!prior && email && underDailyCap) {
     sends.push(
       sendEmail({
         from: FROM,

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { normalizeEventContent } from "../content/normalize";
 import { slugify } from "../content/slugify";
-import type { EventContent } from "../content/types";
+import type { EventContent, Occasion } from "../content/types";
 import type { PresentationState } from "../presentation/types";
 import { defaultBaseTemplateSettings } from "../engine/render";
 import { getCatalogEntry } from "../engine/registry";
@@ -63,7 +63,10 @@ interface EventInfo {
   id: string;
   name: string;
   table_name: string;
+  event_type: string | null;
 }
+
+const asOccasion = (t: string | null): Occasion => (t === "wedding" || t === "birthday" || t === "anniversary" ? t : "other");
 
 export type DraftStatus = "loading" | "ready" | "error";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -87,7 +90,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
 
       const { data: event, error: eventError } = await supabase
         .from("events")
-        .select("id, name, table_name")
+        .select("id, name, table_name, event_type")
         .eq("id", eventId)
         .maybeSingle<EventInfo>();
 
@@ -112,7 +115,8 @@ export function useEventSiteDraft(eventId: string | undefined) {
       if (existing) {
         setSiteId(existing.id);
         setSlug(existing.slug);
-        setContent(normalizeEventContent(existing.draft_content));
+        // The event decides the occasion (it can be changed on the event, not in the site).
+        setContent({ ...normalizeEventContent(existing.draft_content), occasion: asOccasion(event.event_type) });
         const draftPresentation = existing.draft_presentation as PresentationState;
         setPresentation(
           draftPresentation && draftPresentation.activeTemplateId ? draftPresentation : defaultPresentation()
@@ -132,7 +136,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
       // are they unsubscribed? If so, block and prompt to upgrade instead
       // of creating a second one." Not implemented yet — no billing/plan
       // concept exists anywhere in this codebase today.
-      const initialContent = emptyEventContent(event.table_name);
+      const initialContent = { ...emptyEventContent(event.table_name), occasion: asOccasion(event.event_type) };
       const initialPresentation = defaultPresentation();
       const baseSlug = slugify(event.name);
 

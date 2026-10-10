@@ -70,4 +70,5 @@ export const miasBirthday: EventContent = {
   ],
   keyPeople: [],
   rsvpTableName: "mias_birthday_rsvps",
+  occasion: "birthday",
 };

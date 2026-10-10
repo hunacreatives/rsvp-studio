@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
 import type { EventContent } from "../../../content/types";
+import RsvpForm from "../../shared/RsvpForm";
 import { HeartDoodle } from "../Ornament";
 import { hostNames } from "../content";
 
@@ -8,85 +8,45 @@ interface Props {
   editorPreview?: boolean;
 }
 
-type SubmitState = "idle" | "submitting" | "success" | "error";
-
 /**
- * Same submission contract as every other template's RSVP form
- * (POST /api/wedding-rsvp with { slug, name, email, message}) — only the
- * surface differs, matching the reference's always-visible glass card
- * rather than a dialog, since Cinematic has no collage to protect.
+ * The shared RSVP form in Cinematic's always-visible glass card. Fields and
+ * labels use the plain body font (not the script face) so every guest can read them.
  */
 export default function RsvpSection({ content, editorPreview = false }: Props) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [state, setState] = useState<SubmitState>("idle");
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (editorPreview) return;
-    if (!name || !email) return;
-    setState("submitting");
-    try {
-      const response = await fetch("/api/wedding-rsvp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: content.slug, name, email, message }),
-      });
-      if (!response.ok) throw new Error("RSVP request failed");
-      setState("success");
-    } catch {
-      setState("error");
-    }
-  }
-
   const names = hostNames(content);
 
   return (
-    <section className="cn-rsvp">
+    <section className="cn-rsvp" id="rsvp">
       <div className="cn-rsvp__fade" />
       <div className="cn-rsvp__inner">
         <div className="cn-rsvp__card">
           <p className="cn-script cn-script--lg">Kindly RSVP</p>
 
-          {state === "success" ? (
-            <p className="cn-hand cn-hand--md" style={{ marginTop: 14 }}>
-              Thank you, {name.split(" ")[0]} &mdash; we can&apos;t wait to celebrate with you.
-            </p>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <input
-                className="cn-field"
-                required
-                placeholder="Full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                className="cn-field"
-                required
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <textarea
-                className="cn-field"
-                placeholder="Message (optional)"
-                rows={3}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-              <button type="submit" className="cn-submit" disabled={state === "submitting"}>
-                {state === "submitting" ? "Sending…" : "Send RSVP"}
-              </button>
-              {state === "error" ? (
-                <p className="cn-hand cn-hand--sm" style={{ color: "#a3372f", marginTop: 10 }}>
-                  Something went wrong — please try again.
-                </p>
-              ) : null}
-            </form>
-          )}
+          <div style={{ marginTop: 18 }}>
+            <RsvpForm
+              content={content}
+              editorPreview={editorPreview}
+              skin={{
+                font: "var(--cn-body-plain)",
+                ink: "var(--cn-ink)",
+                muted: "var(--cn-muted)",
+                gap: 12,
+                field: { className: "cn-field", style: { marginTop: 0, fontFamily: "var(--cn-body-plain)" } },
+                button: { className: "cn-submit", style: { marginTop: 4, fontFamily: "var(--cn-body-plain)" } },
+                choice: (on) => ({
+                  className: "cn-field",
+                  style: {
+                    marginTop: 0,
+                    fontFamily: "var(--cn-body-plain)",
+                    background: on ? "var(--cn-ink)" : undefined,
+                    color: on ? "#fff" : undefined,
+                    borderColor: on ? "var(--cn-ink)" : undefined,
+                  },
+                }),
+                success: { style: { textAlign: "center" } },
+              }}
+            />
+          </div>
         </div>
 
         {names ? (

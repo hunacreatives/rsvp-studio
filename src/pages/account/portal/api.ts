@@ -23,6 +23,8 @@ export type Guest = {
   id: string;
   name: string | null;
   email: string | null;
+  /** Shared `rsvps` table only: guests can answer with a mobile number instead. */
+  phone?: string | null;
   message: string | null;
   created_at: string | null;
   bringing?: string | null;
@@ -277,8 +279,11 @@ export async function changePassword(password: string, profileId: string) {
 }
 
 export async function loadGuests(project: Pick<Project, "id" | "table_name">) {
-  const query = project.table_name
-    ? supabase.from(project.table_name).select("*")
+  // Only a studio-provisioned per-event table (e.g. francesjash_rsvps) is ever read by name.
+  const legacy = project.table_name && /^[a-z0-9_]+_rsvps$/.test(project.table_name) ? project.table_name : null;
+  if (project.table_name && !legacy) return [] as Guest[];
+  const query = legacy
+    ? supabase.from(legacy).select("*")
     : supabase.from("rsvps").select("*").eq("event_id", project.id);
   const { data } = await query.order("created_at", { ascending: false });
   return (data ?? []) as Guest[];

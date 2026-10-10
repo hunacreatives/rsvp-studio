@@ -42,6 +42,9 @@ async function recipientsFor(eventId: string | null, extraProfileId: string | nu
   return ((data ?? []) as Person[]).filter((p) => !p.is_staff && p[pref] && (p.email || p.billing_email));
 }
 
+/** "2026-10-14" → "October 14, 2026" (dates without a time, so no timezone shift). */
+const longDate = (d: string) => new Date(`${d.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+
 const peso = (n: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 }).format(n);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -170,7 +173,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               paid ? "Thank you — payment received" : `Invoice #${esc(inv.number)}`,
               paid
                 ? `We’ve received your payment of <strong>${peso(Number(inv.amount))}</strong> for ${esc(inv.description)}. Your receipt is ready in your dashboard.`
-                : `${esc(inv.description)}<br><strong>${peso(Number(inv.amount))}</strong>${inv.due_date ? ` · due ${esc(inv.due_date)}` : ""}`,
+                : `${esc(inv.description)}<br><strong>${peso(Number(inv.amount))}</strong>${inv.due_date ? ` · due ${longDate(inv.due_date)}` : ""}`,
               { label: paid ? "View receipt" : "View invoice", url: `${origin}/account/billing/${inv.id}` },
             ),
           }),

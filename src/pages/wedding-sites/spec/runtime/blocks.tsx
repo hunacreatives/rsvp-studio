@@ -5,6 +5,7 @@ import { parseEventDate } from "../../content/parseEventDate";
 import type { SectionVisibility } from "../../presentation/types";
 import type { BlockSectionSpec, BlockType } from "../schema";
 import { colorOf, useSpecTheme, type SpecTheme } from "./theme";
+import RsvpForm from "../../templates/shared/RsvpForm";
 
 // The shared block library: every section an uploaded template needs that
 // the designer's file didn't draw. Built once, styled entirely from the
@@ -483,162 +484,48 @@ function FaqBlock({ section, content, editorPreview }: BlockProps) {
   );
 }
 
-type SubmitState = "idle" | "submitting" | "success" | "error";
-
 /**
- * The one RSVP form every uploaded template uses. In the builder it can't
- * submit — a host testing their draft must not create real RSVPs.
+ * The RSVP form for uploaded templates: the same shared form as the built-in
+ * templates (templates/shared/RsvpForm.tsx), skinned with this design's theme.
+ * In the builder it can't submit — a host testing their draft must not create real RSVPs.
  */
 function RsvpBlock({ section, content, editorPreview }: BlockProps) {
   const theme = useSpecTheme();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [attending, setAttending] = useState<"yes" | "no" | null>(null);
-  const [guests, setGuests] = useState(1);
-  const [dietary, setDietary] = useState("");
-  const [website, setWebsite] = useState(""); // honeypot
-  const [state, setState] = useState<SubmitState>("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (editorPreview) return;
-    if (!attending) {
-      setError("Please let us know if you can come.");
-      setState("error");
-      return;
-    }
-    setState("submitting");
-    setError(null);
-    try {
-      const res = await fetch("/api/wedding-rsvp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug: content.slug,
-          name,
-          email,
-          message,
-          website,
-          attending,
-          guests: attending === "yes" ? guests : 0,
-          dietary: attending === "yes" ? dietary : "",
-        }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Something went wrong — please try again.");
-      setState("success");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong — please try again.");
-      setState("error");
-    }
-  }
-
+  const radius = theme.radius.control === 999 ? 999 : theme.radius.control;
   const input: CSSProperties = {
-    width: "100%",
-    boxSizing: "border-box",
     fontFamily: theme.bodyFont,
-    fontSize: 15,
     padding: "13px 16px",
-    borderRadius: theme.radius.control === 999 ? 999 : theme.radius.control,
+    borderRadius: radius,
     border: `1px solid ${colorOf(theme, "ink")}33`,
     background: colorOf(theme, "bg"),
     color: colorOf(theme, "ink"),
     outline: "none",
   };
-
   return (
     <Frame section={section} width={460} id="rsvp">
-      {state === "success" ? (
-        <p style={body(theme, { fontStyle: "italic" })}>
-          {attending === "no"
-            ? `Thank you, ${name.split(" ")[0]} — we’ll miss you. Your reply has been sent.`
-            : `Thank you, ${name.split(" ")[0]} — your RSVP is in. A confirmation is on its way to your inbox.`}
-        </p>
-      ) : (
-        <form onSubmit={submit} style={{ display: "grid", gap: 12, textAlign: "left" }}>
-          <input required aria-label="Full name" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} style={input} />
-          <input required type="email" aria-label="Email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
-          <fieldset style={{ border: 0, padding: 0, margin: "4px 0 0", display: "grid", gap: 8 }}>
-            <legend style={small(theme, { fontSize: 14, marginBottom: 8, color: colorOf(theme, "ink") })}>Will you be joining us?</legend>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {(
-                [
-                  ["yes", "Joyfully accepts"],
-                  ["no", "Regretfully declines"],
-                ] as const
-              ).map(([value, label]) => {
-                const on = attending === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => setAttending(value)}
-                    style={{
-                      ...input,
-                      cursor: "pointer",
-                      textAlign: "center",
-                      fontSize: 14,
-                      background: on ? colorOf(theme, "accent") : colorOf(theme, "bg"),
-                      color: on ? colorOf(theme, "onAccent") : colorOf(theme, "ink"),
-                      borderColor: on ? colorOf(theme, "accent") : `${colorOf(theme, "ink")}33`,
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-          {attending === "yes" ? (
-            <>
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={small(theme, { fontSize: 14, color: colorOf(theme, "ink") })}>How many in your party (including you)?</span>
-                <select value={guests} onChange={(e) => setGuests(Number(e.target.value))} style={input}>
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <input
-                aria-label="Dietary restrictions (optional)"
-                placeholder="Dietary restrictions (optional)"
-                maxLength={300}
-                value={dietary}
-                onChange={(e) => setDietary(e.target.value)}
-                style={input}
-              />
-            </>
-          ) : null}
-          <textarea
-            aria-label="Message (optional)"
-            placeholder="Message (optional)"
-            rows={3}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            style={{ ...input, borderRadius: theme.radius.control === 999 ? 18 : theme.radius.control, resize: "vertical" }}
-          />
-          <input
-            tabIndex={-1}
-            autoComplete="off"
-            aria-hidden
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }}
-          />
-          <button type="submit" disabled={state === "submitting" || editorPreview} style={{ ...buttonStyle(theme, true), width: "100%", padding: "14px 22px", opacity: state === "submitting" || editorPreview ? 0.6 : 1 }}>
-            {state === "submitting" ? "Sending…" : "Send RSVP"}
-          </button>
-          {editorPreview ? (
-            <p style={small(theme, { fontSize: 13, textAlign: "center" })}>Guests can RSVP once your site is published.</p>
-          ) : null}
-          {error ? <p style={small(theme, { fontSize: 13, color: "#c2412d", textAlign: "center" })}>{error}</p> : null}
-        </form>
-      )}
+      <RsvpForm
+        content={content}
+        editorPreview={editorPreview}
+        skin={{
+          font: theme.bodyFont,
+          ink: colorOf(theme, "ink"),
+          muted: colorOf(theme, "muted"),
+          gap: 12,
+          field: { style: input },
+          textarea: { style: { ...input, borderRadius: radius === 999 ? 18 : radius } },
+          button: { style: { ...buttonStyle(theme, true), width: "100%", padding: "14px 22px" } },
+          choice: (on) => ({
+            style: {
+              ...input,
+              textAlign: "center",
+              background: on ? colorOf(theme, "accent") : colorOf(theme, "bg"),
+              color: on ? colorOf(theme, "onAccent") : colorOf(theme, "ink"),
+              borderColor: on ? colorOf(theme, "accent") : `${colorOf(theme, "ink")}33`,
+            },
+          }),
+          success: { style: body(theme, { fontStyle: "italic" }) },
+        }}
+      />
     </Frame>
   );
 }

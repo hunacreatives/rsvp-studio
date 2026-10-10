@@ -71,4 +71,5 @@ export const cinematicDemoBirthday: EventContent = {
   ],
   keyPeople: [],
   rsvpTableName: "cinematic_demo_rsvps",
+  occasion: "birthday",
 };

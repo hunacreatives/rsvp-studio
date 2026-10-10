@@ -38,7 +38,7 @@ export const botanicalSpec = {
       band: "bg",
       backgroundAssetId: "invitation-card",
       layers: [
-        { id: "eyebrow", type: "text", text: "Wedding Invitation", box: { x: 0.09, y: 0.245, w: 0.82, h: 0.03 }, size: 2.6, color: "bg", opacity: 0.92 },
+        { id: "eyebrow", type: "text", text: "Wedding Invitation", bind: { field: "occasion.invitation" }, box: { x: 0.09, y: 0.245, w: 0.82, h: 0.03 }, size: 2.6, color: "bg", opacity: 0.92 },
         {
           id: "host-1", type: "text", when: { minHosts: 2 }, bind: { field: "hosts.0.name" }, editorHint: "First name",
           box: { x: 0.09, y: 0.405, w: 0.82, h: 0.07 }, font: "display", size: 7.4, minSize: 4.2, color: "bg", lineHeight: 1.1,

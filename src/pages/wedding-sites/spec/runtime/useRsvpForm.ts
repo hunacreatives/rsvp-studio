@@ -19,6 +19,10 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (editorPreview) return;
+    if (!(values.name ?? "").trim()) {
+      setError("Please enter your name.");
+      return;
+    }
     if (opts.asksAttending && !attending) {
       setError("Please let us know if you can come.");
       return;
@@ -32,6 +36,8 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
         body: JSON.stringify({
           slug: content.slug,
           name: values.name ?? "",
+          // One "Email or mobile number" field (built-in templates), or a design's own email field.
+          contact: values.contact ?? "",
           email: values.email ?? "",
           message: values.message ?? "",
           website,

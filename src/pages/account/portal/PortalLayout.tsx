@@ -89,7 +89,8 @@ function Shell() {
               <p className="px-1 font-display text-[2.1rem] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] lg:text-[2.6rem]">
                 Hi, {firstName(profile.full_name, "there")}.
               </p>
-              <nav className="-mx-1 mt-4 flex gap-1 overflow-x-auto pb-1 lg:mx-0 lg:mt-6 lg:flex-col lg:overflow-visible lg:pb-0">
+              {/* Phones: every link visible, wrapping onto a second row (no hidden sideways scroll). */}
+              <nav className="-mx-1 mt-4 flex flex-wrap gap-1 lg:mx-0 lg:mt-6 lg:flex-col lg:flex-nowrap">
                 {NAV.map((item) => (
                   <SideLink key={item.to} to={item.to} end={item.end} icon={item.icon}>
                     {item.label}

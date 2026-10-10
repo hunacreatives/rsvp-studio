@@ -1,3 +1,4 @@
+import { occasionWords } from "../../../content/occasion";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { parseEventDate } from "../../../content/parseEventDate";
@@ -87,7 +88,7 @@ export default function Hero({ content, theme }: HeroProps) {
               opacity: 0.92,
             }}
           >
-            Wedding Invitation
+            {occasionWords(content).invitation}
           </p>
 
           <div>

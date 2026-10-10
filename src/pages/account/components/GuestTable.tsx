@@ -4,6 +4,8 @@ export type Guest = {
   id: string;
   name: string | null;
   email: string | null;
+  /** Shared `rsvps` table only: guests can answer with a mobile number instead. */
+  phone?: string | null;
   message: string | null;
   created_at: string | null;
   bringing?: string | null;
@@ -22,7 +24,7 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return guests.filter((g) => {
-      if (q && !`${g.name ?? ""} ${g.email ?? ""}`.toLowerCase().includes(q)) return false;
+      if (q && !`${g.name ?? ""} ${g.email ?? ""} ${g.phone ?? ""}`.toLowerCase().includes(q)) return false;
       if (filter === "with" && !g.message) return false;
       if (filter === "without" && g.message) return false;
       if (filter === "coming" && g.attending !== true) return false;
@@ -38,21 +40,23 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
   const dietaryNotes = coming.filter((g) => g.dietary).length;
 
   const exportCsv = () => {
-    const header = ["Name", "Email", ...(hasDetails ? ["Coming", "Party size", "Dietary"] : []), "Bringing", "Message", "Submitted"];
+    const header = ["Name", "Email", "Mobile", ...(hasDetails ? ["Coming", "Party size", "Dietary"] : []), "Bringing", "Message", "Submitted"];
     const rows = filtered.map((g) => [
       g.name ?? "",
       g.email ?? "",
+      g.phone ?? "",
       ...(hasDetails
         ? [g.attending === true ? "Yes" : g.attending === false ? "No" : "", g.attending ? String(g.guest_count ?? 1) : "", (g.dietary ?? "").replace(/"/g, '""')]
         : []),
       g.bringing ?? "",
       (g.message ?? "").replace(/"/g, '""'),
-      g.created_at ? new Date(g.created_at).toLocaleDateString() : "",
+      g.created_at ? new Date(g.created_at).toLocaleDateString("en-PH") : "",
     ]);
     const csv = [header, ...rows]
       .map((r) => r.map((cell) => `"${cell}"`).join(","))
       .join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    // The BOM tells Excel it's UTF-8, so names like "Ñ" come through intact.
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -66,7 +70,7 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <input
           type="text"
-          placeholder="Search name or email..."
+          placeholder="Search name, email or mobile…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1 min-w-[220px] rounded-xl px-4 py-3 text-[15px] outline-none"
@@ -100,7 +104,7 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
           <thead>
             <tr style={{ background: "var(--paper)", color: "var(--slate)" }}>
               <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Name</th>
-              <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Email</th>
+              <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Contact</th>
               {hasDetails ? (
                 <>
                   <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Coming?</th>
@@ -116,7 +120,11 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
             {filtered.map((g) => (
               <tr key={g.id} style={{ borderTop: "1px solid var(--line)" }}>
                 <td className="px-5 py-3">{g.name}</td>
-                <td className="px-5 py-3" style={{ color: "var(--slate)" }}>{g.email}</td>
+                <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
+                  {g.email}
+                  {g.email && g.phone ? <br /> : null}
+                  {g.phone}
+                </td>
                 {hasDetails ? (
                   <>
                     <td className="px-5 py-3">
@@ -134,7 +142,7 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
                 ) : null}
                 <td className="px-5 py-3 italic" style={{ color: "var(--slate)" }}>{g.message || "—"}</td>
                 <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
-                  {g.created_at ? new Date(g.created_at).toLocaleDateString() : "—"}
+                  {g.created_at ? new Date(g.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                 </td>
               </tr>
             ))}

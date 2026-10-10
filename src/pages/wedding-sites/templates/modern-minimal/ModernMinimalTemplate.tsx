@@ -15,7 +15,7 @@ import RsvpSection from "./sections/RsvpSection";
 // layoutHint. Proves the canonical EventContent schema survives a
 // structurally different template with zero changes. See
 // docs/template-builder-decisions.md.
-export default function ModernMinimalTemplate({ content, settings }: TemplateProps<BaseTemplateSettings>) {
+export default function ModernMinimalTemplate({ content, settings, editorPreview = false }: TemplateProps<BaseTemplateSettings>) {
   const theme = resolveEventTheme(settings);
   const visibility = settings.sectionVisibility;
 
@@ -30,7 +30,7 @@ export default function ModernMinimalTemplate({ content, settings }: TemplatePro
       {visibility.gallery ? <GallerySection content={content} theme={theme} /> : null}
       {visibility.registry ? <RegistrySection content={content} theme={theme} /> : null}
       {visibility.faqs ? <FaqSection content={content} theme={theme} /> : null}
-      {visibility.rsvp ? <RsvpSection content={content} theme={theme} /> : null}
+      {visibility.rsvp ? <RsvpSection content={content} theme={theme} editorPreview={editorPreview} /> : null}
 
       <div style={{ width: "100%", background: theme.ink, padding: "20px 0", textAlign: "center" }}>
         <p style={{ color: theme.background, fontSize: 12, margin: 0, fontFamily: theme.bodyFont, letterSpacing: "0.08em", textTransform: "uppercase" }}>

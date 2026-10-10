@@ -113,6 +113,8 @@ export interface Gallery {
   items: GalleryItem[];
 }
 
+export type Occasion = "wedding" | "birthday" | "anniversary" | "other";
+
 export interface EventContent {
   id: string;
   /** Used to build the public URL: /invite/:slug */
@@ -156,4 +158,7 @@ export interface EventContent {
   /** Mirrors the existing events.table_name convention: the name of this
    *  event's dynamically-provisioned RSVP table in Supabase. */
   rsvpTableName: string;
+  /** What kind of celebration this is (from the event) — picks wording like
+   *  "Wedding Invitation" vs "Birthday Invitation". Missing on older content. */
+  occasion?: Occasion;
 }

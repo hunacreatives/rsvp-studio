@@ -1,3 +1,4 @@
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
@@ -104,5 +105,21 @@ export default function PublicEventSitePage() {
     return <NotFound />;
   }
 
-  return <resolved.definition.component content={content} settings={resolved.settings} />;
+  return (
+    <ErrorBoundary
+      fallback={() => (
+        <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, textAlign: "center", fontFamily: "Inter, system-ui, sans-serif" }}>
+          <div style={{ maxWidth: 380 }}>
+            <p style={{ fontSize: 20, fontWeight: 600, margin: 0, color: "#000727" }}>This invitation didn’t load properly</p>
+            <p style={{ fontSize: 16, color: "#55556a", margin: "10px 0 20px" }}>Please refresh the page. If it still doesn’t work, let the host know.</p>
+            <button onClick={() => window.location.reload()} style={{ fontSize: 16, padding: "12px 24px", borderRadius: 999, border: "none", background: "#000727", color: "#fff", cursor: "pointer" }}>
+              Refresh
+            </button>
+          </div>
+        </div>
+      )}
+    >
+      <resolved.definition.component content={content} settings={resolved.settings} />
+    </ErrorBoundary>
+  );
 }

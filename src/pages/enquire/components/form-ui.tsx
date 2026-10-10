@@ -3,6 +3,18 @@ import type { ReactNode } from "react";
 export const INPUT =
   "w-full rounded-lg border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--slate)] focus:border-[var(--acc-blue)]";
 
+/** Spam trap: hidden from people (and screen readers); bots that fill every field get dropped. */
+export function Honeypot({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", width: 1, height: 1, overflow: "hidden" }}>
+      <label>
+        Website
+        <input type="text" name="website" tabIndex={-1} autoComplete="off" value={value} onChange={(e) => onChange(e.target.value)} />
+      </label>
+    </div>
+  );
+}
+
 export function Field({
   label,
   children,

@@ -13,7 +13,7 @@ export const STUDIO_INBOX = "hello@thersvpstudio.com";
 export const REPLY_DOMAIN = "reply.thersvpstudio.com";
 export const emailRepliesOn = () => process.env.SUPPORT_EMAIL_REPLIES === "on";
 
-export const SERVICE_FOOTER = "You’re receiving this because you contacted The RSVP Studio support. Reply in your dashboard or to this email.";
+export const SERVICE_FOOTER = "You’re receiving this because you contacted The RSVP Studio support. To reply, open your dashboard.";
 /** Footer for emails about a request: says replying by email works once it does. */
 export const serviceFooter = () =>
   emailRepliesOn()

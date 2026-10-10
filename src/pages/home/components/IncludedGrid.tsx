@@ -48,7 +48,7 @@ export default function IncludedGrid() {
     <section className="py-16 md:py-32" style={{ background: "var(--warm-white)" }}>
       <div className="container-x">
         <Reveal as="h2" className="h-section max-w-2xl text-[var(--ink)]">
-          All included in
+          All included in{" "}
           <br className="hidden sm:inline" />
           every invitation
         </Reveal>

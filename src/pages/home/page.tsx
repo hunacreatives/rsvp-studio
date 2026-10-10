@@ -22,7 +22,7 @@ export default function Home() {
         <ImageBand
           title={
             <>
-              Thoughtfully Designed
+              Thoughtfully Designed{" "}
               <br className="hidden sm:inline" />
               Event Experiences
             </>

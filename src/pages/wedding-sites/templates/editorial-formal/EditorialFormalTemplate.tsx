@@ -15,7 +15,7 @@ import RsvpSection from "./sections/RsvpSection";
 // into sections that each consume canonical, event-type-agnostic
 // EventContent data plus this template's own curated theme/settings. See
 // docs/template-builder-decisions.md.
-export default function EditorialFormalTemplate({ content, settings }: TemplateProps<EditorialFormalSettings>) {
+export default function EditorialFormalTemplate({ content, settings, editorPreview = false }: TemplateProps<EditorialFormalSettings>) {
   const theme = resolveEventTheme(settings);
   const visibility = settings.sectionVisibility;
 
@@ -37,7 +37,7 @@ export default function EditorialFormalTemplate({ content, settings }: TemplateP
       {visibility.gallery ? <GallerySection content={content} theme={theme} /> : null}
       {visibility.registry ? <RegistrySection content={content} theme={theme} /> : null}
       {visibility.faqs ? <FaqSection content={content} theme={theme} /> : null}
-      {visibility.rsvp ? <RsvpSection content={content} theme={theme} /> : null}
+      {visibility.rsvp ? <RsvpSection content={content} theme={theme} editorPreview={editorPreview} /> : null}
 
       <div style={{ width: "100%", background: theme.ink, padding: "24px 0", textAlign: "center" }}>
         <p style={{ color: theme.background, fontSize: 14, margin: 0, fontFamily: theme.bodyFont }}>

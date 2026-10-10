@@ -4,6 +4,8 @@ import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
 import { Reveal } from "@/lib/Reveal";
 import { FAQ_CATEGORIES } from "./faq-data";
+import { submitInquiry } from "@/pages/enquire/submit";
+import { Honeypot } from "@/pages/enquire/components/form-ui";
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -51,15 +53,27 @@ function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [charCount, setCharCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [website, setWebsite] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (charCount > 500) return;
+    const f = new FormData(e.currentTarget);
     setSubmitting(true);
-    setTimeout(() => {
+    setError(null);
+    try {
+      await submitInquiry(
+        { your_name: String(f.get("full_name") ?? ""), email: String(f.get("email") ?? ""), message: String(f.get("message") ?? "") },
+        [],
+        { form: "faq-question", website },
+      );
       setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error && err.message !== "Failed to submit inquiry" ? err.message : "That didn’t send. Please try again, or email hello@thersvpstudio.com.");
+    } finally {
       setSubmitting(false);
-    }, 400);
+    }
   };
 
   const input =
@@ -77,28 +91,31 @@ function ContactForm() {
           Message received
         </p>
         <p className="mt-1 text-sm text-[var(--slate)]">
-          We&apos;ll be in touch within 24 hours.
+          We&apos;ll reply within 1 business day (Monday to Friday, Philippine time).
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="relative space-y-4">
+      <Honeypot value={website} onChange={setWebsite} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className={label}>Name</label>
-          <input type="text" name="full_name" required placeholder="Your name" className={input} />
+          <label htmlFor="faq-name" className={label}>Name</label>
+          <input id="faq-name" type="text" name="full_name" required placeholder="Your name" className={input} />
         </div>
         <div>
-          <label className={label}>Email</label>
-          <input type="email" name="email" required placeholder="your@email.com" className={input} />
+          <label htmlFor="faq-email" className={label}>Email</label>
+          <input id="faq-email" type="email" name="email" required placeholder="your@email.com" className={input} />
         </div>
       </div>
       <div>
-        <label className={label}>Message</label>
+        <label htmlFor="faq-message" className={label}>Message</label>
         <textarea
+          id="faq-message"
           name="message"
+          required
           rows={4}
           maxLength={500}
           placeholder="What would you like to know?"
@@ -116,6 +133,7 @@ function ContactForm() {
       >
         {submitting ? "Sending…" : "Send Message"}
       </button>
+      {error ? <p className="text-sm text-[var(--acc-coral)]">{error}</p> : null}
     </form>
   );
 }
@@ -137,7 +155,7 @@ export default function FaqsPage() {
               Frequently Asked Questions
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-[var(--slate)]">
-              Everything you need to know about our services, collections,
+              Everything you need to know about our services, collections,{" "}
               <br className="hidden sm:inline" />
               timelines, and process — all in one place.
             </p>

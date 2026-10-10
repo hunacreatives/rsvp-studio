@@ -94,8 +94,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   );
   for (const t of reminders) {
     const p = remindTo.get(t.profile_id);
-    // Opted out of notifications: no nudge (still counts as reminded, so it can close at day 7).
-    if (!p?.email || p.notify_project_updates === false) {
+    // Service emails about the customer's own request: sent whatever their notification
+    // settings (like staff replies). Only a missing address skips it.
+    if (!p?.email) {
       report.remindersSkipped++;
       continue;
     }
@@ -135,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const closeTo = await people(closed.map((t) => t.profile_id));
   for (const t of closed) {
     const p = closeTo.get(t.profile_id);
-    if (!p?.email || p.notify_project_updates === false) {
+    if (!p?.email) {
       report.closedQuietly++;
       continue;
     }

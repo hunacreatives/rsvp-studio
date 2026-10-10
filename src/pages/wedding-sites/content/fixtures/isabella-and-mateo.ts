@@ -260,4 +260,5 @@ export const isabellaAndMateo: EventContent = {
     { id: "kp-4", name: "Tomas Ferrari", role: "Groomsman" },
   ],
   rsvpTableName: "",
+  occasion: "wedding",
 };

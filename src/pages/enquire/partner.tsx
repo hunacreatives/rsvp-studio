@@ -3,7 +3,7 @@ import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
 import { Reveal } from "@/lib/Reveal";
-import { Field, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
+import { Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
 import { HEAR_ABOUT } from "./occasions";
 import { submitInquiry } from "./submit";
 
@@ -66,7 +66,7 @@ export default function PartnerInquiry() {
               className="mt-4 font-display font-semibold tracking-[-0.02em] text-[var(--ink)]"
               style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
             >
-              Better experiences begin
+              Better experiences begin{" "}
               <br className="hidden sm:inline" />
               with better collaborations.
             </h1>
@@ -85,7 +85,8 @@ export default function PartnerInquiry() {
                 message="We'll be in touch about partnering soon."
               />
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={handleSubmit} className="relative space-y-8">
+                <Honeypot value={getStr("website")} onChange={(val) => set("website", val)} />
                 <SectionTitle>About you</SectionTitle>
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

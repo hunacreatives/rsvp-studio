@@ -1,5 +1,6 @@
 import type { EventContent } from "../content/types";
 import { parseEventDate } from "../content/parseEventDate";
+import { occasionWords } from "../content/occasion";
 
 // The closed list of content fields a template's text can bind to. Staff
 // pick from this list when mapping an uploaded design (Studio →
@@ -39,6 +40,8 @@ const BASE_INFO = {
   "venue.address": { label: "Venue address", sample: "San Pablo, Laguna" },
   "venue.nameOrAddress": { label: "Venue name (or address)", sample: "Casa San Pablo" },
   "story.first": { label: "Story — first paragraph", sample: "We met at a friend's despedida…" },
+  "occasion.invitation": { label: "Invitation line (Wedding / Birthday Invitation…)", sample: "Wedding Invitation" },
+  "occasion.tagline": { label: "Celebration line (We're getting married / Come celebrate…)", sample: "We’re finally getting married" },
 } satisfies Record<string, BindingInfo>;
 
 /**
@@ -182,6 +185,10 @@ export function resolveBinding(
       return (content.primaryLocation.name || content.primaryLocation.addressLine).trim();
     case "story.first":
       return (content.story ?? "").split("\n\n").map((p) => p.trim()).find(Boolean) ?? "";
+    case "occasion.invitation":
+      return occasionWords(content).invitation;
+    case "occasion.tagline":
+      return occasionWords(content).tagline;
   }
   return resolveRepeating(content, field, format);
 }

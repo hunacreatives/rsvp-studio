@@ -8,7 +8,7 @@ export default function LessTime() {
       className="scroll-mt-24 py-16 md:py-32"
       style={{ background: "var(--warm-white)" }}
     >
-      <div className="container-x grid gap-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+      <div className="container-x grid grid-cols-1 gap-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-center [&>*]:min-w-0">
         <Reveal>
           <h2
             className="font-display font-semibold tracking-[-0.02em] leading-[1.12] text-[var(--ink)]"
@@ -29,7 +29,7 @@ export default function LessTime() {
         </Reveal>
 
         <Reveal delay={0.08}>
-          <RsvpDashboard />
+          <RsvpDashboard sidebar />
         </Reveal>
       </div>
     </section>

@@ -89,7 +89,7 @@ export default function FinalCollage({ content, tone, slots, editorPreview }: Pr
         </CollageItem>
       </div>
 
-      {open ? <RsvpDialog slug={content.slug} onClose={() => setOpen(false)} /> : null}
+      {open ? <RsvpDialog content={content} editorPreview={editorPreview} onClose={() => setOpen(false)} /> : null}
     </Section>
   );
 }

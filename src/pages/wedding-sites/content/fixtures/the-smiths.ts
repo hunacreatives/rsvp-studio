@@ -251,4 +251,5 @@ export const theSmiths: EventContent = {
     { id: "party-6", name: "David Okafor", role: "Groomsman" },
   ],
   rsvpTableName: "the_smiths_rsvps",
+  occasion: "wedding",
 };

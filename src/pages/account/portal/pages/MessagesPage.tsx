@@ -113,7 +113,7 @@ export default function MessagesPage() {
         action={<PrimaryButton onClick={() => setComposeFor(null)}>+ New Message</PrimaryButton>}
       />
 
-      <div className="grid h-[640px] overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:grid-cols-[270px_1fr]">
+      <div className="grid h-[640px] grid-cols-1 overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:grid-cols-[270px_1fr] [&>*]:min-w-0">
         <div className={`min-h-0 flex-col border-r border-[var(--line)] ${active ? "hidden md:flex" : "flex"}`}>
           <div className="p-4">
             <label className="flex items-center gap-2 rounded-full bg-[#efeaf4] px-5 py-2.5">

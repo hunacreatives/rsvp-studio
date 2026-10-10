@@ -29,9 +29,10 @@ export async function submitInquiry(
   const res = await fetch(FORM_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ form: meta.form, values, attachments }),
+    body: JSON.stringify({ form: meta.form, values, attachments, website: meta.website ?? "" }),
   });
 
-  if (!res.ok) throw new Error("Failed to submit inquiry");
-  return res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { error?: string }).error ?? "Failed to submit inquiry");
+  return data;
 }

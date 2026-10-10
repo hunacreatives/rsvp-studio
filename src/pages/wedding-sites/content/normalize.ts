@@ -188,5 +188,6 @@ export function normalizeEventContent(raw: unknown): EventContent {
     faqs,
     keyPeople: asArray<unknown>(r.keyPeople).map(normalizePerson),
     rsvpTableName: asString(r.rsvpTableName),
+    occasion: (["wedding", "birthday", "anniversary", "other"] as const).find((o) => o === r.occasion),
   };
 }

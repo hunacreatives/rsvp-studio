@@ -1,3 +1,4 @@
+import { occasionWords } from "../../../content/occasion";
 import type { EventContent } from "../../../content/types";
 import { EditorHint, Flower, Section, type FlowerVariant, type Tone } from "../components";
 import { formatTime } from "../content";
@@ -28,7 +29,7 @@ export default function WeddingDetailsSection({ content, tone, editorPreview }: 
   return (
     <Section tone={tone}>
       <div style={{ textAlign: "center" }}>
-        <p className="sb-script sb-script--lg">About the Wedding</p>
+        <p className="sb-script sb-script--lg">{occasionWords(content).about}</p>
       </div>
 
       {items.length === 0 ? (

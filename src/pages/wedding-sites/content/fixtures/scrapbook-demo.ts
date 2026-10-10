@@ -232,4 +232,5 @@ export const scrapbookDemoWedding: EventContent = {
   ],
   keyPeople: [],
   rsvpTableName: "",
+  occasion: "wedding",
 };

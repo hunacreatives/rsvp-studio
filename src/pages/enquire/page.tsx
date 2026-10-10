@@ -5,7 +5,7 @@ import FooterSection from "@/pages/home/components/FooterSection";
 import { Reveal } from "@/lib/Reveal";
 import Fireworks from "./components/Fireworks";
 import FileDrop, { type PickedFile } from "./components/FileDrop";
-import { Field, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
+import { Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
 import { submitInquiry } from "./submit";
 import {
   ADDONS,
@@ -20,7 +20,7 @@ import {
 } from "./occasions";
 
 const processSteps = [
-  { num: "01", title: "Inquiry", desc: "Once we receive your form, we'll get back to you within two business days to chat through your ideas, plans, and creative direction." },
+  { num: "01", title: "Inquiry", desc: "Once we receive your form, we'll reply within 1 business day to talk through your ideas, plans, and creative direction." },
   { num: "02", title: "Proposal & Contract", desc: "A tailored proposal detailing the scope, timeline, and investment, followed by a contract to formally secure your booking." },
   { num: "03", title: "Onboarding", desc: "We'll set up a shared folder with a guided content outline that helps simplify every step from day one." },
   { num: "04", title: "Design & Development", desc: "From concept to final refinements, each stage is thoughtfully considered, with room for your feedback throughout." },
@@ -141,14 +141,15 @@ export default function ProjectInquiry() {
             {submitted ? (
               <SuccessCard
                 title="Inquiry received"
-                message="We'll be in touch within two business days."
+                message="We'll reply within 1 business day (Monday to Friday, Philippine time)."
               />
             ) : (
               <form
                 onSubmit={handleSubmit}
-                className="rounded-2xl bg-white p-6 shadow-[0_24px_60px_-32px_rgba(0,7,39,0.25)] md:p-10"
+                className="relative rounded-2xl bg-white p-6 shadow-[0_24px_60px_-32px_rgba(0,7,39,0.25)] md:p-10"
                 style={{ border: "1px solid var(--line)" }}
               >
+                <Honeypot value={getStr("website")} onChange={(val) => set("website", val)} />
                 {/* Step indicator */}
                 <div className="mb-10 flex items-center gap-3">
                   {STEP_LABELS.map((label, i) => {

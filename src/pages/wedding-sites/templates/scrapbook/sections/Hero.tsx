@@ -1,3 +1,4 @@
+import { occasionWords } from "../../../content/occasion";
 import type { EventContent } from "../../../content/types";
 import { EditorHint, Polaroid, PolaroidSlot, Section, type Tone } from "../components";
 import { deriveLocality, hostNames, joinHosts, type PhotoSlots } from "../content";
@@ -55,7 +56,7 @@ export default function Hero({ content, tone, slots, editorPreview }: Props) {
         </nav>
 
         <p className="sb-serif sb-hero__tagline">
-          We&apos;re finally getting married
+          {occasionWords(content).tagline}
           {locality ? (
             <>
               {" "}

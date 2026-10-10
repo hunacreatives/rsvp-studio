@@ -16,7 +16,7 @@ import RsvpSection from "./sections/RsvpSection";
 // (see docs/template-builder-decisions.md). A third structurally distinct
 // proof point for the canonical EventContent schema, alongside
 // editorial-formal (centered/animated) and modern-minimal (grid/static).
-export default function BotanicalTemplate({ content, settings }: TemplateProps<BaseTemplateSettings>) {
+export default function BotanicalTemplate({ content, settings, editorPreview = false }: TemplateProps<BaseTemplateSettings>) {
   const theme = resolveEventTheme(settings);
   const visibility = settings.sectionVisibility;
 
@@ -31,7 +31,7 @@ export default function BotanicalTemplate({ content, settings }: TemplateProps<B
       {visibility.gallery ? <GallerySection content={content} theme={theme} /> : null}
       {visibility.registry ? <RegistrySection content={content} theme={theme} /> : null}
       {visibility.faqs ? <FaqSection content={content} theme={theme} /> : null}
-      {visibility.rsvp ? <RsvpSection content={content} theme={theme} /> : null}
+      {visibility.rsvp ? <RsvpSection content={content} theme={theme} editorPreview={editorPreview} /> : null}
 
       <div style={{ width: "100%", background: theme.ink, padding: "24px 0", textAlign: "center" }}>
         <p style={{ color: theme.background, fontSize: 12, margin: 0, fontFamily: theme.bodyFont, letterSpacing: "0.06em" }}>
