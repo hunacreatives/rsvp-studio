@@ -1,9 +1,10 @@
 import { Component, type ReactNode } from "react";
 
-// A crash in one page shows a calm message instead of a blank screen. The router
-// keys this by page, so going to another page clears it.
+// A crash in one page shows a calm message instead of a blank screen. Going to
+// another page (a new resetKey) clears it — without rebuilding the pages that
+// didn't crash, so layouts and their loaded data stay put.
 
-type Props = { children: ReactNode; fallback?: (reset: () => void) => ReactNode };
+type Props = { children: ReactNode; fallback?: (reset: () => void) => ReactNode; resetKey?: string };
 
 export default class ErrorBoundary extends Component<Props, { failed: boolean }> {
   state = { failed: false };
@@ -30,6 +31,10 @@ export default class ErrorBoundary extends Component<Props, { failed: boolean }>
   }
 
   reset = () => this.setState({ failed: false });
+
+  componentDidUpdate(prev: Props) {
+    if (this.state.failed && prev.resetKey !== this.props.resetKey) this.reset();
+  }
 
   render() {
     if (!this.state.failed) return this.props.children;

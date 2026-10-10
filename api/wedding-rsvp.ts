@@ -45,7 +45,8 @@ function formatHostNames(content: PublishedContentForEmail): string {
 }
 
 /** Who hears about a new RSVP: the event's owner/members who keep project
- *  updates on; the studio inbox when nobody on the event has an account. */
+ *  updates on. The studio inbox only when nobody on the event has an account
+ *  yet — never because the hosts turned these emails off. */
 async function hostRecipients(eventId: string): Promise<string[]> {
   const ids = new Set<string>();
   const { data: ev } = await supabaseAdmin.from("events").select("owner_id").eq("id", eventId).maybeSingle();
@@ -57,10 +58,9 @@ async function hostRecipients(eventId: string): Promise<string[]> {
     .from("profiles")
     .select("email, is_staff, notify_project_updates")
     .in("id", [...ids]);
-  const emails = (people ?? [])
-    .filter((p) => !p.is_staff && p.notify_project_updates !== false && p.email)
-    .map((p) => p.email as string);
-  return emails.length ? emails : [STUDIO_INBOX];
+  const hosts = (people ?? []).filter((p) => !p.is_staff);
+  if (!hosts.length) return [STUDIO_INBOX];
+  return hosts.filter((p) => p.notify_project_updates !== false && p.email).map((p) => p.email as string);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -207,7 +207,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const sends: Promise<unknown>[] = [];
   const recipients = await hostRecipients(site.event_id);
-  sends.push(
+  // Hosts who turned off project updates get no RSVP email (it's still in their dashboard).
+  if (recipients.length) sends.push(
     sendEmail({
       from: FROM,
       to: recipients,

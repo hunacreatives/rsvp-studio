@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { InvoicePill, isOverdue } from "@/pages/account/portal/components/blocks";
 import { formatDate, formatMoney } from "@/pages/account/portal/format";
@@ -11,22 +11,56 @@ type Filter = "all" | "open" | "overdue" | "paid" | "void";
 
 export default function InvoicesPage() {
   const { invoices, projects } = usePortal();
-  const { owners } = useStudio();
-  const [filter, setFilter] = useState<Filter>("open");
+  const { owners, members } = useStudio();
+  // ?q= narrows to one client / project / invoice (Clients → "Invoices" links here).
+  const [params, setParams] = useSearchParams();
+  const query = params.get("q") ?? "";
+  const setQuery = (q: string) => {
+    const next = new URLSearchParams(params);
+    if (q) next.set("q", q);
+    else next.delete("q");
+    setParams(next, { replace: true });
+  };
+  const [filter, setFilter] = useState<Filter>(() => (params.get("q") ? "all" : "open"));
   const project = (id: string) => projects.find((p) => p.id === id);
+  const matches = (i: (typeof invoices)[number]) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const people = [owners[i.event_id], ...(members[i.event_id] ?? [])].filter(Boolean);
+    return [i.number, i.description, project(i.event_id)?.name, ...people.flatMap((p) => [p!.email, p!.full_name])].some((v) => v?.toLowerCase().includes(q));
+  };
 
   const shown = useMemo(
     () =>
       invoices
+        .filter(matches)
         .filter((i) => (filter === "all" ? true : filter === "overdue" ? isOverdue(i) : i.status === filter))
         .sort((a, b) => (filter === "paid" ? (b.paid_at ?? "").localeCompare(a.paid_at ?? "") : (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"))),
-    [invoices, filter],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [invoices, filter, query, owners, members, projects],
   );
   const total = shown.reduce((s, i) => s + i.amount, 0);
+  // Searching for one client: what they owe and have paid, across all their invoices.
+  const theirs = query ? invoices.filter(matches) : [];
+  const owed = theirs.filter((i) => i.status === "open").reduce((s, i) => s + i.amount, 0);
+  const paidSum = theirs.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
 
   return (
     <>
       <StudioHeader title="Invoices" sub="Every invoice across all projects. Issue new ones from a project." />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search a client, email, project or invoice number"
+          className="w-full max-w-md rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-[14px] outline-none focus:border-[var(--ink)]"
+        />
+        {query ? (
+          <p className="text-[14px] text-[var(--slate)]">
+            {theirs.length} invoice{theirs.length === 1 ? "" : "s"} · <span className={owed ? "font-semibold text-[#c2412d]" : ""}>{formatMoney(owed)} unpaid</span> · {formatMoney(paidSum)} paid
+          </p>
+        ) : null}
+      </div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <FilterTabs<Filter>
           value={filter}

@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
-import { formatDate } from "@/pages/account/portal/format";
+import { formatDate, formatMoney } from "@/pages/account/portal/format";
 import { Avatar } from "@/pages/account/portal/ui";
 import { StudioHeader, useStudio } from "../StudioLayout";
 
 export default function ClientsPage() {
-  const { projects, demo } = usePortal();
+  const { projects, invoices, demo } = usePortal();
   const { directory, owners, members } = useStudio();
   const [query, setQuery] = useState("");
 
@@ -25,7 +25,7 @@ export default function ClientsPage() {
 
   return (
     <>
-      <StudioHeader title="Clients" sub="Everyone with a client account. Link them to a project with an invite code." />
+      <StudioHeader title="Clients" sub="Everyone with a client account. To link someone to a project, open the project and send them an invite code." />
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -40,6 +40,7 @@ export default function ClientsPage() {
               <th className="px-5 py-3 font-medium">Client</th>
               <th className="px-5 py-3 font-medium">Phone · location</th>
               <th className="px-5 py-3 font-medium">Projects</th>
+              <th className="px-5 py-3 font-medium">Invoices</th>
               <th className="px-5 py-3 font-medium">Joined</th>
             </tr>
           </thead>
@@ -72,13 +73,26 @@ export default function ClientsPage() {
                       <span className="text-[13px] text-[var(--slate)]">Not linked</span>
                     )}
                   </td>
+                  <td className="px-5 py-3">
+                    {(() => {
+                      const mine = invoices.filter((i) => ids.includes(i.event_id) && i.status !== "void");
+                      if (!mine.length) return <span className="text-[13px] text-[var(--slate)]">None</span>;
+                      const owed = mine.filter((i) => i.status === "open").reduce((s, i) => s + i.amount, 0);
+                      return (
+                        <Link to={`/studio/invoices?q=${encodeURIComponent(c.email ?? c.full_name ?? "")}`} className="text-[13px] text-[var(--acc-blue)] hover:underline">
+                          {mine.length} invoice{mine.length === 1 ? "" : "s"}
+                          {owed ? <span className="text-[#c2412d]"> · {formatMoney(owed)} unpaid</span> : null} →
+                        </Link>
+                      );
+                    })()}
+                  </td>
                   <td className="px-5 py-3 text-[var(--slate)]">{formatDate(c.created_at)}</td>
                 </tr>
               );
             })}
             {!shown.length ? (
               <tr>
-                <td colSpan={4} className="px-5 py-10 text-center text-[var(--slate)]">No clients yet.</td>
+                <td colSpan={5} className="px-5 py-10 text-center text-[var(--slate)]">No clients yet.</td>
               </tr>
             ) : null}
           </tbody>

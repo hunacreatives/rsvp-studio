@@ -107,7 +107,7 @@ export default function ProjectDetailPage() {
             <SectionTitle action={<Link to="/account/billing" className="text-[14px] font-medium text-[var(--acc-blue)] hover:underline">All billing →</Link>}>
               Invoices
             </SectionTitle>
-            <InvoiceTable invoices={projectInvoices} />
+            <InvoiceTable invoices={projectInvoices} payable />
           </section>
         </div>
       ) : tab === "website" ? (

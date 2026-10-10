@@ -167,14 +167,19 @@ export default function InvoicePage() {
           <div className="mt-10 rounded-2xl bg-[var(--paper)] p-5 text-[14px] text-[var(--ink)]">
             <p className="font-semibold">How to pay</p>
             <p className="mt-1 text-[var(--slate)]">
-              Tap <strong>Pay now</strong> to pay securely online with GCash, Maya, card or QR Ph (scan with any banking app). Your receipt appears here as soon as the payment goes through.
+              Pay securely online with GCash, Maya, card or QR Ph (scan with any banking app). Your receipt appears here as soon as the payment goes through.
             </p>
-            <button
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 print:hidden">
+              <PillButton tone="primary" onClick={pay} disabled={paying || checking === "checking"}>
+                {paying ? "Opening payment…" : `Pay ${formatMoney(inv.amount)} now`}
+              </PillButton>
+              <button
               onClick={() => navigate(`/account/messages?project=${inv.event_id}`)}
-              className="mt-3 text-[14px] font-medium text-[var(--acc-blue)] hover:underline print:hidden"
+              className="text-[14px] font-medium text-[var(--acc-blue)] hover:underline print:hidden"
             >
               Message us about this invoice →
             </button>
+            </div>
           </div>
         ) : null}
       </article>

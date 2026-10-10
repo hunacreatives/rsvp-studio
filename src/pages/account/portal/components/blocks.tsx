@@ -190,7 +190,12 @@ export function ActivityList({ items, showProject = true }: { items: Activity[];
   );
 }
 
-export function InvoiceTable({ invoices, empty = "No invoices here yet." }: { invoices: Invoice[]; empty?: string }) {
+/**
+ * A list of invoices. Every row opens the invoice itself (the full breakdown —
+ * what it's for, amount, due date, notes) where the customer pays or gets the
+ * receipt. `payable`: unpaid rows show a "View & pay" button so the next step is obvious.
+ */
+export function InvoiceTable({ invoices, empty = "No invoices here yet.", payable = false }: { invoices: Invoice[]; empty?: string; payable?: boolean }) {
   const { projects } = usePortal();
   const navigate = useNavigate();
   if (!invoices.length) {
@@ -205,29 +210,37 @@ export function InvoiceTable({ invoices, empty = "No invoices here yet." }: { in
           <button
             key={inv.id}
             onClick={() => navigate(`/account/billing/${inv.id}`)}
-            className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-5 py-4 text-left transition-colors hover:bg-[var(--paper)] md:grid-cols-[1.4fr_1fr_1fr_110px_44px] md:px-8 ${i ? "border-t border-[rgba(0,7,39,0.12)]" : ""}`}
+            className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-5 py-4 text-left transition-colors hover:bg-[var(--paper)] md:grid-cols-[1.4fr_1fr_1fr_auto] md:px-8 ${i ? "border-t border-[rgba(0,7,39,0.12)]" : ""}`}
           >
             <span className="min-w-0">
               <span className="block truncate text-[16px] text-[var(--ink)]">{project?.name ?? inv.description}</span>
-              <span className="block text-[13px] text-[var(--slate)]">Invoice #{inv.number}</span>
+              <span className="block truncate text-[13px] text-[var(--slate)]">{project ? inv.description : `Invoice ${inv.number}`}</span>
             </span>
             <span className="hidden md:block">
               <span className="block text-[12px] uppercase tracking-[0.04em] text-[var(--slate)]">{paid ? "Paid" : "Due"}</span>
-              <span className="block text-[14px] text-[var(--ink)]">{formatDate(paid ? inv.paid_at : inv.due_date) || "—"}</span>
+              <span className={`block text-[14px] ${isOverdue(inv) ? "font-medium text-[#c2412d]" : "text-[var(--ink)]"}`}>
+                {formatDate(paid ? inv.paid_at : inv.due_date) || "Now"}
+                {isOverdue(inv) ? " · overdue" : ""}
+              </span>
             </span>
             <span className="hidden md:block">
               <span className="block text-[12px] uppercase tracking-[0.04em] text-[var(--slate)]">Amount</span>
               <span className="block text-[14px] text-[var(--ink)]">{formatMoney(inv.amount)}</span>
             </span>
-            <span className="justify-self-end md:justify-self-start">
-              <InvoicePill invoice={inv} />
+            <span className="justify-self-end">
+              {payable && inv.status === "open" ? (
+                <span className="inline-flex items-center rounded-full bg-[var(--acc-blue)] px-5 py-2 text-[14px] font-medium text-white">View &amp; pay</span>
+              ) : paid ? (
+                <span className="text-[14px] font-medium text-[var(--acc-blue)]">Receipt →</span>
+              ) : (
+                <InvoicePill invoice={inv} />
+              )}
             </span>
             <span className="col-span-2 flex items-center justify-between text-[13px] text-[var(--slate)] md:hidden">
               <span>{formatMoney(inv.amount)}</span>
-              <span>{paid ? "Paid" : "Due"} {formatDate(paid ? inv.paid_at : inv.due_date) || "—"}</span>
-            </span>
-            <span className="hidden h-8 w-8 place-items-center justify-self-end rounded-full border border-[var(--ink)] text-[var(--ink)] md:grid" aria-hidden>
-              <i className={paid ? "ri-arrow-down-line" : "ri-arrow-right-line"} />
+              <span className={isOverdue(inv) ? "font-medium text-[#c2412d]" : ""}>
+                {paid ? "Paid" : isOverdue(inv) ? "Overdue since" : "Due"} {formatDate(paid ? inv.paid_at : inv.due_date) || "now"}
+              </span>
             </span>
           </button>
         );

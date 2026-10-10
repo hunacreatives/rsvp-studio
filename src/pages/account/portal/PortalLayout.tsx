@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import PageLoading from "@/components/PageLoading";
 import type { ReactNode } from "react";
 import { Navigate, NavLink, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -30,6 +31,7 @@ function Loading() {
 export default function PortalLayout() {
   return (
     <PortalProvider fallback={<Loading />}>
+      <PrefetchPortalPages />
       <Shell />
     </PortalProvider>
   );
@@ -122,7 +124,9 @@ function Shell() {
               <QuickAction icon="ri-folder-3-line" label="New Project" onClick={() => setNewProjectOpen(true)} />
               <QuickAction icon="ri-chat-3-line" label="Messages" onClick={() => navigate("/account/messages")} badge={unread} />
             </div>
-            <Outlet />
+            <Suspense fallback={<PageLoading />}>
+              <Outlet />
+            </Suspense>
           </main>
         </div>
       </div>
@@ -175,4 +179,22 @@ export function PageHeader({ title, sub, action }: { title: string; sub?: string
       {action}
     </div>
   );
+}
+
+/** Fetch the dashboard's pages in the background so moving between them is instant. */
+function PrefetchPortalPages() {
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void import("./pages/HomePage");
+      void import("./pages/ProjectsPage");
+      void import("./pages/ProjectDetailPage");
+      void import("./pages/BillingPage");
+      void import("./pages/InvoicePage");
+      void import("./pages/AccountPage");
+      void import("./pages/MessagesPage");
+      void import("./pages/HelpPage");
+    }, 300);
+    return () => clearTimeout(t);
+  }, []);
+  return null;
 }

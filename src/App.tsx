@@ -11,7 +11,7 @@ function Routes() {
   const { pathname } = useLocation();
   useEffect(() => applyPageMeta(pathname), [pathname]);
   return (
-    <ErrorBoundary key={pathname}>
+    <ErrorBoundary resetKey={pathname}>
       <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--warm-white)" }} />}>
         <AppRoutes />
       </Suspense>

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
+import PageLoading from "@/components/PageLoading";
 import type { ReactNode } from "react";
 import { Link, Navigate, NavLink, Outlet, useNavigate, useOutletContext } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -60,6 +61,23 @@ function Shell() {
   }, [demo, profile.is_staff, projects]);
 
   useEffect(reloadClients, [reloadClients]);
+
+  // Fetch every Studio page in the background once the console is open, so
+  // switching between them never waits for a download.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void import("./pages/OverviewPage");
+      void import("./pages/LeadsPage");
+      void import("./pages/ProjectsPage");
+      void import("./pages/InboxPage");
+      void import("./pages/SupportPage");
+      void import("./pages/InvoicesPage");
+      void import("./pages/ClientsPage");
+      void import("./pages/TeamPage");
+      void import("./templates/TemplatesPage");
+    }, 300);
+    return () => clearTimeout(t);
+  }, []);
 
   // New inquiries waiting for a first reply (badge on Leads).
   const [newLeads, setNewLeads] = useState(0);
@@ -144,7 +162,9 @@ function Shell() {
           </div>
         </header>
         <main className="px-5 py-8 md:px-8">
-          <Outlet context={{ owners, members, directory, reloadClients } satisfies StudioOutlet} />
+          <Suspense fallback={<PageLoading />}>
+            <Outlet context={{ owners, members, directory, reloadClients } satisfies StudioOutlet} />
+          </Suspense>
         </main>
       </div>
     </div>

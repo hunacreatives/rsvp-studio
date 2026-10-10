@@ -105,7 +105,7 @@ export default function AccountPage() {
         <OutlineCard>
           <Row
             title="Project updates"
-            sub="Get notified about designs, approvals, messages, and project milestones."
+            sub="Emails when we message you, post an update or add a task — and when a guest RSVPs."
             action={
               <Toggle
                 label="Project updates"
@@ -117,7 +117,7 @@ export default function AccountPage() {
           <Row
             border
             title="Billing updates"
-            sub="Receive invoice and payment reminders."
+            sub="Emails for new invoices, payment reminders and receipts."
             action={
               <Toggle
                 label="Billing updates"

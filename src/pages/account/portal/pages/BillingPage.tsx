@@ -2,82 +2,55 @@ import { useState } from "react";
 import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
 import { InvoiceTable, isOverdue } from "../components/blocks";
-import { formatLongDate, formatMoney } from "../format";
-import { ErrorText, Field, FilterTabs, Input, Modal, PillButton, PrimaryButton, Textarea } from "../ui";
-import { useNavigate } from "react-router-dom";
+import { formatMoney } from "../format";
+import { ErrorText, Field, Input, Modal, PillButton, PrimaryButton, Textarea } from "../ui";
 
-type Filter = "all" | "open" | "paid";
-
+/**
+ * Billing: what's left to pay (each with its own Pay button), then what's been
+ * paid (receipts). No separate "amount due" card repeating the same invoices —
+ * the list is the summary; a total appears only when there's more than one.
+ */
 export default function BillingPage() {
   const { invoices } = usePortal();
-  const navigate = useNavigate();
-  // Nothing unpaid? Open on the full history instead of an empty list.
-  const [filter, setFilter] = useState<Filter>(() => (invoices.some((i) => i.status === "open") ? "open" : "all"));
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const live = invoices.filter((i) => i.status !== "void");
-  const open = live.filter((i) => i.status === "open").sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"));
-  const totalPaid = live.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
-  const outstanding = open.reduce((s, i) => s + i.amount, 0);
-  const next = open[0];
-  const shown = live.filter((i) => filter === "all" || i.status === filter);
+  const unpaid = invoices.filter((i) => i.status === "open").sort((a, b) => (a.due_date ?? "0000").localeCompare(b.due_date ?? "0000"));
+  const paid = invoices.filter((i) => i.status === "paid").sort((a, b) => (b.paid_at ?? "").localeCompare(a.paid_at ?? ""));
+  const owed = unpaid.reduce((s, i) => s + i.amount, 0);
+  const totalPaid = paid.reduce((s, i) => s + i.amount, 0);
+  const late = unpaid.filter(isOverdue).length;
 
   return (
     <>
       <PageHeader title="Billing" sub="What you owe, what you’ve paid, and your receipts." />
 
-      {/* The summary: what's owed and by when. Which invoices make it up is the list below. */}
-      {next ? (
-        <div className="flex flex-wrap items-end justify-between gap-4 px-1 md:px-8">
-          <div>
-            <p className="text-[13px] uppercase tracking-[0.04em] text-[var(--slate)]">Amount due</p>
-            <p className="text-[28px] font-semibold text-[var(--ink)]">{formatMoney(outstanding)}</p>
-            {/* The due date carries the status: only an overdue invoice needs flagging. */}
-            <p className={`flex flex-wrap items-center gap-2 text-[13px] ${isOverdue(next) ? "text-[#c2412d]" : "text-[var(--slate)]"}`}>
-              {open.length > 1 ? `${open.length} invoices · next due ` : ""}
-              {next.due_date ? `${open.length > 1 ? "" : "Due "}${formatLongDate(next.due_date)}` : "Due now"}
-              {isOverdue(next) ? <span className="rounded-full border border-[#c2412d] px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.04em]">Overdue</span> : null}
+      <section>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <h2 className="font-display text-[1.8rem] font-semibold leading-tight text-[var(--ink)]">To pay</h2>
+          {unpaid.length > 1 ? (
+            <p className={`text-[15px] ${late ? "text-[#c2412d]" : "text-[var(--slate)]"}`}>
+              {formatMoney(owed)} across {unpaid.length} invoices{late ? ` · ${late} overdue` : ""}
             </p>
-          </div>
-          <PillButton tone="primary" onClick={() => navigate(`/account/billing/${next.id}`)}>
-            Pay now
-          </PillButton>
+          ) : null}
         </div>
-      ) : (
-        <div className="px-1 md:px-8">
-          <p className="text-[13px] uppercase tracking-[0.04em] text-[var(--slate)]">Amount due</p>
-          <p className="text-[28px] font-semibold text-[var(--ink)]">{formatMoney(0)}</p>
-          <p className="text-[13px] text-[var(--slate)]">You’re all paid up.</p>
-        </div>
-      )}
+        <InvoiceTable invoices={unpaid} payable empty="You’re all paid up — nothing to pay right now." />
+        {unpaid.length ? <p className="mt-3 text-[13px] text-[var(--slate)]">Open an invoice to see exactly what it covers, then pay with GCash, Maya, card or QR Ph. Your receipt appears below as soon as the payment goes through.</p> : null}
+      </section>
 
-      <div className="mt-14 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="font-display text-[2.2rem] font-semibold leading-tight text-[var(--ink)] md:text-[2.6rem]">Invoices</h2>
-          <p className="text-[18px] text-[var(--ink)]">
-            Your complete billing history.{totalPaid > 0 ? <span className="text-[var(--slate)]"> {formatMoney(totalPaid)} paid so far.</span> : null}
-          </p>
+      <section className="mt-12">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <h2 className="font-display text-[1.8rem] font-semibold leading-tight text-[var(--ink)]">Paid</h2>
+          {totalPaid > 0 ? <p className="text-[15px] text-[var(--slate)]">{formatMoney(totalPaid)} paid so far</p> : null}
         </div>
-        <FilterTabs<Filter>
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { value: "open", label: "Unpaid" },
-            { value: "paid", label: "Paid" },
-            { value: "all", label: "All" },
-          ]}
-        />
-      </div>
-      <div className="mt-8">
-        <InvoiceTable invoices={shown} empty={filter === "open" ? "Nothing to pay right now." : filter === "paid" ? "No paid invoices yet." : undefined} />
-      </div>
+        <InvoiceTable invoices={paid} empty="No payments yet — receipts will show here." />
+      </section>
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4 px-1 md:px-8">
         <div>
           <p className="text-[16px] text-[var(--ink)]">Billing details</p>
-          <p className="text-[13px] text-[var(--slate)]">Manage your billing information and payment details.</p>
+          <p className="text-[13px] text-[var(--slate)]">The name and email on your invoices and receipts.</p>
         </div>
-        <PillButton onClick={() => setDetailsOpen(true)}>Manage billing</PillButton>
+        <PillButton onClick={() => setDetailsOpen(true)}>Edit details</PillButton>
       </div>
 
       <BillingDetailsModal open={detailsOpen} onClose={() => setDetailsOpen(false)} />
