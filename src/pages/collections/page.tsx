@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -40,8 +40,14 @@ const BROUGHT_TO_LIFE = [
   { couple: "Isabella & James", base: "Classic", seed: 6 },
 ];
 
+/** "#baby-shower" → "Baby Shower" (menu links pre-select a filter). */
+const fromHash = <T extends string>(options: readonly T[], hash: string, fallback: T): T =>
+  options.find((o) => o.toLowerCase().replace(/[^a-z]+/g, "-") === hash.replace(/^#/, "").toLowerCase()) ?? fallback;
+
 function CollectionsGrid() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const { hash } = useLocation();
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>(() => fromHash(FILTERS, hash, "All"));
+  useEffect(() => setFilter(fromHash(FILTERS, hash, "All")), [hash]);
   const shown = useMemo(
     () =>
       filter === "All"
@@ -197,21 +203,21 @@ function BespokeBanner() {
             Looking for something uniquely yours?
           </h2>
           <p className="mt-4 text-[var(--slate)]">
-            Our bespoke service starts from scratch, with every detail tailored to
+            Our Custom service starts from scratch, with every detail designed around
             your story, style, and celebration.
           </p>
           <button
             className="btn btn-primary mt-8"
             onClick={() => navigate("/enquire#start")}
           >
-            Explore Bespoke Design
+            Ask about Custom design
           </button>
         </div>
 
         <div className="mt-14 flex justify-center">
           <img
             src="/collections/bespoke-devices.png"
-            alt="A bespoke wedding website on a tablet and phone"
+            alt="A custom wedding website on a tablet and phone"
             className="w-full max-w-[440px] drop-shadow-[0_40px_80px_rgba(0,7,39,0.2)]"
           />
         </div>

@@ -68,7 +68,7 @@ export default function RatePage() {
                   ? "We’re sorry it wasn’t better. Someone from the studio will look at this personally."
                   : "Your feedback helps us look after every couple and family we work with."}
               </p>
-              <p className="mt-2 text-[13px] text-[var(--slate)]">Changed your mind? Pick again and resubmit any time in the next two weeks.</p>
+              <p className="mt-2 text-[13px] text-[var(--slate)]">Changed your mind? You can change your answer for 2 weeks.</p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button type="button" className="btn btn-ghost" onClick={() => setState("idle")}>Change rating</button>
                 <Link to="/account/help" className="btn btn-primary">Go to Help</Link>

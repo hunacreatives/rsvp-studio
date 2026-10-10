@@ -6,6 +6,7 @@ import { resolveTemplate } from "../engine/render";
 import ContentEditor from "./ContentEditor";
 import PreviewCanvas from "./components/PreviewCanvas";
 import { useEventSiteDraft } from "./useEventSiteDraft";
+import { PublishDialog, usePublishFlow } from "./PublishDialog";
 
 // V1 builder shell: template picker + content editing forms + a live
 // preview, all against a real Supabase-backed draft. Requires
@@ -23,7 +24,10 @@ export default function BuilderShellPage() {
     presentation,
     save,
     publish,
+    unpublish,
+    hasUnpublishedChanges,
   } = useEventSiteDraft(eventId);
+  const flow = usePublishFlow(eventId, publish, save);
 
   const catalog = useTemplateCatalog();
   const resolved = resolveTemplate(presentation);
@@ -36,8 +40,7 @@ export default function BuilderShellPage() {
   if (status === "error") {
     return (
       <div style={{ padding: 48, color: "var(--slate)" }}>
-        Couldn&apos;t load this event&apos;s site. Make sure
-        supabase/wedding-sites-schema.sql has been run against the database, then refresh.
+        We couldn&apos;t open your website. Please refresh the page, or message us if it keeps happening.
       </div>
     );
   }
@@ -89,8 +92,11 @@ export default function BuilderShellPage() {
         >
           Save draft
         </button>
+        {publishedAt && hasUnpublishedChanges ? (
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#8a5a00", background: "#fff1d6", borderRadius: 999, padding: "4px 10px" }}>Edits not live yet</span>
+        ) : null}
         <button
-          onClick={publish}
+          onClick={flow.start}
           style={{
             padding: "8px 16px",
             borderRadius: 999,
@@ -102,14 +108,23 @@ export default function BuilderShellPage() {
             cursor: "pointer",
           }}
         >
-          Publish
+          {publishedAt ? "Update live site" : "Publish site"}
         </button>
         {publishedAt && slug ? (
-          <a href={`/invite/${slug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "var(--slate)" }}>
-            View live site &rarr;
-          </a>
+          <>
+            <a href={`/invite/${slug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "var(--slate)" }}>
+              View live site &rarr;
+            </a>
+            <button
+              onClick={() => window.confirm("Take your site offline? Guests won’t be able to open it or RSVP until you publish again (free).") && unpublish()}
+              style={{ fontSize: 12, color: "var(--slate)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+            >
+              Unpublish
+            </button>
+          </>
         ) : null}
       </header>
+      <PublishDialog flow={flow} slug={slug} />
 
       <div style={{ flex: 1, display: "flex", minHeight: 0, overflow: "hidden" }}>
         <div

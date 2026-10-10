@@ -1,8 +1,8 @@
 import { Reveal } from "@/lib/Reveal";
 
 const CHANNELS = [
-  { icon: "ri-whatsapp-line", label: "WhatsApp" },
-  { icon: "ri-message-3-line", label: "iMessage" },
+  { icon: "ri-messenger-line", label: "Messenger" },
+  { icon: "ri-chat-3-line", label: "Viber" },
   { icon: "ri-mail-line", label: "Email" },
   { icon: "ri-share-forward-line", label: "Social" },
 ];

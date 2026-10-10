@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, esc } from "./_lib/email.js";
-import { code, FROM, layout, makeSendMail, RATING_LABEL, RATINGS, readRatingToken, STUDIO_INBOX, topicOf, type Rating } from "./_lib/support-mail.js";
+import { code, FROM, reqCode, layout, makeSendMail, RATING_LABEL, RATINGS, readRatingToken, STUDIO_INBOX, topicOf, type Rating } from "./_lib/support-mail.js";
 
 // "How did we do?" — the rating page (/rate) talks to this.
 //   GET  ?t=<signed token>  → which request, and any rating already given (nothing is written)
@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!thread?.ticket_number) return res.status(404).json({ error: "We couldn’t find that request." });
 
   if (req.method === "GET") {
-    return res.status(200).json({ ticket: code(thread.ticket_number), topic: topicOf(thread.category), rating: thread.rating, comment: thread.rating_comment });
+    return res.status(200).json({ ticket: reqCode(thread.ticket_number), topic: topicOf(thread.category), rating: thread.rating, comment: thread.rating_comment });
   }
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 

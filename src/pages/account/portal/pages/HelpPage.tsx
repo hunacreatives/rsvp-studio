@@ -6,7 +6,7 @@ import type { QA } from "../help-data";
 import { PillButton, PrimaryButton } from "../ui";
 import { usePortal } from "../PortalContext";
 import { inboxStamp } from "../format";
-import { categoryLabel, parseTicket, ticketCode } from "../support";
+import { categoryLabel, parseTicket, requestCode } from "../support";
 import { SupportChip } from "./MessagesPage";
 
 export default function HelpPage() {
@@ -135,7 +135,7 @@ export default function HelpPage() {
             <dd className="text-[13px] text-[var(--slate)]">{SUPPORT.hours}</dd>
           </div>
           <div>
-            <dt className="text-[16px] font-semibold">Average response time</dt>
+            <dt className="text-[16px] font-semibold">We reply</dt>
             <dd className="text-[13px] text-[var(--slate)]">{SUPPORT.responseTime}</dd>
           </div>
         </dl>
@@ -202,7 +202,7 @@ function MyRequests() {
   const n = parseTicket(q);
   const term = q.trim().toLowerCase();
   const shown = mine.filter(
-    (t) => !term || (n !== null ? t.ticket_number === n : [ticketCode(t.ticket_number), categoryLabel(t.category), t.lastMessage?.body].some((v) => v?.toLowerCase().includes(term))),
+    (t) => !term || (n !== null ? t.ticket_number === n : [requestCode(t.ticket_number), categoryLabel(t.category), t.lastMessage?.body].some((v) => v?.toLowerCase().includes(term))),
   );
   const list = all || term ? shown : shown.slice(0, 4);
   return (
@@ -210,7 +210,7 @@ function MyRequests() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-[1.6rem] font-semibold text-[var(--ink)]">My support requests</h2>
-          <p className="text-[13px] text-[var(--slate)]">Find one by its number (like {ticketCode(mine[0].ticket_number)}) or a word from it.</p>
+          <p className="text-[13px] text-[var(--slate)]">Find one by its number (like {requestCode(mine[0].ticket_number)}) or a word from it.</p>
         </div>
         <input
           value={q}
@@ -226,7 +226,7 @@ function MyRequests() {
             to={`/account/messages?thread=${t.id}`}
             className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--line)] px-5 py-3 last:border-0 hover:bg-[var(--paper)]"
           >
-            <span className="w-[86px] shrink-0 font-medium text-[var(--ink)]">{ticketCode(t.ticket_number)}</span>
+            <span className="w-[86px] shrink-0 font-medium text-[var(--ink)]">{requestCode(t.ticket_number)}</span>
             <span className="min-w-0 flex-1">
               <span className="block text-[14px] text-[var(--ink)]">{categoryLabel(t.category)}</span>
               <span className="block truncate text-[12px] text-[var(--slate)]">{t.lastMessage?.body || "Sent a file"}</span>

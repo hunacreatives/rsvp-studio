@@ -81,7 +81,7 @@ export default function OverviewPage() {
                 <span className="text-right">
                   <span className="block text-[14px] text-[var(--ink)]">{formatMoney(i.amount)}</span>
                   <span className={`block text-[12px] ${isOverdue(i) ? "font-medium text-[#c2412d]" : "text-[var(--slate)]"}`}>
-                    {isOverdue(i) ? "Overdue · " : ""}{i.due_date ? formatDate(i.due_date) : "On receipt"}
+                    {isOverdue(i) ? "Overdue · " : ""}{i.due_date ? formatDate(i.due_date) : "Due now"}
                   </span>
                 </span>
               </Link>

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -25,7 +25,7 @@ const CATEGORIES: Category[] = [
 type Group = { label: string; tags: string[] };
 
 const EVENT_GROUPS: Group[] = [
-  { label: "Type", tags: ["Semi-Custom", "Tailored"] },
+  { label: "Type", tags: ["Semi-Custom", "Custom"] },
   { label: "Wedding", tags: ["Wedding"] },
   { label: "Birthday", tags: ["1st Birthday", "Kids Birthday", "Adult Birthday"] },
   {
@@ -47,7 +47,12 @@ const SUBFILTERS: Record<Exclude<Category, "All">, Group[]> = {
 };
 
 export default function PortfolioPage() {
-  const [category, setCategory] = useState<Category>("All");
+  // Menu links (/portfolio#monogram …) pre-select a category.
+  const { hash } = useLocation();
+  const fromHash = (h: string): Category =>
+    ({ "#milestone": "Milestone Events Website", "#monogram": "Monogram", "#save-the-date": "Digital Save the Date", "#stationery": "Stationery" } as Record<string, Category>)[h] ?? "All";
+  const [category, setCategory] = useState<Category>(() => fromHash(hash));
+  useEffect(() => setCategory(fromHash(hash)), [hash]);
   const [tag, setTag] = useState<string | null>(null);
 
   const shown = useMemo(() => {

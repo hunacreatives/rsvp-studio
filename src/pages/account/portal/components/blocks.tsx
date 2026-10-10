@@ -18,7 +18,8 @@ export function ProjectStatusPill({ project }: { project: Project }) {
   );
 }
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+/** Today's date in Manila (so "overdue" flips at midnight Philippine time, not 8 AM). */
+const todayIso = () => new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
 
 export function isOverdue(inv: Invoice) {
   return inv.status === "open" && !!inv.due_date && inv.due_date < todayIso();
@@ -26,10 +27,13 @@ export function isOverdue(inv: Invoice) {
 
 export function InvoicePill({ invoice }: { invoice: Invoice }) {
   if (invoice.status === "paid") return <StatusPill tone="lime" size="md">Paid</StatusPill>;
-  if (invoice.status === "void") return <StatusPill tone="grey" size="md">Void</StatusPill>;
+  if (invoice.status === "void") return <StatusPill tone="grey" size="md">Cancelled</StatusPill>;
   if (isOverdue(invoice)) return <StatusPill tone="coral" size="md">Overdue</StatusPill>;
-  return <StatusPill tone="lavender" size="md">Open</StatusPill>;
+  return <StatusPill tone="lavender" size="md">Unpaid</StatusPill>;
 }
+
+/** "Your turn" when the client has to act, "We're working on" when the studio does. */
+export const nextStepLabel = (p: Pick<Project, "next_step_owner">) => (p.next_step_owner === "client" ? "Your turn" : p.next_step_owner === "studio" ? "We’re working on" : "Next step");
 
 /** Home grid card (design: Home → "Your Projects"). */
 export function ProjectCard({ project }: { project: Project }) {
@@ -50,7 +54,9 @@ export function ProjectCard({ project }: { project: Project }) {
         <div className="mt-3 border-t border-[#dcdce0] pt-3 text-[12.5px] text-[var(--ink)]">
           <p>Last updated {formatDate(project.updated_at)}</p>
           {project.project_status !== "completed" && project.next_step ? (
-            <p className="font-semibold">Next step: {project.next_step}</p>
+            <p className="font-semibold">
+              {nextStepLabel(project)}: {project.next_step}
+            </p>
           ) : null}
         </div>
       </div>
@@ -81,7 +87,7 @@ export function ProjectRow({ project }: { project: Project }) {
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#dcdce0] pt-4 text-[13px]">
           <div>
-            <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Status" : "Next step"}</p>
+            <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Status" : nextStepLabel(project)}</p>
             <p className="text-[var(--ink)]">{done ? "Project Complete" : project.next_step || "We’ll post your next step soon"}</p>
           </div>
           <div>

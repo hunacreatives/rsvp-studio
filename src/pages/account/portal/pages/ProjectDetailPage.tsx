@@ -5,7 +5,7 @@ import { getTemplateDefinition } from "@/pages/wedding-sites/engine/registry";
 import { useTemplateCatalog } from "@/pages/wedding-sites/engine/catalog";
 import { usePortal } from "../PortalContext";
 import * as api from "../api";
-import { ActivityList, InvoiceTable, ProjectStatusPill, TaskList, useProjectCover } from "../components/blocks";
+import { ActivityList, InvoiceTable, ProjectStatusPill, TaskList, useProjectCover, nextStepLabel } from "../components/blocks";
 import { formatDate, formatLongDate, servicesLabel } from "../format";
 import type { Project } from "../types";
 import { Cover, FilterTabs, OutlineCard, Panel, PillButton, ProgressBar, SectionTitle } from "../ui";
@@ -68,7 +68,7 @@ export default function ProjectDetailPage() {
           </div>
           <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#dcdce0] pt-4 text-[13px]">
             <div>
-              <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Status" : "Next step"}</p>
+              <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Status" : nextStepLabel(project)}</p>
               <p className="text-[var(--ink)]">{done ? "Project Complete" : project.next_step || "We’ll post your next step soon"}</p>
             </div>
             <div>

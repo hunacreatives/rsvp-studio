@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { esc } from "./_lib/email.js";
 import { processInbound } from "./_lib/support-inbound.js";
-import { code, customerReplyTo, emailRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
+import { code, customerReplyTo, reqCode, emailRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
 
 // The daily support job — Vercel Cron, ~9 AM Manila (vercel.json: "0 1 * * *" UTC).
 //   1. "Still need help?" reminder: waiting on the customer 3 days (1 day if urgent).
@@ -108,12 +108,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         {
           from: FROM,
           to: p.email,
-          subject: `[${code(t.ticket_number)}] Still need help?`,
+          subject: `[${reqCode(t.ticket_number)}] Still need help?`,
           replyTo: customerReplyTo(t),
           headers: threadHeaders(t.ticket_number, true, t.reply_key),
           html: layout(
             "Still need help?",
-            `Hi ${firstName(p.full_name)},<br><br>We replied to your ${esc(topicOf(t.category))} request (<strong>${code(t.ticket_number)}</strong>) and haven’t heard back. If you still need anything, just reply in your dashboard — we’re here.<br><br>No action needed if you’re all set.${
+            `Hi ${firstName(p.full_name)},<br><br>We replied to your ${esc(topicOf(t.category))} request (<strong>${reqCode(t.ticket_number)}</strong>) and haven’t heard back. If you still need anything, just reply in your dashboard — we’re here.<br><br>No action needed if you’re all set.${
               willClose ? ` If we don’t hear from you, we’ll close it around ${fmtDay(closesOn)}; after that you can always start a new request.` : ""
             }`,
             { label: "View your request", url: `${SITE}/account/messages?thread=${t.id}` },
@@ -145,12 +145,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         {
           from: FROM,
           to: p.email,
-          subject: `[${code(t.ticket_number)}] We’ve closed your request`,
+          subject: `[${reqCode(t.ticket_number)}] We’ve closed your request`,
           replyTo: customerReplyTo(t),
           headers: threadHeaders(t.ticket_number, true, t.reply_key),
           html: layout(
             "We’ve closed your request",
-            `Hi ${firstName(p.full_name)},<br><br>We didn’t hear back about <strong>${code(t.ticket_number)}</strong> (${esc(topicOf(t.category))}), so we’ve closed it. If it still needs attention, reply within 7 days and it reopens — or start a new request any time.`,
+            `Hi ${firstName(p.full_name)},<br><br>We didn’t hear back about <strong>${reqCode(t.ticket_number)}</strong> (${esc(topicOf(t.category))}), so we’ve closed it. If it still needs attention, reply within 7 days and it reopens — or start a new request any time.`,
             { label: "View your request", url: `${SITE}/account/messages?thread=${t.id}` },
             serviceFooter(),
           ),

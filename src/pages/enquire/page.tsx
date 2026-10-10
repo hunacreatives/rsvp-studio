@@ -253,11 +253,11 @@ export default function ProjectInquiry() {
                   <div className="space-y-8">
                     <SectionTitle>Services &amp; direction</SectionTitle>
 
-                    <Field label="Bespoke Design or Semi-Custom?">
+                    <Field label="Custom or Semi-Custom?">
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {[
-                          { val: "bespoke", title: "Bespoke Design", desc: "A fully custom, made-from-scratch experience tailored to your celebration." },
-                          { val: "semi-custom", title: "Semi-Custom", desc: "Personalised from one of our signature collections." },
+                          { val: "bespoke", title: "Custom", desc: "Designed from scratch, just for your celebration." },
+                          { val: "semi-custom", title: "Semi-Custom", desc: "One of our ready designs, personalised with your details, photos and colours." },
                         ].map((opt) => (
                           <button
                             key={opt.val}
@@ -286,7 +286,7 @@ export default function ProjectInquiry() {
 
                     {getStr("design_type") === "bespoke" && (
                       <PillGroup
-                        label="Which bespoke collection?"
+                        label="Want a printed stationery suite too? (optional)"
                         options={BESPOKE_COLLECTIONS}
                         multi
                         value={getArr("bespoke_collections")}

@@ -12,7 +12,7 @@ const must = <T,>(r: { data: T; error: { message: string } | null }) => {
 };
 
 export type ProjectPatch = Partial<
-  Pick<Project, "name" | "event_date" | "event_type" | "project_status" | "services" | "progress" | "next_step" | "next_step_due" | "cover_image_url" | "site_url">
+  Pick<Project, "name" | "event_date" | "event_type" | "project_status" | "services" | "progress" | "next_step" | "next_step_due" | "next_step_owner" | "cover_image_url" | "site_url">
 >;
 
 export async function updateProject(id: string, patch: ProjectPatch, announce?: string) {
@@ -27,7 +27,7 @@ export async function createProject(input: { name: string; event_type: string; e
   const row = must(
     await supabase
       .from("events")
-      .insert({ ...input, owner_id: null, table_name: null, project_status: "in_progress", progress: 0 })
+      .insert({ ...input, owner_id: null, table_name: null, project_status: "in_progress", progress: 0, managed_by_studio: true })
       .select("id")
       .single(),
   );
@@ -68,6 +68,39 @@ export async function createInvoice(input: {
 export async function setInvoiceStatus(id: string, status: InvoiceStatus) {
   must(await supabase.from("invoices").update({ status, paid_at: status === "paid" ? new Date().toISOString() : null }).eq("id", id));
   if (status === "paid") notify({ kind: "payment", invoiceId: id });
+}
+
+/** A payment made outside PayMongo (bank transfer, cash…): the date it arrived, how, and an optional receipt email. */
+export async function recordPayment(id: string, p: { paidOn: string; method: string; reference: string; sendReceipt: boolean }) {
+  must(
+    await supabase
+      .from("invoices")
+      .update({ status: "paid", paid_at: p.paidOn ? `${p.paidOn}T12:00:00+08:00` : new Date().toISOString(), paid_method: p.method || null, paid_reference: p.reference.trim() || null })
+      .eq("id", id),
+  );
+  if (p.sendReceipt) notify({ kind: "payment", invoiceId: id });
+}
+
+/** Undo "paid" (it was a mistake). Optionally tell the client, with a note. */
+export async function markInvoiceUnpaid(id: string, tell: boolean, note: string) {
+  must(await supabase.from("invoices").update({ status: "open", paid_at: null, paid_method: null, paid_reference: null }).eq("id", id));
+  if (tell) notify({ kind: "invoice_unpaid", invoiceId: id, note });
+}
+
+/** Cancel an invoice. Optionally tell the client, with a note. */
+export async function voidInvoice(id: string, tell: boolean, note: string) {
+  must(await supabase.from("invoices").update({ status: "void" }).eq("id", id));
+  if (tell) notify({ kind: "invoice_void", invoiceId: id, note });
+}
+
+/** Fix an unpaid invoice (typo in the amount, new due date…). The client sees the change on their invoice. */
+export async function updateInvoice(id: string, patch: { description: string; amount: number; due_date: string | null; notes: string | null }) {
+  must(await supabase.from("invoices").update(patch).eq("id", id).eq("status", "open"));
+}
+
+/** Email the client a reminder (also records when, for "Last reminded"). */
+export async function sendInvoiceReminder(id: string) {
+  await notify({ kind: "invoice_reminder", invoiceId: id });
 }
 
 export async function setInvoicePaymentUrl(id: string, url: string | null) {
@@ -284,4 +317,21 @@ export async function splitSupportMessage(messageId: string) {
 /** A new email reply address for a request — the old one stops working. */
 export async function rotateReplyKey(threadId: string) {
   return must(await supabase.rpc("support_rotate_reply_key", { p_thread: threadId })) as string;
+}
+
+// ---------------------------------------------------------------------------
+// DIY website prices (supabase/payments.sql). 0 = free to publish.
+
+export type SitePrices = { free: number; premium: number };
+
+export async function loadSitePrices(): Promise<SitePrices | null> {
+  const { data, error } = await supabase.from("site_prices").select("tier, amount");
+  if (error) return null;
+  const by = Object.fromEntries((data ?? []).map((r) => [r.tier, Number(r.amount)]));
+  return { free: by.free ?? 0, premium: by.premium ?? 0 };
+}
+
+export async function saveSitePrices(p: SitePrices) {
+  const now = new Date().toISOString();
+  must(await supabase.from("site_prices").upsert([{ tier: "free", amount: p.free, updated_at: now }, { tier: "premium", amount: p.premium, updated_at: now }]));
 }

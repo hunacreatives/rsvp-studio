@@ -23,6 +23,19 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
 // one takes them into the editor with that template already selected as
 // their DRAFT (never publishes anything by itself).
 
+// What publishing costs, by template tier (Studio → Templates). Loaded once.
+let pricesCache: Promise<Record<string, number>> | null = null;
+function useSitePrices() {
+  const [prices, setPrices] = useState<Record<string, number> | null>(null);
+  useEffect(() => {
+    pricesCache ??= Promise.resolve(supabase.from("site_prices").select("tier, amount")).then(({ data }) => Object.fromEntries((data ?? []).map((r) => [r.tier, Number(r.amount)])));
+    pricesCache.then(setPrices);
+  }, []);
+  return prices;
+}
+const priceLabel = (amount: number | undefined) =>
+  amount === undefined ? "" : amount > 0 ? `${new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(amount)} to publish` : "Free to publish";
+
 function TemplateCard({
   template,
   selected,
@@ -32,6 +45,7 @@ function TemplateCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const prices = useSitePrices();
   return (
     // A div, not a <button>: templates that preview with real demo
     // content can contain their own buttons, and nesting interactive
@@ -59,12 +73,12 @@ function TemplateCard({
       >
         <TemplateMockupPreview template={template} />
 
-        {template.tier === "premium" ? (
+        {template.tier === "premium" || prices ? (
           <span
             className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[11px] font-semibold"
-            style={{ background: "var(--acc-yellow)", color: "var(--ink)" }}
+            style={{ background: template.tier === "premium" ? "var(--acc-yellow)" : "#fff", color: "var(--ink)" }}
           >
-            Premium
+            {[template.tier === "premium" ? "Premium" : "", priceLabel(prices?.[template.tier])].filter(Boolean).join(" · ")}
           </span>
         ) : null}
 

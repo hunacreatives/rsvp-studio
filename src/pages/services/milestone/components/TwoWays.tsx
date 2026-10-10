@@ -11,12 +11,12 @@ const OPTIONS = [
     alt: "Semi-custom wedding website — Mark & Nicole",
   },
   {
-    title: "Tailored",
+    title: "Custom",
     lines: ["Designed around your story.", "Every detail, entirely yours."],
     cta: "Begin your project",
     to: "/enquire#start",
     img: "/services/milestone/tailored-page.png",
-    alt: "Fully tailored wedding website — Our Story page",
+    alt: "Custom wedding website — Our Story page",
   },
 ];
 

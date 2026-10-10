@@ -32,6 +32,10 @@ export type Project = {
   progress: number;
   next_step: string | null;
   next_step_due: string | null;
+  /** Whose turn the next step is: the client's ("Your turn") or the studio's ("We're working on"). */
+  next_step_owner?: "client" | "studio" | null;
+  /** A project the studio runs (vs a DIY website the customer built). */
+  managed_by_studio?: boolean;
   cover_image_url: string | null;
   site_url: string | null;
   completed_at: string | null;
@@ -76,6 +80,10 @@ export type Invoice = {
   paid_at: string | null;
   payment_url: string | null;
   notes: string | null;
+  /** How it was paid (gcash · card · bank transfer …) and its reference — supabase/payments.sql. */
+  paid_method?: string | null;
+  paid_reference?: string | null;
+  last_reminded_at?: string | null;
 };
 
 export type ThreadKind = "project" | "support" | "general";

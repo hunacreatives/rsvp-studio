@@ -40,7 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
         {
           title: "For Event Planners",
           links: [
-            { label: "Collaborate With RSVP Studio", to: "/enquire/partner" },
+            { label: "Partner with The RSVP Studio", to: "/enquire/partner" },
           ],
         },
       ],
@@ -70,7 +70,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/portfolio",
     mega: {
       exploreEyebrow: "Explore Our Portfolio",
-      exploreCta: { label: "Explore All Portfolio", to: "/portfolio" },
+      exploreCta: { label: "View all our work", to: "/portfolio" },
       groups: [
         {
           title: "Portfolio",
@@ -106,18 +106,17 @@ export const NAV_ITEMS: NavItem[] = [
         },
         {
           title: "For Event Planners",
-          links: [{ label: "Collaboration Process", to: "/faqs#collaboration" }],
+          links: [{ label: "Partner with us", to: "/enquire/partner" }],
         },
       ],
     },
   },
-  { label: "Blog", to: "/blog" },
   {
     label: "Inquire",
     to: "/enquire",
     mega: {
-      exploreEyebrow: "Explore Our Inquiry",
-      exploreCta: { label: "Explore All Inquiry", to: "/enquire" },
+      exploreEyebrow: "Work with us",
+      exploreCta: { label: "Start an inquiry", to: "/enquire" },
       groups: [
         {
           title: "For Clients",

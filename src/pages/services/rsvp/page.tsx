@@ -18,7 +18,7 @@ function CtaStrip() {
             Every reply, <span className="text-[var(--slate)]">in one place.</span>
           </h2>
           <p className="mt-2 text-lg text-[var(--slate)]">
-            RSVP Management comes built into every RSVP Studio event website.
+            RSVP Management comes built into every event website we make.
           </p>
         </Reveal>
         <Reveal delay={0.06}>

@@ -60,6 +60,8 @@ export const SUPPORT_TOPIC: Record<string, string> = {
 };
 export const topicOf = (c: string | null | undefined) => SUPPORT_TOPIC[c ?? "other"] ?? "Support";
 export const code = (n: number) => `SUP-${n}`;
+/** How customers see the number: "Request #1042" (the Studio keeps SUP-1042). */
+export const reqCode = (n: number) => `Request #${n}`;
 export const firstName = (name: string | null | undefined) => esc((name || "").split(" ")[0] || "there");
 
 /**

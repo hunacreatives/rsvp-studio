@@ -14,13 +14,13 @@ const PLANS = [
     ],
   },
   {
-    title: "Tailored",
+    title: "Custom",
     price: "₱8,000",
     img: "/services/milestone/tailored-page.png",
     features: [
       { icon: "ri-quill-pen-line", title: "Designed from Scratch", copy: "Everything is designed exclusively for you" },
       { icon: "ri-team-line", title: "Collaborative Design", copy: "A hands-on experience from start to finish" },
-      { icon: "ri-book-open-line", title: "Editorial Storytelling", copy: "Bespoke storytelling that brings your vision to life" },
+      { icon: "ri-book-open-line", title: "Editorial Storytelling", copy: "Storytelling designed from scratch around your vision" },
       { icon: "ri-magic-line", title: "Custom Animations", copy: "Custom interactions and animations designed uniquely for your site" },
       { icon: "ri-fingerprint-line", title: "Signature Design", copy: "Thoughtfully designed with your story at the center" },
     ],

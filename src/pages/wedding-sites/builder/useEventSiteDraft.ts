@@ -106,7 +106,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
 
       const { data: existing } = await supabase
         .from("wedding_sites")
-        .select("id, slug, draft_content, draft_presentation, published_at")
+        .select("id, slug, draft_content, draft_presentation, published_at, published_content, published_presentation")
         .eq("event_id", eventId)
         .maybeSingle();
 
@@ -122,6 +122,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
           draftPresentation && draftPresentation.activeTemplateId ? draftPresentation : defaultPresentation()
         );
         setPublishedAt(existing.published_at);
+        setLive(existing.published_at ? JSON.stringify([existing.published_content, existing.published_presentation]) : null);
         setStatus("ready");
         return;
       }
@@ -185,6 +186,8 @@ export function useEventSiteDraft(eventId: string | undefined) {
   // stale pre-update value, since this callback's closure hasn't seen
   // the update yet). Bug found via template selection silently reverting
   // to the previous template on reload — see decision log.
+  const [live, setLive] = useState<string | null>(null);
+
   const save = useCallback(async (overrides?: { content?: EventContent; presentation?: PresentationState }) => {
     if (!siteId) return;
     setSaveStatus("saving");
@@ -197,8 +200,12 @@ export function useEventSiteDraft(eventId: string | undefined) {
     setSaveStatus(error ? "error" : "saved");
   }, [siteId, content, presentation]);
 
-  const publish = useCallback(async () => {
-    if (!siteId) return;
+  /**
+   * Go live. A DIY site has to be paid for first: the database refuses with
+   * PAYMENT_REQUIRED (supabase/payments.sql) and the builder shows the price.
+   */
+  const publish = useCallback(async (): Promise<{ ok: boolean; paymentRequired?: boolean; message?: string }> => {
+    if (!siteId) return { ok: false, paymentRequired: false, message: "Your site hasn’t loaded yet." };
     setSaveStatus("saving");
     const nowIso = new Date().toISOString();
     // Guests' RSVP forms post content.slug — make sure it's the real one.
@@ -218,9 +225,30 @@ export function useEventSiteDraft(eventId: string | undefined) {
         ...pin,
       })
       .eq("id", siteId);
-    if (!error) setPublishedAt(nowIso);
-    setSaveStatus(error ? "error" : "saved");
+    if (error) {
+      const paymentRequired = /PAYMENT_REQUIRED/.test(error.message);
+      setSaveStatus(paymentRequired ? "saved" : "error");
+      return { ok: false, paymentRequired, message: paymentRequired ? "" : "Couldn’t publish — please try again." };
+    }
+    setPublishedAt(nowIso);
+    setLive(JSON.stringify([publishedContent, presentation]));
+    setSaveStatus("saved");
+    return { ok: true };
   }, [siteId, content, presentation, slug]);
+
+  /** Take the site offline (guests see "not available"); publishing again doesn't cost anything more. */
+  const unpublish = useCallback(async () => {
+    if (!siteId) return false;
+    const { error } = await supabase.from("wedding_sites").update({ published_at: null }).eq("id", siteId);
+    if (!error) {
+      setPublishedAt(null);
+      setLive(null);
+    }
+    return !error;
+  }, [siteId]);
+
+  // Edits not yet on the live site (compared with what was last published).
+  const hasUnpublishedChanges = !!live && live !== JSON.stringify([{ ...content, slug: slug || content.slug }, presentation]);
 
   return {
     status,
@@ -234,5 +262,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
     setPresentation,
     save,
     publish,
+    unpublish,
+    hasUnpublishedChanges,
   };
 }

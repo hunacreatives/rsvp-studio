@@ -35,7 +35,7 @@ export default function AccountOnboarding() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(body.error || "Something went wrong");
+      setError(body.error || "That didn’t work. Check the code, or message us at hello@thersvpstudio.com.");
       return;
     }
     navigate("/account");
@@ -50,7 +50,7 @@ export default function AccountOnboarding() {
           Link your event
         </h1>
         <p className="mt-3 text-[15px]" style={{ color: "var(--slate)" }}>
-          Enter the invite code we gave you at handoff to connect your account to your event's RSVPs.
+          Enter the code we sent you to see your event here.
         </p>
 
         <form className="mt-8 space-y-3" onSubmit={handleSubmit}>
@@ -71,7 +71,7 @@ export default function AccountOnboarding() {
           )}
 
           <button type="submit" disabled={loading} className="btn btn-primary w-full !mt-5 disabled:opacity-60">
-            {loading ? "Checking…" : "Connect"}
+            {loading ? "Checking…" : "Add my event"}
           </button>
         </form>
 

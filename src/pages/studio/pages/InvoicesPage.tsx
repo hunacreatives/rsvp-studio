@@ -3,18 +3,16 @@ import { Link } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { InvoicePill, isOverdue } from "@/pages/account/portal/components/blocks";
 import { formatDate, formatMoney } from "@/pages/account/portal/format";
-import type { InvoiceStatus } from "@/pages/account/portal/types";
 import { FilterTabs, PillButton } from "@/pages/account/portal/ui";
-import * as studio from "../studioApi";
+import InvoiceActions, { invoiceSummary } from "../InvoiceActions";
 import { StudioHeader, useStudio } from "../StudioLayout";
 
 type Filter = "all" | "open" | "overdue" | "paid" | "void";
 
 export default function InvoicesPage() {
-  const { invoices, projects, refresh, demo } = usePortal();
+  const { invoices, projects } = usePortal();
   const { owners } = useStudio();
   const [filter, setFilter] = useState<Filter>("open");
-  const [busy, setBusy] = useState<string | null>(null);
   const project = (id: string) => projects.find((p) => p.id === id);
 
   const shown = useMemo(
@@ -26,17 +24,6 @@ export default function InvoicesPage() {
   );
   const total = shown.reduce((s, i) => s + i.amount, 0);
 
-  const setStatus = async (id: string, status: InvoiceStatus) => {
-    if (demo) return;
-    setBusy(id);
-    try {
-      await studio.setInvoiceStatus(id, status);
-      await refresh();
-    } finally {
-      setBusy(null);
-    }
-  };
-
   return (
     <>
       <StudioHeader title="Invoices" sub="Every invoice across all projects. Issue new ones from a project." />
@@ -45,10 +32,10 @@ export default function InvoicesPage() {
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "open", label: "Open" },
+            { value: "open", label: "Unpaid" },
             { value: "overdue", label: "Overdue" },
             { value: "paid", label: "Paid" },
-            { value: "void", label: "Void" },
+            { value: "void", label: "Cancelled" },
             { value: "all", label: "All" },
           ]}
         />
@@ -75,7 +62,7 @@ export default function InvoicesPage() {
               return (
                 <tr key={i.id} className="border-b border-[var(--line)] last:border-0">
                   <td className="px-5 py-3">
-                    <span className="block text-[var(--ink)]">#{i.number}</span>
+                    <span className="block text-[var(--ink)]">{i.number}</span>
                     <span className="block max-w-[220px] truncate text-[12px] text-[var(--slate)]">{i.description}</span>
                   </td>
                   <td className="px-5 py-3">
@@ -84,20 +71,20 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-5 py-3 text-[var(--ink)]">{formatMoney(i.amount)}</td>
                   <td className={`px-5 py-3 ${isOverdue(i) ? "text-[#c2412d]" : "text-[var(--ink)]"}`}>
-                    {i.status === "paid" ? formatDate(i.paid_at) : i.due_date ? formatDate(i.due_date) : "On receipt"}
+                    {invoiceSummary(i)}
                   </td>
                   <td className="px-5 py-3"><InvoicePill invoice={i} /></td>
                   <td className="px-5 py-3 text-right">
-                    {i.status === "open" ? (
-                      <PillButton disabled={busy === i.id || demo} onClick={() => setStatus(i.id, "paid")}>Mark paid</PillButton>
-                    ) : null}
+                    <span className="inline-flex flex-wrap justify-end gap-2">
+                      <InvoiceActions inv={i} compact />
+                    </span>
                   </td>
                 </tr>
               );
             })}
             {!shown.length ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-[var(--slate)]">Nothing here.</td>
+                <td colSpan={6} className="px-5 py-10 text-center text-[var(--slate)]">No invoices in this list.</td>
               </tr>
             ) : null}
           </tbody>

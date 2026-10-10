@@ -87,3 +87,7 @@ export function defaultAvatar(seed: string | null | undefined) {
   for (const ch of seed ?? "") h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return `/account/avatars/avatar-${String((h % 10) + 1).padStart(2, "0")}.svg`;
 }
+
+const METHOD: Record<string, string> = { gcash: "GCash", paymaya: "Maya", maya: "Maya", card: "card", qrph: "QR Ph", grab_pay: "GrabPay", bank_transfer: "bank transfer", cash: "cash", other: "other" };
+/** How an invoice was paid, in words: "gcash" → "GCash". */
+export const paidByLabel = (m: string | null | undefined) => (m ? (METHOD[m.toLowerCase()] ?? m) : "");

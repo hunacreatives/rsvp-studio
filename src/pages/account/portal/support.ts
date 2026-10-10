@@ -14,8 +14,10 @@ export const SUPPORT_CATEGORIES: { id: SupportCategory; label: string; help?: st
 
 export const categoryLabel = (c: SupportCategory | null | undefined) => SUPPORT_CATEGORIES.find((x) => x.id === c)?.label ?? "Support";
 
-/** "SUP-1042" */
+/** "SUP-1042" — how the Studio refers to a request. */
 export const ticketCode = (n: number | null | undefined) => (n ? `SUP-${n}` : "");
+/** "Request #1042" — how customers see the same number. */
+export const requestCode = (n: number | null | undefined) => (n ? `Request #${n}` : "");
 
 /** Resolved more than 7 days ago: read-only, a new message starts a new request. */
 export const isClosed = (t: Pick<Thread, "status" | "resolved_at">) =>
@@ -23,9 +25,9 @@ export const isClosed = (t: Pick<Thread, "status" | "resolved_at">) =>
 
 /** What customers see: three plain statuses (plus Closed once it's read-only). */
 export function customerStatus(t: Pick<Thread, "status" | "resolved_at">): { label: string; tone: "open" | "you" | "done" } {
-  if (t.status === "waiting") return { label: "Awaiting your reply", tone: "you" };
-  if (t.status === "resolved") return { label: isClosed(t) ? "Closed" : "Solved", tone: "done" };
-  return { label: "Open", tone: "open" };
+  if (t.status === "waiting") return { label: "We need your reply", tone: "you" };
+  if (t.status === "resolved") return { label: "Done", tone: "done" };
+  return { label: "We’re on it", tone: "open" };
 }
 
 /** What the studio sees. */
@@ -98,8 +100,8 @@ export const RATING_LABEL: Record<SupportRating, { emoji: string; label: string 
   not_good: { emoji: "🙁", label: "Not good" },
 };
 
-/** Parse "1042", "#1042", "SUP-1042", "sup 1042" → 1042. */
+/** Parse "1042", "#1042", "SUP-1042", "sup 1042", "Request #1042" → 1042. */
 export function parseTicket(q: string): number | null {
-  const m = q.trim().match(/^(?:sup[-\s]?|#)?(\d{3,7})$/i);
+  const m = q.trim().match(/^(?:sup[-\s]?|request\s*#?\s*|#)?(\d{3,7})$/i);
   return m ? Number(m[1]) : null;
 }

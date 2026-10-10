@@ -2,8 +2,9 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { esc } from "./_lib/email.js";
-import { code, customerReplyTo, FROM, layout, makeSendMail, ratingButtons, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
+import { customerReplyTo, reqCode, FROM, layout, makeSendMail, ratingButtons, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
 import { customerMessageEmails } from "./_lib/support-notify.js";
+import { sendInvoiceEmail } from "./_lib/billing-mail.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -42,11 +43,6 @@ async function recipientsFor(eventId: string | null, extraProfileId: string | nu
   return ((data ?? []) as Person[]).filter((p) => !p.is_staff && p[pref] && (p.email || p.billing_email));
 }
 
-/** "2026-10-14" → "October 14, 2026" (dates without a time, so no timezone shift). */
-const longDate = (d: string) => new Date(`${d.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
-
-const peso = (n: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 2 }).format(n);
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -57,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!caller) return res.status(401).json({ error: "No profile" });
 
   const origin = `https://${req.headers["x-forwarded-host"] ?? req.headers.host}`;
-  const body = req.body as { kind: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string };
+  const body = req.body as { kind: string; note?: string | null; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string };
   const sends: Promise<unknown>[] = [];
 
   try {
@@ -88,9 +84,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 from: FROM,
                 to: customer.email,
                 replyTo: customerReplyTo(thread),
-                subject: `[${code(n)}] New reply from The RSVP Studio`,
+                subject: `[${reqCode(n)}] New reply from The RSVP Studio`,
                 headers: threadHeaders(n, false, thread.reply_key),
-                html: layout(`${esc(caller.full_name || "The RSVP Studio")} replied`, `${snippet}<br><br><span style="color:#868697">Request ${code(n)} · ${esc(topic)}</span>`, { label: "Reply in your dashboard", url: link }, serviceFooter()),
+                html: layout(`${esc(caller.full_name || "The RSVP Studio")} replied`, `${snippet}<br><br><span style="color:#868697">${reqCode(n)} · ${esc(topic)}</span>`, { label: "Reply in your dashboard", url: link }, serviceFooter()),
               }),
             );
           }
@@ -131,11 +127,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             from: FROM,
             to: customer.email,
             replyTo: customerReplyTo(thread),
-            subject: `[${code(n)}] Your request has been resolved`,
+            subject: `[${reqCode(n)}] Your request is done`,
             headers: threadHeaders(n, false, thread.reply_key),
             html: layout(
-              "Your request has been resolved",
-              `Hi ${esc((customer.full_name || "").split(" ")[0] || "there")},<br><br>We’ve marked request <strong>${code(n)}</strong> (${esc(SUPPORT_TOPIC[thread.category ?? "other"] ?? "Support")}) as resolved. If anything still isn’t right, just reply within 7 days and it reopens.${ratingButtons(origin, thread.id)}`,
+              "Your request is done",
+              `Hi ${esc((customer.full_name || "").split(" ")[0] || "there")},<br><br>We’ve marked <strong>${reqCode(n)}</strong> (${esc(SUPPORT_TOPIC[thread.category ?? "other"] ?? "Support")}) as done. If anything still isn’t right, reply within 7 days and we’ll pick it up again.${ratingButtons(origin, thread.id)}`,
               { label: "View your request", url: `${origin}/account/messages?thread=${thread.id}` },
               serviceFooter(),
             ),
@@ -158,27 +154,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }),
         );
       }
-    } else if ((body.kind === "invoice" || body.kind === "payment") && body.invoiceId && caller.is_staff) {
-      const { data: inv } = await supabaseAdmin.from("invoices").select("id, number, event_id, description, amount, due_date, status").eq("id", body.invoiceId).maybeSingle();
-      if (!inv) return res.status(404).json({ error: "Invoice not found" });
-      const to = await recipientsFor(inv.event_id, null, "notify_billing_updates");
-      const paid = body.kind === "payment";
-      for (const r of to) {
-        sends.push(
-          sendMail({
-            from: FROM,
-            to: r.billing_email || r.email!,
-            subject: paid ? `Payment received — invoice #${inv.number}` : `New invoice #${inv.number} — ${peso(Number(inv.amount))}`,
-            html: layout(
-              paid ? "Thank you — payment received" : `Invoice #${esc(inv.number)}`,
-              paid
-                ? `We’ve received your payment of <strong>${peso(Number(inv.amount))}</strong> for ${esc(inv.description)}. Your receipt is ready in your dashboard.`
-                : `${esc(inv.description)}<br><strong>${peso(Number(inv.amount))}</strong>${inv.due_date ? ` · due ${longDate(inv.due_date)}` : ""}`,
-              { label: paid ? "View receipt" : "View invoice", url: `${origin}/account/billing/${inv.id}` },
-            ),
-          }),
-        );
-      }
+    } else if (["invoice", "payment", "invoice_reminder", "invoice_void", "invoice_unpaid"].includes(body.kind) && body.invoiceId && caller.is_staff) {
+      const kind = ({ invoice: "invoice", payment: "payment", invoice_reminder: "reminder", invoice_void: "void", invoice_unpaid: "unpaid" } as const)[
+        body.kind as "invoice" | "payment" | "invoice_reminder" | "invoice_void" | "invoice_unpaid"
+      ];
+      sends.push(sendInvoiceEmail(supabaseAdmin, sendMail, { invoiceId: body.invoiceId, kind, origin, note: body.note }));
+      if (kind === "reminder") await supabaseAdmin.from("invoices").update({ last_reminded_at: new Date().toISOString() }).eq("id", body.invoiceId);
     } else if ((body.kind === "staff_invite" && body.inviteId) || (body.kind === "staff_added" && body.profileId)) {
       // Team emails: only the owner can trigger them (supabase/team-roles.sql).
       const { data: me } = await supabaseAdmin.from("profiles").select("staff_role").eq("id", caller.id).maybeSingle();

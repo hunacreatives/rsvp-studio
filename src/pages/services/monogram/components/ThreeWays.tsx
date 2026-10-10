@@ -64,6 +64,7 @@ export default function ThreeWays() {
                 <h3 className="text-3xl font-bold tracking-[-0.01em] text-[var(--ink)]">
                   {t.name}
                 </h3>
+                <p className="mt-1 text-[15px] text-[var(--ink)]">Starts at {t.price}</p>
                 <p className="mt-2 text-lg font-bold text-[var(--slate)]">
                   {t.forWho}
                 </p>

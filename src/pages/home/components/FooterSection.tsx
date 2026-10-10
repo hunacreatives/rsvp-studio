@@ -17,7 +17,6 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "Collections", to: "/collections" },
       { label: "Portfolio", to: "/portfolio" },
       { label: "FAQ", to: "/faqs" },
-      { label: "Blog", to: "/blog" },
     ],
   },
   {

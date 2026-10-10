@@ -37,7 +37,7 @@ const PROFILE_COLS =
   "id, full_name, email, created_at, is_staff, phone, location, avatar_url, billing_name, billing_email, billing_address, notify_project_updates, notify_billing_updates, password_changed_at";
 
 const PROJECT_COLS =
-  "id, name, event_date, event_type, table_name, status, project_status, services, progress, next_step, next_step_due, cover_image_url, site_url, completed_at, updated_at, created_at, owner_id";
+  "id, name, event_date, event_type, table_name, status, project_status, services, progress, next_step, next_step_due, cover_image_url, site_url, completed_at, updated_at, created_at, owner_id, next_step_owner, managed_by_studio";
 
 type SiteRow = {
   event_id: string;
@@ -287,6 +287,31 @@ export async function loadGuests(project: Pick<Project, "id" | "table_name">) {
     : supabase.from("rsvps").select("*").eq("event_id", project.id);
   const { data } = await query.order("created_at", { ascending: false });
   return (data ?? []) as Guest[];
+}
+
+/**
+ * Start a PayMongo checkout (api/pay-checkout.ts) for an invoice, or to publish a
+ * DIY website. Returns the PayMongo page to send the customer to, or `free` when
+ * nothing is owed (e.g. a free template).
+ */
+export async function startCheckout(target: { invoiceId: string } | { eventId: string }): Promise<{ checkoutUrl?: string; free?: boolean }> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Please sign in again to pay.");
+  const res = await fetch("/api/pay-checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(target),
+  });
+  const json = (await res.json().catch(() => ({}))) as { checkout_url?: string; free?: boolean; error?: string };
+  if (!res.ok) throw new Error(json.error ?? "Couldn’t start the payment — please try again.");
+  return { checkoutUrl: json.checkout_url, free: json.free };
+}
+
+/** A payment's status, for the "checking your payment…" screen after PayMongo sends the customer back. */
+export async function paymentStatus(paymentId: string) {
+  const { data } = await supabase.from("payments").select("status, method").eq("id", paymentId).maybeSingle();
+  return (data ?? null) as { status: "pending" | "paid" | "failed" | "expired"; method: string | null } | null;
 }
 
 /**

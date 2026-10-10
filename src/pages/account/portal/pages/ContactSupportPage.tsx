@@ -5,7 +5,7 @@ import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
 import { FileChips, pickFiles } from "../components/ChatPane";
 import { SUPPORT, TOPICS } from "../help-data";
-import { categoryLabel, SUPPORT_CATEGORIES, ticketCode } from "../support";
+import { categoryLabel, SUPPORT_CATEGORIES, requestCode } from "../support";
 import type { SupportCategory, Thread } from "../types";
 import { ErrorText, Field, PrimaryButton, Select, Textarea } from "../ui";
 
@@ -56,7 +56,7 @@ export default function ContactSupportPage() {
             <i className="ri-check-line" />
           </span>
           <p className="mt-5 text-[13px] uppercase tracking-[0.08em] text-[var(--slate)]">Request received</p>
-          <h2 className="mt-1 font-display text-[2rem] font-semibold text-[var(--ink)]">{ticketCode(sent.ticket_number) || "Thank you"}</h2>
+          <h2 className="mt-1 font-display text-[2rem] font-semibold text-[var(--ink)]">{requestCode(sent.ticket_number) || "Thank you"}</h2>
           <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-[var(--slate)]">
             Thanks — we’ve got your message about <strong className="text-[var(--ink)]">{categoryLabel(sent.category)}</strong>. We reply within 1 business day, and
             we’ve emailed you a copy with your request number.

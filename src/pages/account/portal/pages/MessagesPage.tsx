@@ -5,13 +5,13 @@ import { PageHeader } from "../PortalLayout";
 import ChatPane, { FileChips, pickFiles } from "../components/ChatPane";
 import { inboxStamp } from "../format";
 import * as api from "../api";
-import { categoryLabel, customerStatus, isClosed, STATUS_STYLE, ticketCode } from "../support";
+import { categoryLabel, customerStatus, isClosed, STATUS_STYLE, requestCode } from "../support";
 import { Link } from "react-router-dom";
 import type { ThreadSummary } from "../types";
 import { Avatar, ErrorText, Field, Input, Modal, PrimaryButton, Select, Textarea } from "../ui";
 
 export function threadContext(t: ThreadSummary, projectName: (id: string) => string | undefined) {
-  if (t.kind === "support" && t.ticket_number) return `${ticketCode(t.ticket_number)} · ${categoryLabel(t.category)}`;
+  if (t.kind === "support" && t.ticket_number) return `${requestCode(t.ticket_number)} · ${categoryLabel(t.category)}`;
   return (t.event_id && projectName(t.event_id)) || t.subject;
 }
 
@@ -36,7 +36,7 @@ function SupportToolbar({ t }: { t: ThreadSummary }) {
     <>
       <SupportChip t={t} />
       <span className="text-[12px] text-[var(--slate)]">
-        {solved ? "Reply within 7 days of it being solved to reopen it." : t.status === "waiting" ? "We’ve replied — over to you." : "We reply within 1 business day."}
+        {solved ? "Still not fixed? Just reply here within 7 days." : t.status === "waiting" ? "We’ve replied — over to you." : "We reply within 1 business day."}
       </span>
       {!solved ? (
         <button
@@ -54,7 +54,7 @@ function SupportToolbar({ t }: { t: ThreadSummary }) {
           }}
           className="ml-auto rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[12px] font-medium text-[var(--ink)] hover:border-[var(--ink)] disabled:opacity-50"
         >
-          {busy ? "Saving…" : "Mark as solved"}
+          {busy ? "Saving…" : "This is sorted — close it"}
         </button>
       ) : null}
       {error ? <span className="w-full text-[12px] text-[#c2412d]">{error}</span> : null}
@@ -170,11 +170,11 @@ export default function MessagesPage() {
               closedNote={
                 active.kind === "support" && isClosed(active) ? (
                   <>
-                    This request is closed.{" "}
+                    This request is done and closed.{" "}
                     <Link to="/account/help/contact" className="font-medium text-[var(--acc-blue)] hover:underline">
                       Start a new request
                     </Link>{" "}
-                    and mention {ticketCode(active.ticket_number)} if it&rsquo;s related.
+                    and mention {requestCode(active.ticket_number)} if it&rsquo;s related.
                   </>
                 ) : undefined
               }

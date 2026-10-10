@@ -85,11 +85,12 @@ export const SERVICES = [
   "Milestone Events Website", "Monogram", "Digital Save the Date", "Stationery Design", "RSVP Management",
 ];
 export const BESPOKE_COLLECTIONS = [
-  "The Essential Collection", "The Signature Collection", "The Bespoke Collection",
+  "Essential Suite", "Signature Suite", "Heirloom Suite",
 ];
 export const SEMI_COLLECTIONS = [
   "Alpine", "Classic", "Coastal", "Garden", "Minimalist Polaroid", "Floral",
 ];
-export const ADDONS = ["Digital Save the Date", "RSVP Management", "Just the website for now"];
+// RSVP management is built into every website, so it isn’t an add-on.
+export const ADDONS = ["Digital Save the Date", "Monogram", "Printed stationery", "Just the website for now"];
 export const TIMELINES = ["3 – 4 weeks", "1 – 2 months", "2 – 3 months", "3+ months", "Not sure yet"];
 export const BUDGETS = ["Under ₱15k", "₱15 – 40k", "₱40 – 80k", "₱80k+", "Not sure yet"];

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { esc } from "./email.js";
-import { backAt, code, customerReplyTo, emailRepliesOn, FROM, layout, makeSendMail, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./support-mail.js";
+import { backAt, code, customerReplyTo, reqCode, emailRepliesOn, FROM, layout, makeSendMail, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./support-mail.js";
 
 // A customer wrote on a support request — from the dashboard (api/notify.ts) or by
 // email (api/_lib/support-inbound.ts). Emails the studio, and sends the customer an
@@ -69,16 +69,16 @@ export function customerMessageEmails(
         from: FROM,
         to: customer.email,
         replyTo: customerReplyTo(thread),
-        subject: first ? `We’ve received your request [${code(n)}]` : `We got your message [${code(n)}]`,
+        subject: first ? `We’ve received your request [${reqCode(n)}]` : `We got your message [${reqCode(n)}]`,
         headers: threadHeaders(n, true, thread.reply_key),
         html: first
           ? layout(
               "We’ve received your request",
-              `${hi}<br><br>Thanks for getting in touch. Your request number is <strong>${code(n)}</strong> (${esc(topic)}). ${when}<br><br><span style="color:#868697">Your message:</span><br>${snippet}<br><br>Is your event in the next 7 days? Message us on Instagram <strong>@rsvpstudioo</strong> as well and we’ll prioritise it.`,
+              `${hi}<br><br>Thanks for getting in touch. Your request number is <strong>${reqCode(n)}</strong> (${esc(topic)}). ${when}<br><br><span style="color:#868697">Your message:</span><br>${snippet}<br><br>Is your event in the next 7 days? Message us on Instagram <strong>@rsvpstudioo</strong> as well and we’ll prioritise it.`,
               { label: "View your request", url: link },
               serviceFooter(),
             )
-          : layout("We got your message", `${hi}<br><br>It’s been added to request <strong>${code(n)}</strong>. ${when}`, { label: "View your request", url: link }, serviceFooter()),
+          : layout("We got your message", `${hi}<br><br>It’s been added to <strong>${reqCode(n)}</strong>. ${when}`, { label: "View your request", url: link }, serviceFooter()),
       });
     })(),
   );

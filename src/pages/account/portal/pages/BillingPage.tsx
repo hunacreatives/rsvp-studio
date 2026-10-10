@@ -11,7 +11,8 @@ type Filter = "all" | "open" | "paid";
 export default function BillingPage() {
   const { invoices } = usePortal();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<Filter>("open");
+  // Nothing unpaid? Open on the full history instead of an empty list.
+  const [filter, setFilter] = useState<Filter>(() => (invoices.some((i) => i.status === "open") ? "open" : "all"));
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const live = invoices.filter((i) => i.status !== "void");
@@ -23,7 +24,7 @@ export default function BillingPage() {
 
   return (
     <>
-      <PageHeader title="Billing" sub="View your invoices, payment history, and billing details." />
+      <PageHeader title="Billing" sub="What you owe, what you’ve paid, and your receipts." />
 
       {/* The summary: what's owed and by when. Which invoices make it up is the list below. */}
       {next ? (
@@ -34,12 +35,12 @@ export default function BillingPage() {
             {/* The due date carries the status: only an overdue invoice needs flagging. */}
             <p className={`flex flex-wrap items-center gap-2 text-[13px] ${isOverdue(next) ? "text-[#c2412d]" : "text-[var(--slate)]"}`}>
               {open.length > 1 ? `${open.length} invoices · next due ` : ""}
-              {next.due_date ? `${open.length > 1 ? "" : "Due "}${formatLongDate(next.due_date)}` : "Due on receipt"}
+              {next.due_date ? `${open.length > 1 ? "" : "Due "}${formatLongDate(next.due_date)}` : "Due now"}
               {isOverdue(next) ? <span className="rounded-full border border-[#c2412d] px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.04em]">Overdue</span> : null}
             </p>
           </div>
           <PillButton tone="primary" onClick={() => navigate(`/account/billing/${next.id}`)}>
-            {next.payment_url ? "Pay now" : "View invoice"}
+            Pay now
           </PillButton>
         </div>
       ) : (
@@ -61,7 +62,7 @@ export default function BillingPage() {
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "open", label: "Open" },
+            { value: "open", label: "Unpaid" },
             { value: "paid", label: "Paid" },
             { value: "all", label: "All" },
           ]}
@@ -109,8 +110,8 @@ function BillingDetailsModal({ open, onClose }: { open: boolean; onClose: () => 
     <Modal open={open} onClose={onClose} title="Billing details">
       <p className="-mt-2 mb-5 text-[14px] text-[var(--slate)]">These appear on your invoices and receipts.</p>
       <div className="space-y-4">
-        <Field label="Billing name">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name or company" />
+        <Field label="Name on your receipts">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name, or your company’s" />
         </Field>
         <Field label="Billing email" hint="Invoices and payment reminders go here.">
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -120,7 +121,7 @@ function BillingDetailsModal({ open, onClose }: { open: boolean; onClose: () => 
         </Field>
       </div>
       <p className="mt-5 rounded-xl bg-[var(--paper)] px-4 py-3 text-[13px] text-[var(--slate)]">
-        We accept bank transfer and PayPal (with a service fee). Payment links, when available, appear on each open invoice.
+        Pay online with GCash, Maya, card or QR Ph — open any unpaid invoice and tap Pay now.
       </p>
       <ErrorText>{error}</ErrorText>
       <div className="mt-6 flex justify-end">

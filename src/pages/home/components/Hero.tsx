@@ -110,8 +110,19 @@ export default function Hero() {
           className="font-display font-semibold tracking-[-0.02em] leading-[1.12] mx-auto max-w-3xl text-[var(--ink)] text-balance"
           style={{ fontSize: "clamp(2rem, 5vw, 2.9rem)" }}
         >
-          Digital invitations designed to make every celebration unforgettable
+          Event websites, invitations and stationery for every celebration
         </h1>
+        <p className="mx-auto mt-4 max-w-xl text-[15px] text-[var(--slate)] md:text-[17px]">
+          Weddings, birthdays, christenings and more — with RSVPs built in. Websites from ₱3,000.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button className="btn btn-primary" onClick={() => navigate("/enquire#start")}>
+            Get a quote
+          </button>
+          <button className="btn btn-ghost" onClick={() => navigate("/build")}>
+            Make it yourself
+          </button>
+        </div>
 
         <div className="mt-5 md:mt-7 flex flex-col items-center gap-2">
           <span className="inline-flex items-center gap-2 md:gap-2.5 rounded-full border border-[var(--line)] bg-white px-4 py-1.5 md:px-6 md:py-2.5 text-[13px] md:text-[16px] leading-none text-[var(--indigo)] overflow-hidden">
@@ -204,12 +215,6 @@ export default function Hero() {
         </button>
       </div>
 
-      <div className="container-x mt-8 flex justify-end">
-        <span className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-4 py-1.5 text-[13px] text-[var(--indigo)]">
-          <i className="ri-global-line" />
-          English
-        </span>
-      </div>
     </section>
   );
 }

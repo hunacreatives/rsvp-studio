@@ -3,6 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { lenisRef } from "@/lib/lenis";
 import { setRememberLogin, supabase } from "@/lib/supabase";
 
+/** Supabase's sign-in errors, in plain words. Unknown ones pass through. */
+function friendlyAuthError(message: string) {
+  if (/invalid login credentials/i.test(message)) return "That email and password don’t match. Try again, or use “Forgot password”.";
+  if (/user already registered|already been registered/i.test(message)) return "There’s already an account with this email — log in instead.";
+  if (/rate limit|only request this after|too many requests/i.test(message)) return "Too many tries in a short time. Please wait a minute and try again.";
+  if (/email not confirmed/i.test(message)) return "Please confirm your email first — check your inbox for our link.";
+  if (/password should be at least/i.test(message)) return "Your password needs at least 6 characters.";
+  if (/unable to validate email|invalid email/i.test(message)) return "That email address doesn’t look right.";
+  if (/network|fetch/i.test(message)) return "We couldn’t connect. Check your internet and try again.";
+  return message;
+}
+
 type Provider = "google" | "facebook";
 type Mode = "signin" | "signup";
 
@@ -411,7 +423,7 @@ function AuthForm({
     });
     if (error) {
       setResent("idle");
-      return setError(error.message);
+      return setError(friendlyAuthError(error.message));
     }
     setResent("sent");
   };
@@ -427,7 +439,7 @@ function AuthForm({
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/account/settings?reset=1`,
     });
-    if (error) return setError(error.message);
+    if (error) return setError(friendlyAuthError(error.message));
     setResetSent(true);
   };
 
@@ -455,7 +467,7 @@ function AuthForm({
     });
     if (error) {
       setLoading(false);
-      setError(error.message);
+      setError(friendlyAuthError(error.message));
     }
   };
 
@@ -474,7 +486,7 @@ function AuthForm({
           setUnconfirmed(true);
           return setError("Please confirm your email first — check your inbox for the link we sent.");
         }
-        return setError(error.message);
+        return setError(friendlyAuthError(error.message));
       }
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
@@ -502,7 +514,7 @@ function AuthForm({
         },
       });
       setLoading(false);
-      if (error) return setError(error.message);
+      if (error) return setError(friendlyAuthError(error.message));
       if (data.session) {
         fetch("/api/send-welcome-email", {
           method: "POST",
@@ -569,7 +581,7 @@ function AuthForm({
   return (
     <div className="flex h-full flex-col justify-center px-7 pb-7 pt-11 md:px-9">
       <h2 className="text-center text-[22px] font-medium" style={{ color: "var(--ink)" }}>
-        {signin ? "Login to your account" : "Create your account"}
+        {signin ? "Log in to your account" : "Create your account"}
       </h2>
 
       <form className="mt-5 space-y-3" onSubmit={handleSubmit}>
@@ -712,7 +724,7 @@ function CheckInbox({ email, onBack }: { email: string; onBack: () => void }) {
     });
     if (error) {
       setResent("idle");
-      return setError(error.message);
+      return setError(friendlyAuthError(error.message));
     }
     setResent("sent");
   };

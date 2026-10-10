@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { InvoicePill } from "@/pages/account/portal/components/blocks";
+import InvoiceActions, { invoiceSummary } from "./InvoiceActions";
 import { formatDate, formatMoney } from "@/pages/account/portal/format";
 import type { PersonLite, Project, ProjectStatus } from "@/pages/account/portal/types";
 import { Cover, ErrorText, Field, Input, OutlineCard, PillButton, Select, Textarea } from "@/pages/account/portal/ui";
@@ -206,11 +207,12 @@ function ProgressCard({ project }: { project: Project }) {
   const [progress, setProgress] = useState(project.progress);
   const [nextStep, setNextStep] = useState(project.next_step ?? "");
   const [due, setDue] = useState(project.next_step_due ?? "");
+  const [owner, setOwner] = useState<"" | "client" | "studio">(project.next_step_owner ?? "");
   const { busy, error, run } = useAction();
 
   const announcement = () => {
     if (status === "completed" && project.project_status !== "completed") return "Project completed";
-    if (nextStep.trim() && nextStep.trim() !== (project.next_step ?? "")) return `Next step: ${nextStep.trim()}`;
+    if (nextStep.trim() && nextStep.trim() !== (project.next_step ?? "")) return `${owner === "client" ? "Your turn" : owner === "studio" ? "We’re working on" : "Next step"}: ${nextStep.trim()}`;
     return undefined;
   };
 
@@ -226,8 +228,15 @@ function ProgressCard({ project }: { project: Project }) {
         <Field label={`Progress — ${progress}%`}>
           <input type="range" min={0} max={100} step={5} value={progress} onChange={(e) => setProgress(Number(e.target.value))} className="mt-3 w-full accent-[var(--ink)]" />
         </Field>
-        <Field label="Next step" hint="What the client should expect or do next">
-          <Input value={nextStep} onChange={(e) => setNextStep(e.target.value)} placeholder="e.g. Design Approval" />
+        <Field label="Next step" hint="Short and specific — the client sees this on their dashboard.">
+          <Input value={nextStep} onChange={(e) => setNextStep(e.target.value)} placeholder={owner === "client" ? "e.g. Approve your invitation design" : "e.g. Your first design draft"} />
+        </Field>
+        <Field label="Whose turn is it?">
+          <Select value={owner} onChange={(e) => setOwner(e.target.value as "" | "client" | "studio")}>
+            <option value="studio">Ours — client sees “We’re working on”</option>
+            <option value="client">The client’s — they see “Your turn”</option>
+            <option value="">Not set — “Next step”</option>
+          </Select>
         </Field>
         <Field label="Due">
           <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
@@ -242,7 +251,7 @@ function ProgressCard({ project }: { project: Project }) {
             run(() =>
               studio.updateProject(
                 project.id,
-                { project_status: status, progress: status === "completed" ? 100 : progress, next_step: nextStep.trim() || null, next_step_due: due || null },
+                { project_status: status, progress: status === "completed" ? 100 : progress, next_step: nextStep.trim() || null, next_step_due: due || null, next_step_owner: owner || null },
                 announcement(),
               ),
             )
@@ -390,7 +399,6 @@ function InvoicesCard({ project }: { project: Project }) {
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
   const [due, setDue] = useState("");
-  const [payUrl, setPayUrl] = useState("");
   const [notes, setNotes] = useState("");
   const { busy, error, run } = useAction();
 
@@ -402,29 +410,11 @@ function InvoicesCard({ project }: { project: Project }) {
             <span className="min-w-0 flex-1">
               <span className="block text-[14px] text-[var(--ink)]">{inv.description}</span>
               <span className="block text-[12px] text-[var(--slate)]">
-                #{inv.number} · {formatMoney(inv.amount)} · {inv.status === "paid" ? `Paid ${formatDate(inv.paid_at)}` : inv.due_date ? `Due ${formatDate(inv.due_date)}` : "Due on receipt"}
+                {inv.number} · {formatMoney(inv.amount)} · {invoiceSummary(inv)}
               </span>
             </span>
             <InvoicePill invoice={inv} />
-            {inv.status === "open" ? (
-              <>
-                <PillButton disabled={busy} onClick={() => run(() => studio.setInvoiceStatus(inv.id, "paid"))}>Mark paid</PillButton>
-                <PillButton
-                  disabled={busy}
-                  onClick={() => {
-                    const url = window.prompt("Payment link (PayMongo / PayPal). Leave empty to remove.", inv.payment_url ?? "");
-                    if (url !== null) run(() => studio.setInvoicePaymentUrl(inv.id, url.trim() || null));
-                  }}
-                >
-                  {inv.payment_url ? "Edit link" : "Add pay link"}
-                </PillButton>
-                <PillButton tone="danger" disabled={busy} onClick={() => window.confirm(`Void invoice #${inv.number}?`) && run(() => studio.setInvoiceStatus(inv.id, "void"))}>
-                  Void
-                </PillButton>
-              </>
-            ) : inv.status === "paid" ? (
-              <PillButton disabled={busy} onClick={() => run(() => studio.setInvoiceStatus(inv.id, "open"))}>Undo paid</PillButton>
-            ) : null}
+            <InvoiceActions inv={inv} />
           </li>
         ))}
         {!mine.length ? <li className="py-2 text-[14px] text-[var(--slate)]">No invoices yet.</li> : null}
@@ -436,7 +426,6 @@ function InvoicesCard({ project }: { project: Project }) {
           <Field label="Description"><Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="e.g. Wedding Website — 60% deposit" /></Field>
           <Field label="Amount (₱)"><Input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
           <Field label="Due date"><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
-          <Field label="Payment link (optional)"><Input value={payUrl} onChange={(e) => setPayUrl(e.target.value)} placeholder="https://" /></Field>
         </div>
         <div className="mt-3">
           <Field label="Notes (optional, shown on the invoice)"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="!min-h-[60px]" /></Field>
@@ -447,19 +436,19 @@ function InvoicesCard({ project }: { project: Project }) {
           className="mt-4"
           disabled={busy || !desc.trim() || !(Number(amount) > 0)}
           onClick={async () => {
+            if (!window.confirm(`Send this invoice to the client?\n\n${desc.trim()} — ${formatMoney(Number(amount))}${due ? `, due ${formatDate(due)}` : ", due now"}\n\nThey’ll get an email with a Pay now button.`)) return;
             const ok = await run(() =>
-              studio.createInvoice({ event_id: project.id, description: desc.trim(), amount: Number(amount), due_date: due || null, payment_url: payUrl.trim() || null, notes: notes.trim() || null }),
+              studio.createInvoice({ event_id: project.id, description: desc.trim(), amount: Number(amount), due_date: due || null, payment_url: null, notes: notes.trim() || null }),
             );
             if (ok) {
               setDesc("");
               setAmount("");
               setDue("");
-              setPayUrl("");
               setNotes("");
             }
           }}
         >
-          Issue invoice
+          Send invoice to client
         </PillButton>
       </div>
     </Card>

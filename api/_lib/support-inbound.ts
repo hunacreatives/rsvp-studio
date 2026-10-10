@@ -20,7 +20,7 @@ export type InboundResult = { outcome: string; reason?: string; threadId?: strin
 
 const REPLY_ADDR = new RegExp(`^sup-(\\d+)\\.([a-f0-9]{12})@${REPLY_DOMAIN.replace(/\./g, "\\.")}$`, "i");
 const KEY_REF = /<sup-(\d+)\.([a-f0-9]{12})@thersvpstudio\.com>/gi;
-const SUBJECT_REF = /\[SUP-(\d+)\]/i;
+const SUBJECT_REF = /\[(?:SUP-|Request #)(\d+)\]/i;
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_EMAILS_PER_DAY = 20;

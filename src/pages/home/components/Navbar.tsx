@@ -305,7 +305,7 @@ export default function Navbar({
                 onClick={() => setAuthOpen(true)}
                 className="hidden md:inline-flex btn btn-dark !px-6 !py-3 !text-[12px]"
               >
-                Login / Sign Up
+                Log in / Sign up
               </button>
             )}
             <button
@@ -484,7 +484,7 @@ export default function Navbar({
                 }}
                 className="btn btn-dark w-full mt-8"
               >
-                Login / Sign Up
+                Log in / Sign up
               </button>
             )}
           </div>
