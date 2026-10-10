@@ -78,9 +78,32 @@ export default function AuthModal({
 
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
+    // Keyboard users: focus moves into the dialog, Tab stays inside it, and
+    // focus goes back to what opened it on close.
+    const opener = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      [...(dialogRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])') ?? [])].filter(
+        (el) => el.offsetParent !== null,
+      );
+    setTimeout(() => focusables().find((el) => el.tagName === "INPUT")?.focus(), 50);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return onCloseRef.current();
+      if (e.key !== "Tab") return;
+      const list = focusables();
+      if (!list.length) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     // Freeze the page behind. Not via body overflow: that turns <body> into
     // the scroll container and the sticky top bar jumps off-screen, leaving an
     // unblurred strip where it was. Lenis (or the root element) keeps it in place.
@@ -92,6 +115,7 @@ export default function AuthModal({
       if (lenis) lenis.start();
       else document.documentElement.style.overflow = "";
       window.removeEventListener("keydown", onKey);
+      opener?.focus?.();
     };
   }, [open]);
 
@@ -109,6 +133,7 @@ export default function AuthModal({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[100] flex flex-col overflow-y-auto p-4"
       data-lenis-prevent
       role="dialog"

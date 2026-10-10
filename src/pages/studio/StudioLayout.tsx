@@ -24,6 +24,7 @@ export const useStudio = () => useOutletContext<StudioOutlet>();
 
 const NAV = [
   { to: "/studio", label: "Overview", icon: "ri-dashboard-3-line", end: true },
+  { to: "/studio/leads", label: "Leads", icon: "ri-user-star-line" },
   { to: "/studio/projects", label: "Projects", icon: "ri-folder-3-line" },
   { to: "/studio/inbox", label: "Inbox", icon: "ri-inbox-2-line" },
   { to: "/studio/support", label: "Support", icon: "ri-customer-service-2-line" },
@@ -60,6 +61,13 @@ function Shell() {
 
   useEffect(reloadClients, [reloadClients]);
 
+  // New inquiries waiting for a first reply (badge on Leads).
+  const [newLeads, setNewLeads] = useState(0);
+  useEffect(() => {
+    if (demo || !profile.is_staff) return;
+    studio.countNewLeads().then(setNewLeads);
+  }, [demo, profile.is_staff, projects]);
+
   // Clients who wander here get their own dashboard instead.
   if (!profile.is_staff && !demo) return <Navigate to="/account" replace />;
 
@@ -94,6 +102,9 @@ function Shell() {
             >
               <i className={`${item.icon} text-[18px]`} />
               {item.label}
+              {item.to === "/studio/leads" && newLeads > 0 ? (
+                <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-[var(--acc-coral)] px-1.5 text-[11px] font-semibold text-white">{newLeads}</span>
+              ) : null}
               {item.to === "/studio/inbox" && unread > 0 ? (
                 <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-[var(--acc-coral)] px-1.5 text-[11px] font-semibold text-white">{unread}</span>
               ) : null}

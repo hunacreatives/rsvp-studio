@@ -1,4 +1,5 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { loadPairingFonts } from "../presentation/loadFonts";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
@@ -105,6 +106,7 @@ export default function PublicEventSitePage() {
     return <NotFound />;
   }
 
+  loadPairingFonts(resolved.settings.fontPairingId);
   return (
     <ErrorBoundary
       fallback={() => (

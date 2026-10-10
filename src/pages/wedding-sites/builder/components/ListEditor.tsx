@@ -24,7 +24,16 @@ export function ListEditor<T>({ items, onChange, createItem, renderItem, addLabe
   }
 
   function removeAt(index: number) {
+    if (!window.confirm("Remove this? This can’t be undone.")) return;
     onChange(items.filter((_, i) => i !== index));
+  }
+
+  function move(index: number, by: -1 | 1) {
+    const to = index + by;
+    if (to < 0 || to >= items.length) return;
+    const next = items.slice();
+    [next[index], next[to]] = [next[to], next[index]];
+    onChange(next);
   }
 
   function add() {
@@ -48,23 +57,21 @@ export function ListEditor<T>({ items, onChange, createItem, renderItem, addLabe
               background: "#fff",
             }}
           >
-            <button
-              type="button"
-              onClick={() => removeAt(index)}
-              aria-label="Remove"
-              style={{
-                position: "absolute",
-                top: 10,
-                right: 10,
-                border: "none",
-                background: "transparent",
-                color: "var(--slate)",
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
-              Remove
-            </button>
+            <div style={{ position: "absolute", top: 8, right: 10, display: "flex", gap: 6, alignItems: "center" }}>
+              {items.length > 1 ? (
+                <>
+                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up" title="Move up" style={iconBtn(index === 0)}>
+                    ↑
+                  </button>
+                  <button type="button" onClick={() => move(index, 1)} disabled={index === items.length - 1} aria-label="Move down" title="Move down" style={iconBtn(index === items.length - 1)}>
+                    ↓
+                  </button>
+                </>
+              ) : null}
+              <button type="button" onClick={() => removeAt(index)} aria-label="Remove" style={{ ...iconBtn(false), fontSize: 13 }}>
+                Remove
+              </button>
+            </div>
             {renderItem(item, (patch) => updateAt(index, patch), index)}
           </div>
         ))}
@@ -88,4 +95,8 @@ export function ListEditor<T>({ items, onChange, createItem, renderItem, addLabe
       </button>
     </div>
   );
+}
+
+function iconBtn(disabled: boolean): React.CSSProperties {
+  return { border: "none", background: "transparent", color: "var(--slate)", cursor: disabled ? "default" : "pointer", fontSize: 15, opacity: disabled ? 0.3 : 1, padding: "2px 4px" };
 }

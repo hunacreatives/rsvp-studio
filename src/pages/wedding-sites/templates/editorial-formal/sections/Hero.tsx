@@ -18,8 +18,8 @@ function formatEventDate(iso: string): { day: string; month: string; weekday: st
   if (Number.isNaN(date.getTime())) return null;
   return {
     day: String(date.getDate()),
-    month: date.toLocaleDateString(undefined, { month: "long" }),
-    weekday: date.toLocaleDateString(undefined, { weekday: "long" }),
+    month: date.toLocaleDateString("en-US", { month: "long" }),
+    weekday: date.toLocaleDateString("en-US", { weekday: "long" }),
   };
 }
 

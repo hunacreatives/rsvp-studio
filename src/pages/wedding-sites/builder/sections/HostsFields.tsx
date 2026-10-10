@@ -19,8 +19,8 @@ export default function HostsFields({ content, onChange }: HostsFieldsProps) {
         items={content.hosts}
         onChange={(hosts) => onChange({ ...content, hosts })}
         createItem={() => ({ id: createId("host"), name: "" })}
-        addLabel="Add host"
-        emptyLabel="Add at least one host (e.g. the couple, or the birthday honoree)."
+        addLabel="Add a name"
+        emptyLabel="Who is this celebration for? Add each name (the couple, or the birthday celebrant)."
         renderItem={(host, update) => (
           <FormField label="Name">
             <input style={inputStyle} value={host.name} onChange={(e) => update({ name: e.target.value })} />
@@ -29,7 +29,7 @@ export default function HostsFields({ content, onChange }: HostsFieldsProps) {
       />
 
       <div style={{ marginTop: 20 }}>
-        <FormField label="Story" hint="Separate paragraphs with a blank line.">
+        <FormField label="Your story" hint="A few lines in your own words. Press Enter twice to start a new paragraph.">
           <textarea
             style={{ ...textareaStyle, minHeight: 160 }}
             value={content.story ?? ""}

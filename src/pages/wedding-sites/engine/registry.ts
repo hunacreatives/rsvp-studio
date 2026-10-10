@@ -65,7 +65,6 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
 // necessarily heterogeneous (each template can have its own settings
 // shape extending BaseTemplateSettings), and callers narrow via the
 // specific TemplateDefinition they look up, not via this map's type.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   "editorial-formal": editorialFormalTemplateDefinition,
   "modern-minimal": modernMinimalTemplateDefinition,
@@ -91,7 +90,6 @@ export interface CatalogEntry {
   thumbnailUrl: string | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const runtimeTemplates: Record<string, TemplateDefinition<any>> = {};
 let catalog: Record<string, CatalogEntry> | null = null;
 let version = 0;

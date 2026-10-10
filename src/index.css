@@ -7,7 +7,7 @@
   --warm-white: #fffff9;
   --ink: #000727;
   --indigo: #25265e;
-  --slate: #868697;
+  --slate: #6b6b7c; /* 4.8:1 on the warm white — readable grey text (was #868697) */
 
   /* Accents */
   --acc-yellow: #ffc800;
@@ -232,4 +232,10 @@ html.lenis body {
     inset: 0 0 auto 0;
     border: none !important;
   }
+}
+
+/* Keyboard focus is always visible (mouse clicks don't show it). */
+:focus-visible {
+  outline: 2px solid var(--acc-blue, #1862dd) !important;
+  outline-offset: 2px;
 }

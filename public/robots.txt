@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /account
+Disallow: /studio
+Disallow: /internal
+Disallow: /api/
+
+Sitemap: https://thersvpstudio.com/sitemap.xml

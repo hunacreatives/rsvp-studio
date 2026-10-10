@@ -14,6 +14,19 @@ export default class ErrorBoundary extends Component<Props, { failed: boolean }>
 
   componentDidCatch(error: unknown) {
     console.error("Page crashed:", error);
+    // After a new deploy, an open tab can ask for a page file that no longer exists.
+    // Reload once to pick up the new version instead of showing an error.
+    const msg = error instanceof Error ? error.message : String(error);
+    if (/dynamically imported module|Importing a module script failed|Loading chunk/i.test(msg)) {
+      try {
+        if (!sessionStorage.getItem("rs-reloaded")) {
+          sessionStorage.setItem("rs-reloaded", "1");
+          window.location.reload();
+        }
+      } catch {
+        /* storage blocked: show the normal message */
+      }
+    }
   }
 
   reset = () => this.setState({ failed: false });

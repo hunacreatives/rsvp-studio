@@ -5,7 +5,7 @@ export default function InboxPage() {
   const { owners } = useStudio();
   return (
     <>
-      <StudioHeader title="Inbox" sub="Every client conversation and support request." />
+      <StudioHeader title="Inbox" sub="Project conversations with clients. Support requests are under Support." />
       <StudioInbox owners={owners} />
     </>
   );

@@ -11,7 +11,7 @@ function formatEventDate(iso: string): string | null {
   if (!iso) return null;
   const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }
 
 /**

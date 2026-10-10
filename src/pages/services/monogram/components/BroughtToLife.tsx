@@ -3,12 +3,12 @@ import { Reveal } from "@/lib/Reveal";
 import Carousel from "./Carousel";
 
 const GALLERY = [
-  { img: "/services/monogram/mono-am.png", name: "A & M", kind: "Duo" },
+  { img: "/services/monogram/mono-am.webp", name: "A & M", kind: "Duo" },
   { img: "/services/monogram/crest-cj.png", name: "C J", kind: "Crest" },
-  { img: "/services/monogram/crest-jl.png", name: "J L", kind: "Crest" },
+  { img: "/services/monogram/crest-jl.webp", name: "J L", kind: "Crest" },
   { img: "/services/monogram/mono-ra.png", name: "R A", kind: "Duo" },
   { img: "/services/monogram/crest-th.png", name: "T H", kind: "Signature" },
-  { img: "/services/monogram/crest-b.png", name: "B", kind: "Crest" },
+  { img: "/services/monogram/crest-b.webp", name: "B", kind: "Crest" },
 ];
 
 export default function BroughtToLife() {

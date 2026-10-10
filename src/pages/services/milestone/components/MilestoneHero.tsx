@@ -77,7 +77,7 @@ export default function MilestoneHero() {
           className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[38%] sm:-translate-x-[28%] lg:-translate-x-[14%] w-[190px] sm:w-[240px] lg:w-[280px] will-change-transform"
         >
           <img
-            src="/services/milestone/semicustom-page.png"
+            src="/services/milestone/semicustom-page.webp"
             alt=""
             aria-hidden="true"
             className="w-full rounded-2xl shadow-[0_40px_80px_-40px_rgba(0,7,39,0.35)] opacity-95"
@@ -88,7 +88,7 @@ export default function MilestoneHero() {
           className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 translate-x-[38%] sm:translate-x-[28%] lg:translate-x-[14%] w-[190px] sm:w-[240px] lg:w-[280px] will-change-transform"
         >
           <img
-            src="/services/milestone/tailored-page.png"
+            src="/services/milestone/tailored-page.webp"
             alt=""
             aria-hidden="true"
             className="w-full rounded-2xl shadow-[0_40px_80px_-40px_rgba(0,7,39,0.35)] opacity-95"
@@ -97,7 +97,7 @@ export default function MilestoneHero() {
 
         <img
           ref={shot}
-          src="/services/milestone/carlo-laptop.png"
+          src="/services/milestone/carlo-laptop.webp"
           alt="Carlo & Trixia wedding website shown on a laptop"
           className="relative z-10 mx-auto w-full max-w-4xl will-change-transform"
         />

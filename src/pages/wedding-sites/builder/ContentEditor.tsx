@@ -26,14 +26,14 @@ interface Group {
 // product brief; rich-text/inline editing is an explicit non-goal for V1.
 export default function ContentEditor({ content, onChange, eventId }: ContentEditorProps) {
   const groups: Group[] = [
-    { title: "Hosts & Story", render: () => <HostsFields content={content} onChange={onChange} /> },
+    { title: "Names & Your Story", render: () => <HostsFields content={content} onChange={onChange} /> },
     { title: "Date & Venue", render: () => <DateVenueFields content={content} onChange={onChange} /> },
     { title: "Schedule", render: () => <ScheduleFields content={content} onChange={onChange} /> },
     { title: "Accommodations", render: () => <AccommodationsFields content={content} onChange={onChange} /> },
     { title: "Travel Information", render: () => <TravelFields content={content} onChange={onChange} /> },
     { title: "Gallery", render: () => <GalleryFields content={content} onChange={onChange} eventId={eventId} /> },
-    { title: "Key People", render: () => <KeyPeopleFields content={content} onChange={onChange} /> },
-    { title: "Registry", render: () => <RegistryFields content={content} onChange={onChange} /> },
+    { title: "Special People", render: () => <KeyPeopleFields content={content} onChange={onChange} /> },
+    { title: "Gifts", render: () => <RegistryFields content={content} onChange={onChange} /> },
     { title: "FAQs", render: () => <FaqFields content={content} onChange={onChange} /> },
   ];
 

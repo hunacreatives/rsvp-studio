@@ -1,6 +1,7 @@
 import { useId, type CSSProperties } from "react";
 import type { EventContent } from "../../content/types";
 import { useRsvpForm } from "../../spec/runtime/useRsvpForm";
+import { calendarUrl } from "../../content/calendar";
 
 // The RSVP form for every built-in template. Each template passes a "skin"
 // (its fonts, colours and CSS classes) so the design keeps its look, while
@@ -46,6 +47,13 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
         ) : (
           <p style={{ margin: 0 }}>Thank you, {first} — you’re on the list.{byEmail ? " A copy is on its way to your email." : ""}</p>
         )}
+        {attending !== "no" && calendarUrl(content) ? (
+          <p style={{ margin: "12px 0 0", fontSize: 15 }}>
+            <a href={calendarUrl(content)!} target="_blank" rel="noopener noreferrer" style={{ color: skin.ink, fontWeight: 600 }}>
+              Add it to your calendar →
+            </a>
+          </p>
+        ) : null}
         <p style={{ margin: "10px 0 0", fontSize: 14, color: skin.muted }}>Need to change your answer? Send this form again with the same email or mobile number.</p>
       </div>
     );
@@ -149,6 +157,13 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
       >
         {state === "submitting" ? "Sending…" : "Send my reply"}
       </button>
+
+      <p style={{ ...text, fontSize: 12, margin: 0, color: skin.muted, textAlign: "center" }}>
+        Your reply goes to the hosts.{" "}
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: skin.muted }}>
+          Privacy
+        </a>
+      </p>
 
       {error ? (
         <p role="alert" style={{ ...text, color: "#b3261e", fontSize: 14, margin: 0, textAlign: "center" }}>

@@ -164,7 +164,7 @@ export default function TeamPage() {
                 {owner ? (
                   <span className="inline-flex gap-2">
                     <PillButton onClick={() => run(() => studio.resendStaffInvite(inv.email), `Invite sent again to ${inv.email}.`)}>Resend</PillButton>
-                    <PillButton tone="danger" onClick={() => run(() => studio.cancelStaffInvite(inv.id), `Invite to ${inv.email} cancelled.`)}>Cancel</PillButton>
+                    <PillButton tone="danger" onClick={() => window.confirm(`Cancel the invite to ${inv.email}? Their sign-up link will stop working.`) && run(() => studio.cancelStaffInvite(inv.id), `Invite to ${inv.email} cancelled.`)}>Cancel invite</PillButton>
                   </span>
                 ) : null}
               </div>
@@ -216,7 +216,7 @@ export default function TeamPage() {
             </p>
             <ErrorText>{error}</ErrorText>
             <div className="mt-6 flex justify-end gap-2">
-              <PillButton onClick={() => setConfirm(null)}>Keep as is</PillButton>
+              <PillButton onClick={() => setConfirm(null)}>Cancel</PillButton>
               <PillButton
                 tone={confirm.kind === "transfer" ? "dark" : "danger"}
                 onClick={() =>

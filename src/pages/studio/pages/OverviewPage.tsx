@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { ActivityList, isOverdue } from "@/pages/account/portal/components/blocks";
@@ -6,15 +6,34 @@ import { formatDate, formatMoney, inboxStamp } from "@/pages/account/portal/form
 import { Avatar } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import { isOverdue as replyOverdue } from "@/pages/account/portal/support";
-import { useHolidays } from "../studioApi";
+import { countNewLeads, useHolidays } from "../studioApi";
 
-const today = () => new Date().toISOString().slice(0, 10);
+/** Today in Manila ("YYYY-MM-DD"), plus/minus days. */
+const today = (plusDays = 0) => new Date(Date.now() + 8 * 3_600_000 + plusDays * 86_400_000).toISOString().slice(0, 10);
 
 export default function OverviewPage() {
-  const { profile, projects, threads, invoices, tasks, activity } = usePortal();
-  const name = (id: string) => projects.find((p) => p.id === id)?.name ?? "";
+  const { profile, projects: all, threads, invoices, tasks, activity, demo } = usePortal();
+  const name = (id: string) => all.find((p) => p.id === id)?.name ?? "";
+  // Studio projects only — DIY websites have their own list under Projects.
+  const projects = all.filter((p) => p.managed_by_studio !== false);
+  const diyCount = all.length - projects.length;
+  const [leads, setLeads] = useState(0);
+  useEffect(() => {
+    if (!demo) countNewLeads().then(setLeads);
+  }, [demo]);
 
   const active = projects.filter((p) => p.project_status === "in_progress");
+  const upcoming = active
+    .filter((p) => p.event_date && p.event_date >= today() && p.event_date <= today(14))
+    .sort((a, b) => a.event_date!.localeCompare(b.event_date!));
+  const lastReminded = (i: (typeof invoices)[number]) => i.last_reminded_at ?? i.issued_at;
+  const needsLook = [
+    ...active.filter((p) => !p.owner_id).map((p) => ({ id: p.id, title: p.name, note: "No client linked yet — send an invite code" })),
+    ...active.filter((p) => p.event_date && p.event_date < today(-3)).map((p) => ({ id: p.id, title: p.name, note: `Event was ${formatDate(p.event_date)} — mark it completed?` })),
+    ...invoices
+      .filter((i) => i.status === "open" && (isOverdue(i) || !i.due_date) && lastReminded(i).slice(0, 10) < today(-7))
+      .map((i) => ({ id: i.event_id, title: name(i.event_id), note: `${formatMoney(i.amount)} unpaid, no reminder in a week` })),
+  ];
   const waiting = threads.filter((t) => t.unread && t.kind !== "support");
   const support = threads.filter((t) => t.kind === "support" && t.status === "needs_reply");
   const { days: holidays } = useHolidays();
@@ -39,12 +58,13 @@ export default function OverviewPage() {
     <>
       <StudioHeader title={`${greeting}${profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.`} sub="Here’s what needs the studio’s attention." />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Active projects" value={String(active.length)} sub={`${projects.length} total`} to="/studio/projects" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <Stat label="New leads" value={String(leads)} sub="inquiries waiting for a reply" to="/studio/leads" tone={leads ? "coral" : undefined} />
+        <Stat label="Active projects" value={String(active.length)} sub={`${projects.length} total${diyCount ? ` · ${diyCount} DIY sites` : ""}`} to="/studio/projects" />
         <Stat
           label="Support"
           value={String(support.length)}
-          sub={`need a reply${supportLate.length ? ` · ${supportLate.length} overdue` : ""} · ${waiting.length} unread messages`}
+          sub={`need a reply${supportLate.length ? ` · ${supportLate.length} overdue` : ""}`}
           to="/studio/support"
           tone={supportLate.length ? "coral" : undefined}
         />
@@ -53,7 +73,30 @@ export default function OverviewPage() {
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        <Box title="Awaiting your reply" link={{ to: "/studio/inbox", label: "Inbox" }} empty={!waiting.length && "No client is waiting on you."}>
+        <Box title="Coming up — next 14 days" link={{ to: "/studio/projects", label: "Projects" }} empty={!upcoming.length && "No events in the next two weeks."}>
+          {upcoming.slice(0, 6).map((p) => (
+            <Link key={p.id} to={`/studio/projects?project=${p.id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-semibold text-[var(--ink)]">{p.name}</span>
+                <span className="block truncate text-[13px] text-[var(--slate)]">{p.progress}% done{p.next_step ? ` · next: ${p.next_step}` : ""}</span>
+              </span>
+              <span className={`shrink-0 text-[12px] ${p.event_date! <= today(7) ? "font-medium text-[#c2412d]" : "text-[var(--slate)]"}`}>{formatDate(p.event_date)}</span>
+            </Link>
+          ))}
+        </Box>
+
+        <Box title="Needs a look" empty={!needsLook.length && "Nothing stuck right now."}>
+          {needsLook.slice(0, 6).map((n, i) => (
+            <Link key={`${n.id}-${i}`} to={`/studio/projects?project=${n.id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-semibold text-[var(--ink)]">{n.title}</span>
+                <span className="block truncate text-[13px] text-[var(--slate)]">{n.note}</span>
+              </span>
+            </Link>
+          ))}
+        </Box>
+
+        <Box title="Unread client messages" link={{ to: "/studio/inbox", label: "Inbox" }} empty={!waiting.length && "No unread messages."}>
           {waiting.slice(0, 6).map((t) => (
             <Link key={t.id} to={`/studio/inbox?thread=${t.id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
               <Avatar name={t.counterpartName} seed={t.profile_id} url={t.counterpartAvatar} size={36} />
@@ -76,7 +119,7 @@ export default function OverviewPage() {
               <Link key={i.id} to={`/studio/projects?project=${i.event_id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-semibold text-[var(--ink)]">{name(i.event_id)}</span>
-                  <span className="block truncate text-[13px] text-[var(--slate)]">#{i.number} · {i.description}</span>
+                  <span className="block truncate text-[13px] text-[var(--slate)]">{i.number} · {i.description}</span>
                 </span>
                 <span className="text-right">
                   <span className="block text-[14px] text-[var(--ink)]">{formatMoney(i.amount)}</span>

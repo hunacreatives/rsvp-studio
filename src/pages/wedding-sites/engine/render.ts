@@ -22,7 +22,16 @@ export function resolveTemplate(presentation: PresentationState): ResolvedTempla
   const definition = getTemplateDefinition(presentation.activeTemplateId);
   if (!definition) return undefined;
 
-  const settings = presentation.byTemplate[definition.id] ?? definition.defaultSettings;
+  // Saved settings on top of the template's defaults, so a missing or partial
+  // setting (older drafts, imported data) never hides sections or blanks the page.
+  const stored = presentation.byTemplate[definition.id];
+  const settings = stored
+    ? {
+        ...definition.defaultSettings,
+        ...stored,
+        sectionVisibility: { ...defaultSectionVisibility, ...definition.defaultSettings.sectionVisibility, ...stored.sectionVisibility },
+      }
+    : definition.defaultSettings;
   return { definition, settings };
 }
 

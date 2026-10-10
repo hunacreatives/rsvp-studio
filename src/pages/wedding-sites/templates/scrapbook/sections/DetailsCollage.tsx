@@ -27,7 +27,7 @@ function dateParts(iso: string): { month: string; day: string; year: string } | 
   const d = parseEventDate(iso);
   if (Number.isNaN(d.getTime())) return null;
   return {
-    month: d.toLocaleDateString(undefined, { month: "long" }).toUpperCase(),
+    month: d.toLocaleDateString("en-US", { month: "long" }).toUpperCase(),
     day: String(d.getDate()).padStart(2, "0"),
     year: String(d.getFullYear()),
   };

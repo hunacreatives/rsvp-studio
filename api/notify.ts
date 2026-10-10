@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { esc } from "./_lib/email.js";
+import { esc, isEmail } from "./_lib/email.js";
 import { customerReplyTo, reqCode, FROM, layout, makeSendMail, ratingButtons, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
 import { customerMessageEmails } from "./_lib/support-notify.js";
 import { sendInvoiceEmail } from "./_lib/billing-mail.js";
@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!caller) return res.status(401).json({ error: "No profile" });
 
   const origin = `https://${req.headers["x-forwarded-host"] ?? req.headers.host}`;
-  const body = req.body as { kind: string; note?: string | null; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string };
+  const body = req.body as { kind: string; note?: string | null; code?: string; email?: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string };
   const sends: Promise<unknown>[] = [];
 
   try {
@@ -160,6 +160,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ];
       sends.push(sendInvoiceEmail(supabaseAdmin, sendMail, { invoiceId: body.invoiceId, kind, origin, note: body.note }));
       if (kind === "reminder") await supabaseAdmin.from("invoices").update({ last_reminded_at: new Date().toISOString() }).eq("id", body.invoiceId);
+    } else if (body.kind === "invite_code" && body.eventId && body.code && body.email && caller.is_staff) {
+      // Studio → project → "Email code to…": the client's invite code and how to use it.
+      const to = String(body.email).trim().toLowerCase();
+      if (!isEmail(to)) return res.status(400).json({ error: "That email address doesn’t look right." });
+      const { data: invite } = await supabaseAdmin.from("invite_codes").select("code, used_at").eq("event_id", body.eventId).eq("code", body.code).maybeSingle();
+      if (!invite || invite.used_at) return res.status(404).json({ error: "That code has already been used — generate a new one." });
+      const { data: ev } = await supabaseAdmin.from("events").select("name").eq("id", body.eventId).maybeSingle();
+      const signUp = `${origin}/?auth=signup&email=${encodeURIComponent(to)}`;
+      sends.push(
+        sendMail({
+          from: FROM,
+          to,
+          subject: `Your event dashboard is ready — ${ev?.name ?? "The RSVP Studio"}`,
+          html: layout(
+            "See your event in one place",
+            `We’ve set up <strong>${esc(ev?.name ?? "your event")}</strong> in your RSVP Studio dashboard — progress, designs, invoices and messages, all together.<br><br>
+            <strong>1.</strong> Create your account (or log in) with <strong>${esc(to)}</strong>.<br>
+            <strong>2.</strong> Enter this code when asked:<br>
+            <span style="display:inline-block;margin:10px 0;padding:10px 18px;border-radius:12px;background:#f5f5f2;font-family:monospace;font-size:20px;letter-spacing:.12em;color:#000727;">${esc(invite.code)}</span><br>
+            The code works once. Questions? Just reply to this email.`,
+            { label: "Create your account", url: signUp },
+            `Already have an account? Log in, then open ${origin}/account/onboarding?code=${encodeURIComponent(invite.code)}`,
+          ),
+          replyTo: STUDIO_INBOX,
+        }),
+      );
     } else if ((body.kind === "staff_invite" && body.inviteId) || (body.kind === "staff_added" && body.profileId)) {
       // Team emails: only the owner can trigger them (supabase/team-roles.sql).
       const { data: me } = await supabaseAdmin.from("profiles").select("staff_role").eq("id", caller.id).maybeSingle();

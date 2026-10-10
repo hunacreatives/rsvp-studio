@@ -103,7 +103,7 @@ export default function FooterSection() {
                 Privacy Policy
               </Link>
               <Link to="/terms" className="underline underline-offset-4 hover:text-white">
-                Terms of Use
+                Terms of Service
               </Link>
             </span>
           </div>

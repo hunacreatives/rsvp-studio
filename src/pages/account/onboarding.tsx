@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/pages/home/components/Navbar";
 import CreateEventModal from "./components/CreateEventModal";
 
 export default function AccountOnboarding() {
-  const [code, setCode] = useState("");
+  // The invite email links here with ?code=… already filled in.
+  const [params] = useSearchParams();
+  const [code, setCode] = useState(params.get("code") ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);

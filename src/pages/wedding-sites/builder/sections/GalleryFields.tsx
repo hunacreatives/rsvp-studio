@@ -31,7 +31,7 @@ export default function GalleryFields({ content, onChange, eventId }: GalleryFie
       <FormField label="Gallery title (optional)">
         <input
           style={inputStyle}
-          placeholder="Our Engagement"
+          placeholder="Our story in photos"
           value={gallery.title ?? ""}
           onChange={(e) => updateGallery({ title: e.target.value || undefined })}
         />
@@ -74,7 +74,7 @@ export default function GalleryFields({ content, onChange, eventId }: GalleryFie
                 }
               />
             </FormField>
-            <FormField label="Alt text">
+            <FormField label="Describe this photo" hint="Helps guests who use screen readers. E.g. “Us at Taal Lake”.">
               <input
                 style={inputStyle}
                 value={item.image.alt}
@@ -88,8 +88,19 @@ export default function GalleryFields({ content, onChange, eventId }: GalleryFie
                 onChange={(e) => update({ caption: e.target.value || undefined })}
               />
             </FormField>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <FormField label="Focal point X (0–1)">
+            {item.image.masterUrl ? (
+              <FormField label="What should stay in view?" hint="Tap the most important part of the photo — it stays visible when the photo is cropped.">
+                <FocusPicker
+                  url={item.image.masterUrl}
+                  focus={item.image.focalPoint}
+                  onChange={(focalPoint) => update({ image: { ...item.image, focalPoint } })}
+                />
+              </FormField>
+            ) : null}
+            <details style={{ marginTop: 8 }}>
+              <summary style={{ fontSize: 12, color: "var(--slate)", cursor: "pointer" }}>More options</summary>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
+              <FormField label="Focus across (0–1)">
                 <input
                   type="number"
                   min={0}
@@ -102,7 +113,7 @@ export default function GalleryFields({ content, onChange, eventId }: GalleryFie
                   }
                 />
               </FormField>
-              <FormField label="Focal point Y (0–1)">
+              <FormField label="Focus down (0–1)">
                 <input
                   type="number"
                   min={0}
@@ -116,7 +127,7 @@ export default function GalleryFields({ content, onChange, eventId }: GalleryFie
                 />
               </FormField>
             </div>
-            <FormField label="Layout hint (optional)">
+            <FormField label="Photo shape (optional)">
               <select
                 style={inputStyle}
                 value={item.layoutHint ?? ""}
@@ -131,8 +142,44 @@ export default function GalleryFields({ content, onChange, eventId }: GalleryFie
                 <option value="portrait">Portrait</option>
               </select>
             </FormField>
+            </details>
           </div>
         )}
+      />
+    </div>
+  );
+}
+
+/** Tap a point on the photo to set its focus (what stays visible when cropped). */
+function FocusPicker({ url, focus, onChange }: { url: string; focus: { x: number; y: number }; onChange: (f: { x: number; y: number }) => void }) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label="Set the photo’s focus point"
+      onClick={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const round = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 100) / 100;
+        onChange({ x: round((e.clientX - r.left) / r.width), y: round((e.clientY - r.top) / r.height) });
+      }}
+      style={{ position: "relative", cursor: "crosshair", borderRadius: 10, overflow: "hidden", lineHeight: 0 }}
+    >
+      <img src={url} alt="" style={{ width: "100%", display: "block" }} />
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: `${focus.x * 100}%`,
+          top: `${focus.y * 100}%`,
+          width: 22,
+          height: 22,
+          marginLeft: -11,
+          marginTop: -11,
+          borderRadius: 999,
+          border: "3px solid #fff",
+          boxShadow: "0 0 0 2px rgba(0,7,39,.6)",
+          background: "rgba(24,98,221,.5)",
+        }}
       />
     </div>
   );

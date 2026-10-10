@@ -25,7 +25,7 @@ export const WORKS: Work[] = [
     meta: "Custom Milestone Website · Adult Birthday",
     tags: ["Custom", "Adult Birthday"],
     liveUrl: "https://claudyat30.com",
-    thumbnail: "/portfolio/claudy-at-30.png",
+    thumbnail: "/portfolio/claudy-at-30.webp",
     description:
       "A custom milestone event website built for Claudy's 30th, with a full interactive experience — event details, RSVP, and a shareable landing page guests can revisit.",
     seed: 1,
@@ -37,7 +37,7 @@ export const WORKS: Work[] = [
     meta: "Custom Milestone Website · Adult Birthday",
     tags: ["Custom", "Adult Birthday"],
     liveUrl: "https://tercelat41.com",
-    thumbnail: "/portfolio/tercel-at-41.png",
+    thumbnail: "/portfolio/tercel-at-41.webp",
     description:
       "Atty. Tercel Mercado-Gephart's 41st birthday website, complete with live RSVP capture, calendar and map integration, and an automated confirmation email flow.",
     seed: 2,
@@ -61,7 +61,7 @@ export const WORKS: Work[] = [
     meta: "Custom Milestone Website · 1st Birthday",
     tags: ["Custom", "1st Birthday"],
     liveUrl: "https://francesjash.vercel.app",
-    thumbnail: "/portfolio/frances-jash.png",
+    thumbnail: "/portfolio/frances-jash.webp",
     description:
       "A Disney Princess watercolor-themed milestone website for Frances Jash's 1st birthday, built to guide guests through the celebration details in one place.",
     seed: 4,
@@ -73,7 +73,7 @@ export const WORKS: Work[] = [
     meta: "Custom Milestone Website · Wedding",
     tags: ["Custom", "Wedding"],
     liveUrl: "https://carloandtrixia.com",
-    thumbnail: "/portfolio/carlo-and-trixia.png",
+    thumbnail: "/portfolio/carlo-and-trixia.webp",
     description:
       "A wedding website for Carlo and Trixia — event details, entourage, and RSVP brought together in one custom, on-brand experience for their guests.",
     seed: 5,

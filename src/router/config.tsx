@@ -1,4 +1,8 @@
+import { lazy } from "react";
 import type { RouteObject } from "react-router-dom";
+
+// Marketing pages load up front; the dashboard, Studio, builder and invite pages
+// load on demand, so a first visit (or a guest opening an invite) downloads less.
 import NotFound from "../pages/NotFound";
 import Home from "../pages/home/page";
 import Services from "../pages/services/page";
@@ -16,36 +20,37 @@ import PartnerInquiry from "../pages/enquire/partner";
 import Blog from "../pages/blog/page";
 import Privacy from "../pages/legal/privacy";
 import Terms from "../pages/legal/terms";
-import RatePage from "../pages/rate/page";
-import AccountOnboarding from "../pages/account/onboarding";
-import PortalLayout from "../pages/account/portal/PortalLayout";
-import PortalHome from "../pages/account/portal/pages/HomePage";
-import PortalProjects from "../pages/account/portal/pages/ProjectsPage";
-import PortalProjectDetail from "../pages/account/portal/pages/ProjectDetailPage";
-import PortalBilling from "../pages/account/portal/pages/BillingPage";
-import PortalInvoice from "../pages/account/portal/pages/InvoicePage";
-import PortalAccount from "../pages/account/portal/pages/AccountPage";
-import PortalMessages from "../pages/account/portal/pages/MessagesPage";
-import PortalHelp from "../pages/account/portal/pages/HelpPage";
-import PortalContactSupport from "../pages/account/portal/pages/ContactSupportPage";
-import PortalGuide from "../pages/account/portal/pages/GuidePage";
-import StudioLayout from "../pages/studio/StudioLayout";
-import StudioOverview from "../pages/studio/pages/OverviewPage";
-import StudioProjects from "../pages/studio/pages/ProjectsPage";
-import StudioInboxPage from "../pages/studio/pages/InboxPage";
-import StudioInvoices from "../pages/studio/pages/InvoicesPage";
-import StudioClients from "../pages/studio/pages/ClientsPage";
-import StudioTeam from "../pages/studio/pages/TeamPage";
-import StudioSupport from "../pages/studio/pages/SupportPage";
-import StudioTemplates from "../pages/studio/templates/TemplatesPage";
-import StudioTemplateNew from "../pages/studio/templates/TemplateNewPage";
-import StudioTemplateDetail from "../pages/studio/templates/TemplateDetailPage";
-import StudioTemplateImport from "../pages/studio/templates/TemplateImportPage";
-import PreviewHarnessPage from "../pages/wedding-sites/preview/PreviewHarnessPage";
-import PublicEventSitePage from "../pages/wedding-sites/public/PublicEventSitePage";
-import BuilderShellPage from "../pages/wedding-sites/builder/BuilderShellPage";
-import TemplateGalleryPage from "../pages/wedding-sites/builder/TemplateGalleryPage";
-import BuildLandingPage from "../pages/wedding-sites/builder/BuildLandingPage";
+const RatePage = lazy(() => import("../pages/rate/page"));
+const AccountOnboarding = lazy(() => import("../pages/account/onboarding"));
+const PortalLayout = lazy(() => import("../pages/account/portal/PortalLayout"));
+const PortalHome = lazy(() => import("../pages/account/portal/pages/HomePage"));
+const PortalProjects = lazy(() => import("../pages/account/portal/pages/ProjectsPage"));
+const PortalProjectDetail = lazy(() => import("../pages/account/portal/pages/ProjectDetailPage"));
+const PortalBilling = lazy(() => import("../pages/account/portal/pages/BillingPage"));
+const PortalInvoice = lazy(() => import("../pages/account/portal/pages/InvoicePage"));
+const PortalAccount = lazy(() => import("../pages/account/portal/pages/AccountPage"));
+const PortalMessages = lazy(() => import("../pages/account/portal/pages/MessagesPage"));
+const PortalHelp = lazy(() => import("../pages/account/portal/pages/HelpPage"));
+const PortalContactSupport = lazy(() => import("../pages/account/portal/pages/ContactSupportPage"));
+const PortalGuide = lazy(() => import("../pages/account/portal/pages/GuidePage"));
+const StudioLayout = lazy(() => import("../pages/studio/StudioLayout"));
+const StudioOverview = lazy(() => import("../pages/studio/pages/OverviewPage"));
+const StudioProjects = lazy(() => import("../pages/studio/pages/ProjectsPage"));
+const StudioInboxPage = lazy(() => import("../pages/studio/pages/InboxPage"));
+const StudioInvoices = lazy(() => import("../pages/studio/pages/InvoicesPage"));
+const StudioClients = lazy(() => import("../pages/studio/pages/ClientsPage"));
+const StudioTeam = lazy(() => import("../pages/studio/pages/TeamPage"));
+const StudioSupport = lazy(() => import("../pages/studio/pages/SupportPage"));
+const StudioLeads = lazy(() => import("../pages/studio/pages/LeadsPage"));
+const StudioTemplates = lazy(() => import("../pages/studio/templates/TemplatesPage"));
+const StudioTemplateNew = lazy(() => import("../pages/studio/templates/TemplateNewPage"));
+const StudioTemplateDetail = lazy(() => import("../pages/studio/templates/TemplateDetailPage"));
+const StudioTemplateImport = lazy(() => import("../pages/studio/templates/TemplateImportPage"));
+const PreviewHarnessPage = lazy(() => import("../pages/wedding-sites/preview/PreviewHarnessPage"));
+const PublicEventSitePage = lazy(() => import("../pages/wedding-sites/public/PublicEventSitePage"));
+const BuilderShellPage = lazy(() => import("../pages/wedding-sites/builder/BuilderShellPage"));
+const TemplateGalleryPage = lazy(() => import("../pages/wedding-sites/builder/TemplateGalleryPage"));
+const BuildLandingPage = lazy(() => import("../pages/wedding-sites/builder/BuildLandingPage"));
 
 const routes: RouteObject[] = [
   { path: "/", element: <Home /> },
@@ -90,6 +95,7 @@ const routes: RouteObject[] = [
       { path: "projects", element: <StudioProjects /> },
       { path: "inbox", element: <StudioInboxPage /> },
       { path: "support", element: <StudioSupport /> },
+      { path: "leads", element: <StudioLeads /> },
       { path: "invoices", element: <StudioInvoices /> },
       { path: "clients", element: <StudioClients /> },
       { path: "team", element: <StudioTeam /> },

@@ -90,7 +90,7 @@ export function formatLongDate(iso: string): string | null {
   if (!iso) return null;
   const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
 export function formatTime(iso: string): string | null {
@@ -98,7 +98,7 @@ export function formatTime(iso: string): string | null {
   const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
   const hasClockTime = iso.includes("T") && !(date.getHours() === 0 && date.getMinutes() === 0);
-  return hasClockTime ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : null;
+  return hasClockTime ? date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null;
 }
 
 export function hostNames(content: EventContent): string[] {

@@ -356,7 +356,7 @@ function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; ema
             Reopen
           </button>
         ) : (
-          <button disabled={busy} onClick={() => save({ status: "resolved" })} className="rounded-full bg-[var(--ink)] px-3 py-1 text-[12px] font-medium text-white">
+          <button disabled={busy} onClick={() => window.confirm("Mark this request done? The customer gets an email asking how we did.") && save({ status: "resolved" })} className="rounded-full bg-[var(--ink)] px-3 py-1 text-[12px] font-medium text-white">
             Resolve
           </button>
         )}
@@ -442,7 +442,7 @@ function ManageSavedReplies({ open, onClose, replies, reload }: { open: boolean;
                   <span className="line-clamp-2 block text-[13px] text-[var(--slate)]">{r.body}</span>
                 </span>
                 <PillButton onClick={() => setEditing({ id: r.id, title: r.title, body: r.body })}>Edit</PillButton>
-                <PillButton tone="danger" onClick={() => run(() => studio.deleteSavedReply(r.id))}>
+                <PillButton tone="danger" onClick={() => window.confirm(`Delete the saved reply “${r.title}”?`) && run(() => studio.deleteSavedReply(r.id))}>
                   Delete
                 </PillButton>
               </div>

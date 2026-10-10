@@ -237,6 +237,13 @@ function NewMessageModal({ projectId, onClose, onCreated }: { projectId: string 
 
   return (
     <Modal open onClose={onClose} title="New message" width={560}>
+      <p className="-mt-2 mb-4 rounded-xl bg-[var(--paper)] px-4 py-3 text-[13px] text-[var(--slate)]">
+        For your designs and project. Something not working, or a billing question?{" "}
+        <Link to="/account/help/contact" className="font-medium text-[var(--acc-blue)] hover:underline">
+          Contact support
+        </Link>{" "}
+        — you’ll get a request number and a reply within 1 business day.
+      </p>
       <div className="space-y-4">
         <Field label="Project">
           <Select

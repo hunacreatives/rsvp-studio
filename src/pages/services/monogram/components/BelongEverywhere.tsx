@@ -4,9 +4,9 @@ import Carousel from "./Carousel";
 const PLACES = [
   { label: "Website", img: "/services/monogram/phone-seal.png", tone: "#eef1ee" },
   { label: "Invitations", img: "/services/monogram/invitation-crest.png", tone: "#f6f2ea" },
-  { label: "Envelope", img: "/services/monogram/envelope-green.png", tone: "#e9ece4" },
+  { label: "Envelope", img: "/services/monogram/envelope-green.webp", tone: "#e9ece4" },
   { label: "Wax Seal", img: "/services/monogram/seal-sf-blue.png", tone: "#eceef2" },
-  { label: "Menu", img: "/services/monogram/mono-am.png", tone: "#f3f1ec" },
+  { label: "Menu", img: "/services/monogram/mono-am.webp", tone: "#f3f1ec" },
   { label: "Napkin", img: "/services/monogram/seal-r-pair.png", tone: "#f2ecec" },
 ];
 

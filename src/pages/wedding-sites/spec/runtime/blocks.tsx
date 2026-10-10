@@ -6,6 +6,7 @@ import type { SectionVisibility } from "../../presentation/types";
 import type { BlockSectionSpec, BlockType } from "../schema";
 import { colorOf, useSpecTheme, type SpecTheme } from "./theme";
 import RsvpForm from "../../templates/shared/RsvpForm";
+import { calendarUrl } from "../../content/calendar";
 
 // The shared block library: every section an uploaded template needs that
 // the designer's file didn't draw. Built once, styled entirely from the
@@ -303,23 +304,6 @@ function ScheduleBlock({ section, content, editorPreview }: BlockProps) {
   );
 }
 
-/** Google Calendar "add event" link for the event day (all-day when no time). */
-function calendarUrl(content: EventContent): string | null {
-  if (!content.eventDate) return null;
-  const d = parseEventDate(content.eventDate);
-  if (Number.isNaN(d.getTime())) return null;
-  const ymd = (x: Date) => `${x.getFullYear()}${String(x.getMonth() + 1).padStart(2, "0")}${String(x.getDate()).padStart(2, "0")}`;
-  const next = new Date(d);
-  next.setDate(d.getDate() + 1);
-  const title = content.hosts.map((h) => h.name).filter(Boolean).join(" & ") || "Celebration";
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: title,
-    dates: `${ymd(d)}/${ymd(next)}`,
-    location: [content.primaryLocation.name, content.primaryLocation.addressLine].filter(Boolean).join(", "),
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
 
 function VenueBlock({ section, content, visibility, editorPreview }: BlockProps) {
   const theme = useSpecTheme();

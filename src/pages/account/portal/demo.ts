@@ -93,7 +93,7 @@ function clientSnapshot(): PortalSnapshot {
       {
         id: FRANCIS, name: "Francis’ 31st", event_date: dateIn(-18), event_type: "birthday", table_name: null, status: "past",
         project_status: "completed", services: ["Event Website", "RSVP Management"], progress: 100,
-        next_step: null, next_step_due: null, cover_image_url: "/portfolio/claudy-at-30.png",
+        next_step: null, next_step_due: null, cover_image_url: "/portfolio/claudy-at-30.webp",
         site_url: "https://claudyat30.com", completed_at: ago(18 * day), updated_at: ago(18 * day), created_at: ago(90 * day), owner_id: ME, role: "Owner",
       },
     ],

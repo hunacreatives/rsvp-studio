@@ -4,7 +4,7 @@ const PLANS = [
   {
     title: "Semi-Custom",
     price: "₱3,000",
-    img: "/services/milestone/semicustom-page.png",
+    img: "/services/milestone/semicustom-page.webp",
     features: [
       { icon: "ri-layout-2-line", title: "Signature Layouts", copy: "Thoughtfully designed templates from our signature collection" },
       { icon: "ri-user-heart-line", title: "Personalized Content", copy: "We tailor the content to your story and celebration" },
@@ -16,7 +16,7 @@ const PLANS = [
   {
     title: "Custom",
     price: "₱8,000",
-    img: "/services/milestone/tailored-page.png",
+    img: "/services/milestone/tailored-page.webp",
     features: [
       { icon: "ri-quill-pen-line", title: "Designed from Scratch", copy: "Everything is designed exclusively for you" },
       { icon: "ri-team-line", title: "Collaborative Design", copy: "A hands-on experience from start to finish" },

@@ -5,157 +5,163 @@ export default function Privacy() {
   return (
     <LegalLayout
       title="Privacy Policy"
-      lastUpdated="September 9, 2026"
+      lastUpdated="October 11, 2026"
       intro={
         <p>
-          The RSVP Studio (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;)
-          is a digital event design studio operated by Huna Creatives, based in the
-          Philippines and serving clients worldwide. This policy explains what
-          personal information we collect through <strong>thersvpstudio.com</strong>,
-          how we use it, and the choices you have.
+          The RSVP Studio (&ldquo;we,&rdquo; &ldquo;us&rdquo;) is a digital event design studio and a brand of
+          Huna Creatives, based in the Philippines. This policy explains what personal information we collect
+          through <strong>thersvpstudio.com</strong> — including your account, the event websites you build or
+          we build for you, and your guests&rsquo; RSVPs — how we use it, who helps us process it, and your rights
+          under the <strong>Data Privacy Act of 2012</strong> (Republic Act No. 10173).
         </p>
       }
     >
       <div>
-        <h2>1. Information we collect</h2>
+        <h2>1. What we collect</h2>
         <p>
-          <strong>Information you give us.</strong> When you submit an inquiry or
-          partner form, you may provide your name, email address, Instagram handle,
-          phone or preferred contact, event details (date, location, guest count,
-          occasion, celebrant or partner names), your design preferences and vision,
-          an indicative budget range, and any other details you choose to include.
+          <strong>When you contact us.</strong> Inquiry, partner and question forms: your name, email, phone or
+          social handle, event details (occasion, date, place, guest count, names of the celebrants), your
+          preferences and budget, and any files you attach.
         </p>
         <p>
-          <strong>Information collected automatically.</strong> Our host (Vercel) and
-          the content-delivery networks that serve our fonts and icons (Google Fonts,
-          Cloudflare / cdnjs) may automatically log standard technical data such as
-          your IP address, browser type, and the pages you request, for security and
-          reliability. We do not run analytics, advertising, or behavioural-tracking
-          scripts on this site.
+          <strong>Your account.</strong> Name, email address, password (stored securely by our login provider —
+          we never see it), and, if you add them, phone, location, profile photo and billing details (name,
+          email and address for receipts). If you sign in with Google, we receive your name, email and profile
+          photo from Google.
         </p>
         <p>
-          <strong>Client project information.</strong> If you engage us for a project,
-          we will process the information needed to deliver it — which may include
-          details about your guests that you provide to us. Our handling of that
-          information is governed by our written project agreement with you.
+          <strong>Your event and website.</strong> The content you add: names, dates, venues, schedule, stories,
+          photos, gift and travel details, and your design choices.
+        </p>
+        <p>
+          <strong>Your guests&rsquo; RSVPs.</strong> When guests reply on an event website: their name, an email
+          address or mobile number, whether they&rsquo;re coming, how many are coming, food needs, and any message.
+        </p>
+        <p>
+          <strong>Messages and support.</strong> Messages and files you send us in your dashboard or by email,
+          your support requests, and your rating of our help. To keep ratings genuine we also record the browser
+          and IP address a rating came from.
+        </p>
+        <p>
+          <strong>Payments.</strong> The amount, what it&rsquo;s for, the payment method (e.g. GCash, Maya, card)
+          and the payment reference. Card and wallet details are entered on PayMongo&rsquo;s secure page — we
+          never receive or store them.
+        </p>
+        <p>
+          <strong>Technical data.</strong> Our hosting and security services log standard data such as IP
+          address, browser type and pages requested, to keep the service secure and working. We don&rsquo;t run
+          analytics, advertising or tracking scripts.
         </p>
       </div>
 
       <div>
-        <h2>2. How we use your information</h2>
+        <h2>2. How we use it</h2>
         <ul>
-          <li>To respond to your inquiry and prepare a proposal or quote.</li>
-          <li>To evaluate partnership requests from planners, venues, and studios.</li>
-          <li>To deliver, support, and improve services you engage us for.</li>
-          <li>To keep the website secure and functioning.</li>
-          <li>To comply with legal obligations and enforce our terms.</li>
+          <li>To reply to inquiries, prepare quotes and deliver the projects you engage us for.</li>
+          <li>To run your account, your dashboard and your event website, and to show your guest list to you.</li>
+          <li>To send the emails the service depends on — RSVP confirmations, invoices and receipts, support replies, reminders and account emails.</li>
+          <li>To take payments and keep records required by law.</li>
+          <li>To keep the service secure, prevent spam and abuse, and fix problems.</li>
+        </ul>
+        <p>We do not sell personal information, and we do not use it for advertising.</p>
+      </div>
+
+      <div>
+        <h2>3. Guests&rsquo; information</h2>
+        <p>
+          The host of an event decides who to invite and what to do with the RSVP list; we store and process
+          guests&rsquo; replies on the host&rsquo;s behalf, and only use them to run that event&rsquo;s website, show
+          the replies to the host, and send the guest a confirmation. Guests can ask the host — or us — to see,
+          correct or delete their reply. Hosts are responsible for having a good reason to share guests&rsquo; details
+          with us.
+        </p>
+      </div>
+
+      <div>
+        <h2>4. Who helps us (service providers)</h2>
+        <p>We share personal information only with providers that help run the service, under their own security and privacy commitments:</p>
+        <ul>
+          <li><strong>Supabase</strong> — database, login and file storage.</li>
+          <li><strong>Vercel</strong> — website hosting.</li>
+          <li><strong>Resend</strong> — sending and receiving our emails.</li>
+          <li><strong>PayMongo</strong> — online payments (GCash, Maya, cards, QR Ph).</li>
+          <li><strong>Google</strong> — &ldquo;Sign in with Google&rdquo;, if you use it, and the fonts our pages load.</li>
+          <li><strong>Authorities or advisors</strong> — only where the law requires it, or to establish or defend legal claims.</li>
         </ul>
         <p>
-          We do not sell your personal information, and we do not use it for
-          third-party advertising.
-        </p>
-      </div>
-
-      <div>
-        <h2>3. Cookies and local storage</h2>
-        <p>
-          This site does not use tracking or advertising cookies and does not deploy a
-          consent banner because none is required for the storage we use. We rely only
-          on <strong>strictly necessary / functional browser storage</strong>: a
-          language-preference value (<code>i18nextLng</code>) saved in your
-          browser&rsquo;s local storage so the site remembers your language. You can
-          clear this at any time through your browser settings. If we add analytics or
-          marketing tools in the future, we will update this policy and introduce a
-          consent mechanism before those tools are activated.
-        </p>
-      </div>
-
-      <div>
-        <h2>4. Who we share information with</h2>
-        <p>We share personal information only with:</p>
-        <ul>
-          <li>
-            <strong>Service providers</strong> that operate our infrastructure, such
-            as our website host and, where applicable, an email-delivery provider used
-            to correspond with you.
-          </li>
-          <li>
-            <strong>Payment channels</strong> you choose to use for client invoices
-            (e.g. bank transfer or PayPal), which process payment data under their own
-            privacy policies.
-          </li>
-          <li>
-            <strong>Authorities or advisors</strong> where required by law, or to
-            establish, exercise, or defend legal claims.
-          </li>
-        </ul>
-      </div>
-
-      <div>
-        <h2>5. International transfers</h2>
-        <p>
-          We are based in the Philippines and our service providers may store or
-          process data in other countries. Where required, we rely on appropriate
+          Some of these providers store data outside the Philippines. We use providers with appropriate
           safeguards for cross-border transfers.
         </p>
       </div>
 
       <div>
-        <h2>6. Retention</h2>
+        <h2>5. Cookies and browser storage</h2>
         <p>
-          We keep inquiry and partner submissions for as long as needed to evaluate
-          and follow up on them, and for a reasonable period afterward for
-          record-keeping. Client project data is retained for the duration of the
-          engagement and as set out in the project agreement, then deleted or
-          anonymised.
+          We use only what&rsquo;s needed for the site to work: your login session and your &ldquo;remember me&rdquo;
+          choice are kept in your browser&rsquo;s storage, and a few small settings (like a dismissed notice) may be
+          remembered too. There are no advertising or tracking cookies, so there&rsquo;s no consent banner. You can
+          clear this storage anytime in your browser; you&rsquo;ll just need to log in again.
+        </p>
+      </div>
+
+      <div>
+        <h2>6. How long we keep it</h2>
+        <p>
+          Inquiries: as long as needed to follow up, then a reasonable period for our records. Accounts: while your
+          account is open. Event websites and RSVP lists: while the website is online and for a reasonable period
+          after the event, so you can still download your guest list — then deleted, or sooner if you ask.
+          Payment records: as long as Philippine tax and accounting rules require.
         </p>
       </div>
 
       <div>
         <h2>7. Your rights</h2>
         <p>
-          Depending on where you live, you may have the right to access, correct,
-          update, delete, or restrict our use of your personal information, to object
-          to certain processing, and to withdraw consent. Visitors in the EU/UK have
-          rights under the GDPR / UK GDPR; visitors in the Philippines under the Data
-          Privacy Act of 2012; and California residents under the CCPA/CPRA. To make a
-          request, email us at{" "}
-          <a href="mailto:hello@thersvpstudio.com">hello@thersvpstudio.com</a>. We may
-          need to verify your identity before acting on a request.
+          Under the Data Privacy Act you can ask to be informed about, access, correct, or delete your personal
+          information, object to its processing, ask for a copy in a portable format, and withdraw consent you&rsquo;ve
+          given. Email us at <a href="mailto:hello@thersvpstudio.com">hello@thersvpstudio.com</a> with the subject
+          &ldquo;Data privacy&rdquo;; we may need to confirm it&rsquo;s you before acting. If you&rsquo;re not satisfied
+          with our answer, you can complain to the{" "}
+          <a href="https://privacy.gov.ph" target="_blank" rel="noopener noreferrer">National Privacy Commission</a>.
+          If you live outside the Philippines, you may have similar rights under your local law.
         </p>
       </div>
 
       <div>
-        <h2>8. Children</h2>
+        <h2>8. Keeping it safe</h2>
         <p>
-          This site is intended for adults and is not directed at children. Some
-          celebrations we design for involve minors; where a client provides
-          information about children to us, the client is responsible for having the
-          appropriate authority to do so.
+          Accounts are protected by passwords (with optional two-step login), data is sent over encrypted
+          connections, and access to the database is limited to what each person needs — customers can only see
+          their own events, and only our team can see the Studio. No system is perfectly secure; if a breach ever
+          affects you, we&rsquo;ll tell you and the National Privacy Commission as the law requires.
         </p>
       </div>
 
       <div>
-        <h2>9. Changes to this policy</h2>
+        <h2>9. Children</h2>
         <p>
-          We may update this policy from time to time. When we do, we will revise the
-          &ldquo;Last updated&rdquo; date above, and for material changes we will take
-          reasonable steps to notify you.
+          Accounts are for adults. Many celebrations are for children (a first birthday, a christening); the parent
+          or guardian who creates the event decides what to share about them, and can ask us to remove it anytime.
         </p>
       </div>
 
       <div>
-        <h2>10. Contact</h2>
+        <h2>10. Changes to this policy</h2>
+        <p>
+          If we change this policy, we&rsquo;ll update the date above, and for important changes we&rsquo;ll let account
+          holders know by email.
+        </p>
+      </div>
+
+      <div>
+        <h2>11. Contact and Data Protection Officer</h2>
         <p>
           The RSVP Studio &middot; a brand of Huna Creatives &middot; Philippines
           <br />
-          <a href="mailto:hello@thersvpstudio.com">hello@thersvpstudio.com</a>
+          Data Protection Officer: <a href="mailto:hello@thersvpstudio.com">hello@thersvpstudio.com</a> (subject &ldquo;Data privacy&rdquo;)
         </p>
-        <p className="text-xs">
-          This policy is provided as a general template and does not constitute legal
-          advice. Please have it reviewed by qualified counsel and adjusted to your
-          actual data practices before relying on it. See also our{" "}
-          <Link to="/terms">Terms of Use</Link>.
+        <p>
+          See also our <Link to="/terms">Terms of Service</Link>.
         </p>
       </div>
     </LegalLayout>

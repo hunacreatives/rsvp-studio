@@ -17,11 +17,11 @@ export function formatDateTime(iso: string): string | null {
   const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return null;
 
-  const dateLabel = date.toLocaleDateString(undefined, { month: "long", day: "numeric" });
+  const dateLabel = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const hasTime = iso.includes("T") && !(date.getHours() === 0 && date.getMinutes() === 0);
   if (!hasTime) return dateLabel;
 
-  const timeLabel = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const timeLabel = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   return `${dateLabel}, ${timeLabel}`;
 }
 

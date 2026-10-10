@@ -2,11 +2,8 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 import AutoImport from "unplugin-auto-import/vite";
-// import { readdyJsxRuntimeProxyPlugin } from "./vite.jsx-runtime-proxy";
 
 const base = process.env.BASE_PATH || "/";
-const isPreview = process.env.IS_PREVIEW ? true : false;
-//const proxyPlugins = isPreview ? [readdyJsxRuntimeProxyPlugin()] : [];
 // `npm run dev` doesn't serve /api (that's Vercel). This runs the listed
 // API functions locally so Studio features that need them can be tested.
 // Deliberately an allowlist: email/RSVP functions stay off in dev so local
@@ -21,9 +18,7 @@ function devApi(): Plugin {
       for (const [k, v] of Object.entries(loadEnv(server.config.mode, process.cwd(), ""))) process.env[k] ??= v;
       server.middlewares.use(async (req, res, next) => {
         const name = req.url?.match(/^\/api\/([\w-]+)/)?.[1];
-        // Staging mode also runs the RSVP endpoint (test data only, never live guests).
-        const allowed = server.config.mode === "staging" ? [...DEV_API, "wedding-rsvp", "notify"] : DEV_API;
-        if (!name || !allowed.includes(name)) return next();
+        if (!name || !DEV_API.includes(name)) return next();
         try {
           const chunks: Buffer[] = [];
           for await (const c of req) chunks.push(c as Buffer);
@@ -50,13 +45,8 @@ function devApi(): Plugin {
 export default defineConfig({
   define: {
     __BASE_PATH__: JSON.stringify(base),
-    __IS_PREVIEW__: JSON.stringify(isPreview),
-    __READDY_PROJECT_ID__: JSON.stringify(process.env.PROJECT_ID || ""),
-    __READDY_VERSION_ID__: JSON.stringify(process.env.VERSION_ID || ""),
-    __READDY_AI_DOMAIN__: JSON.stringify(process.env.READDY_AI_DOMAIN || ""),
   },
   plugins: [
-    // ...proxyPlugins,
     devApi(),
     react(),
     AutoImport({
@@ -101,17 +91,14 @@ export default defineConfig({
             "Outlet",
           ],
         },
-        // React i18n
-        {
-          "react-i18next": ["useTranslation", "Trans"],
-        },
       ],
       dts: true,
     }),
   ],
   base,
   build: {
-    sourcemap: true,
+    // Maps are made for debugging but not linked from the bundle (or served by URL).
+    sourcemap: "hidden",
     outDir: 'out',
   },
   resolve: {

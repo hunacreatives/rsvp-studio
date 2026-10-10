@@ -27,10 +27,10 @@ export default function ScheduleFields({ content, onChange }: ScheduleFieldsProp
       emptyLabel="No schedule items yet."
       renderItem={(item, update) => (
         <div>
-          <FormField label="Label">
+          <FormField label="What’s happening?">
             <input
               style={inputStyle}
-              placeholder="Ceremony"
+              placeholder="Ceremony, Dinner, Cake cutting…"
               value={item.label}
               onChange={(e) => update({ label: e.target.value })}
             />
@@ -53,7 +53,7 @@ export default function ScheduleFields({ content, onChange }: ScheduleFieldsProp
               />
             </FormField>
           </div>
-          <FormField label="Description (optional)">
+          <FormField label="Details (optional)">
             <textarea
               style={textareaStyle}
               value={item.description ?? ""}

@@ -197,7 +197,10 @@ function MyRequests() {
   const { threads } = usePortal();
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
-  const mine = threads.filter((t) => t.kind === "support" && t.ticket_number);
+  // Ones waiting on the customer first, then the newest.
+  const mine = threads
+    .filter((t) => t.kind === "support" && t.ticket_number)
+    .sort((a, b) => Number(b.status === "waiting") - Number(a.status === "waiting") || b.last_message_at.localeCompare(a.last_message_at));
   if (!mine.length) return null;
   const n = parseTicket(q);
   const term = q.trim().toLowerCase();

@@ -11,7 +11,7 @@ interface ScheduleSectionProps {
 function formatTime(iso: string): string {
   const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 // A single center-line vertical timeline with dot markers — the defining

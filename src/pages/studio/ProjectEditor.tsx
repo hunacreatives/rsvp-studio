@@ -70,15 +70,24 @@ function ServicesPicker({ value, onChange }: { value: string[]; onChange: (v: st
   );
 }
 
-export function NewProjectForm({ onCreated }: { onCreated: (id: string) => void }) {
-  const [name, setName] = useState("");
-  const [type, setType] = useState("wedding");
-  const [date, setDate] = useState("");
-  const [services, setServices] = useState<string[]>([]);
+export function NewProjectForm({
+  onCreated,
+  prefill,
+  leadId,
+}: {
+  onCreated: (id: string) => void;
+  /** From a lead ("Turn into project"): what they told us on the inquiry form. */
+  prefill?: { name: string; type: string; date: string; services: string[] };
+  leadId?: string;
+}) {
+  const [name, setName] = useState(prefill?.name ?? "");
+  const [type, setType] = useState(prefill?.type ?? "wedding");
+  const [date, setDate] = useState(prefill?.date ?? "");
+  const [services, setServices] = useState<string[]>(prefill?.services ?? []);
   const { busy, error, run } = useAction();
 
   return (
-    <Card title="New project">
+    <Card title={leadId ? "New project from a lead" : "New project"}>
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Project name" hint="Shown to the client, e.g. “Nikki & Alan”">
           <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -106,6 +115,7 @@ export function NewProjectForm({ onCreated }: { onCreated: (id: string) => void 
           let id = "";
           const ok = await run(async () => {
             id = await studio.createProject({ name: name.trim(), event_type: type, event_date: date || null, services });
+            if (leadId) await studio.setLeadStatus(leadId, "converted", id);
           });
           if (ok && id) onCreated(id);
         }}
@@ -268,6 +278,17 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
   const [codes, setCodes] = useState<{ code: string; used_at: string | null }[]>([]);
   const { demo } = usePortal();
   const { busy, error, run } = useAction();
+  const [toast, setToast] = useState<string | null>(null);
+  const [sendTo, setSendTo] = useState("");
+  const flash = (t: string) => {
+    setToast(t);
+    setTimeout(() => setToast(null), 2500);
+  };
+  const copy = (code: string) => {
+    navigator.clipboard?.writeText(code);
+    flash(`Copied ${code}`);
+  };
+  const unused = codes.find((c) => !c.used_at);
 
   useEffect(() => {
     if (!demo) studio.loadInviteCodes(project.id).then(setCodes);
@@ -289,7 +310,7 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
         {codes.map((c) => (
           <button
             key={c.code}
-            onClick={() => navigator.clipboard?.writeText(c.code)}
+            onClick={() => copy(c.code)}
             title={c.used_at ? `Used ${formatDate(c.used_at)}` : "Click to copy"}
             className={`rounded-full px-3 py-1 font-mono text-[13px] ${c.used_at ? "bg-[var(--paper)] text-[var(--slate)] line-through" : "bg-[#ecfbcc] text-[#3d5a12]"}`}
           >
@@ -304,14 +325,34 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
         onClick={() =>
           run(async () => {
             const code = await studio.createInviteCode(project.id);
-            navigator.clipboard?.writeText(code);
+            copy(code);
             setCodes(await studio.loadInviteCodes(project.id));
           })
         }
       >
         Generate invite code
       </PillButton>
-      <p className="mt-2 text-[12px] text-[var(--slate)]">Codes are single-use. The first person to redeem becomes the owner; later codes add members (co-hosts).</p>
+      {unused ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Input type="email" value={sendTo} onChange={(e) => setSendTo(e.target.value)} placeholder="client@email.com" className="!w-[240px]" />
+          <PillButton
+            tone="dark"
+            disabled={busy || !/^\S+@\S+\.\S+$/.test(sendTo.trim())}
+            onClick={() =>
+              window.confirm(`Email code ${unused.code} to ${sendTo.trim()}?`) &&
+              run(async () => {
+                await studio.emailInviteCode(project.id, unused.code, sendTo.trim());
+                flash(`Code sent to ${sendTo.trim()}`);
+                setSendTo("");
+              })
+            }
+          >
+            Email code to client
+          </PillButton>
+        </div>
+      ) : null}
+      {toast ? <p className="mt-2 text-[13px] font-medium text-[#2f6b2f]">{toast}</p> : null}
+      <p className="mt-2 text-[12px] text-[var(--slate)]">Each code works once. The first person to use one becomes the main client; extra codes add co-hosts.</p>
     </Card>
   );
 }
@@ -364,7 +405,7 @@ function TasksCard({ project }: { project: Project }) {
             />
             <span className={`flex-1 text-[14px] ${t.done_at ? "text-[var(--slate)] line-through" : "text-[var(--ink)]"}`}>{t.title}</span>
             <span className="text-[12px] text-[var(--slate)]">{t.due_date ? `Due ${formatDate(t.due_date)}` : ""}</span>
-            <button onClick={() => run(() => studio.deleteTask(t.id))} aria-label={`Delete ${t.title}`} className="text-[var(--slate)] hover:text-[#c2412d]">
+            <button onClick={() => window.confirm(`Delete the task “${t.title}”?`) && run(() => studio.deleteTask(t.id))} aria-label={`Delete ${t.title}`} className="text-[var(--slate)] hover:text-[#c2412d]">
               <i className="ri-delete-bin-line" />
             </button>
           </li>

@@ -1,6 +1,7 @@
 import { fontPairings } from "../presentation/fontPairings";
 import { palettes } from "../presentation/palettes";
 import type { BaseTemplateSettings } from "../presentation/types";
+import { loadPairingFonts } from "../presentation/loadFonts";
 
 // Shared across templates on purpose — this is data resolution, not
 // visual/JSX code, so it doesn't conflict with "templates own their own
@@ -22,6 +23,8 @@ export interface EventTheme {
 }
 
 export function resolveEventTheme(settings: BaseTemplateSettings): EventTheme {
+  // Every built-in template resolves its theme here, so this is where its fonts get loaded.
+  loadPairingFonts(settings.fontPairingId);
   const palette = palettes.find((p) => p.id === settings.paletteId) ?? palettes[0];
   const pairing = fontPairings.find((f) => f.id === settings.fontPairingId) ?? fontPairings[0];
 

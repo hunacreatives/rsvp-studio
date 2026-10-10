@@ -187,6 +187,8 @@ export function useEventSiteDraft(eventId: string | undefined) {
   // the update yet). Bug found via template selection silently reverting
   // to the previous template on reload — see decision log.
   const [live, setLive] = useState<string | null>(null);
+  // What's saved in the database; anything different is unsaved.
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
   const save = useCallback(async (overrides?: { content?: EventContent; presentation?: PresentationState }) => {
     if (!siteId) return;
@@ -197,8 +199,31 @@ export function useEventSiteDraft(eventId: string | undefined) {
       .from("wedding_sites")
       .update({ draft_content: nextContent, draft_presentation: nextPresentation })
       .eq("id", siteId);
+    if (!error) setSavedSnapshot(JSON.stringify([nextContent, nextPresentation]));
     setSaveStatus(error ? "error" : "saved");
   }, [siteId, content, presentation]);
+
+  // Once loaded, what's on screen is what's saved.
+  useEffect(() => {
+    if (status === "ready" && savedSnapshot === null) setSavedSnapshot(JSON.stringify([content, presentation]));
+  }, [status, savedSnapshot, content, presentation]);
+
+  // Autosave 1.5s after the last edit, and warn before leaving with unsaved edits.
+  const unsaved = status === "ready" && savedSnapshot !== null && savedSnapshot !== JSON.stringify([content, presentation]);
+  useEffect(() => {
+    if (!unsaved) return;
+    const t = setTimeout(() => save(), 1500);
+    return () => clearTimeout(t);
+  }, [unsaved, content, presentation, save]);
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsaved]);
 
   /**
    * Go live. A DIY site has to be paid for first: the database refuses with
@@ -264,5 +289,6 @@ export function useEventSiteDraft(eventId: string | undefined) {
     publish,
     unpublish,
     hasUnpublishedChanges,
+    unsaved,
   };
 }

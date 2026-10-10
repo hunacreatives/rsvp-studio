@@ -37,7 +37,7 @@ export default function SharedSection() {
 
         <Reveal delay={0.08} className="flex justify-center lg:justify-end">
           <img
-            src="/services/milestone/imessage-share.png"
+            src="/services/milestone/imessage-share.webp"
             alt="An invitation link shared in a message thread"
             className="w-[280px] md:w-[320px] drop-shadow-[0_30px_60px_rgba(0,7,39,0.18)]"
           />

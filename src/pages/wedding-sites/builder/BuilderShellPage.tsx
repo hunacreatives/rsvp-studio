@@ -7,6 +7,8 @@ import ContentEditor from "./ContentEditor";
 import PreviewCanvas from "./components/PreviewCanvas";
 import { useEventSiteDraft } from "./useEventSiteDraft";
 import { PublishDialog, usePublishFlow } from "./PublishDialog";
+import LookAndFeel from "./LookAndFeel";
+import { loadPairingFonts } from "../presentation/loadFonts";
 
 // V1 builder shell: template picker + content editing forms + a live
 // preview, all against a real Supabase-backed draft. Requires
@@ -26,13 +28,18 @@ export default function BuilderShellPage() {
     publish,
     unpublish,
     hasUnpublishedChanges,
+    unsaved,
+    setPresentation,
   } = useEventSiteDraft(eventId);
+  const [device, setDevice] = useState<"desktop" | "phone">("desktop");
+  const [lookOpen, setLookOpen] = useState(false);
   const flow = usePublishFlow(eventId, publish, save);
 
   const catalog = useTemplateCatalog();
   const resolved = resolveTemplate(presentation);
   const activeDefinition = getTemplateDefinition(presentation.activeTemplateId);
   const [editorCollapsed, setEditorCollapsed] = useState(false);
+  loadPairingFonts(resolved?.settings.fontPairingId);
 
   if (status === "loading" || (!resolved && presentation.activeTemplateId && !catalog.ready)) {
     return <div style={{ padding: 48, color: "var(--slate)" }}>Loading your event site…</div>;
@@ -76,7 +83,7 @@ export default function BuilderShellPage() {
         <div style={{ flex: 1 }} />
 
         <span style={{ fontSize: 12, color: "var(--slate)" }}>
-          {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Save failed" : ""}
+          {saveStatus === "saving" ? "Saving…" : unsaved ? "Unsaved changes" : saveStatus === "error" ? "Couldn’t save — check your connection" : saveStatus === "saved" ? "All changes saved" : ""}
         </span>
         <button
           onClick={() => save()}
@@ -90,8 +97,20 @@ export default function BuilderShellPage() {
             cursor: "pointer",
           }}
         >
-          Save draft
+          Save
         </button>
+        <span style={{ display: "inline-flex", border: "1px solid var(--line)", borderRadius: 999, padding: 2 }} role="group" aria-label="Preview size">
+          {(["desktop", "phone"] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => setDevice(d)}
+              aria-pressed={device === d}
+              style={{ padding: "6px 12px", borderRadius: 999, border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", background: device === d ? "var(--ink)" : "transparent", color: device === d ? "#fff" : "var(--ink)" }}
+            >
+              {d === "desktop" ? "Computer" : "Phone"}
+            </button>
+          ))}
+        </span>
         {publishedAt && hasUnpublishedChanges ? (
           <span style={{ fontSize: 12, fontWeight: 600, color: "#8a5a00", background: "#fff1d6", borderRadius: 999, padding: "4px 10px" }}>Edits not live yet</span>
         ) : null}
@@ -150,6 +169,12 @@ export default function BuilderShellPage() {
                 borderRight: "1px solid var(--line)",
               }}
             >
+              <details open={lookOpen} onToggle={(e) => setLookOpen((e.target as HTMLDetailsElement).open)} style={{ borderBottom: "1px solid var(--line)", marginBottom: 8 }}>
+                <summary style={{ padding: "14px 4px", cursor: "pointer", fontWeight: 600, fontSize: 14, color: "var(--ink)" }}>Look &amp; feel</summary>
+                <div style={{ padding: "4px 4px 20px" }}>
+                  <LookAndFeel presentation={presentation} onChange={setPresentation} eventId={eventId} />
+                </div>
+              </details>
               <ContentEditor content={content} onChange={setContent} eventId={eventId} />
             </div>
           </div>
@@ -194,7 +219,7 @@ export default function BuilderShellPage() {
           </button>
         </div>
         {resolved ? (
-          <PreviewCanvas>
+          <PreviewCanvas key={device} deviceWidth={device === "phone" ? 390 : undefined}>
             <resolved.definition.component content={content} settings={resolved.settings} editorPreview />
           </PreviewCanvas>
         ) : (

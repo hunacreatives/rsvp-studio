@@ -107,6 +107,17 @@ export async function setInvoicePaymentUrl(id: string, url: string | null) {
   must(await supabase.from("invoices").update({ payment_url: url }).eq("id", id));
 }
 
+/** Email a client their invite code with step-by-step instructions. */
+export async function emailInviteCode(eventId: string, code: string, email: string) {
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch("/api/notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    body: JSON.stringify({ kind: "invite_code", eventId, code, email }),
+  });
+  if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn’t send the email.");
+}
+
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 
 export async function createInviteCode(eventId: string) {
@@ -334,4 +345,55 @@ export async function loadSitePrices(): Promise<SitePrices | null> {
 export async function saveSitePrices(p: SitePrices) {
   const now = new Date().toISOString();
   must(await supabase.from("site_prices").upsert([{ tier: "free", amount: p.free, updated_at: now }, { tier: "premium", amount: p.premium, updated_at: now }]));
+}
+
+// ---------------------------------------------------------------------------
+// Leads: every inquiry-form submission (supabase/hardening.sql → enquiries).
+
+export type LeadStatus = "new" | "contacted" | "converted" | "archived" | "spam";
+export type Lead = {
+  id: string;
+  form: "project-inquiry" | "partner-inquiry" | "faq-question" | string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  values: Record<string, string | string[]>;
+  attachments: string[];
+  status: LeadStatus;
+  event_id: string | null;
+  created_at: string;
+};
+
+export async function loadLeads() {
+  const { data, error } = await supabase.from("enquiries").select("id, form, name, email, phone, values, attachments, status, event_id, created_at").order("created_at", { ascending: false }).limit(300);
+  return error ? null : ((data ?? []) as Lead[]);
+}
+
+export async function countNewLeads() {
+  const { count } = await supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("status", "new");
+  return count ?? 0;
+}
+
+export async function setLeadStatus(id: string, status: LeadStatus, eventId?: string) {
+  must(await supabase.from("enquiries").update({ status, ...(eventId ? { event_id: eventId } : {}) }).eq("id", id));
+}
+
+// ---------------------------------------------------------------------------
+// DIY websites (events customers made themselves — managed_by_studio = false)
+
+export type DiySite = { slug: string | null; template: string | null; published_at: string | null; rsvps: number; paid: number };
+
+export async function loadDiySites(eventIds: string[]) {
+  const out: Record<string, DiySite> = {};
+  if (!eventIds.length) return out;
+  const [{ data: sites }, { data: rsvps }, { data: pays }] = await Promise.all([
+    supabase.from("wedding_sites").select("event_id, slug, published_at, draft_presentation").in("event_id", eventIds),
+    supabase.from("rsvps").select("event_id").in("event_id", eventIds),
+    supabase.from("payments").select("event_id, amount_centavos").eq("kind", "site_publish").eq("status", "paid").in("event_id", eventIds),
+  ]);
+  for (const id of eventIds) out[id] = { slug: null, template: null, published_at: null, rsvps: 0, paid: 0 };
+  for (const s of sites ?? []) Object.assign(out[s.event_id], { slug: s.slug, published_at: s.published_at, template: (s.draft_presentation as { activeTemplateId?: string } | null)?.activeTemplateId ?? null });
+  for (const r of rsvps ?? []) out[r.event_id].rsvps++;
+  for (const p of pays ?? []) out[p.event_id].paid += p.amount_centavos / 100;
+  return out;
 }

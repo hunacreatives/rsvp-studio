@@ -4,113 +4,112 @@ import LegalLayout from "./LegalLayout";
 export default function Terms() {
   return (
     <LegalLayout
-      title="Terms of Use"
-      lastUpdated="September 9, 2026"
+      title="Terms of Service"
+      lastUpdated="October 11, 2026"
       intro={
         <p>
-          These Terms of Use govern your access to and use of{" "}
-          <strong>thersvpstudio.com</strong> (the &ldquo;Site&rdquo;), operated by
-          The RSVP Studio, a brand of Huna Creatives. By using the Site, you agree to
-          these terms. If you do not agree, please do not use the Site.
+          These terms apply when you use <strong>thersvpstudio.com</strong> — browsing the site, creating an
+          account, building an event website, working with our studio, or replying to an invitation. The service
+          is run by The RSVP Studio, a brand of Huna Creatives, in the Philippines. By using it, you agree to these
+          terms.
         </p>
       }
     >
       <div>
-        <h2>1. The Site is informational</h2>
-        <p>
-          The Site presents our services, collections, portfolio, and general
-          information. Nothing on the Site is an offer, quote, or commitment to
-          provide services on any particular terms. Prices, packages, timelines, and
-          availability shown are indicative and may change without notice.
-        </p>
-      </div>
-
-      <div>
-        <h2>2. Client engagements are separate</h2>
-        <p>
-          Any project we take on is governed by a separate written proposal and
-          agreement signed by both parties. Where those documents conflict with these
-          Terms of Use, the signed project agreement controls for that engagement.
-        </p>
-      </div>
-
-      <div>
-        <h2>3. Submissions</h2>
-        <p>
-          When you send us an inquiry, partnership request, or other message, you
-          confirm that the information you provide is accurate and that you have the
-          right to share it. Please do not send confidential information you do not
-          want us to hold. Our handling of personal information is described in our{" "}
-          <Link to="/privacy">Privacy Policy</Link>.
-        </p>
-      </div>
-
-      <div>
-        <h2>4. Intellectual property</h2>
-        <p>
-          The Site and its content — including text, layouts, graphics, illustrations,
-          photography, and the portfolio and collection designs shown — are owned by
-          or licensed to The RSVP Studio and are protected by intellectual-property
-          laws. You may view and share links to the Site, but you may not copy,
-          reproduce, modify, or use our content or designs for your own or a third
-          party&rsquo;s commercial purposes without our prior written permission.
-        </p>
-      </div>
-
-      <div>
-        <h2>5. Acceptable use</h2>
+        <h2>1. What we offer</h2>
         <ul>
-          <li>Do not use the Site for any unlawful or fraudulent purpose.</li>
-          <li>Do not attempt to disrupt, probe, or gain unauthorised access to the Site or its infrastructure.</li>
-          <li>Do not scrape, harvest, or bulk-download content except as permitted by our robots directives.</li>
-          <li>Do not misrepresent your affiliation with any person or organisation.</li>
+          <li><strong>Studio projects</strong> — event websites, invitations, monograms and stationery we design for you.</li>
+          <li><strong>Build Your Website</strong> — a do-it-yourself builder for your own event website, with RSVPs.</li>
+          <li><strong>Your dashboard</strong> — your projects, invoices, messages and support requests in one place.</li>
         </ul>
+        <p>Prices, packages and timelines on the site are a guide and can change; your quote or the price shown at checkout is what applies.</p>
       </div>
 
       <div>
-        <h2>6. Third-party links</h2>
+        <h2>2. Your account</h2>
         <p>
-          The Site may link to third-party websites and services (for example,
-          Instagram, or a payment provider). We are not responsible for their content
-          or practices, and your use of them is subject to their own terms.
+          Keep your login details private and tell us if you think someone else has used your account. You&rsquo;re
+          responsible for what happens in your account. An event can have co-hosts; whoever you give an invite code
+          to can see and manage that event.
         </p>
       </div>
 
       <div>
-        <h2>7. Disclaimer</h2>
+        <h2>3. Studio projects</h2>
         <p>
-          The Site is provided &ldquo;as is&rdquo; and &ldquo;as available,&rdquo;
-          without warranties of any kind, whether express or implied, including as to
-          accuracy, availability, or fitness for a particular purpose.
+          Each studio project follows the proposal and agreement we send you, including its price, deposit, number
+          of revisions and timeline. Where those differ from these terms, your project agreement wins for that
+          project.
         </p>
       </div>
 
       <div>
-        <h2>8. Limitation of liability</h2>
+        <h2>4. Building your own website</h2>
         <p>
-          To the fullest extent permitted by law, The RSVP Studio and Huna Creatives
-          will not be liable for any indirect, incidental, special, or consequential
-          damages, or for any loss arising from your use of, or inability to use, the
-          Site.
+          You can design and preview your site for free. Publishing a site may have a one-time fee, shown before
+          you pay; once paid, you can keep editing, unpublish and publish again without paying again. We keep a
+          published site online for the period described in your package or at the time you publish.
+        </p>
+        <p>
+          You&rsquo;re responsible for what you put on your site — make sure you have the right to use your photos,
+          words and anything else you upload, and that your guests are happy for you to collect their replies.
         </p>
       </div>
 
       <div>
-        <h2>9. Governing law</h2>
+        <h2>5. Payments</h2>
         <p>
-          These Terms of Use are governed by the laws of the Republic of the
-          Philippines, without regard to its conflict-of-laws rules. The courts of the
-          Philippines will have jurisdiction over any dispute relating to the Site,
-          subject to any mandatory consumer-protection rights you have where you live.
+          Online payments are processed by PayMongo (GCash, Maya, cards and QR Ph); their terms also apply to the
+          payment. Your receipt appears in your dashboard once a payment goes through. Studio project refunds and
+          cancellations follow your project agreement. A website publishing fee isn&rsquo;t refundable once the site
+          has been published, unless the law says otherwise or we&rsquo;re unable to provide the service — in which case
+          we&rsquo;ll make it right.
         </p>
       </div>
 
       <div>
-        <h2>10. Changes</h2>
+        <h2>6. Fair use</h2>
+        <ul>
+          <li>Don&rsquo;t use the service for anything unlawful, misleading or harmful, or to send spam.</li>
+          <li>Don&rsquo;t upload content that isn&rsquo;t yours to share, or that&rsquo;s offensive or infringes anyone&rsquo;s rights.</li>
+          <li>Don&rsquo;t try to break into, overload or copy the service, or other people&rsquo;s events.</li>
+        </ul>
+        <p>We may take down content or unpublish a site that breaks these rules, and suspend accounts that keep doing so.</p>
+      </div>
+
+      <div>
+        <h2>7. Ownership</h2>
         <p>
-          We may update these Terms of Use from time to time. Changes take effect when
-          posted, with a revised &ldquo;Last updated&rdquo; date. Your continued use of
-          the Site after changes are posted means you accept them.
+          Your content (names, photos, stories) stays yours; you let us store and show it to run your site and
+          dashboard. Our designs, templates, and the site itself belong to us or our licensors. For studio projects,
+          what you can use the finished designs for is set out in your project agreement. Please don&rsquo;t copy our
+          designs or templates for other uses without permission.
+        </p>
+      </div>
+
+      <div>
+        <h2>8. Guests</h2>
+        <p>
+          If you&rsquo;re replying to an invitation, your reply goes to the host of that event. How we handle it is
+          explained in our <Link to="/privacy">Privacy Policy</Link>.
+        </p>
+      </div>
+
+      <div>
+        <h2>9. Availability and liability</h2>
+        <p>
+          We work hard to keep the service running, but can&rsquo;t promise it will never be interrupted. To the extent
+          the law allows, the service is provided &ldquo;as is&rdquo;, and our total responsibility for any claim is
+          limited to the amount you paid us in the 12 months before it. We&rsquo;re not responsible for indirect losses.
+          Nothing in these terms limits rights you have under Philippine consumer law.
+        </p>
+      </div>
+
+      <div>
+        <h2>10. Changes and law</h2>
+        <p>
+          We may update these terms; we&rsquo;ll change the date above and tell account holders about important
+          changes. These terms are governed by the laws of the Philippines.
         </p>
       </div>
 
@@ -120,11 +119,6 @@ export default function Terms() {
           The RSVP Studio &middot; a brand of Huna Creatives &middot; Philippines
           <br />
           <a href="mailto:hello@thersvpstudio.com">hello@thersvpstudio.com</a>
-        </p>
-        <p className="text-xs">
-          These terms are provided as a general template and do not constitute legal
-          advice. Please have them reviewed by qualified counsel before relying on
-          them.
         </p>
       </div>
     </LegalLayout>

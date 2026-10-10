@@ -9,14 +9,25 @@ interface DateVenueFieldsProps {
 export default function DateVenueFields({ content, onChange }: DateVenueFieldsProps) {
   return (
     <div>
-      <FormField label="Event date">
-        <input
-          type="date"
-          style={inputStyle}
-          value={content.eventDate}
-          onChange={(e) => onChange({ ...content, eventDate: e.target.value })}
-        />
-      </FormField>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <FormField label="Event date">
+          <input
+            type="date"
+            style={inputStyle}
+            value={content.eventDate.slice(0, 10)}
+            onChange={(e) => onChange({ ...content, eventDate: e.target.value + (content.eventDate.length > 10 ? content.eventDate.slice(10) : "") })}
+          />
+        </FormField>
+        <FormField label="Start time (optional)">
+          <input
+            type="time"
+            style={inputStyle}
+            value={content.eventDate.length > 10 ? content.eventDate.slice(11, 16) : ""}
+            disabled={!content.eventDate}
+            onChange={(e) => onChange({ ...content, eventDate: content.eventDate.slice(0, 10) + (e.target.value ? `T${e.target.value}` : "") })}
+          />
+        </FormField>
+      </div>
       <FormField label="Venue name">
         <input
           style={inputStyle}
@@ -35,7 +46,7 @@ export default function DateVenueFields({ content, onChange }: DateVenueFieldsPr
           }
         />
       </FormField>
-      <FormField label="Map link (optional)">
+      <FormField label="Google Maps link (optional)" hint="Open the place in Google Maps, tap Share, copy the link and paste it here.">
         <input
           style={inputStyle}
           value={content.primaryLocation.mapUrl ?? ""}

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, useId, type ReactElement, type ReactNode } from "react";
 
 export const INPUT =
   "w-full rounded-lg border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--slate)] focus:border-[var(--acc-blue)]";
@@ -24,13 +24,17 @@ export function Field({
   children: ReactNode;
   hint?: string;
 }) {
+  // Tie the label to a single input/select/textarea so screen readers announce it.
+  const id = useId();
+  const single = isValidElement<{ id?: string }>(children) && typeof children.type === "string" && ["input", "select", "textarea"].includes(children.type);
+  const field = single ? cloneElement(children as ReactElement<{ id?: string }>, { id: (children as ReactElement<{ id?: string }>).props.id ?? id }) : children;
   return (
     <div>
-      <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--slate)]">
+      <label htmlFor={single ? ((children as ReactElement<{ id?: string }>).props.id ?? id) : undefined} className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--slate)]">
         {label}
       </label>
       {hint && <p className="mb-2 text-xs text-[var(--slate)]">{hint}</p>}
-      {children}
+      {field}
     </div>
   );
 }

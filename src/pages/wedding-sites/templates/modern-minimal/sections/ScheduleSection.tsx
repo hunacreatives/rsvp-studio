@@ -10,7 +10,7 @@ interface ScheduleSectionProps {
 function formatTime(iso: string): string {
   const date = parseEventDate(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 // Modular bordered CARDS in a grid, not a narrative timeline — the

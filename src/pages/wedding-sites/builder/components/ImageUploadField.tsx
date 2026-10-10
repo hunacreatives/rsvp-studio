@@ -76,7 +76,7 @@ export function ImageUploadField({ eventId, masterUrl, onUrlChange, onUploaded }
         />
       </div>
       <p style={{ fontSize: 12, color: "var(--slate)", marginTop: 4 }}>
-        Paste a link to an already-hosted photo, or upload one directly.
+        Upload a photo from your phone or computer — or paste a link to one.
       </p>
       {error ? <p style={{ fontSize: 12, color: "#b3382c", marginTop: 4 }}>{error}</p> : null}
       {masterUrl ? (

@@ -18,15 +18,15 @@ export default function RegistryFields({ content, onChange }: RegistryFieldsProp
       emptyLabel="No registry links yet."
       renderItem={(item, update) => (
         <div>
-          <FormField label="Store name">
+          <FormField label="Where to give">
             <input
               style={inputStyle}
-              placeholder="Crate & Barrel"
+              placeholder="GCash, SM Gift Registry, Rustan’s…"
               value={item.storeName}
               onChange={(e) => update({ storeName: e.target.value })}
             />
           </FormField>
-          <FormField label="Link">
+          <FormField label="Link (optional)">
             <input style={inputStyle} value={item.url} onChange={(e) => update({ url: e.target.value })} />
           </FormField>
         </div>

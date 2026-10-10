@@ -24,7 +24,7 @@ export default function BuiltAround() {
             <div className="sticky top-28">
               <div className="mx-auto w-[250px] aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] overflow-hidden shadow-[0_50px_90px_-30px_rgba(0,7,39,0.4)]">
                 <img
-                  src="/services/milestone/claudy-hero.png"
+                  src="/services/milestone/claudy-hero.webp"
                   alt="An event website on a phone"
                   className="w-full h-full object-cover"
                 />

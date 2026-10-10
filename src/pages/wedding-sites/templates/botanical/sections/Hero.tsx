@@ -22,9 +22,9 @@ function formatEventDate(iso: string): FormattedDate | null {
   const hasTime = iso.includes("T") && !(date.getHours() === 0 && date.getMinutes() === 0);
   return {
     day: String(date.getDate()),
-    month: date.toLocaleDateString(undefined, { month: "short" }).toUpperCase(),
+    month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
     year: String(date.getFullYear()),
-    time: hasTime ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : null,
+    time: hasTime ? date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null,
   };
 }
 

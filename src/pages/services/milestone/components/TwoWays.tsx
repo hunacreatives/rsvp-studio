@@ -7,7 +7,7 @@ const OPTIONS = [
     lines: ["Beautifully refined.", "Built from our signature collection."],
     cta: "Explore Collection",
     to: "/collections",
-    img: "/services/milestone/semicustom-page.png",
+    img: "/services/milestone/semicustom-page.webp",
     alt: "Semi-custom wedding website — Mark & Nicole",
   },
   {
@@ -15,7 +15,7 @@ const OPTIONS = [
     lines: ["Designed around your story.", "Every detail, entirely yours."],
     cta: "Begin your project",
     to: "/enquire#start",
-    img: "/services/milestone/tailored-page.png",
+    img: "/services/milestone/tailored-page.webp",
     alt: "Custom wedding website — Our Story page",
   },
 ];
