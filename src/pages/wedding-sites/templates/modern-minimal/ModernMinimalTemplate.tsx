@@ -22,7 +22,7 @@ export default function ModernMinimalTemplate({ content, settings, editorPreview
   const visibility = settings.sectionVisibility;
 
   return (
-    <div style={{ background: theme.background, minHeight: "100vh" }}>
+    <div style={{ background: theme.background, minHeight: "100svh" }}>
       {visibility.hero ? <Hero content={content} theme={theme} /> : null}
       {visibility.hostIntro ? <HostIntro content={content} theme={theme} /> : null}
       {visibility.schedule ? <ScheduleSection content={content} theme={theme} /> : null}
@@ -36,7 +36,7 @@ export default function ModernMinimalTemplate({ content, settings, editorPreview
 
       {credit.show ? (
         <div style={{ width: "100%", background: theme.ink, padding: "20px 0", textAlign: "center" }}>
-          <p style={{ color: theme.background, fontSize: 12, margin: 0, fontFamily: theme.bodyFont, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <p style={{ color: theme.background, fontSize: 13, margin: 0, fontFamily: theme.bodyFont, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             <CreditLine linkStyle={{color: theme.background, fontWeight: 700}} />
           </p>
         </div>

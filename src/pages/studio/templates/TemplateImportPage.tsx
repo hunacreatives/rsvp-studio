@@ -374,7 +374,7 @@ export default function TemplateImportPage() {
 
   return (
     <>
-      <Link to="/studio/templates" className="mb-4 inline-flex items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
+      <Link to="/studio/templates" className="mb-2 inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
         <i className="ri-arrow-left-line" /> Templates
       </Link>
       <StudioHeader
@@ -384,7 +384,7 @@ export default function TemplateImportPage() {
 
       {stage !== "review" ? (
         <OutlineCard className="max-w-3xl p-6 md:p-8">
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <Field label="Template name" hint={label ? `ID: ${templateIdFrom(label)}` : "Shown to customers in the gallery"}>
               <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Garden Arch" />
             </Field>
@@ -408,7 +408,7 @@ export default function TemplateImportPage() {
           </div>
           {mode === "svg" ? (
             <>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <DropZone icon="ri-file-code-line" title="Design SVG" sub="Canva: Share → Download → SVG" file={svgFile} onFile={setSvgFile} accept="image/svg+xml,.svg" />
                 <DropZone
                   icon="ri-smartphone-line"
@@ -424,7 +424,7 @@ export default function TemplateImportPage() {
               </p>
             </>
           ) : (
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <DropZone icon="ri-image-line" title="Full design" sub="Exactly as guests should see it, with sample names and date" file={designFile} onFile={setDesignFile} />
               <DropZone icon="ri-image-edit-line" title="Same design, text hidden" sub="Everything else stays exactly in place" file={artFile} onFile={setArtFile} />
             </div>
@@ -469,7 +469,7 @@ export default function TemplateImportPage() {
       ) : null}
 
       {stage === "review" && det && ai ? (
-        <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
           <ReviewPreview
             spec={spec}
             det={det}
@@ -485,7 +485,7 @@ export default function TemplateImportPage() {
                 <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Text ({ai.layers.length})</p>
                 <PillButton onClick={retryAi}>Ask AI again</PillButton>
               </div>
-              <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
+              <div className="max-h-[52dvh] space-y-3 overflow-y-auto pr-1">
                 {ai.layers.map((l, i) => (
                   <LayerRow key={i} layer={l} slots={(["display", "body", "accent", "extra"] as const).filter((k) => ai.fonts[k])} onChange={(p) => updateLayer(i, p)} />
                 ))}
@@ -498,11 +498,11 @@ export default function TemplateImportPage() {
                   Photos ({(ai.photos ?? []).length} of {svgA.pictures.length} pictures)
                 </p>
                 <p className="mb-3 text-[12px] text-[var(--slate)]">Ticked pictures become photo slots customers fill with their own. The rest stay part of the design.</p>
-                <div className="grid max-h-[40vh] grid-cols-3 gap-2 overflow-y-auto pr-1">
+                <div className="grid max-h-[40dvh] grid-cols-3 gap-2 overflow-y-auto pr-1">
                   {svgA.pictures.map((pic) => {
                     const on = (ai.photos ?? []).some((x) => x.p === pic.n);
                     return (
-                      <label key={pic.n} className="cursor-pointer rounded-lg border p-1 text-[11px]" style={{ borderColor: on ? "var(--acc-blue)" : "var(--line)" }}>
+                      <label key={pic.n} className="cursor-pointer rounded-lg border p-1 text-[13px] md:text-[11px]" style={{ borderColor: on ? "var(--acc-blue)" : "var(--line)" }}>
                         <div
                           className="w-full rounded"
                           style={{
@@ -512,9 +512,10 @@ export default function TemplateImportPage() {
                             backgroundPosition: `${pic.w < 1 ? (pic.x / (1 - pic.w)) * 100 : 0}% ${pic.h < 1 ? (pic.y / (1 - pic.h)) * 100 : 0}%`,
                           }}
                         />
-                        <span className="mt-1 flex items-center gap-1">
+                        <span className="mt-1 flex min-h-[32px] items-center gap-1.5 md:min-h-0">
                           <input
                             type="checkbox"
+                            className="h-5 w-5 md:h-auto md:w-auto"
                             checked={on}
                             onChange={() =>
                               setAi({ ...ai, photos: on ? (ai.photos ?? []).filter((x) => x.p !== pic.n) : [...(ai.photos ?? []), { p: pic.n, hint: "Photo" }] })
@@ -552,12 +553,12 @@ export default function TemplateImportPage() {
                 ))}
               <div className="mt-3 flex flex-wrap gap-2">
                 {(Object.keys(ai.palette) as (keyof AiResult["palette"])[]).map((k) => (
-                  <label key={k} className="flex flex-col items-center gap-1 text-[11px] text-[var(--slate)]">
+                  <label key={k} className="flex flex-col items-center gap-1 text-[12px] text-[var(--slate)] md:text-[11px]">
                     <input
                       type="color"
                       value={ai.palette[k]}
                       onChange={(e) => setAi({ ...ai, palette: { ...ai.palette, [k]: e.target.value } })}
-                      className="h-8 w-10 cursor-pointer rounded border border-[var(--line)]"
+                      className="h-10 w-11 cursor-pointer rounded border border-[var(--line)] md:h-8 md:w-10"
                     />
                     {k}
                   </label>
@@ -571,7 +572,7 @@ export default function TemplateImportPage() {
                 {saving ? "Saving…" : "Save as draft"}
               </PrimaryButton>
               <p className="mt-2 text-[12px] text-[var(--slate)]">Next you’ll run the checklist and publish it to the gallery.</p>
-              <button onClick={() => setStage("upload")} className="mt-3 text-[13px] text-[var(--slate)] underline">
+              <button onClick={() => setStage("upload")} className="mt-1 min-h-[44px] text-[14px] text-[var(--slate)] underline md:mt-3 md:min-h-0 md:text-[13px]">
                 Start over with different images
               </button>
             </OutlineCard>
@@ -611,12 +612,12 @@ function DropZone({
           setOver(false);
           onFile(e.dataTransfer.files[0] ?? null);
         }}
-        className="rounded-2xl border-2 border-dashed px-5 py-6 text-left hover:border-[var(--ink)]"
+        className="min-w-0 rounded-2xl border-2 border-dashed px-5 py-6 text-left hover:border-[var(--ink)]"
         style={{ borderColor: over ? "var(--ink)" : "var(--line)" }}
       >
         <i className={`${icon} text-2xl text-[var(--ink)]`} />
         <p className="mt-2 font-semibold text-[var(--ink)]">{title}</p>
-        <p className="truncate text-[13px] text-[var(--slate)]">{file ? `${file.name} ✓` : sub}</p>
+        {file ? <p className="truncate text-[13px] text-[var(--slate)]">{file.name} ✓</p> : <p className="text-[13px] text-[var(--slate)]">{sub}</p>}
       </button>
       <input ref={ref} type="file" accept={accept} className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
     </>
@@ -649,7 +650,7 @@ function LayerRow({ layer, slots, onChange }: { layer: AiLayer; slots: FontSlot[
             if (v === "static" || v === "ignore") onChange({ role: v, field: undefined, format: undefined });
             else onChange({ role: "field", field: v as BindingField, format: BINDING_INFO[v as BindingField].formats?.[0]?.id });
           }}
-          className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[12px]"
+          className="min-h-[40px] max-w-full rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[16px] md:min-h-0 md:text-[12px]"
         >
           {ROLE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -658,7 +659,7 @@ function LayerRow({ layer, slots, onChange }: { layer: AiLayer; slots: FontSlot[
           ))}
         </select>
         {formats ? (
-          <select value={layer.format ?? formats[0].id} onChange={(e) => onChange({ format: e.target.value })} className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[12px]">
+          <select value={layer.format ?? formats[0].id} onChange={(e) => onChange({ format: e.target.value })} className="min-h-[40px] max-w-full rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[16px] md:min-h-0 md:text-[12px]">
             {formats.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.label}
@@ -667,7 +668,7 @@ function LayerRow({ layer, slots, onChange }: { layer: AiLayer; slots: FontSlot[
           </select>
         ) : null}
         {layer.role !== "ignore" && slots.length > 1 ? (
-          <select value={layer.font} onChange={(e) => onChange({ font: e.target.value as FontSlot })} className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[12px]" title="Font">
+          <select value={layer.font} onChange={(e) => onChange({ font: e.target.value as FontSlot })} className="min-h-[40px] max-w-full rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[16px] md:min-h-0 md:text-[12px]" title="Font">
             {slots.map((k) => (
               <option key={k} value={k}>
                 {FONT_SLOT_LABEL[k]} font
@@ -678,11 +679,11 @@ function LayerRow({ layer, slots, onChange }: { layer: AiLayer; slots: FontSlot[
         {layer.role !== "ignore" ? (
           <span className="ml-auto inline-flex items-center gap-1 text-[12px] text-[var(--slate)]">
             Size
-            <button className="h-6 w-6 rounded-full border border-[var(--line)]" onClick={() => onChange({ scale: +(scale - 0.05).toFixed(2) })}>
+            <button className="h-10 w-10 rounded-full border border-[var(--line)] text-[16px] md:h-6 md:w-6 md:text-[12px]" onClick={() => onChange({ scale: +(scale - 0.05).toFixed(2) })}>
               −
             </button>
             {Math.round(scale * 100)}%
-            <button className="h-6 w-6 rounded-full border border-[var(--line)]" onClick={() => onChange({ scale: +(scale + 0.05).toFixed(2) })}>
+            <button className="h-10 w-10 rounded-full border border-[var(--line)] text-[16px] md:h-6 md:w-6 md:text-[12px]" onClick={() => onChange({ scale: +(scale + 0.05).toFixed(2) })}>
               +
             </button>
           </span>
@@ -1041,7 +1042,7 @@ function ReviewPreview({
                 { value: "desktop", label: "Desktop" },
               ]}
             />
-            <select value={fixtureId} onChange={(e) => setFixtureId(e.target.value)} className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-[13px]">
+            <select value={fixtureId} onChange={(e) => setFixtureId(e.target.value)} className="min-h-[44px] max-w-full rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-[16px] md:min-h-0 md:text-[13px]">
               {FIXTURES.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.label}
@@ -1079,7 +1080,7 @@ function ReviewPreview({
           </p>
         </div>
       ) : (
-        <div className="flex h-[78vh] flex-col overflow-hidden rounded-[22px] border border-[var(--line)]">
+        <div className="flex h-[70dvh] flex-col overflow-hidden rounded-[22px] border border-[var(--line)] md:h-[78vh]">
           <PreviewCanvas deviceWidth={device === "phone" ? 390 : 1024}>
             <SpecTemplate spec={spec} content={fixture.content} editorPreview={fixture.editor} settings={settings} />
           </PreviewCanvas>

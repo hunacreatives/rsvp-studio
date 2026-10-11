@@ -22,6 +22,19 @@ export default function RsvpDialog({ content, editorPreview, onClose }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // The page behind must not scroll while the panel is open (phones).
+  // Skipped in the builder, where the preview isn't the whole page.
+  useEffect(() => {
+    if (editorPreview) return;
+    const { body, documentElement: html } = document;
+    const prev = [body.style.overflow, html.style.overflow];
+    body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+    return () => {
+      [body.style.overflow, html.style.overflow] = prev;
+    };
+  }, [editorPreview]);
+
   return (
     <div className="sb-dialog" role="dialog" aria-modal="true" aria-label="RSVP" onClick={onClose}>
       <div className="sb-dialog__panel" onClick={(e) => e.stopPropagation()}>

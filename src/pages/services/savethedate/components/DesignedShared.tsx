@@ -35,7 +35,7 @@ export default function DesignedShared() {
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="flex min-h-[240px] w-[280px] shrink-0 snap-start flex-col rounded-3xl p-7"
+              className="flex min-h-[240px] w-[78%] max-w-[280px] sm:w-[280px] shrink-0 snap-start flex-col rounded-3xl p-7"
               style={{ background: f.bg }}
             >
               <i className={`${f.icon} text-3xl text-[var(--ink)]`} />

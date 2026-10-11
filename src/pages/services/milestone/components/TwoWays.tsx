@@ -39,7 +39,7 @@ export default function TwoWays() {
             <Reveal
               key={o.title}
               delay={i * 0.08}
-              className="rounded-3xl bg-[var(--paper)] p-8 md:p-10 text-center"
+              className="rounded-3xl bg-[var(--paper)] p-6 sm:p-8 md:p-10 text-center"
             >
               <h3 className="font-display text-2xl font-semibold text-[var(--ink)]">
                 {o.title}
@@ -53,15 +53,15 @@ export default function TwoWays() {
               </p>
               <button
                 onClick={() => go(o.to)}
-                className="mt-4 text-[var(--acc-blue)] font-medium hover:underline underline-offset-4"
+                className="mt-2 inline-flex min-h-[44px] items-center px-2 text-[var(--acc-blue)] font-medium hover:underline underline-offset-4"
               >
                 {o.cta} ›
               </button>
-              <div className="mt-8 overflow-hidden rounded-2xl shadow-[0_30px_60px_-30px_rgba(0,7,39,0.3)]">
+              <div className="mt-6 sm:mt-8 overflow-hidden rounded-2xl shadow-[0_30px_60px_-30px_rgba(0,7,39,0.3)]">
                 <img
                   src={o.img}
                   alt={o.alt}
-                  className="w-full h-[360px] object-cover object-top"
+                  className="w-full h-[300px] sm:h-[360px] object-cover object-top"
                 />
               </div>
             </Reveal>

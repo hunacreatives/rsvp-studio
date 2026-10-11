@@ -51,23 +51,23 @@ export default function AccountPage() {
       <section>
         <SectionTitle>Profile</SectionTitle>
         <OutlineCard>
-          <div className="flex flex-wrap items-center gap-4 px-6 py-6 md:px-8">
+          <div className="flex flex-wrap items-center gap-4 px-5 py-6 sm:px-6 md:px-8">
             <Avatar name={profile.full_name || profile.email} url={profile.avatar_url} size={66} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[20px] font-semibold text-[var(--ink)]">{profile.full_name || "Add your name"}</p>
-              <p className="truncate text-[13px] text-[var(--slate)]">{profile.email}</p>
+              <p className="truncate text-[14px] text-[var(--slate)] md:text-[13px]">{profile.email}</p>
             </div>
             <PillButton onClick={() => fileRef.current?.click()}>Edit Photo</PillButton>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPhoto(e.target.files?.[0])} />
           </div>
           {photoError ? <p className="-mt-3 px-8 pb-3 text-[13px] text-[#c2412d]">{photoError}</p> : null}
-          <div className="grid gap-5 border-t border-[rgba(0,7,39,0.1)] px-6 py-6 sm:grid-cols-2 md:px-8">
+          <div className="grid gap-5 border-t border-[rgba(0,7,39,0.1)] px-5 py-6 sm:grid-cols-2 sm:px-6 md:px-8">
             <Info label="Full name" value={profile.full_name} />
             <Info label="Email address" value={profile.email} />
             <Info label="Phone number" value={profile.phone} />
             <Info label="Location" value={profile.location} />
           </div>
-          <div className="flex justify-end border-t border-[rgba(0,7,39,0.1)] px-6 py-5 md:px-8">
+          <div className="flex justify-end border-t border-[rgba(0,7,39,0.1)] px-5 py-5 sm:px-6 md:px-8">
             <PillButton onClick={() => setEditOpen(true)}>Edit Profile</PillButton>
           </div>
         </OutlineCard>
@@ -155,18 +155,18 @@ export default function AccountPage() {
 function Info({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--slate)]">{label}</p>
-      <p className={`mt-0.5 text-[16px] ${value ? "text-[var(--ink)]" : "text-[var(--slate)]"}`}>{value || "Not added"}</p>
+      <p className="text-[12px] uppercase tracking-[0.06em] text-[var(--slate)]">{label}</p>
+      <p className={`mt-0.5 break-words text-[16px] ${value ? "text-[var(--ink)]" : "text-[var(--slate)]"}`}>{value || "Not added"}</p>
     </div>
   );
 }
 
 function Row({ title, sub, action, border }: { title: string; sub: string; action: ReactNode; border?: boolean }) {
   return (
-    <div className={`flex items-center gap-4 px-6 py-6 md:px-8 ${border ? "border-t border-[rgba(0,7,39,0.1)]" : ""}`}>
+    <div className={`flex items-center gap-4 px-5 py-5 sm:px-6 sm:py-6 md:px-8 ${border ? "border-t border-[rgba(0,7,39,0.1)]" : ""}`}>
       <div className="min-w-0 flex-1">
         <p className="text-[16px] text-[var(--ink)]">{title}</p>
-        <p className="text-[13px] text-[var(--slate)]">{sub}</p>
+        <p className="text-[14px] text-[var(--slate)] md:text-[13px]">{sub}</p>
       </div>
       {action}
     </div>

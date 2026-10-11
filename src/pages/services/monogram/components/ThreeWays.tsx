@@ -39,7 +39,7 @@ export default function ThreeWays() {
       <div className="container-x">
         <Reveal
           as="h2"
-          className="text-center font-bold tracking-[-0.02em] text-[var(--ink)]"
+          className="text-center font-bold leading-[1.15] tracking-[-0.02em] text-[var(--ink)]"
           style={{ fontSize: "clamp(1.9rem, 4vw, 2.6rem)" }}
         >
           Three ways to make it yours.

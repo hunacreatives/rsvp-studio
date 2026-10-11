@@ -4,6 +4,7 @@ import { BrowserRouter, useLocation } from "react-router-dom";
 import { AppRoutes } from "./router";
 import ScrollToTop from "@/components/ScrollToTop";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import CharacterLoader from "@/components/CharacterLoader";
 import { useSmoothScroll } from "@/lib/useSmoothScroll";
 import CustomDomainSite, { isCustomDomain } from "@/pages/wedding-sites/public/CustomDomainSite";
 
@@ -13,7 +14,12 @@ function Routes() {
   useEffect(() => applyPageMeta(pathname), [pathname]);
   return (
     <ErrorBoundary resetKey={pathname}>
-      <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--warm-white)" }} />}>
+      {/* Guests opening an invite never see our studio cartoons — just a blank page. */}
+      <Suspense
+        fallback={
+          /^\/(invite|internal)\//.test(pathname) ? <div style={{ minHeight: "100dvh", background: "var(--warm-white)" }} /> : <CharacterLoader fullScreen />
+        }
+      >
         <AppRoutes />
       </Suspense>
     </ErrorBoundary>

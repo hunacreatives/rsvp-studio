@@ -12,7 +12,7 @@ export default function RegistrySection({ content, theme }: RegistrySectionProps
 
   return (
     <section style={{ background: `${theme.ink}06`, padding: "64px 24px", textAlign: "center" }}>
-      <div style={{ width: "min(600px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 600, margin: "0 auto" }}>
         <p style={{ fontFamily: theme.displayFont, fontSize: 28, color: theme.ink, margin: 0 }}>Registry</p>
         <LeafDivider color={theme.ink} />
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 14 }}>

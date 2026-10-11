@@ -11,7 +11,7 @@ export default function RegistrySection({ content, theme }: RegistrySectionProps
 
   return (
     <section style={{ background: `${theme.muted}0d`, padding: "56px 24px", textAlign: "center" }}>
-      <div style={{ width: "min(480px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 480, margin: "0 auto" }}>
         <h2
           style={{
             fontFamily: theme.displayFont,

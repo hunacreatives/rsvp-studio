@@ -9,7 +9,7 @@ interface DateVenueFieldsProps {
 export default function DateVenueFields({ content, onChange }: DateVenueFieldsProps) {
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="rb-stack" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <FormField label="Event date">
           <input
             type="date"

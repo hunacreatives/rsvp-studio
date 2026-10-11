@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import "../builder.css";
 
 // Shared, plain form-field wrapper for the content editor. Deliberately
 // minimal (label + native input/textarea styling) — no rich-text editor,
@@ -42,7 +43,8 @@ export const inputStyle: CSSProperties = {
   padding: "10px 12px",
   borderRadius: 8,
   border: "1px solid var(--line)",
-  fontSize: 14,
+  // 14px on desktop, 16px on phones so iOS doesn't zoom in (builder.css).
+  fontSize: "var(--rb-field-font, 14px)",
   fontFamily: "inherit",
   background: "#fff",
   color: "var(--ink)",

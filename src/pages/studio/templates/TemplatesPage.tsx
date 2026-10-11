@@ -45,7 +45,27 @@ export default function TemplatesPage() {
       {!demo ? <DomainsCard /> : null}
       {demo ? <p className="mb-4 text-[14px] text-[var(--slate)]">Templates aren’t part of demo data.</p> : null}
 
-      <div className="overflow-x-auto rounded-[22px] border border-[var(--line)] bg-white">
+      {/* Phones: one card per template. */}
+      <ul className="divide-y divide-[var(--line)] rounded-[22px] border border-[var(--line)] bg-white empty:hidden md:hidden">
+        {(rows ?? []).map((t) => (
+          <li key={t.id}>
+            {t.kind === "spec" ? (
+              <Link to={`/studio/templates/${t.id}`} className="flex items-center gap-3 px-4 py-3.5">
+                <TemplateCardBody t={t} />
+                <i className="ri-arrow-right-s-line text-[20px] text-[var(--slate)]" />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3 px-4 py-3.5">
+                <TemplateCardBody t={t} />
+              </div>
+            )}
+          </li>
+        ))}
+        {rows && !rows.length && !demo ? <li className="px-5 py-10 text-center text-[14px] text-[var(--slate)]">No templates yet.</li> : null}
+        {!rows && !error ? <li className="px-5 py-10 text-center text-[14px] text-[var(--slate)]">Loading…</li> : null}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-[22px] border border-[var(--line)] bg-white md:block">
         <table className="w-full min-w-[720px] text-left text-[14px]">
           <thead>
             <tr className="border-b border-[var(--line)] text-[12px] uppercase tracking-[0.06em] text-[var(--slate)]">
@@ -94,6 +114,21 @@ export default function TemplatesPage() {
   );
 }
 
+function TemplateCardBody({ t }: { t: TemplateRow }) {
+  return (
+    <span className="min-w-0 flex-1">
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold text-[var(--ink)]">{t.label}</span>
+        <StatusPill tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</StatusPill>
+      </span>
+      <span className="mt-0.5 block break-all text-[13px] text-[var(--slate)]">{t.id}</span>
+      <span className="block text-[13px] text-[var(--slate)]">
+        {t.kind === "spec" ? "Uploaded" : "Built in (code)"} · <span className="capitalize">{t.tier}</span> · updated {formatDate(t.updated_at)}
+      </span>
+    </span>
+  );
+}
+
 /** What customers pay to publish a DIY website, by template tier. Studio projects never pay. */
 function SitePricesCard() {
   const [prices, setPrices] = useState<{ free: string; premium: string } | null>(null);
@@ -118,18 +153,18 @@ function SitePricesCard() {
   return (
     <div className="mb-5 rounded-[22px] border border-[var(--line)] bg-white p-5">
       <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-[220px] flex-1">
+        <div className="w-full sm:w-auto sm:min-w-[220px] sm:flex-1">
           <p className="text-[15px] font-semibold text-[var(--ink)]">Price to publish a DIY website</p>
           <p className="text-[13px] text-[var(--slate)]">Customers pay once, by GCash, Maya, card or QR Ph, before their site goes live. ₱0 = free. Every site shows “Made with love by The RSVP Studio”. Free sites get one RSVP summary email a day; Premium emails the hosts for every RSVP, and its price is also what a free site pays to upgrade. Studio projects never pay.</p>
           {unset ? <p className="mt-1 text-[13px] font-medium text-[#8a5a00]">Both are ₱0 — anyone can publish for free until you set a price.</p> : null}
         </div>
-        <label className="text-[13px] text-[var(--ink)]">
+        <label className="min-w-0 flex-1 text-[14px] text-[var(--ink)] sm:flex-none md:text-[13px]">
           Standard templates (₱)
-          <Input type="number" min={0} step="1" value={prices.free} onChange={(e) => (setPrices({ ...prices, free: e.target.value }), setState("idle"))} className="mt-1 w-[150px]" />
+          <Input type="number" min={0} step="1" value={prices.free} onChange={(e) => (setPrices({ ...prices, free: e.target.value }), setState("idle"))} className="mt-1 sm:w-[150px]" />
         </label>
-        <label className="text-[13px] text-[var(--ink)]">
+        <label className="min-w-0 flex-1 text-[14px] text-[var(--ink)] sm:flex-none md:text-[13px]">
           Premium templates (₱)
-          <Input type="number" min={0} step="1" value={prices.premium} onChange={(e) => (setPrices({ ...prices, premium: e.target.value }), setState("idle"))} className="mt-1 w-[150px]" />
+          <Input type="number" min={0} step="1" value={prices.premium} onChange={(e) => (setPrices({ ...prices, premium: e.target.value }), setState("idle"))} className="mt-1 sm:w-[150px]" />
         </label>
         <PillButton tone="dark" onClick={save} disabled={state === "saving"}>
           {state === "saving" ? "Saving…" : state === "saved" ? "Saved" : "Save prices"}

@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import RsvpForm from "../../shared/RsvpForm";
@@ -22,7 +23,7 @@ export default function RsvpSection({ content, theme, editorPreview }: RsvpSecti
   };
   return (
     <section id="rsvp" style={{ background: `${theme.ink}06`, padding: "72px 24px", textAlign: "center" }}>
-      <div style={{ width: "min(420px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 420, margin: "0 auto" }}>
         <p style={{ fontFamily: theme.displayFont, fontSize: 30, color: theme.ink, margin: 0 }}>Kindly Respond</p>
         <LeafDivider color={theme.ink} />
         <RsvpForm
@@ -31,7 +32,7 @@ export default function RsvpSection({ content, theme, editorPreview }: RsvpSecti
           skin={{
             font: theme.bodyFont,
             ink: theme.ink,
-            muted: theme.muted,
+            muted: mutedText(theme),
             gap: 12,
             field: { style: field },
             textarea: { style: { ...field, borderRadius: 18 } },

@@ -46,43 +46,50 @@ export function DashboardMockup() {
     ["Hunter Fox", "Ceremony, Reception", "May 5th"],
   ];
   return (
-    <div className="w-full max-w-[620px] rounded-2xl border border-[var(--line)] bg-white p-5 shadow-[0_40px_80px_-32px_rgba(0,7,39,0.28)]">
-      <div className="flex gap-3 text-xs">
-        <span className="rounded-md bg-[var(--ink)] text-white px-2.5 py-1">
+    <div className="w-full max-w-[620px] rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5 shadow-[0_40px_80px_-32px_rgba(0,7,39,0.28)]">
+      <div className="flex gap-2 sm:gap-3 text-xs">
+        <span className="whitespace-nowrap rounded-md bg-[var(--ink)] text-white px-2.5 py-1">
           Guest Management
         </span>
-        <span className="rounded-md bg-black/5 px-2.5 py-1 text-[var(--slate)]">
+        <span className="whitespace-nowrap rounded-md bg-black/5 px-2.5 py-1 text-[var(--slate)]">
           Invitation Suite
         </span>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      {/* Phones: label/value rows; sm+: three tiles. */}
+      <div className="mt-4 grid gap-2 sm:grid-cols-3 sm:gap-3">
         {[
           ["Guest Counts", "Yes 105 · No 4"],
           ["Event Counts", "Ceremony 104"],
           ["Food Counts", "3 menus"],
         ].map(([k, v]) => (
-          <div key={k} className="rounded-lg bg-[var(--paper)] p-3">
-            <p className="text-[10px] uppercase tracking-wide text-[var(--slate)]">
+          <div
+            key={k}
+            className="flex items-baseline justify-between gap-3 rounded-lg bg-[var(--paper)] px-3 py-2.5 sm:block sm:p-3"
+          >
+            <p className="text-xs sm:text-[11px] uppercase tracking-wide text-[var(--slate)]">
               {k}
             </p>
-            <p className="mt-1 text-sm font-medium text-[var(--ink)]">{v}</p>
+            <p className="sm:mt-1 text-sm font-medium text-[var(--ink)]">{v}</p>
           </div>
         ))}
       </div>
-      <table className="mt-4 w-full text-left text-xs">
+      <table className="mt-4 w-full text-left text-[13px] sm:text-xs">
         <thead className="text-[var(--slate)]">
           <tr className="border-b border-[var(--line)]">
             <th className="py-2 font-medium">Name</th>
-            <th className="py-2 font-medium">Events</th>
-            <th className="py-2 font-medium text-right">RSVP'd On</th>
+            <th className="hidden sm:table-cell py-2 font-medium">Events</th>
+            <th className="py-2 font-medium text-right whitespace-nowrap">RSVP'd On</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(([n, e, d]) => (
             <tr key={n} className="border-b border-[var(--line)]/70">
-              <td className="py-2.5 text-[var(--ink)]">{n}</td>
-              <td className="py-2.5 text-[var(--slate)]">{e}</td>
-              <td className="py-2.5 text-right text-[var(--slate)]">{d}</td>
+              <td className="py-2.5 text-[var(--ink)]">
+                {n}
+                <span className="block text-xs text-[var(--slate)] sm:hidden">{e}</span>
+              </td>
+              <td className="hidden sm:table-cell py-2.5 text-[var(--slate)]">{e}</td>
+              <td className="py-2.5 text-right whitespace-nowrap text-[var(--slate)]">{d}</td>
             </tr>
           ))}
         </tbody>
@@ -99,14 +106,14 @@ export function SaveTheDateMockup() {
     { src: "/services/save-the-date/card-destiny.jpg", rot: 12, x: "-54%", z: 1 },
   ];
   return (
-    <div className="relative w-full max-w-[460px] aspect-[4/3]">
+    <div className="relative w-full max-w-[460px] aspect-square sm:aspect-[4/3]">
       {cards.map((c, i) => (
         <img
           key={c.src}
           src={c.src}
           alt=""
           aria-hidden="true"
-          className="absolute left-1/2 top-1/2 w-[46%] rounded-[12px] shadow-[0_34px_70px_-30px_rgba(0,7,39,0.4)]"
+          className="absolute left-1/2 top-1/2 w-[56%] sm:w-[46%] rounded-[12px] shadow-[0_34px_70px_-30px_rgba(0,7,39,0.4)]"
           style={{
             transform: `translate(${c.x}, -50%) rotate(${c.rot}deg) scale(${
               i === 1 ? 1 : 0.92

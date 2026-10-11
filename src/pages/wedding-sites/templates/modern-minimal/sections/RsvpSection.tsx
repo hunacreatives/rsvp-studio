@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import RsvpForm from "../../shared/RsvpForm";
@@ -21,7 +22,7 @@ export default function RsvpSection({ content, theme, editorPreview }: RsvpSecti
   };
   return (
     <section id="rsvp" style={{ background: `${theme.muted}0a`, padding: "64px 32px" }}>
-      <div style={{ width: "min(440px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 440, margin: "0 auto" }}>
         <p
           style={{
             fontFamily: theme.bodyFont,
@@ -29,7 +30,7 @@ export default function RsvpSection({ content, theme, editorPreview }: RsvpSecti
             letterSpacing: "0.14em",
             fontSize: 12,
             fontWeight: 700,
-            color: theme.muted,
+            color: mutedText(theme),
             margin: "0 0 20px",
           }}
         >
@@ -41,7 +42,7 @@ export default function RsvpSection({ content, theme, editorPreview }: RsvpSecti
           skin={{
             font: theme.bodyFont,
             ink: theme.ink,
-            muted: theme.muted,
+            muted: mutedText(theme),
             gap: 12,
             field: { style: field },
             button: { style: { fontFamily: theme.bodyFont, background: theme.ink, color: theme.background, padding: "12px 20px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", border: "none", borderRadius: 0 } },

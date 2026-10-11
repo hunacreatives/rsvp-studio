@@ -28,23 +28,31 @@ export default function PortfolioDetail() {
           <div className="container-x">
             <Link
               to={`/portfolio#${CATEGORY_HASH[work.category]}`}
-              className="block text-left text-xs font-medium uppercase tracking-[0.12em] text-[var(--slate)] hover:text-[var(--ink)]"
+              className="-ml-1 flex min-h-[44px] w-fit items-center px-1 text-left text-xs font-medium uppercase tracking-[0.12em] text-[var(--slate)] hover:text-[var(--ink)]"
             >
               ← Back to Featured Work
             </Link>
             <h1
-              className="mx-auto mt-6 max-w-3xl text-balance font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)]"
+              className="mx-auto mt-3 max-w-3xl text-balance sm:mt-6 font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)]"
               style={{ fontSize: "clamp(2rem, 4.6vw, 3.6rem)" }}
             >
               {work.title}
             </h1>
-            <p className="eyebrow mt-4">{work.meta}</p>
+            <p className="eyebrow mt-4 text-balance">{work.meta}</p>
+            <a
+              href={work.liveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-dark mt-6 w-full max-w-sm sm:w-auto"
+            >
+              Visit the live site ↗
+            </a>
           </div>
         </section>
 
         <section className="pb-16" style={{ background: "var(--warm-white)" }}>
           <div className="container-x mx-auto max-w-5xl">
-            <div className="flex flex-col items-center gap-y-16">
+            <div className="flex flex-col items-center gap-y-12 sm:gap-y-16">
               <div
                 className="flex flex-col items-center"
                 style={{ "--frame-h": "min(520px, max(340px, 42vw), calc(52vw - 4px))" } as React.CSSProperties}
@@ -54,10 +62,9 @@ export default function PortfolioDetail() {
                 </p>
                 <DeviceFrame type="laptop" src={work.liveUrl!} title={`${work.title} — desktop`} />
               </div>
-              <div
-                className="flex flex-col items-center"
-                style={{ "--frame-h": "clamp(460px, 56vw, 600px)" } as React.CSSProperties}
-              >
+              {/* Phones see the phone mockup first, near full width (the site at ~82%
+                  scale, readable); the laptop follows as a picture of the desktop look. */}
+              <div className="order-first flex flex-col items-center [--frame-h:calc(min(320px,82vw)*2.1641+10px)] sm:order-none sm:[--frame-h:clamp(460px,56vw,600px)]">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--slate)]">
                   Mobile
                 </p>
@@ -67,7 +74,7 @@ export default function PortfolioDetail() {
             <p className="mx-auto mt-10 max-w-xl text-center text-lg text-[var(--slate)] md:text-xl">
               {work.description}
             </p>
-            <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <div className="mx-auto mt-10 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap sm:justify-center">
               <button className="btn btn-primary" onClick={() => navigate(inquiryLink(inquiryFor(work)))}>
                 Ask about something like this
               </button>

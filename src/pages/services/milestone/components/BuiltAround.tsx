@@ -19,7 +19,7 @@ export default function BuiltAround() {
           Built around your celebration
         </Reveal>
 
-        <div className="mt-16 grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        <div className="mt-10 md:mt-16 grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
           <div className="hidden lg:block">
             <div className="sticky top-28">
               <div className="mx-auto w-[250px] aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] overflow-hidden shadow-[0_50px_90px_-30px_rgba(0,7,39,0.4)]">
@@ -32,12 +32,12 @@ export default function BuiltAround() {
             </div>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-3 sm:space-y-5">
             {CARDS.map((c, i) => (
               <Reveal
                 key={c.title}
                 delay={(i % 2) * 0.05}
-                className="rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[0_18px_40px_-30px_rgba(0,7,39,0.2)]"
+                className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-6 shadow-[0_18px_40px_-30px_rgba(0,7,39,0.2)]"
               >
                 <div className="flex items-start gap-4">
                   <span className="grid place-items-center w-11 h-11 rounded-xl bg-[var(--paper)] text-xl text-[var(--acc-blue)] shrink-0">

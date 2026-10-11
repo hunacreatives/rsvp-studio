@@ -45,7 +45,7 @@ export default function WeddingDetailsSection({ content, tone, editorPreview }: 
             <div key={item.id}>
               <Flower variant={FLOWERS[i % FLOWERS.length]} width="clamp(46px,5cqw,64px)" style={{ margin: "0 auto clamp(12px,1.6cqw,20px)" }} />
               {time ? (
-                <p className="sb-eyebrow" style={{ marginBottom: 6 }}>
+                <p className="sb-eyebrow sb-time" style={{ marginBottom: 6 }}>
                   {time}
                 </p>
               ) : null}

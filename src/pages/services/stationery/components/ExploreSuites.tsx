@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
 import { inquiryLink } from "@/pages/enquire/prefill";
+import { lenisRef } from "@/lib/lenis";
 
 const SHARED_NOTES = [
   "One (1) format is included per project: either print-ready or website format.",
@@ -153,13 +154,24 @@ function SuitePanel({ suite }: { suite: Suite }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [extend, setExtend] = useState(false);
+  const details = useRef<HTMLDivElement | null>(null);
+
+  // On phones the details render below the suite image, i.e. off-screen —
+  // bring them into view when opened so the tap visibly does something.
+  useEffect(() => {
+    if (!open) return;
+    const el = details.current;
+    if (!el || el.getBoundingClientRect().top < window.innerHeight * 0.6) return;
+    if (lenisRef.current) lenisRef.current.scrollTo(el, { offset: -90 });
+    else el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [open]);
 
   return (
     <div>
       <div className="text-center">
         <p className="eyebrow">The {suite.tab} Suite</p>
         <h3
-          className="mt-2 font-display font-semibold tracking-[-0.01em] text-[var(--ink)]"
+          className="mt-2 font-display font-semibold leading-[1.15] tracking-[-0.01em] text-[var(--ink)]"
           style={{ fontSize: "clamp(1.7rem, 3.4vw, 2.4rem)" }}
         >
           {suite.tagline}
@@ -185,16 +197,21 @@ function SuitePanel({ suite }: { suite: Suite }) {
               ))}
             </ul>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <p className="mt-6 text-[15px] text-[var(--slate)]">
+              Starts at{" "}
+              <span className="font-semibold text-[var(--ink)]">{suite.price}</span>
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <button
-                className="btn btn-primary"
+                className="btn btn-primary w-full sm:w-auto"
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
               >
                 {open ? "Hide Details" : "Learn More"}
               </button>
               <button
-                className="btn btn-ghost"
+                className="btn btn-ghost w-full sm:w-auto"
                 onClick={() => navigate(inquiryLink({ service: "stationery", pkg: `${suite.tab} Suite` }))}
               >
                 Book Now
@@ -212,7 +229,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
         </div>
 
         {open && (
-          <div className="mt-10 border-t border-[var(--line)] pt-8">
+          <div ref={details} className="mt-10 border-t border-[var(--line)] pt-8">
             <p className="font-display text-lg font-semibold text-[var(--ink)]">
               {suite.summary}
             </p>
@@ -243,23 +260,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
               </div>
 
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--ink)]">
-                  Investment
-                </p>
-                <div className="mt-3 flex items-center gap-3 rounded-full bg-[var(--paper)] p-1.5 pl-4">
-                  <span className="text-sm text-[var(--slate)]">
-                    Starts at{" "}
-                    <span className="font-semibold text-[var(--ink)]">{suite.price}</span>
-                  </span>
-                  <button
-                    className="ml-auto rounded-full bg-[var(--ink)] px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white"
-                    onClick={() => navigate(inquiryLink({ service: "stationery", pkg: `${suite.tab} Suite` }))}
-                  >
-                    Book Now
-                  </button>
-                </div>
-
-                <p className="mt-6 text-sm font-semibold text-[var(--ink)]">Notes</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--ink)]">Notes</p>
                 <ul className="mt-2 space-y-1.5 text-sm text-[var(--slate)]">
                   {SHARED_NOTES.map((n) => (
                     <li key={n}>• {n}</li>
@@ -268,9 +269,9 @@ function SuitePanel({ suite }: { suite: Suite }) {
               </div>
             </div>
 
-            <div className="mt-8 rounded-2xl bg-[var(--paper)] p-5">
+            <div className="mt-8 rounded-2xl bg-[var(--paper)]">
               <button
-                className="flex w-full items-center justify-between text-left"
+                className="flex min-h-14 w-full items-center justify-between gap-4 p-5 text-left"
                 onClick={() => setExtend((v) => !v)}
                 aria-expanded={extend}
               >
@@ -284,7 +285,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
                 />
               </button>
               {extend && (
-                <p className="mt-3 text-sm text-[var(--slate)]">{EXTEND_COPY}</p>
+                <p className="-mt-2 px-5 pb-5 text-sm text-[var(--slate)]">{EXTEND_COPY}</p>
               )}
             </div>
           </div>
@@ -301,7 +302,7 @@ function AdditionsPanel() {
       <div className="text-center">
         <p className="eyebrow">Additions</p>
         <h3
-          className="mt-2 font-display font-semibold tracking-[-0.01em] text-[var(--ink)]"
+          className="mt-2 font-display font-semibold leading-[1.15] tracking-[-0.01em] text-[var(--ink)]"
           style={{ fontSize: "clamp(1.7rem, 3.4vw, 2.4rem)" }}
         >
           Beyond invitations.
@@ -354,12 +355,13 @@ export default function ExploreSuites() {
         </Reveal>
 
         <div className="mt-10 flex justify-center">
-          <div className="flex flex-wrap justify-center gap-1 rounded-full bg-white p-1.5 shadow-[0_10px_30px_-18px_rgba(0,7,39,0.3)]">
+          <div className="grid w-full max-w-sm grid-cols-2 gap-1 rounded-[22px] bg-white p-1.5 shadow-[0_10px_30px_-18px_rgba(0,7,39,0.3)] sm:flex sm:w-auto sm:max-w-none sm:justify-center sm:rounded-full">
             {TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+                aria-pressed={tab === t}
+                className={`min-h-11 rounded-full px-4 py-2.5 text-sm font-medium transition-colors sm:px-5 ${
                   tab === t
                     ? "bg-[var(--ink)] text-white"
                     : "text-[var(--slate)] hover:text-[var(--ink)]"

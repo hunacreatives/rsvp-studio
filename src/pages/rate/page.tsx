@@ -55,10 +55,10 @@ export default function RatePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
+    <div className="min-h-dvh" style={{ background: "var(--warm-white)" }}>
       <Navbar />
-      <main className="container-x flex min-h-[60vh] flex-col items-center justify-center py-20">
-        <div className="w-full max-w-md rounded-[20px] bg-white p-7 text-center shadow-[0_10px_40px_rgba(0,7,39,0.06)] md:p-9">
+      <main className="container-x flex min-h-[60dvh] flex-col items-center justify-center py-12 sm:py-20">
+        <div className="w-full max-w-md rounded-[20px] bg-white p-5 text-center sm:p-7 shadow-[0_10px_40px_rgba(0,7,39,0.06)] md:p-9">
           <p className="eyebrow">{info ? info.ticket : "Support"}</p>
           {state === "done" ? (
             <>
@@ -111,10 +111,10 @@ export default function RatePage() {
                       onChange={(e) => setComment(e.target.value)}
                       rows={3}
                       maxLength={2000}
-                      className="mt-1.5 w-full rounded-xl border border-black/10 px-3 py-2 text-[14px] font-normal outline-none focus:border-[#1862DD]"
+                      className="mt-1.5 w-full rounded-xl border border-black/10 px-3 py-2.5 text-base font-normal outline-none focus:border-[#1862DD] md:text-[14px]"
                     />
                   </label>
-                  {error ? <p className="mt-3 text-[13px] text-red-600">{error}</p> : null}
+                  {error ? <p role="alert" className="mt-3 text-[13px] text-red-600">{error}</p> : null}
                   <button type="button" className="btn btn-primary mt-5 w-full justify-center" disabled={!rating || state === "saving"} onClick={submit}>
                     {state === "saving" ? "Sending…" : "Submit"}
                   </button>

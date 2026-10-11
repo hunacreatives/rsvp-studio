@@ -13,6 +13,7 @@ import { parseSpec } from "../spec/schema";
 import { definitionFromSpec } from "../spec/definitionFromSpec";
 import { SiteCreditProvider } from "../engine/siteCredit";
 import SiteEndedPage from "./SiteEndedPage";
+import SiteLoading from "./SiteLoading";
 
 // The live, public event site: /invite/:slug. Reads ONLY the published_*
 // columns (never draft_*) — see the RLS note in
@@ -102,7 +103,7 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
   }, [slug]);
 
   if (state.status === "loading") {
-    return <div style={{ minHeight: "100vh" }} />;
+    return <SiteLoading />;
   }
   if (state.status === "not-found") {
     return <NotFound />;
@@ -123,7 +124,7 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
   return (
     <ErrorBoundary
       fallback={() => (
-        <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, textAlign: "center", fontFamily: "Inter, system-ui, sans-serif" }}>
+        <div style={{ minHeight: "100svh", display: "grid", placeItems: "center", padding: 24, textAlign: "center", fontFamily: "Inter, system-ui, sans-serif" }}>
           <div style={{ maxWidth: 380 }}>
             <p style={{ fontSize: 20, fontWeight: 600, margin: 0, color: "#000727" }}>This invitation didn’t load properly</p>
             <p style={{ fontSize: 16, color: "#55556a", margin: "10px 0 20px" }}>Please refresh the page. If it still doesn’t work, let the host know.</p>

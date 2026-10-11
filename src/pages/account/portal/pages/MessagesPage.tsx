@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
@@ -20,7 +21,7 @@ export function SupportChip({ t }: { t: ThreadSummary }) {
   if (t.kind !== "support" || !t.status) return null;
   const s = customerStatus(t);
   return (
-    <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={STATUS_STYLE[s.tone]}>
+    <span className="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[12px] font-medium" style={STATUS_STYLE[s.tone]}>
       {s.label}
     </span>
   );
@@ -35,7 +36,7 @@ function SupportToolbar({ t }: { t: ThreadSummary }) {
   return (
     <>
       <SupportChip t={t} />
-      <span className="text-[12px] text-[var(--slate)]">
+      <span className="text-[13px] text-[var(--slate)] md:text-[12px]">
         {solved ? "Still not fixed? Just reply here within 7 days." : t.status === "waiting" ? "We’ve replied — over to you." : "We reply within 1 business day."}
       </span>
       {!solved ? (
@@ -52,7 +53,7 @@ function SupportToolbar({ t }: { t: ThreadSummary }) {
             }
             setBusy(false);
           }}
-          className="ml-auto rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[12px] font-medium text-[var(--ink)] hover:border-[var(--ink)] disabled:opacity-50"
+          className="ml-auto min-h-[40px] rounded-full border border-[var(--line)] bg-white px-4 py-1 text-[13px] font-medium text-[var(--ink)] hover:border-[var(--ink)] disabled:opacity-50 md:min-h-0 md:px-3 md:text-[12px]"
         >
           {busy ? "Saving…" : "This is sorted — close it"}
         </button>
@@ -60,6 +61,42 @@ function SupportToolbar({ t }: { t: ThreadSummary }) {
       {error ? <span className="w-full text-[12px] text-[#c2412d]">{error}</span> : null}
     </>
   );
+}
+
+const PHONE = "(max-width: 767px)";
+
+/** True below the md breakpoint (where an open conversation takes the whole screen). */
+function useIsPhone() {
+  const [phone, setPhone] = useState(() => typeof window !== "undefined" && window.matchMedia(PHONE).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE);
+    const on = () => setPhone(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return phone;
+}
+
+/**
+ * The part of the screen the keyboard isn't covering. iOS Safari doesn't shrink the
+ * layout for the keyboard, so the full-screen chat sizes itself to this instead —
+ * that keeps the reply box sitting right above the keyboard.
+ */
+function useVisibleViewport(enabled: boolean) {
+  const [vp, setVp] = useState<{ height: number; top: number } | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!enabled || !vv) return setVp(null);
+    const on = () => setVp({ height: vv.height, top: vv.offsetTop });
+    on();
+    vv.addEventListener("resize", on);
+    vv.addEventListener("scroll", on);
+    return () => {
+      vv.removeEventListener("resize", on);
+      vv.removeEventListener("scroll", on);
+    };
+  }, [enabled]);
+  return vp;
 }
 
 export default function MessagesPage() {
@@ -83,6 +120,19 @@ export default function MessagesPage() {
 
   const activeId = params.get("thread");
   const active = threads.find((t) => t.id === activeId) ?? null;
+  const phone = useIsPhone();
+  const fullScreen = phone && !!active;
+  const vp = useVisibleViewport(fullScreen);
+
+  // Phones: the page behind the full-screen conversation stays put.
+  useEffect(() => {
+    if (!fullScreen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [fullScreen]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -106,6 +156,27 @@ export default function MessagesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, threads.length]);
 
+  const renderChat = (t: ThreadSummary) => (
+    <ChatPane
+      key={t.id}
+      thread={t}
+      header={threadContext(t, projectName)}
+      onBack={() => open(null)}
+      toolbar={t.kind === "support" && t.status ? <SupportToolbar t={t} /> : undefined}
+      closedNote={
+        t.kind === "support" && isClosed(t) ? (
+          <>
+            This request is done and closed.{" "}
+            <Link to="/account/help/contact" className="font-medium text-[var(--acc-blue)] hover:underline">
+              Start a new request
+            </Link>{" "}
+            and mention {requestCode(t.ticket_number)} if it&rsquo;s related.
+          </>
+        ) : undefined
+      }
+    />
+  );
+
   return (
     <>
       <PageHeader
@@ -113,38 +184,39 @@ export default function MessagesPage() {
         action={<PrimaryButton onClick={() => setComposeFor(null)}>+ New Message</PrimaryButton>}
       />
 
-      <div className="grid h-[640px] grid-cols-1 overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:grid-cols-[270px_1fr] [&>*]:min-w-0">
-        <div className={`min-h-0 flex-col border-r border-[var(--line)] ${active ? "hidden md:flex" : "flex"}`}>
-          <div className="p-4">
+      {/* Phones: the list is part of the page (no box-in-a-page scrolling); a conversation opens full screen. */}
+      <div className="grid grid-cols-1 overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:h-[640px] md:grid-cols-[270px_1fr] [&>*]:min-w-0">
+        <div className="flex min-h-0 flex-col md:border-r md:border-[var(--line)]">
+          <div className="p-3 md:p-4">
             <label className="flex items-center gap-2 rounded-full bg-[#efeaf4] px-5 py-2.5">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search Messages..."
-                className="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--slate)]"
+                className="min-w-0 flex-1 bg-transparent text-[16px] text-[var(--ink)] outline-none placeholder:text-[var(--slate)] md:text-[13px]"
               />
               <i className="ri-search-line text-lg text-[var(--ink)]" />
             </label>
           </div>
-          <ul className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
+          <ul className="md:min-h-0 md:flex-1 md:overflow-y-auto" data-lenis-prevent>
             {filtered.map((t) => (
               <li key={t.id}>
                 <button
                   onClick={() => open(t.id)}
-                  className={`flex w-full items-start gap-3 border-b border-[var(--line)] px-4 py-3.5 text-left transition-colors ${t.id === activeId ? "bg-[#f1f1f3]" : "hover:bg-[var(--paper)]"}`}
+                  className={`flex w-full items-start gap-3 border-b border-[var(--line)] px-4 py-4 text-left md:py-3.5 transition-colors ${t.id === activeId ? "bg-[#f1f1f3]" : "hover:bg-[var(--paper)]"}`}
                 >
                   <Avatar name={t.counterpartName} url={t.counterpartAvatar} size={40} tone="#cfd6ea" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
-                      <span className={`truncate text-[13px] text-[var(--ink)] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>
-                      <span className="shrink-0 text-[10px] text-[var(--slate)]">{inboxStamp(t.last_message_at)}</span>
+                      <span className={`truncate text-[15px] text-[var(--ink)] md:text-[13px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>
+                      <span className="shrink-0 text-[12px] text-[var(--slate)] md:text-[11px]">{inboxStamp(t.last_message_at)}</span>
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className="min-w-0 flex-1 truncate text-[13px] text-[var(--ink)]">{threadContext(t, projectName)}</span>
+                      <span className="min-w-0 flex-1 truncate text-[14px] text-[var(--ink)] md:text-[13px]">{threadContext(t, projectName)}</span>
                       <SupportChip t={t} />
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--slate)]">{t.lastMessage?.body || (t.lastMessage?.attachments.length ? "Sent a file" : "")}</span>
+                      <span className="min-w-0 flex-1 truncate text-[14px] text-[var(--slate)] md:text-[12px]">{t.lastMessage?.body || (t.lastMessage?.attachments.length ? "Sent a file" : "")}</span>
                       {t.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--acc-blue)]" aria-label="Unread" /> : null}
                     </span>
                   </span>
@@ -152,33 +224,16 @@ export default function MessagesPage() {
               </li>
             ))}
             {!filtered.length ? (
-              <li className="px-6 py-10 text-center text-[13px] text-[var(--slate)]">
+              <li className="px-6 py-10 text-center text-[14px] text-[var(--slate)]">
                 {threads.length ? "No conversations match." : "No messages yet. Start a conversation with our team."}
               </li>
             ) : null}
           </ul>
         </div>
 
-        <div className={`min-h-0 ${active ? "flex flex-col" : "hidden md:flex md:flex-col"}`}>
-          {active ? (
-            <ChatPane
-              key={active.id}
-              thread={active}
-              header={threadContext(active, projectName)}
-              onBack={() => open(null)}
-              toolbar={active.kind === "support" && active.status ? <SupportToolbar t={active} /> : undefined}
-              closedNote={
-                active.kind === "support" && isClosed(active) ? (
-                  <>
-                    This request is done and closed.{" "}
-                    <Link to="/account/help/contact" className="font-medium text-[var(--acc-blue)] hover:underline">
-                      Start a new request
-                    </Link>{" "}
-                    and mention {requestCode(active.ticket_number)} if it&rsquo;s related.
-                  </>
-                ) : undefined
-              }
-            />
+        <div className="hidden min-h-0 md:flex md:flex-col">
+          {active && !phone ? (
+            renderChat(active)
           ) : (
             <div className="grid flex-1 place-items-center p-8 text-center text-[14px] text-[var(--slate)]">
               <div>
@@ -189,6 +244,21 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
+
+      {fullScreen && active
+        ? createPortal(
+            <div
+              className="fixed inset-x-0 top-0 z-[60] flex h-[100dvh] flex-col bg-white md:hidden"
+              style={vp ? { height: vp.height, transform: `translateY(${vp.top}px)` } : undefined}
+              role="dialog"
+              aria-modal="true"
+              aria-label={threadContext(active, projectName) ?? "Conversation"}
+            >
+              {renderChat(active)}
+            </div>,
+            document.body,
+          )
+        : null}
 
       {composeFor !== undefined ? (
         <NewMessageModal
@@ -267,7 +337,7 @@ function NewMessageModal({ projectId, onClose, onCreated }: { projectId: string 
           <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write your message here…" />
         </Field>
         <div>
-          <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--acc-blue)]">
+          <button onClick={() => fileRef.current?.click()} className="inline-flex min-h-[44px] items-center gap-1.5 text-[14px] font-medium text-[var(--acc-blue)] md:min-h-0">
             <i className="ri-attachment-2" /> Attach files
           </button>
           <input

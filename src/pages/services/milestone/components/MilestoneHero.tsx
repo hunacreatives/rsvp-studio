@@ -12,6 +12,8 @@ export default function MilestoneHero() {
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Smaller drift on phones so the side screens stay clear of the caption.
+    const drift = window.matchMedia("(max-width: 639px)").matches ? 6 : 14;
     const ctx = gsap.context(() => {
       gsap.fromTo(
         shot.current,
@@ -29,7 +31,7 @@ export default function MilestoneHero() {
         },
       );
       gsap.to(left.current, {
-        yPercent: -14,
+        yPercent: -drift,
         ease: "none",
         scrollTrigger: {
           trigger: root.current,
@@ -39,7 +41,7 @@ export default function MilestoneHero() {
         },
       });
       gsap.to(right.current, {
-        yPercent: 14,
+        yPercent: drift,
         ease: "none",
         scrollTrigger: {
           trigger: root.current,
@@ -72,27 +74,28 @@ export default function MilestoneHero() {
 
       <div className="relative mt-14 md:mt-20 px-4">
         {/* Flanking evite screens, drifting on scroll */}
-        <div
-          ref={left}
-          className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[38%] sm:-translate-x-[28%] lg:-translate-x-[14%] w-[190px] sm:w-[240px] lg:w-[280px] will-change-transform"
-        >
-          <img
-            src="/services/milestone/semicustom-page.webp"
-            alt=""
-            aria-hidden="true"
-            className="w-full rounded-2xl shadow-[0_40px_80px_-40px_rgba(0,7,39,0.35)] opacity-95"
-          />
+        {/* Outer div positions/centres with CSS; inner div takes the GSAP
+            drift so GSAP never bakes the -50% centring in as 0px before the
+            image has loaded. */}
+        <div className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[38%] sm:-translate-x-[28%] lg:-translate-x-[14%] w-[140px] min-[400px]:w-[170px] sm:w-[240px] lg:w-[280px]">
+          <div ref={left} className="will-change-transform">
+            <img
+              src="/services/milestone/semicustom-page.webp"
+              alt=""
+              aria-hidden="true"
+              className="w-full rounded-2xl shadow-[0_40px_80px_-40px_rgba(0,7,39,0.35)] opacity-95"
+            />
+          </div>
         </div>
-        <div
-          ref={right}
-          className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 translate-x-[38%] sm:translate-x-[28%] lg:translate-x-[14%] w-[190px] sm:w-[240px] lg:w-[280px] will-change-transform"
-        >
-          <img
-            src="/services/milestone/tailored-page.webp"
-            alt=""
-            aria-hidden="true"
-            className="w-full rounded-2xl shadow-[0_40px_80px_-40px_rgba(0,7,39,0.35)] opacity-95"
-          />
+        <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 translate-x-[38%] sm:translate-x-[28%] lg:translate-x-[14%] w-[140px] min-[400px]:w-[170px] sm:w-[240px] lg:w-[280px]">
+          <div ref={right} className="will-change-transform">
+            <img
+              src="/services/milestone/tailored-page.webp"
+              alt=""
+              aria-hidden="true"
+              className="w-full rounded-2xl shadow-[0_40px_80px_-40px_rgba(0,7,39,0.35)] opacity-95"
+            />
+          </div>
         </div>
 
         <img
@@ -101,10 +104,10 @@ export default function MilestoneHero() {
           alt="Carlo & Trixia wedding website shown on a laptop"
           className="relative z-10 mx-auto w-full max-w-4xl will-change-transform"
         />
-        <p className="relative z-10 mt-8 font-display text-xl text-[var(--slate)]">
-          Designed for every screen.
-        </p>
       </div>
+      <p className="relative z-10 mt-8 sm:mt-10 px-4 font-display text-xl text-[var(--slate)]">
+        Designed for every screen.
+      </p>
     </section>
   );
 }

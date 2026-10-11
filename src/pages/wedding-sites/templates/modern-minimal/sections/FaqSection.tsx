@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 
@@ -11,15 +12,15 @@ export default function FaqSection({ content, theme }: FaqSectionProps) {
 
   return (
     <section style={{ background: theme.background, padding: "64px 32px" }}>
-      <div style={{ width: "min(880px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 880, margin: "0 auto" }}>
         <p
           style={{
             fontFamily: theme.bodyFont,
             textTransform: "uppercase",
             letterSpacing: "0.14em",
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
-            color: theme.muted,
+            color: mutedText(theme),
             margin: "0 0 24px",
           }}
         >
@@ -31,7 +32,7 @@ export default function FaqSection({ content, theme }: FaqSectionProps) {
               <p style={{ fontFamily: theme.bodyFont, fontWeight: 700, color: theme.ink, margin: 0, fontSize: 14 }}>
                 {faq.question}
               </p>
-              <p style={{ fontFamily: theme.bodyFont, fontSize: 13, color: theme.muted, margin: "8px 0 0", lineHeight: 1.6 }}>
+              <p style={{ fontFamily: theme.bodyFont, fontSize: 14, color: mutedText(theme), margin: "8px 0 0", lineHeight: 1.6 }}>
                 {faq.answer}
               </p>
             </div>

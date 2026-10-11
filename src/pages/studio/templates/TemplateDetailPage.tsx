@@ -103,7 +103,7 @@ export default function TemplateDetailPage() {
 
   return (
     <>
-      <Link to="/studio/templates" className="mb-4 inline-flex items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
+      <Link to="/studio/templates" className="mb-2 inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
         <i className="ri-arrow-left-line" /> Templates
       </Link>
       <StudioHeader
@@ -121,7 +121,7 @@ export default function TemplateDetailPage() {
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-3">
             <FilterTabs<Device>
@@ -132,7 +132,7 @@ export default function TemplateDetailPage() {
                 { value: "phone", label: "Phone" },
               ]}
             />
-            <select value={fixtureId} onChange={(e) => setFixtureId(e.target.value)} className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-[13px]">
+            <select value={fixtureId} onChange={(e) => setFixtureId(e.target.value)} className="min-h-[44px] max-w-full rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-[16px] md:min-h-0 md:text-[13px]">
               {FIXTURES.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.label}
@@ -140,7 +140,7 @@ export default function TemplateDetailPage() {
               ))}
             </select>
             {spec && spec.tokens.palettes.length > 1 ? (
-              <select value={paletteId ?? spec.tokens.defaultPaletteId} onChange={(e) => setPaletteId(e.target.value)} className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-[13px]">
+              <select value={paletteId ?? spec.tokens.defaultPaletteId} onChange={(e) => setPaletteId(e.target.value)} className="min-h-[44px] max-w-full rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-[16px] md:min-h-0 md:text-[13px]">
                 {spec.tokens.palettes.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.label}
@@ -149,7 +149,7 @@ export default function TemplateDetailPage() {
               </select>
             ) : null}
           </div>
-          <div className="flex h-[78vh] flex-col overflow-hidden rounded-[22px] border border-[var(--line)]">
+          <div className="flex h-[70dvh] flex-col overflow-hidden rounded-[22px] border border-[var(--line)] md:h-[78vh]">
             {spec ? (
               <PreviewCanvas deviceWidth={device === "phone" ? 390 : 1024}>
                 <SpecTemplate
@@ -173,7 +173,7 @@ export default function TemplateDetailPage() {
                 <button
                   key={v.id}
                   onClick={() => setVersionId(v.id)}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-[14px] ${v.id === versionId ? "bg-[var(--paper)]" : "hover:bg-[var(--paper)]"}`}
+                  className={`flex min-h-[44px] w-full items-center justify-between rounded-xl px-3 py-2 text-left text-[14px] ${v.id === versionId ? "bg-[var(--paper)]" : "hover:bg-[var(--paper)]"}`}
                 >
                   <span>
                     v{v.version} <span className="text-[12px] text-[var(--slate)]">· {formatDate(v.published_at ?? v.created_at)}</span>
@@ -210,7 +210,7 @@ export default function TemplateDetailPage() {
               ))}
             </ul>
             <label className="mt-4 flex items-start gap-2.5 text-[14px] text-[var(--ink)]">
-              <input type="checkbox" checked={signedOff} onChange={(e) => setSignedOff(e.target.checked)} className="mt-1" />
+              <input type="checkbox" checked={signedOff} onChange={(e) => setSignedOff(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0" />
               I checked it at desktop and phone size, with every sample event, and it matches the design.
             </label>
             <ErrorText>{error}</ErrorText>

@@ -1,7 +1,15 @@
 import { cloneElement, isValidElement, useId, type ReactElement, type ReactNode } from "react";
 
+// 16px on phones: iOS Safari zooms the page in when a field under 16px is tapped.
 export const INPUT =
-  "w-full rounded-lg border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--slate)] focus:border-[var(--acc-blue)]";
+  "w-full min-h-[48px] rounded-lg border border-[var(--line)] bg-white px-4 py-3 text-base md:text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--slate)] focus:border-[var(--acc-blue)]";
+
+/** Date fields: iOS draws an empty date input shorter and centred unless told otherwise. */
+export const DATE_INPUT = `${INPUT} appearance-none text-left [&::-webkit-date-and-time-value]:text-left`;
+
+/** Field labels: 12px on phones (readable), the original 11px from md up. */
+export const LABEL =
+  "mb-2 block text-xs md:text-[11px] font-semibold uppercase tracking-[0.12em] md:tracking-[0.14em] text-[var(--slate)]";
 
 /** Spam trap: hidden from people (and screen readers); bots that fill every field get dropped. */
 export function Honeypot({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -19,22 +27,59 @@ export function Field({
   label,
   children,
   hint,
+  name,
+  required,
+  error,
 }: {
   label: string;
   children: ReactNode;
   hint?: string;
+  /** Marks the wrapper (`data-field`) so a form can scroll to the first field with a problem. */
+  name?: string;
+  required?: boolean;
+  error?: string | null;
 }) {
   // Tie the label to a single input/select/textarea so screen readers announce it.
   const id = useId();
+  const errId = `${id}-err`;
   const single = isValidElement<{ id?: string }>(children) && typeof children.type === "string" && ["input", "select", "textarea"].includes(children.type);
-  const field = single ? cloneElement(children as ReactElement<{ id?: string }>, { id: (children as ReactElement<{ id?: string }>).props.id ?? id }) : children;
+  const inputId = single ? ((children as ReactElement<{ id?: string }>).props.id ?? id) : undefined;
+  const field = single
+    ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+        id: inputId,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": error ? errId : undefined,
+      })
+    : children;
+  const labelText = (
+    <>
+      {label}
+      {required ? (
+        <>
+          <span aria-hidden className="ml-0.5 text-[var(--acc-coral)]">*</span>
+          <span className="sr-only"> (required)</span>
+        </>
+      ) : null}
+    </>
+  );
   return (
-    <div>
-      <label htmlFor={single ? ((children as ReactElement<{ id?: string }>).props.id ?? id) : undefined} className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--slate)]">
-        {label}
-      </label>
+    <div data-field={name}>
+      {single ? (
+        <label htmlFor={inputId} className={LABEL}>
+          {labelText}
+        </label>
+      ) : (
+        <p id={`${id}-label`} className={LABEL}>
+          {labelText}
+        </p>
+      )}
       {hint && <p className="mb-2 text-xs text-[var(--slate)]">{hint}</p>}
-      {field}
+      {single ? field : <div role="group" aria-labelledby={`${id}-label`} aria-describedby={error ? errId : undefined}>{field}</div>}
+      {error ? (
+        <p id={errId} role="alert" className="mt-2 text-[13px] text-[#c2410c]">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -52,7 +97,8 @@ export function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`whitespace-nowrap rounded-full border px-4 py-2 text-xs transition-colors ${
+      aria-pressed={active}
+      className={`min-h-[44px] max-w-full rounded-full border px-4 py-2 text-left text-sm leading-snug transition-colors md:min-h-0 md:text-xs ${
         active
           ? "border-[var(--ink)] bg-[var(--ink)] text-white"
           : "border-[var(--line)] text-[var(--slate)] hover:border-[var(--ink)] hover:text-[var(--ink)]"
@@ -102,7 +148,7 @@ export function PillGroup({
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h3 className="mb-6 border-b border-[var(--line)] pb-3 font-display text-xl font-semibold text-[var(--ink)]">
+    <h3 tabIndex={-1} className="mb-6 border-b border-[var(--line)] pb-3 font-display text-xl font-semibold text-[var(--ink)] outline-none">
       {children}
     </h3>
   );
@@ -111,12 +157,15 @@ export function SectionTitle({ children }: { children: ReactNode }) {
 export function SuccessCard({
   title,
   message,
+  note,
 }: {
   title: string;
   message: string;
+  /** An extra line under the message (e.g. files that couldn't be attached). */
+  note?: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] py-24 text-center">
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-6 py-16 text-center md:py-24">
       <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[var(--acc-blue)]">
         <i className="ri-check-line text-xl" />
       </span>
@@ -124,6 +173,7 @@ export function SuccessCard({
         {title}
       </h2>
       <p className="mt-2 text-sm text-[var(--slate)]">{message}</p>
+      {note ? <p className="mx-auto mt-4 max-w-md text-sm text-[var(--ink)]">{note}</p> : null}
     </div>
   );
 }

@@ -10,22 +10,34 @@ interface CreateEventFormProps {
 
 const inputStyle: CSSProperties = {
   width: "100%",
+  minHeight: 52,
   padding: "14px 16px",
   borderRadius: 12,
   border: "1px solid var(--line)",
-  fontSize: 15,
+  // 16px+: iPhones zoom the page in on anything smaller.
+  fontSize: 16,
   background: "#fff",
   color: "var(--ink)",
 };
 
+function Label({ htmlFor, children }: { htmlFor: string; children: string }) {
+  return (
+    <label htmlFor={htmlFor} className="mb-1.5 block text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+      {children}
+    </label>
+  );
+}
+
+/** A real (visually hidden) checkbox, so the whole row — switch and words — is one big tap target. */
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <label className="flex items-center gap-2 mt-2 cursor-pointer select-none" style={{ fontSize: 13, color: "var(--slate)" }}>
+    <label className="mt-1 flex min-h-[44px] cursor-pointer select-none items-center gap-2.5" style={{ fontSize: 14, color: "var(--slate)" }}>
+      <input type="checkbox" role="switch" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span
-        onClick={() => onChange(!checked)}
+        aria-hidden
         style={{
-          width: 36,
-          height: 20,
+          width: 44,
+          height: 24,
           borderRadius: 999,
           background: checked ? "var(--acc-blue)" : "var(--line)",
           position: "relative",
@@ -37,9 +49,9 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
           style={{
             position: "absolute",
             top: 2,
-            left: checked ? 18 : 2,
-            width: 16,
-            height: 16,
+            left: checked ? 22 : 2,
+            width: 20,
+            height: 20,
             borderRadius: "50%",
             background: "#fff",
             transition: "left 0.15s",
@@ -84,7 +96,8 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
       <button
         type="button"
         onClick={onBack}
-        style={{ fontSize: 13, color: "var(--slate)", background: "none", border: "none", cursor: "pointer", marginBottom: 16 }}
+        className="-ml-1 inline-flex min-h-[44px] items-center px-1"
+        style={{ fontSize: 14, color: "var(--slate)", background: "none", border: "none", cursor: "pointer", marginBottom: 8 }}
       >
         &larr; Back
       </button>
@@ -93,26 +106,45 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
       </h2>
 
       <div className="flex flex-col gap-4">
-        <input
-          required
-          placeholder={needsTwoHosts ? "Your First Name" : "Who's celebrating?"}
-          value={hostOne}
-          onChange={(e) => setHostOne(e.target.value)}
-          style={inputStyle}
-        />
-        {needsTwoHosts ? (
+        <div>
+          <Label htmlFor="ce-host-one">{needsTwoHosts ? "Your first name" : "Who's celebrating?"}</Label>
           <input
+            id="ce-host-one"
             required
-            placeholder="Your Partner's First Name"
-            value={hostTwo}
-            onChange={(e) => setHostTwo(e.target.value)}
+            placeholder={needsTwoHosts ? "First name" : "Name"}
+            autoComplete={needsTwoHosts ? "given-name" : "off"}
+            autoCapitalize="words"
+            enterKeyHint="next"
+            value={hostOne}
+            onChange={(e) => setHostOne(e.target.value)}
             style={inputStyle}
           />
+        </div>
+        {needsTwoHosts ? (
+          <div>
+            <Label htmlFor="ce-host-two">Your partner&apos;s first name</Label>
+            <input
+              id="ce-host-two"
+              required
+              placeholder="First name"
+              autoComplete="off"
+              autoCapitalize="words"
+              enterKeyHint="next"
+              value={hostTwo}
+              onChange={(e) => setHostTwo(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
         ) : null}
 
         <div>
+          <Label htmlFor="ce-venue">Event venue</Label>
           <input
-            placeholder="Event Venue"
+            id="ce-venue"
+            placeholder="Venue name"
+            autoComplete="off"
+            autoCapitalize="words"
+            enterKeyHint="next"
             value={venueName}
             disabled={venueUndecided}
             onChange={(e) => setVenueName(e.target.value)}
@@ -122,7 +154,9 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
         </div>
 
         <div>
+          <Label htmlFor="ce-date">Event date</Label>
           <input
+            id="ce-date"
             type="date"
             value={eventDate}
             disabled={dateUndecided}

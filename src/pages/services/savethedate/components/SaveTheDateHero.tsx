@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import type { TouchEvent } from "react";
 
 const CARDS = [
   { img: "/services/save-the-date/card-bear.jpg", category: "Birthday" },
@@ -24,6 +25,25 @@ export default function SaveTheDateHero() {
   const prev = useCallback(() => setActive((a) => (a - 1 + total) % total), [total]);
   const next = useCallback(() => setActive((a) => (a + 1) % total), [total]);
 
+  // Touch swipe on the deck (horizontal only — vertical drags still scroll the page).
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: TouchEvent) => {
+    const t = e.touches[0];
+    touch.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: TouchEvent) => {
+    const start = touch.current;
+    touch.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) next();
+      else prev();
+    }
+  };
+
   return (
     <section
       className="relative flex min-h-[calc(100svh-6.5rem)] flex-col justify-center overflow-hidden py-10"
@@ -31,7 +51,7 @@ export default function SaveTheDateHero() {
     >
       <div className="container-x text-center">
         <h1
-          className="font-display font-semibold tracking-[-0.02em] text-[var(--ink)]"
+          className="font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)]"
           style={{ fontSize: "clamp(2.2rem, 5vw, 3.6rem)" }}
         >
           Digital Save the Date
@@ -50,7 +70,11 @@ export default function SaveTheDateHero() {
           <i className="ri-arrow-left-s-line text-2xl" />
         </button>
 
-        <div className="relative h-[clamp(280px,46vh,500px)] w-full max-w-[820px]">
+        <div
+          className="relative h-[clamp(280px,46vh,500px)] w-full max-w-[820px] touch-pan-y"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
           {CARDS.map((card, i) => {
             let offset = i - active;
             if (offset > total / 2) offset -= total;
@@ -93,6 +117,16 @@ export default function SaveTheDateHero() {
       <p className="mt-6 text-center text-sm font-medium uppercase tracking-[0.18em] text-[var(--slate)]">
         {CARDS[active].category}
       </p>
+      <div className="mt-3 flex justify-center gap-1.5" aria-hidden="true">
+        {CARDS.map((card, i) => (
+          <span
+            key={card.img}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              i === active ? "w-5 bg-[var(--ink)]" : "w-1.5 bg-[rgba(0,7,39,0.2)]"
+            }`}
+          />
+        ))}
+      </div>
     </section>
   );
 }

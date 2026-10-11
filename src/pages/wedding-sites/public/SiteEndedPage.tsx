@@ -14,7 +14,7 @@ const names = (c: EventContent | null) => {
 export default function SiteEndedPage({ state, content, slug }: { state: "ended" | "deleted"; content: EventContent | null; slug: string }) {
   const who = names(content);
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "48px 20px", background: "#fffff9", fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
+    <main style={{ minHeight: "100svh", display: "grid", placeItems: "center", padding: "48px 20px", background: "#fffff9", fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
       <div style={{ maxWidth: 440, textAlign: "center" }}>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="#d9c4c4" aria-hidden>
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -33,7 +33,7 @@ export default function SiteEndedPage({ state, content, slug }: { state: "ended"
           <p style={{ fontSize: 14, color: "#55556a", margin: "0 0 14px" }}>Planning your own event?</p>
           <a
             href={creditHref(slug)}
-            style={{ display: "inline-block", background: "#000727", color: "#fff", textDecoration: "none", borderRadius: 999, padding: "12px 24px", fontSize: 14, fontWeight: 600 }}
+            style={{ display: "inline-block", background: "#000727", color: "#fff", textDecoration: "none", borderRadius: 999, padding: "13px 24px", fontSize: 15, fontWeight: 600 }}
           >
             Make your own with The RSVP Studio
           </a>

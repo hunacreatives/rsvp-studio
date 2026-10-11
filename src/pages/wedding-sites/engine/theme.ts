@@ -36,3 +36,12 @@ export function resolveEventTheme(settings: BaseTemplateSettings): EventTheme {
     bodyFont: pairing.bodyFont,
   };
 }
+
+/**
+ * The muted swatch, darkened just enough to read as SMALL text on a phone
+ * (#868697 on ivory is 3.6:1; this is ~5:1). Palettes stay untouched —
+ * borders and tints keep using `theme.muted` itself.
+ */
+export function mutedText(theme: Pick<EventTheme, "muted">): string {
+  return `color-mix(in srgb, ${theme.muted} 80%, #000)`;
+}

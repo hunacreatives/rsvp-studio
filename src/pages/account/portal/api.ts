@@ -344,7 +344,7 @@ export async function myFreeSite(): Promise<{ id: string; name: string } | null>
 // ---------------------------------------------------------------------------
 // Custom domains (api/domain-search, api/domain-status)
 
-async function authedFetch(url: string, init: RequestInit = {}) {
+async function authedFetch(url: string, init: Parameters<typeof fetch>[1] = {}) {
   const { data } = await supabase.auth.getSession();
   return fetch(url, { ...init, headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}`, ...(init.headers ?? {}) } });
 }

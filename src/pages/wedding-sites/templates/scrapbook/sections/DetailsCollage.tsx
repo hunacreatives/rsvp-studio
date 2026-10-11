@@ -1,3 +1,4 @@
+import VenueLinks from "../../shared/VenueLinks";
 import type { EventContent } from "../../../content/types";
 import {
   CollageItem,
@@ -82,7 +83,7 @@ export default function DetailsCollage({ content, tone, slots, editorPreview }: 
           <StationeryCard rotate={1.2} paper={cardIsPaper}>
             {parts ? (
               <>
-                <p className="sb-label" style={{ letterSpacing: "0.22em" }}>
+                <p className="sb-label sb-date" style={{ letterSpacing: "0.22em" }}>
                   {parts.month} {parts.day}, {parts.year}
                 </p>
                 <Flourish />
@@ -96,7 +97,7 @@ export default function DetailsCollage({ content, tone, slots, editorPreview }: 
             ) : null}
             {venueName ? <p className="sb-script sb-script--md">{venueName}</p> : null}
             {locality ? (
-              <p className="sb-label" style={{ marginTop: 8, letterSpacing: "0.2em" }}>
+              <p className="sb-label sb-date" style={{ marginTop: 8, letterSpacing: "0.2em" }}>
                 {locality}
               </p>
             ) : null}
@@ -110,6 +111,11 @@ export default function DetailsCollage({ content, tone, slots, editorPreview }: 
               <p className="sb-serif" style={{ marginTop: 10 }}>
                 {timeLabel}
               </p>
+            ) : null}
+            {venueName || locality || street ? (
+              <div className="sb-phone-only">
+                <VenueLinks content={content} font="var(--sb-body)" color="inherit" size={13} style={{ marginTop: 6 }} />
+              </div>
             ) : null}
           </StationeryCard>
         </CollageItem>

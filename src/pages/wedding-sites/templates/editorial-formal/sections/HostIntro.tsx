@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 
@@ -13,7 +14,7 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
 
   return (
     <section style={{ background: theme.background, padding: "64px 24px" }}>
-      <div style={{ width: "min(640px, 92vw)", margin: "0 auto", textAlign: "center" }}>
+      <div style={{ width: "100%", maxWidth: 640, margin: "0 auto", textAlign: "center" }}>
         {paragraphs.length > 0 ? (
           <>
             <h2
@@ -52,7 +53,7 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
                 letterSpacing: "0.14em",
                 fontSize: 13,
                 fontWeight: 700,
-                color: theme.muted,
+                color: mutedText(theme),
                 marginBottom: 24,
               }}
             >
@@ -69,6 +70,8 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
                 <div key={person.id}>
                   {person.photo ? (
                     <img
+                      loading="lazy"
+                      decoding="async"
                       src={person.photo.masterUrl}
                       alt={person.photo.alt}
                       style={{
@@ -85,7 +88,7 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
                     {person.name}
                   </p>
                   {person.role ? (
-                    <p style={{ fontFamily: theme.bodyFont, fontSize: 13, color: theme.muted, margin: "2px 0 0" }}>
+                    <p style={{ fontFamily: theme.bodyFont, fontSize: 14, color: mutedText(theme), margin: "2px 0 0" }}>
                       {person.role}
                     </p>
                   ) : null}

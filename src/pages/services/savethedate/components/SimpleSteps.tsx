@@ -56,7 +56,7 @@ export default function SimpleSteps() {
                     />
                   </button>
                   {isOpen && (
-                    <p className="pb-6 pl-10 pr-4 text-[var(--slate)]">{s.copy}</p>
+                    <p className="pb-6 pr-1 text-[var(--slate)] sm:pl-10 sm:pr-4">{s.copy}</p>
                   )}
                 </div>
               );
@@ -74,7 +74,7 @@ export default function SimpleSteps() {
               </div>
             </div>
             <div className="mx-auto -mt-1 h-2 w-[46%] rounded-b-lg bg-[#1a1a1a]" />
-            <div className="absolute -bottom-6 right-2 w-[26%] max-w-[110px]">
+            <div className="absolute -bottom-8 -right-2 w-[22%] max-w-[110px] sm:-bottom-6 sm:right-2 sm:w-[26%]">
               <div className="relative aspect-[9/19] rounded-[18px] border-[6px] border-[#111] bg-[#111] shadow-[0_24px_50px_-22px_rgba(0,7,39,0.45)]">
                 <div className="absolute inset-0 m-[1px] overflow-hidden rounded-[12px]">
                   <img

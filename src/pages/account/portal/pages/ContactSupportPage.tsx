@@ -79,16 +79,16 @@ export default function ContactSupportPage() {
         Have a question about your project, need assistance, or just want to chat? Send us a message and our team will get back to you as soon as possible.
       </p>
 
-      <div className="mt-7 grid gap-6 rounded-[22px] bg-[#eef3fe] px-6 py-7 md:grid-cols-3 md:gap-0">
+      <div className="mt-7 grid gap-6 rounded-[22px] bg-[#eef3fe] px-5 py-7 sm:px-6 md:grid-cols-3 md:gap-0">
         <InfoTile icon="ri-time-line" title="Support Hours">{SUPPORT.hours}</InfoTile>
         <InfoTile icon="ri-chat-3-line" title="Average Response Time" divider>{SUPPORT.responseTime}</InfoTile>
         <InfoTile icon="ri-mail-line" title="Prefer Email?" divider>
           You can also reach us at{" "}
-          <a href={`mailto:${SUPPORT.email}`} className="text-[var(--ink)] hover:underline">{SUPPORT.email}</a>
+          <a href={`mailto:${SUPPORT.email}`} className="break-all py-2 text-[var(--ink)] hover:underline md:py-0">{SUPPORT.email}</a>
         </InfoTile>
       </div>
 
-      <div className="mt-7 grid gap-8 rounded-[22px] border border-[rgba(0,7,39,0.16)] bg-white px-6 py-8 md:px-7 lg:grid-cols-[1fr_280px]">
+      <div className="mt-7 grid gap-8 rounded-[22px] border border-[rgba(0,7,39,0.16)] bg-white px-5 py-8 sm:px-6 md:px-7 lg:grid-cols-[1fr_280px]">
         <div>
           <h2 className="font-display text-[1.7rem] font-semibold text-[var(--ink)]">Send us a message</h2>
           <p className="mt-1 text-[13px] text-[var(--slate)]">Fill out the form below and we’ll get back to you soon.</p>
@@ -106,13 +106,13 @@ export default function ContactSupportPage() {
                 <p className="text-[13px] font-medium text-[var(--ink)]">These might answer it right away</p>
                 <div className="mt-1 divide-y divide-[var(--line)]">
                   {suggestions.map((qa) => (
-                    <details key={qa.q} className="py-2 text-[13px]">
-                      <summary className="cursor-pointer text-[var(--ink)]">{qa.q}</summary>
+                    <details key={qa.q} className="py-2 text-[14px] md:text-[13px]">
+                      <summary className="cursor-pointer py-1.5 text-[var(--ink)] md:py-0">{qa.q}</summary>
                       <p className="mt-1.5 leading-relaxed text-[var(--slate)]">{qa.a}</p>
                     </details>
                   ))}
                 </div>
-                <Link to={`/account/help?topic=${helpTopic!.slug}`} className="mt-1 inline-block text-[12px] text-[var(--acc-blue)] hover:underline">
+                <Link to={`/account/help?topic=${helpTopic!.slug}`} className="mt-1 inline-flex min-h-[44px] items-center text-[13px] text-[var(--acc-blue)] hover:underline md:min-h-0 md:text-[12px]">
                   More about {helpTopic!.title.toLowerCase()} →
                 </Link>
               </div>
@@ -148,7 +148,7 @@ export default function ContactSupportPage() {
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--paper)] text-lg text-[var(--ink)]"><i className="ri-attachment-2" /></span>
                 <span>
                   <span className="block text-[14px] text-[var(--slate)]">Click to upload files or drag and drop</span>
-                  <span className="block text-[11px] text-[var(--slate)]">You can upload images, PDFs, or other relevant files (Max 10MB per file)</span>
+                  <span className="block text-[13px] text-[var(--slate)] md:text-[12px]">You can upload images, PDFs, or other relevant files (Max 10MB per file)</span>
                 </span>
               </button>
               <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
@@ -161,9 +161,9 @@ export default function ContactSupportPage() {
           <PrimaryButton className="mt-6" onClick={submit} disabled={busy}>
             {busy ? "Sending…" : "Send Message →"}
           </PrimaryButton>
-          <p className="mt-3 text-[12px] text-[var(--slate)]">
+          <p className="mt-3 text-[13px] leading-relaxed text-[var(--slate)] md:text-[12px]">
             We reply within 1 business day ({SUPPORT.hours}). Event in the next 7 days? Also message us on{" "}
-            <a href={SUPPORT.instagramUrl} target="_blank" rel="noreferrer" className="text-[var(--acc-blue)] hover:underline">
+            <a href={SUPPORT.instagramUrl} target="_blank" rel="noreferrer" className="py-1.5 text-[var(--acc-blue)] hover:underline">
               Instagram {SUPPORT.instagram}
             </a>
             .
@@ -186,7 +186,7 @@ export default function ContactSupportPage() {
               </Link>
             ))}
           </div>
-          <Link to="/account/help" className="mt-5 inline-block text-[16px] text-[var(--acc-blue)] hover:underline">
+          <Link to="/account/help" className="mt-3 inline-flex min-h-[44px] items-center text-[16px] text-[var(--acc-blue)] hover:underline">
             Browse All Help Articles →
           </Link>
         </aside>
@@ -207,7 +207,7 @@ function InfoTile({ icon, title, children, divider }: { icon: string; title: str
     <div className={`md:px-6 ${divider ? "md:border-l md:border-[#c9d3ea]" : "md:pl-2"}`}>
       <span className="grid h-11 w-11 place-items-center rounded-full bg-white text-xl text-[var(--ink)]"><i className={icon} /></span>
       <p className="mt-4 text-[16px] font-semibold text-[var(--ink)]">{title}</p>
-      <p className="mt-2 text-[13px] leading-relaxed text-[var(--slate)]">{children}</p>
+      <p className="mt-2 text-[14px] leading-relaxed text-[var(--slate)] md:text-[13px]">{children}</p>
     </div>
   );
 }
@@ -218,7 +218,7 @@ function ReachCard({ icon, title, href, children }: { icon: string; title: strin
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#e4e4e8] text-lg text-[var(--ink)]"><i className={icon} /></span>
       <span className="min-w-0">
         <span className="block text-[16px] font-semibold text-[var(--ink)]">{title}</span>
-        <span className="block text-[13px] text-[var(--slate)]">{children}</span>
+        <span className="block break-words text-[14px] text-[var(--slate)] md:text-[13px]">{children}</span>
       </span>
     </>
   );

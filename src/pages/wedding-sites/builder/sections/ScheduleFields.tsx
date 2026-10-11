@@ -35,7 +35,9 @@ export default function ScheduleFields({ content, onChange }: ScheduleFieldsProp
               onChange={(e) => update({ label: e.target.value })}
             />
           </FormField>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {/* One per row: a date-and-time field is wider than half the editor,
+              so side by side the End time was cut off. */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 0 }}>
             <FormField label="Start time">
               <input
                 type="datetime-local"

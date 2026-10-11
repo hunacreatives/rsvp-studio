@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { resolveEventTheme } from "../../engine/theme";
 import type { TemplateDefinition } from "../../engine/registry";
+import { isPhoneNow, useIsPhone } from "../useIsPhone";
 
 interface TemplateMockupPreviewProps {
   template: TemplateDefinition;
@@ -28,27 +30,7 @@ export default function TemplateMockupPreview({ template }: TemplateMockupPrevie
   // A template that ships demo content previews as its REAL self —
   // scaled, clipped to the top of the page, non-interactive. Templates
   // without demo content keep the schematic mockup below.
-  if (template.demoContent) {
-    const Component = template.component;
-    return (
-      <div style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative", background: theme.background }}>
-        <div
-          aria-hidden
-          style={{
-            width: DEMO_WIDTH,
-            transform: "scale(0.29)",
-            transformOrigin: "top left",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            pointerEvents: "none",
-          }}
-        >
-          <Component content={template.demoContent} settings={template.defaultSettings} />
-        </div>
-      </div>
-    );
-  }
+  if (template.demoContent) return <LiveDemoPreview template={template} background={theme.background} />;
 
   if (template.archetype === "modern-minimal") {
     return (
@@ -213,6 +195,64 @@ export default function TemplateMockupPreview({ template }: TemplateMockupPrevie
           RSVP
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The real template with its demo content, scaled into the card.
+ * Only drawn while the card is on (or near) the screen: each one is a whole
+ * live page (every section and image, Cinematic's particle animation), and a
+ * phone rendering all of them at once crawls.
+ * Desktop keeps its fixed 0.29 scale; on phones the scale follows the card's
+ * width, so the design fills the card instead of leaving a blank strip (390px)
+ * or cutting off its right side (320px).
+ */
+function LiveDemoPreview({ template, background }: { template: TemplateDefinition; background: string }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const isPhone = useIsPhone();
+  const [inView, setInView] = useState(false);
+  const [boxWidth, setBoxWidth] = useState(0);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const io = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(
+            // Desktop keeps a card once drawn; phones let far-off cards go to save memory/battery.
+            ([entry]) => setInView((was) => entry.isIntersecting || (was && !isPhoneNow())),
+            { rootMargin: "400px 0px" },
+          );
+    if (io) io.observe(box);
+    else setInView(true);
+    const ro = new ResizeObserver(() => setBoxWidth(box.clientWidth));
+    ro.observe(box);
+    setBoxWidth(box.clientWidth);
+    return () => {
+      ro.disconnect();
+      io?.disconnect();
+    };
+  }, []);
+
+  const scale = isPhone && boxWidth > 0 ? boxWidth / DEMO_WIDTH : 0.29;
+  const Component = template.component;
+  return (
+    <div ref={boxRef} style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative", background }}>
+      {inView ? (
+        <div
+          aria-hidden
+          style={{
+            width: DEMO_WIDTH,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            pointerEvents: "none",
+          }}
+        >
+          <Component content={template.demoContent!} settings={template.defaultSettings} />
+        </div>
+      ) : null}
     </div>
   );
 }

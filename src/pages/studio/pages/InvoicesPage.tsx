@@ -53,7 +53,7 @@ export default function InvoicesPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a client, email, project or invoice number"
-          className="w-full max-w-md rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-[14px] outline-none focus:border-[var(--ink)]"
+          className="w-full max-w-md rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-[16px] outline-none focus:border-[var(--ink)] md:text-[14px]"
         />
         {query ? (
           <p className="text-[14px] text-[var(--slate)]">
@@ -78,7 +78,35 @@ export default function InvoicesPage() {
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-[22px] border border-[var(--line)] bg-white">
+      {/* Phones: one card per invoice. */}
+      <ul className="space-y-3 md:hidden">
+        {shown.map((i) => {
+          const p = project(i.event_id);
+          return (
+            <li key={i.id} className="rounded-[20px] border border-[var(--line)] bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-semibold text-[var(--ink)]">{formatMoney(i.amount)}</span>
+                  <span className="block text-[13px] text-[var(--slate)]">{i.number}</span>
+                </span>
+                <InvoicePill invoice={i} />
+              </div>
+              <p className="mt-2 break-words text-[14px] text-[var(--ink)]">{i.description}</p>
+              <p className="text-[14px]">
+                <Link to={`/studio/projects?project=${i.event_id}`} className="inline-flex min-h-[40px] items-center font-medium text-[var(--ink)] underline underline-offset-2">{p?.name ?? "—"}</Link>
+                <span className="block break-all text-[13px] text-[var(--slate)]">{owners[i.event_id]?.email ?? "No client linked"}</span>
+              </p>
+              <p className={`mt-1 text-[13px] ${isOverdue(i) ? "font-medium text-[#c2412d]" : "text-[var(--slate)]"}`}>{invoiceSummary(i)}</p>
+              <div className="mt-3 flex flex-wrap gap-2 empty:hidden">
+                <InvoiceActions inv={i} compact />
+              </div>
+            </li>
+          );
+        })}
+        {!shown.length ? <li className="rounded-[20px] border border-[var(--line)] bg-white px-5 py-10 text-center text-[14px] text-[var(--slate)]">No invoices in this list.</li> : null}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-[22px] border border-[var(--line)] bg-white md:block">
         <table className="w-full min-w-[760px] text-left text-[14px]">
           <thead>
             <tr className="border-b border-[var(--line)] text-[12px] uppercase tracking-[0.06em] text-[var(--slate)]">
@@ -109,7 +137,7 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-5 py-3"><InvoicePill invoice={i} /></td>
                   <td className="px-5 py-3 text-right">
-                    <span className="inline-flex flex-wrap justify-end gap-2">
+                    <span className="inline-flex flex-wrap justify-end gap-2 whitespace-nowrap">
                       <InvoiceActions inv={i} compact />
                     </span>
                   </td>

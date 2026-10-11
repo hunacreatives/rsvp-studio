@@ -9,7 +9,7 @@ export default function GuidePage() {
 
   return (
     <article className="max-w-3xl">
-      <Link to="/account/help" className="mb-5 inline-flex items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
+      <Link to="/account/help" className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
         <i className="ri-arrow-left-line" /> Help &amp; Support
       </Link>
       <p className="eyebrow">Guide</p>
@@ -29,11 +29,11 @@ export default function GuidePage() {
         <p className="text-[14px] font-semibold uppercase tracking-[0.1em] text-[var(--slate)]">More guides</p>
         <div className="mt-3 flex flex-wrap gap-3">
           {others.map((g) => (
-            <Link key={g.slug} to={`/account/help/guides/${g.slug}`} className="rounded-full border border-[var(--ink)] px-4 py-1.5 text-[14px] text-[var(--ink)] hover:bg-[var(--ink)] hover:text-white">
+            <Link key={g.slug} to={`/account/help/guides/${g.slug}`} className="inline-flex min-h-[44px] items-center rounded-full border border-[var(--ink)] px-4 py-1.5 text-[14px] text-[var(--ink)] hover:bg-[var(--ink)] hover:text-white md:min-h-0">
               {g.title}
             </Link>
           ))}
-          <Link to="/account/help/contact" className="rounded-full bg-[var(--acc-blue)] px-4 py-1.5 text-[14px] text-white">
+          <Link to="/account/help/contact" className="inline-flex min-h-[44px] items-center rounded-full bg-[var(--acc-blue)] px-4 py-1.5 text-[14px] text-white md:min-h-0">
             Still stuck? Contact support
           </Link>
         </div>

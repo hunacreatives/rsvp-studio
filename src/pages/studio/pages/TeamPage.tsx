@@ -98,7 +98,38 @@ export default function TeamPage() {
       {notice ? <p className="mb-4 rounded-xl bg-[#eef7ee] px-4 py-3 text-[14px] text-[#2f6b2f]">{notice}</p> : null}
       {error && !adding && !confirm ? <ErrorText>{error}</ErrorText> : null}
 
-      <div className="overflow-x-auto rounded-[22px] border border-[var(--line)] bg-white">
+      {/* Phones: one card per person, actions underneath. */}
+      <ul className="divide-y divide-[var(--line)] rounded-[22px] border border-[var(--line)] bg-white md:hidden">
+        {data.team.map((m) => (
+          <li key={m.id} className="px-4 py-4">
+            <div className="flex items-center gap-3">
+              <Avatar name={m.full_name ?? m.email} seed={m.id} url={m.avatar_url} size={40} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] text-[var(--ink)]">
+                  {m.full_name || "—"}
+                  {m.id === profile.id ? <span className="text-[var(--slate)]"> (you)</span> : null}
+                </span>
+                <span className="block break-all text-[13px] text-[var(--slate)]">{m.email}</span>
+                <span className="block text-[13px] text-[var(--slate)]">Joined {formatDate(m.created_at)}</span>
+              </span>
+              <span
+                className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium uppercase tracking-[0.04em]"
+                style={m.staff_role === "owner" ? { background: "var(--ink)", color: "#fff" } : { background: "var(--paper)", color: "var(--ink)" }}
+              >
+                {m.staff_role === "owner" ? "Owner" : "Admin"}
+              </span>
+            </div>
+            {owner && m.staff_role === "admin" ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <PillButton onClick={() => (setConfirm({ kind: "transfer", member: m }), setError(null))}>Make owner</PillButton>
+                <PillButton tone="danger" onClick={() => (setConfirm({ kind: "remove", member: m }), setError(null))}>Remove</PillButton>
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-[22px] border border-[var(--line)] bg-white md:block">
         <table className="w-full min-w-[640px] text-left text-[14px]">
           <thead>
             <tr className="border-b border-[var(--line)] text-[12px] uppercase tracking-[0.06em] text-[var(--slate)]">
@@ -154,15 +185,15 @@ export default function TeamPage() {
           <div className="rounded-[22px] border border-[var(--line)] bg-white">
             {data.invites.map((inv) => (
               <div key={inv.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-3 last:border-0">
-                <span>
-                  <span className="block text-[var(--ink)]">{inv.email}</span>
+                <span className="min-w-0">
+                  <span className="block break-all text-[var(--ink)]">{inv.email}</span>
                   <span className="block text-[12px] text-[var(--slate)]">
                     Invited as admin {timeAgo(inv.created_at)}
                     {inv.last_sent_at !== inv.created_at ? ` · last sent ${timeAgo(inv.last_sent_at)}` : ""}. Becomes admin when they sign up with this email.
                   </span>
                 </span>
                 {owner ? (
-                  <span className="inline-flex gap-2">
+                  <span className="inline-flex flex-wrap gap-2">
                     <PillButton onClick={() => run(() => studio.resendStaffInvite(inv.email), `Invite sent again to ${inv.email}.`)}>Resend</PillButton>
                     <PillButton tone="danger" onClick={() => window.confirm(`Cancel the invite to ${inv.email}? Their sign-up link will stop working.`) && run(() => studio.cancelStaffInvite(inv.id), `Invite to ${inv.email} cancelled.`)}>Cancel invite</PillButton>
                   </span>

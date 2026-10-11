@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { defaultAvatar, initials } from "./format";
 
@@ -54,7 +55,7 @@ export function PillButton({
   return (
     <button
       {...rest}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none ${tones[tone]} ${className}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[14px] font-medium transition-colors md:min-h-0 md:py-1.5 md:text-[13px] disabled:opacity-50 disabled:pointer-events-none ${tones[tone]} ${className}`}
     >
       {children}
     </button>
@@ -76,13 +77,20 @@ export function FilterTabs<T extends string>({
   options,
   value,
   onChange,
+  fill = false,
 }: {
   options: { value: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
+  /** Phones: equal-width tabs on one row (a segmented control) instead of wrapping pills. */
+  fill?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap gap-2" role="tablist">
+    <div
+      className={fill ? "grid gap-2 sm:flex sm:flex-wrap" : "flex flex-wrap gap-2"}
+      style={fill ? { gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` } : undefined}
+      role="tablist"
+    >
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -91,7 +99,7 @@ export function FilterTabs<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(o.value)}
-            className="rounded-full px-4 py-1 text-[14px] font-medium transition-colors"
+            className={`min-h-[44px] rounded-full py-2 text-[14px] font-medium transition-colors md:min-h-0 md:py-1 ${fill ? "min-w-0 truncate px-2 sm:px-4" : "px-4"}`}
             style={{
               background: active ? "var(--ink)" : "#fff",
               color: active ? "#fff" : "var(--ink)",
@@ -117,7 +125,7 @@ export function StatusPill({ tone, children, size = "sm" }: { tone: keyof typeof
   const t = PILL_TONES[tone];
   return (
     <span
-      className={`inline-flex items-center rounded-full font-semibold uppercase tracking-[0.06em] ${size === "sm" ? "px-3 py-1 text-[11px]" : "px-4 py-1.5 text-[13px]"}`}
+      className={`inline-flex items-center rounded-full font-semibold uppercase tracking-[0.06em] ${size === "sm" ? "px-3 py-1 text-[12px]" : "px-4 py-1.5 text-[13px]"}`}
       style={{ background: t.bg, color: t.fg }}
     >
       {children}
@@ -180,32 +188,41 @@ export function Modal({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // The page behind stays put while the dialog is open (phones scroll-chain otherwise).
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
   }, [open, onClose]);
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[120] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={title}>
+  // Rendered on <body>: a dialog opened from inside a table cell or card must not inherit
+  // its alignment, clipping or stacking.
+  return createPortal(
+    <div className="fixed inset-0 z-[120] grid place-items-center p-4 text-left" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-[rgba(0,7,39,0.45)] backdrop-blur-[2px]" onClick={onClose} />
       <div
-        className="relative max-h-[90vh] w-full overflow-y-auto rounded-[26px] bg-white p-6 md:p-8 shadow-2xl"
+        className="relative max-h-[90vh] max-h-[90dvh] w-full overflow-y-auto overscroll-contain rounded-[26px] bg-white p-5 shadow-2xl sm:p-6 md:p-8"
         style={{ maxWidth: width }}
         data-lenis-prevent
       >
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full text-[var(--ink)] hover:bg-black/5"
+          className="absolute right-3 top-3 grid h-11 w-11 place-items-center rounded-full text-[var(--ink)] hover:bg-black/5"
         >
           <i className="ri-close-line text-xl" />
         </button>
-        <h3 className="pr-10 font-display text-2xl font-semibold text-[var(--ink)]">{title}</h3>
+        <h3 className="pr-12 font-display text-2xl font-semibold text-[var(--ink)]">{title}</h3>
         <div className="mt-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
-const FIELD = "w-full rounded-xl border bg-white px-4 py-2.5 text-[15px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--acc-blue)]";
+const FIELD = "w-full rounded-xl border bg-white px-4 py-2.5 text-[16px] md:text-[15px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--acc-blue)]";
 const FIELD_STYLE = { borderColor: OUTLINE };
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -240,7 +257,8 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className="relative h-8 w-[60px] shrink-0 rounded-full transition-colors"
+      // The ::before pad grows the tap area to ~44px without changing the look.
+      className="relative h-8 w-[60px] shrink-0 rounded-full transition-colors before:absolute before:-inset-x-1 before:-inset-y-1.5 before:content-['']"
       style={{ background: checked ? "var(--acc-blue)" : "#d6d6dc" }}
     >
       <span

@@ -48,7 +48,7 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
         )}
         {attending !== "no" && calendarUrl(content) ? (
           <p style={{ margin: "12px 0 0", fontSize: 15 }}>
-            <a href={calendarUrl(content)!} target="_blank" rel="noopener noreferrer" style={{ color: skin.ink, fontWeight: 600 }}>
+            <a href={calendarUrl(content)!} target="_blank" rel="noopener noreferrer" style={{ color: skin.ink, fontWeight: 600, display: "inline-flex", alignItems: "center", minHeight: 44 }}>
               Add it to your calendar →
             </a>
           </p>
@@ -69,7 +69,7 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
         <label htmlFor={`${id}-name`} style={label}>
           Your name
         </label>
-        <input id={`${id}-name`} required autoComplete="name" value={values.name ?? ""} onChange={(e) => set("name", e.target.value)} {...field()} />
+        <input id={`${id}-name`} required autoComplete="name" autoCapitalize="words" enterKeyHint="next" value={values.name ?? ""} onChange={(e) => set("name", e.target.value)} {...field()} />
       </div>
 
       <div>
@@ -81,6 +81,10 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
           required
           inputMode="email"
           autoComplete="email"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          enterKeyHint="next"
           placeholder="you@email.com or 0917 123 4567"
           value={values.contact ?? ""}
           onChange={(e) => set("contact", e.target.value)}
@@ -148,6 +152,12 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
         <p style={{ ...text, fontSize: 14, margin: 0, color: skin.muted, textAlign: "center" }}>Preview only — guests can RSVP once your site is published.</p>
       ) : null}
 
+      {error ? (
+        <p role="alert" style={{ ...text, color: "#b3261e", fontSize: 15, margin: 0, textAlign: "center" }}>
+          {error}
+        </p>
+      ) : null}
+
       <button
         type="submit"
         disabled={state === "submitting" || editorPreview}
@@ -157,18 +167,13 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
         {state === "submitting" ? "Sending…" : "Send my reply"}
       </button>
 
-      <p style={{ ...text, fontSize: 12, margin: 0, color: skin.muted, textAlign: "center" }}>
+      <p style={{ ...text, fontSize: 13, margin: 0, color: skin.muted, textAlign: "center" }}>
         Your reply goes to the hosts.{" "}
-        <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: skin.muted }}>
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: skin.muted, display: "inline-block", padding: "10px 4px" }}>
           Privacy
         </a>
       </p>
 
-      {error ? (
-        <p role="alert" style={{ ...text, color: "#b3261e", fontSize: 14, margin: 0, textAlign: "center" }}>
-          {error}
-        </p>
-      ) : null}
     </form>
   );
 }

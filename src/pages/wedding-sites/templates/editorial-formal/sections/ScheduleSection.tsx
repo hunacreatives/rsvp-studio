@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { parseEventDate } from "../../../content/parseEventDate";
@@ -18,7 +19,7 @@ export default function ScheduleSection({ content, theme }: ScheduleSectionProps
 
   return (
     <section style={{ background: theme.background, padding: "64px 24px" }}>
-      <div style={{ width: "min(560px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 560, margin: "0 auto" }}>
         <h2
           style={{
             fontFamily: theme.displayFont,
@@ -70,7 +71,7 @@ export default function ScheduleSection({ content, theme }: ScheduleSectionProps
                   <p
                     style={{
                       fontFamily: theme.bodyFont,
-                      color: theme.muted,
+                      color: mutedText(theme),
                       fontSize: 14,
                       marginTop: 4,
                     }}
@@ -79,7 +80,7 @@ export default function ScheduleSection({ content, theme }: ScheduleSectionProps
                   </p>
                 ) : null}
                 {item.location ? (
-                  <p style={{ fontFamily: theme.bodyFont, color: theme.muted, fontSize: 14, marginTop: 4 }}>
+                  <p style={{ fontFamily: theme.bodyFont, color: mutedText(theme), fontSize: 14, marginTop: 4 }}>
                     {item.location.name}
                   </p>
                 ) : null}

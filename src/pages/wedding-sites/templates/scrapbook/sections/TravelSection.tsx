@@ -74,7 +74,7 @@ export default function TravelSection({ content, tone, slots, editorPreview }: P
                         target="_blank"
                         rel="noopener noreferrer"
                         className="sb-label"
-                        style={{ color: "inherit", display: "inline-block", marginTop: 6, textDecoration: "none", borderBottom: "1px solid currentColor", paddingBottom: 2 }}
+                        style={{ color: "inherit", display: "inline-block", marginTop: 0, paddingTop: 22, textDecoration: "none", borderBottom: "1px solid currentColor", paddingBottom: 2 }}
                       >
                         Book
                       </a>

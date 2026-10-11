@@ -161,19 +161,24 @@ export function TaskList({ tasks, showProject = true, emptyText = "You’re all 
     );
   }
   return (
-    <Panel className="px-6 py-2">
+    <Panel className="px-4 py-2 sm:px-6">
       <ul>
         {tasks.map((t, i) => {
           const done = !!t.done_at;
           return (
-            <li key={t.id} className={`flex items-center gap-4 py-4 ${i ? "border-t border-[#dcdce0]" : ""}`}>
+            <li key={t.id} className={`flex items-center gap-3 py-3 sm:gap-4 sm:py-4 ${i ? "border-t border-[#dcdce0]" : ""}`}>
+              {/* 44px tap area around the 24px circle. */}
               <button
                 onClick={() => toggleTask(t.id, !done)}
                 aria-label={done ? `Mark “${t.title}” as not done` : `Mark “${t.title}” as done`}
-                className="grid h-6 w-6 shrink-0 place-items-center rounded-full border transition-colors"
-                style={{ borderColor: done ? "var(--acc-green)" : "var(--ink)", background: done ? "var(--acc-green)" : "#fff" }}
+                className="-ml-2.5 grid h-11 w-11 shrink-0 place-items-center rounded-full"
               >
-                {done ? <i className="ri-check-line text-[15px] text-white" /> : null}
+                <span
+                  className="grid h-6 w-6 place-items-center rounded-full border transition-colors"
+                  style={{ borderColor: done ? "var(--acc-green)" : "var(--ink)", background: done ? "var(--acc-green)" : "#fff" }}
+                >
+                  {done ? <i className="ri-check-line text-[15px] text-white" /> : null}
+                </span>
               </button>
               <div className="min-w-0">
                 <p className={`text-[15px] font-semibold text-[var(--ink)] ${done ? "line-through opacity-60" : ""}`}>{t.title}</p>
@@ -211,24 +216,26 @@ export function ActivityList({ items, showProject = true }: { items: Activity[];
     );
   }
   return (
-    <Panel className="px-6 py-2">
+    <Panel className="px-4 py-2 sm:px-6">
       <ul>
         {items.map((a, i) => {
           const project = projects.find((p) => p.id === a.event_id);
           return (
-            <li key={a.id} className={`flex items-center gap-4 py-4 ${i ? "border-t border-[#dcdce0]" : ""}`}>
-              <Cover url={project ? cover(project) : null} name={project?.name ?? ""} className="h-12 w-[78px] shrink-0 rounded-xl">
+            <li key={a.id} className={`flex items-center gap-3 py-4 sm:gap-4 ${i ? "border-t border-[#dcdce0]" : ""}`}>
+              <Cover url={project ? cover(project) : null} name={project?.name ?? ""} className="h-11 w-11 shrink-0 rounded-xl sm:h-12 sm:w-[78px]">
                 <span className="absolute inset-0 grid place-items-center bg-[rgba(0,7,39,0.28)] text-lg text-white">
                   <i className={ACTIVITY_ICON[a.kind]} />
                 </span>
               </Cover>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-semibold text-[var(--ink)]">{a.title}</p>
-                <p className="truncate text-[14px] text-[var(--slate)]">
+                <p className="line-clamp-2 text-[15px] font-semibold leading-snug text-[var(--ink)] sm:line-clamp-1">{a.title}</p>
+                <p className="line-clamp-2 break-words text-[14px] text-[var(--slate)] sm:line-clamp-1">
                   {[showProject ? project?.name : null, a.detail].filter(Boolean).join(" • ")}
                 </p>
+                {/* Phones: the time sits under the text so the title gets the full width. */}
+                <p className="text-[13px] text-[var(--slate)] sm:hidden">{timeAgo(a.created_at)}</p>
               </div>
-              <span className="shrink-0 text-[12.5px] text-[var(--slate)]">{timeAgo(a.created_at)}</span>
+              <span className="hidden shrink-0 text-[12.5px] text-[var(--slate)] sm:inline">{timeAgo(a.created_at)}</span>
             </li>
           );
         })}
@@ -261,7 +268,7 @@ export function InvoiceTable({ invoices, empty = "No invoices here yet.", payabl
           >
             <span className="min-w-0">
               <span className="block truncate text-[16px] text-[var(--ink)]">{project?.name ?? inv.description}</span>
-              <span className="block truncate text-[13px] text-[var(--slate)]">{project ? inv.description : `Invoice ${inv.number}`}</span>
+              <span className="line-clamp-2 text-[13px] text-[var(--slate)] md:line-clamp-1">{project ? inv.description : `Invoice ${inv.number}`}</span>
             </span>
             <span className="hidden md:block">
               <span className="block text-[12px] uppercase tracking-[0.04em] text-[var(--slate)]">{paid ? "Paid" : "Due"}</span>

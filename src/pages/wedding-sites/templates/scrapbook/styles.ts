@@ -40,15 +40,17 @@ export const SCRAPBOOK_CSS = `
 .sb-wrap{position:relative;z-index:1;max-width:1024px;margin:0 auto;}
 
 /* ---------- typography ---------- */
-.sb-eyebrow{font-family:var(--sb-body);text-transform:uppercase;letter-spacing:.3em;font-size:clamp(9px,1.15cqw,12px);margin:0;opacity:.85;}
+.sb-eyebrow{font-family:var(--sb-body);text-transform:uppercase;letter-spacing:.3em;font-size:clamp(11px,1.15cqw,12px);margin:0;opacity:.85;}
 .sb-script{font-family:var(--sb-display);font-weight:400;line-height:1.04;margin:0;}
 .sb-script--xl{font-size:clamp(2rem,6.8cqw,4.2rem);overflow-wrap:break-word;}
 .sb-script--lg{font-size:clamp(1.85rem,5.4cqw,3.3rem);}
 .sb-script--md{font-size:clamp(1.35rem,3.1cqw,2.05rem);}
-.sb-body{font-family:var(--sb-body);font-size:clamp(12.5px,1.5cqw,15px);line-height:1.78;margin:0;}
+.sb-body{font-family:var(--sb-body);font-size:15px;line-height:1.78;margin:0;}
 .sb-body + .sb-body{margin-top:1em;}
-.sb-label{font-family:var(--sb-body);text-transform:uppercase;letter-spacing:.14em;font-size:clamp(10px,1.28cqw,13px);font-weight:600;margin:0;}
-.sb-serif{font-family:var(--sb-body);font-size:clamp(12px,1.45cqw,15px);line-height:1.7;margin:0;}
+.sb-label{font-family:var(--sb-body);text-transform:uppercase;letter-spacing:.14em;font-size:clamp(12px,1.28cqw,13px);font-weight:600;margin:0;}
+.sb-date{font-size:13px;}
+.sb-time{font-size:clamp(13px,1.3cqw,14px);letter-spacing:.2em;opacity:.9;}
+.sb-serif{font-family:var(--sb-body);font-size:clamp(14px,1.45cqw,15px);line-height:1.7;margin:0;}
 
 /* ---------- layout helpers ---------- */
 .sb-split{display:grid;gap:clamp(30px,4.2cqw,60px);}
@@ -67,6 +69,8 @@ export const SCRAPBOOK_CSS = `
 /* Stacked (narrow) view: decorations are accents, not full-width images. */
 .sb-collage__item--decor{width:min(36%,120px);}
 .sb-collage__item--filler{display:none;}
+/* Phone-only extras (e.g. Maps/calendar links) — the desktop collage is a fixed composition. */
+@container sb (min-width:860px){.sb-phone-only{display:none;}}
 @container sb (min-width:860px){
   .sb-collage{display:block;aspect-ratio:var(--ar,1024/700);}
   .sb-collage__item{position:absolute;left:var(--x);top:var(--y);width:var(--w);margin:0;}
@@ -120,7 +124,7 @@ export const SCRAPBOOK_CSS = `
   .sb-hero--nophoto .sb-hero__nav{position:static;justify-content:center;margin-top:clamp(22px,3cqw,34px);}
 }
 .sb-hero__nav a{font-family:var(--sb-body);text-transform:uppercase;letter-spacing:.16em;
-  font-size:clamp(10px,1.3cqw,13px);color:inherit;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:3px;}
+  font-size:clamp(12px,1.3cqw,13px);color:inherit;text-decoration:none;border-bottom:1px solid currentColor;padding:21px 4px 3px;margin-top:-21px;display:inline-block;}
 .sb-hero__tagline{margin-top:clamp(26px,3.4cqw,44px);}
 @container sb (max-width:819px){
   /* Names wrap to two lines here, so the photo sits below them instead
@@ -147,14 +151,14 @@ export const SCRAPBOOK_CSS = `
 /* ---------- registry / text links ---------- */
 .sb-links{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(14px,2.4cqw,30px);margin-top:clamp(22px,3cqw,34px);}
 .sb-links a{font-family:var(--sb-body);text-transform:uppercase;letter-spacing:.14em;
-  font-size:clamp(10px,1.28cqw,13px);color:inherit;text-decoration:none;
+  font-size:clamp(12px,1.28cqw,13px);color:inherit;text-decoration:none;display:inline-block;padding-top:20px;margin-top:-20px;
   border-bottom:1px solid currentColor;padding-bottom:4px;}
 
 /* ---------- key people ---------- */
 .sb-people{display:grid;gap:clamp(20px,2.8cqw,34px);grid-template-columns:repeat(2,1fr);}
 @container sb (min-width:720px){.sb-people{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}}
 .sb-people .sb-pol{width:100%;}
-.sb-people__role{font-family:var(--sb-body);font-size:clamp(9.5px,1.15cqw,12px);
+.sb-people__role{font-family:var(--sb-body);font-size:clamp(11.5px,1.15cqw,12px);
   text-transform:uppercase;letter-spacing:.12em;opacity:.7;text-align:center;margin:2px 0 0;}
 
 /* ---------- gallery ---------- */
@@ -163,18 +167,18 @@ export const SCRAPBOOK_CSS = `
 
 /* ---------- rsvp button + dialog ---------- */
 .sb-respond{font-family:var(--sb-body);text-transform:uppercase;letter-spacing:.18em;
-  font-size:clamp(10px,1.28cqw,13px);font-weight:600;color:inherit;background:none;
-  border:1px solid currentColor;padding:10px 22px;cursor:pointer;margin-top:14px;}
+  font-size:clamp(12px,1.28cqw,13px);font-weight:600;color:inherit;background:none;
+  border:1px solid currentColor;padding:12px 24px;min-height:44px;cursor:pointer;margin-top:14px;}
 .sb-respond:hover{background:rgba(244,239,227,.12);}
 .sb-dialog{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
   padding:20px;background:rgba(30,12,12,.55);}
-.sb-dialog__panel{position:relative;width:min(440px,100%);max-height:88vh;overflow-y:auto;
+.sb-dialog__panel{position:relative;width:min(440px,100%);max-height:88vh;max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;
   background:#f6f1e6;color:var(--sb-ink);padding:34px 30px 30px;
   box-shadow:0 24px 60px rgba(0,0,0,.35);}
 .sb-dialog__panel::after{content:"";position:absolute;inset:9px;border:1px solid rgba(0,0,0,.25);pointer-events:none;}
-.sb-dialog__close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;
+.sb-dialog__close{position:absolute;top:2px;right:2px;width:44px;height:44px;display:grid;place-items:center;background:none;border:none;font-size:24px;
   line-height:1;cursor:pointer;color:inherit;opacity:.6;z-index:1;}
-.sb-field{display:block;width:100%;font-family:var(--sb-body);font-size:14px;color:inherit;
+.sb-field{display:block;width:100%;font-family:var(--sb-body);font-size:16px;color:inherit;
   background:#fffdf8;border:1px solid rgba(0,0,0,.28);padding:11px 13px;margin-top:10px;border-radius:0;}
 .sb-field:focus{outline:none;border-color:var(--sb-ink);}
 .sb-submit{width:100%;margin-top:16px;font-family:var(--sb-body);text-transform:uppercase;
@@ -185,6 +189,7 @@ export const SCRAPBOOK_CSS = `
 /* ---------- footer ---------- */
 .sb-footer{background:var(--sb-ink);color:var(--sb-cream);text-align:center;padding:22px 16px;}
 .sb-footer a{color:inherit;font-weight:700;}
+.sb-footer .sb-eyebrow{font-size:12px;}
 
 @media (prefers-reduced-motion:reduce){.sb-root *{transition:none!important;animation:none!important;}}
 `;

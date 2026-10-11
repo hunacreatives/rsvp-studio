@@ -474,3 +474,14 @@ export async function retryDomain(id: string) {
   if (!res.ok) throw new Error(json.error ?? "Retry failed.");
   return json.status ?? "";
 }
+
+// ── Website banner (site_banner, supabase/site-banner.sql) ─────────────────
+export type BannerRow = { enabled: boolean; text: string; link: string | null; color: string; text_color: string };
+export async function loadSiteBanner(): Promise<BannerRow | null> {
+  const { data, error } = await supabase.from("site_banner").select("*").eq("id", 1).maybeSingle();
+  if (error || !data) return null; // site-banner.sql not run yet
+  return { enabled: data.enabled, text: data.text, link: data.link, color: data.color ?? "#3fb6dc", text_color: data.text_color ?? "#ffffff" };
+}
+export async function saveSiteBanner(b: BannerRow) {
+  must(await supabase.from("site_banner").update({ ...b, updated_at: new Date().toISOString() }).eq("id", 1));
+}

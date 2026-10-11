@@ -92,7 +92,7 @@ export default function HelpPage() {
                     </span>
                     <span>
                       <span className="block text-[16px] font-semibold text-[var(--ink)]">{t.title}</span>
-                      <span className="mt-1 block text-[13px] leading-snug text-[var(--slate)]">{t.blurb}</span>
+                      <span className="mt-1 block text-[14px] leading-snug text-[var(--slate)] md:text-[13px]">{t.blurb}</span>
                     </span>
                   </button>
                 );
@@ -116,7 +116,7 @@ export default function HelpPage() {
         </>
       )}
 
-      <section className="mt-12 grid gap-6 rounded-[22px] bg-[var(--paper)] px-6 py-8 md:grid-cols-[1fr_auto_250px] md:px-9">
+      <section className="mt-12 grid gap-6 rounded-[22px] bg-[var(--paper)] px-5 py-8 sm:px-6 md:grid-cols-[1fr_auto_250px] md:px-9">
         <div>
           <h2 className="font-display text-[1.8rem] font-semibold text-[var(--ink)]">Still need help?</h2>
           <p className="mt-1 max-w-md text-[16px] text-[var(--ink)]">
@@ -128,15 +128,15 @@ export default function HelpPage() {
         <dl className="space-y-4 text-[var(--ink)]">
           <div>
             <dt className="text-[16px] font-semibold">Email us</dt>
-            <dd className="text-[13px] text-[var(--slate)]"><a href={`mailto:${SUPPORT.email}`} className="hover:underline">{SUPPORT.email}</a></dd>
+            <dd className="text-[14px] text-[var(--slate)] md:text-[13px]"><a href={`mailto:${SUPPORT.email}`} className="inline-flex min-h-[44px] items-center break-all hover:underline md:min-h-0">{SUPPORT.email}</a></dd>
           </div>
           <div>
             <dt className="text-[16px] font-semibold">Support hours</dt>
-            <dd className="text-[13px] text-[var(--slate)]">{SUPPORT.hours}</dd>
+            <dd className="text-[14px] text-[var(--slate)] md:text-[13px]">{SUPPORT.hours}</dd>
           </div>
           <div>
             <dt className="text-[16px] font-semibold">We reply</dt>
-            <dd className="text-[13px] text-[var(--slate)]">{SUPPORT.responseTime}</dd>
+            <dd className="text-[14px] text-[var(--slate)] md:text-[13px]">{SUPPORT.responseTime}</dd>
           </div>
         </dl>
       </section>
@@ -213,13 +213,13 @@ function MyRequests() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-[1.6rem] font-semibold text-[var(--ink)]">My support requests</h2>
-          <p className="text-[13px] text-[var(--slate)]">Find one by its number (like {requestCode(mine[0].ticket_number)}) or a word from it.</p>
+          <p className="text-[14px] text-[var(--slate)] md:text-[13px]">Find one by its number (like {requestCode(mine[0].ticket_number)}) or a word from it.</p>
         </div>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search requests"
-          className="w-full rounded-full border border-[var(--line)] bg-white px-4 py-2 text-[13px] outline-none focus:border-[var(--ink)] sm:w-56"
+          className="w-full rounded-full border border-[rgba(0,7,39,0.16)] bg-white px-4 py-2.5 text-[16px] outline-none focus:border-[var(--ink)] sm:w-56 md:py-2 md:text-[13px]"
         />
       </div>
       <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--line)] bg-white">
@@ -227,21 +227,25 @@ function MyRequests() {
           <Link
             key={t.id}
             to={`/account/messages?thread=${t.id}`}
-            className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--line)] px-5 py-3 last:border-0 hover:bg-[var(--paper)]"
+            className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 border-b border-[var(--line)] px-4 py-3.5 last:border-0 hover:bg-[var(--paper)] sm:flex sm:gap-x-4 sm:px-5 sm:py-3"
           >
-            <span className="w-[86px] shrink-0 font-medium text-[var(--ink)]">{requestCode(t.ticket_number)}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] text-[var(--ink)]">{categoryLabel(t.category)}</span>
-              <span className="block truncate text-[12px] text-[var(--slate)]">{t.lastMessage?.body || "Sent a file"}</span>
+            {/* Phones: number + time on top, then topic + status, then the last message. */}
+            <span className="whitespace-nowrap font-medium text-[var(--ink)] sm:w-[86px] sm:shrink-0 sm:whitespace-normal">{requestCode(t.ticket_number)}</span>
+            <span className="text-right text-[12px] text-[var(--slate)] sm:order-last sm:w-[70px] sm:shrink-0">{inboxStamp(t.last_message_at)}</span>
+            <span className="col-span-2 min-w-0 sm:flex-1">
+              <span className="flex items-center gap-2 text-[14px] text-[var(--ink)]">
+                <span className="min-w-0 truncate">{categoryLabel(t.category)}</span>
+                <span className="sm:hidden"><SupportChip t={t} /></span>
+              </span>
+              <span className="block truncate text-[13px] text-[var(--slate)] sm:text-[12px]">{t.lastMessage?.body || "Sent a file"}</span>
             </span>
-            <SupportChip t={t} />
-            <span className="w-[70px] shrink-0 text-right text-[12px] text-[var(--slate)]">{inboxStamp(t.last_message_at)}</span>
+            <span className="hidden sm:inline"><SupportChip t={t} /></span>
           </Link>
         ))}
         {!list.length ? <p className="px-5 py-6 text-center text-[13px] text-[var(--slate)]">No request matches “{q.trim()}”.</p> : null}
       </div>
       {!all && !term && shown.length > 4 ? (
-        <button onClick={() => setAll(true)} className="mt-2 text-[13px] text-[var(--acc-blue)] hover:underline">
+        <button onClick={() => setAll(true)} className="mt-1 min-h-[44px] text-[14px] text-[var(--acc-blue)] hover:underline md:min-h-0 md:text-[13px]">
           Show all {shown.length}
         </button>
       ) : null}

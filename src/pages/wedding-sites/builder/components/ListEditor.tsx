@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import "../builder.css";
 
 // Generic add/remove list editor, shared across every repeatable content
 // section (schedule, accommodations, travel info, gallery items, registry
@@ -57,18 +58,19 @@ export function ListEditor<T>({ items, onChange, createItem, renderItem, addLabe
               background: "#fff",
             }}
           >
-            <div style={{ position: "absolute", top: 8, right: 10, display: "flex", gap: 6, alignItems: "center" }}>
+            {/* Desktop: tucked in the corner. Phones (builder.css): a header row of 40px buttons. */}
+            <div className="rb-list-controls" style={{ position: "absolute", top: 8, right: 10, display: "flex", gap: 6, alignItems: "center" }}>
               {items.length > 1 ? (
                 <>
-                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up" title="Move up" style={iconBtn(index === 0)}>
+                  <button type="button" className="rb-list-btn" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up" title="Move up" style={iconBtn(index === 0)}>
                     ↑
                   </button>
-                  <button type="button" onClick={() => move(index, 1)} disabled={index === items.length - 1} aria-label="Move down" title="Move down" style={iconBtn(index === items.length - 1)}>
+                  <button type="button" className="rb-list-btn" onClick={() => move(index, 1)} disabled={index === items.length - 1} aria-label="Move down" title="Move down" style={iconBtn(index === items.length - 1)}>
                     ↓
                   </button>
                 </>
               ) : null}
-              <button type="button" onClick={() => removeAt(index)} aria-label="Remove" style={{ ...iconBtn(false), fontSize: 13 }}>
+              <button type="button" className="rb-list-btn" onClick={() => removeAt(index)} aria-label="Remove" style={{ ...iconBtn(false), fontSize: 13 }}>
                 Remove
               </button>
             </div>
@@ -78,6 +80,7 @@ export function ListEditor<T>({ items, onChange, createItem, renderItem, addLabe
       </div>
       <button
         type="button"
+        className="rb-tap44"
         onClick={add}
         style={{
           marginTop: 12,

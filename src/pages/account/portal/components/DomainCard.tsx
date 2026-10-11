@@ -41,7 +41,7 @@ export default function DomainCard({ project, slug }: { project: Project; slug: 
   const expiringSoon = status.expiresAt ? Date.parse(status.expiresAt) - Date.now() < 30 * 86_400_000 : false;
 
   return (
-    <OutlineCard className="mt-6 p-6 md:p-8">
+    <OutlineCard className="mt-6 p-5 sm:p-6 md:p-8">
       <p className="eyebrow">Your own web address</p>
       {status.status === "none" || status.status === "failed" ? (
         <>
@@ -59,7 +59,7 @@ export default function DomainCard({ project, slug }: { project: Project; slug: 
         </>
       ) : status.status === "active" ? (
         <>
-          <p className="mt-2 font-display text-2xl font-semibold text-[var(--ink)]">
+          <p className="mt-2 break-all font-display text-2xl font-semibold text-[var(--ink)]">
             <a href={`https://${status.domain}`} target="_blank" rel="noreferrer" className="hover:underline">
               {status.domain}
             </a>

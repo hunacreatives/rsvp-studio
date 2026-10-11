@@ -255,7 +255,7 @@ function KeyPeopleBlock({ section, content, editorPreview }: BlockProps) {
               }}
             >
               {p.photo ? (
-                <img src={p.photo.masterUrl} alt={p.photo.alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img loading="lazy" decoding="async" src={p.photo.masterUrl} alt={p.photo.alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
                 <span style={{ fontFamily: theme.displayFont, fontSize: 26, color: colorOf(theme, "ink") }}>{initials(p.name)}</span>
               )}
@@ -320,6 +320,8 @@ function VenueBlock({ section, content, visibility, editorPreview }: BlockProps)
         <div>
           {loc.photo ? (
             <img
+              loading="lazy"
+              decoding="async"
               src={loc.photo.masterUrl}
               alt={loc.photo.alt}
               style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: theme.radius.card, marginBottom: 20 }}
@@ -353,12 +355,12 @@ function VenueBlock({ section, content, visibility, editorPreview }: BlockProps)
                 {a.notes ? <p style={small(theme, { marginTop: 4 })}>{a.notes}</p> : null}
                 <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
                   {a.bookingUrl ? (
-                    <a href={a.bookingUrl} target="_blank" rel="noopener noreferrer" style={small(theme, { color: colorOf(theme, "accent"), fontWeight: 600, display: "inline-flex", alignItems: "center", minHeight: 32 })}>
+                    <a href={a.bookingUrl} target="_blank" rel="noopener noreferrer" style={small(theme, { color: colorOf(theme, "accent"), fontWeight: 600, display: "inline-flex", alignItems: "center", minHeight: 44 })}>
                       Book
                     </a>
                   ) : null}
                   {a.mapUrl ? (
-                    <a href={a.mapUrl} target="_blank" rel="noopener noreferrer" style={small(theme, { color: colorOf(theme, "accent"), fontWeight: 600, display: "inline-flex", alignItems: "center", minHeight: 32 })}>
+                    <a href={a.mapUrl} target="_blank" rel="noopener noreferrer" style={small(theme, { color: colorOf(theme, "accent"), fontWeight: 600, display: "inline-flex", alignItems: "center", minHeight: 44 })}>
                       Map
                     </a>
                   ) : null}
@@ -409,6 +411,7 @@ function GalleryBlock({ section, content, editorPreview }: BlockProps) {
               src={item.image.masterUrl}
               alt={item.image.alt}
               loading="lazy"
+              decoding="async"
               style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${item.image.focalPoint.x * 100}% ${item.image.focalPoint.y * 100}%` }}
             />
             {item.caption ? (
@@ -474,7 +477,7 @@ function FaqBlock({ section, content, editorPreview }: BlockProps) {
  * templates (templates/shared/RsvpForm.tsx), skinned with this design's theme.
  * In the builder it can't submit — a host testing their draft must not create real RSVPs.
  */
-function RsvpBlock({ section, content, editorPreview }: BlockProps) {
+export function RsvpBlock({ section, content, editorPreview }: Pick<BlockProps, "section" | "content" | "editorPreview">) {
   const theme = useSpecTheme();
   const radius = theme.radius.control === 999 ? 999 : theme.radius.control;
   const input: CSSProperties = {
@@ -522,7 +525,7 @@ export function FooterBlock() {
   if (!credit.show) return null;
   return (
     <footer style={{ background: colorOf(theme, "accent"), padding: "22px 16px", textAlign: "center" }}>
-      <p style={{ margin: 0, fontFamily: theme.bodyFont, fontSize: 12, letterSpacing: "0.06em", color: colorOf(theme, "onAccent") }}>
+      <p style={{ margin: 0, fontFamily: theme.bodyFont, fontSize: 13, letterSpacing: "0.06em", color: colorOf(theme, "onAccent") }}>
         <CreditLine linkStyle={{ color: colorOf(theme, "onAccent"), fontWeight: 700 }} />
       </p>
     </footer>

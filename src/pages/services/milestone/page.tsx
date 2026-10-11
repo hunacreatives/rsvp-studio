@@ -24,14 +24,14 @@ function CtaStrip() {
           </p>
         </Reveal>
         <Reveal delay={0.06}>
-          <div className="flex flex-col items-start gap-2 md:items-end">
+          <div className="flex flex-col items-start gap-1 md:items-end">
             <button
               className="btn btn-primary whitespace-nowrap"
               onClick={() => navigate(inquiryLink({ service: "website" }))}
             >
               Start Your Event Website
             </button>
-            <button onClick={() => navigate("/build")} className="text-[14px] text-[var(--slate)] underline underline-offset-4 hover:text-[var(--ink)]">
+            <button onClick={() => navigate("/build")} className="inline-flex min-h-[44px] items-center text-[14px] text-[var(--slate)] underline underline-offset-4 hover:text-[var(--ink)]">
               Or make it yourself →
             </button>
           </div>

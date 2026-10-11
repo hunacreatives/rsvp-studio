@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
+import "./builder.css";
 
 // Free vs Premium in the builder (site_plan in supabase/free-premium.sql).
 //   Free: one RSVP summary email a day.
@@ -105,8 +106,8 @@ export function UpgradeDialog({ flow, plan }: { flow: ReturnType<typeof useUpgra
   if (step.kind === "closed") return null;
   const price = plan?.upgradeCentavos ?? 0;
   return (
-    <div role="dialog" aria-modal="true" onClick={step.kind === "working" ? undefined : flow.close} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,7,39,0.45)", display: "grid", placeItems: "center", padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 24px 60px -24px rgba(0,7,39,0.45)", fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
+    <div role="dialog" aria-modal="true" onClick={step.kind === "working" ? undefined : flow.close} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,7,39,0.45)", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", placeItems: "center", padding: 16, overflowY: "auto", overscrollBehavior: "contain" }}>
+      <div className="rb-dialog-card" onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 24px 60px -24px rgba(0,7,39,0.45)", fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
         {step.kind === "working" ? (
           <p style={{ margin: 0, fontSize: 16 }}>{step.text}</p>
         ) : step.kind === "offer" ? (

@@ -52,10 +52,17 @@ export default function QuestionsAnswered() {
         </div>
 
         {/* Phones: the same questions, wrapped under the heading */}
-        <div className="mt-8 flex flex-wrap justify-center gap-2.5 lg:hidden">
-          {QUESTIONS.map((p, i) => (
-            <Link key={p.q} to={p.to} onClick={(e) => (e.preventDefault(), goTo(navigate, p.to))} className={`${pillClass} py-2.5 text-center`} style={{ ...pillStyle, transform: `rotate(${i % 2 ? -2 : 2}deg)` }}>
-              {p.q}
+        <div className="mx-auto mt-8 flex max-w-md flex-col gap-2.5 lg:hidden">
+          {QUESTIONS.map((p) => (
+            <Link
+              key={p.q}
+              to={p.to}
+              onClick={(e) => (e.preventDefault(), goTo(navigate, p.to))}
+              className="flex min-h-[48px] items-center justify-between gap-3 rounded-2xl px-5 py-3 text-left text-[15px] font-medium leading-snug"
+              style={pillStyle}
+            >
+              <span>{p.q}</span>
+              <i className="ri-arrow-right-line shrink-0 text-lg" aria-hidden />
             </Link>
           ))}
         </div>

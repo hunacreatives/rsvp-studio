@@ -42,7 +42,7 @@ export default function ProjectDangerZone({ project }: { project: Project }) {
   };
 
   return (
-    <section className="mt-10 rounded-[22px] border border-[var(--line)] p-6">
+    <section className="mt-10 rounded-[22px] border border-[var(--line)] p-5 sm:p-6">
       {step.kind === "confirm" || step.kind === "working" ? (
         owner ? (
           <>
@@ -81,7 +81,7 @@ export default function ProjectDangerZone({ project }: { project: Project }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[15px] font-semibold text-[var(--ink)]">{owner ? "Delete this project" : "Leave this project"}</p>
-            <p className="text-[13px] text-[var(--slate)]">
+            <p className="text-[14px] text-[var(--slate)] md:text-[13px]">
               {owner ? "Takes your website offline. Guest RSVPs and photos are removed after 30 days." : "Removes it from your dashboard. The owner keeps it."}
             </p>
             {step.kind === "error" ? <p className="mt-1 text-[13px] text-[#c2412d]">{step.text}</p> : null}

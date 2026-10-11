@@ -64,7 +64,7 @@ export default function RsvpSection({ content, editorPreview, reveal }: { conten
   const openForm = () => {
     if (!form.values.attending) pick("1");
     setOpen(true);
-    requestAnimationFrame(() => setTimeout(() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50));
+    requestAnimationFrame(() => setTimeout(() => { const card = cardRef.current; if (card) card.scrollIntoView({ behavior: "smooth", block: card.offsetHeight > window.innerHeight - 32 ? "start" : "center" }); }, 50));
   };
 
   return (
@@ -96,7 +96,7 @@ export default function RsvpSection({ content, editorPreview, reveal }: { conten
               <input type="text" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(e) => form.setWebsite(e.target.value)} style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} aria-hidden />
               <div>
                 <label htmlFor={`${id}-name`}>Your Name</label>
-                <input id={`${id}-name`} className="cn-field" type="text" autoComplete="name" placeholder="Enter your name" value={form.values.name ?? ""} onChange={(e) => form.set("name", e.target.value)} />
+                <input id={`${id}-name`} className="cn-field" type="text" autoComplete="name" autoCapitalize="words" enterKeyHint="next" placeholder="Enter your name" value={form.values.name ?? ""} onChange={(e) => form.set("name", e.target.value)} />
               </div>
               <div>
                 <label htmlFor={`${id}-contact`}>Email Address or Mobile Number</label>
@@ -106,6 +106,10 @@ export default function RsvpSection({ content, editorPreview, reveal }: { conten
                   type="text"
                   inputMode="email"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="next"
                   placeholder="your@email.com or 0917 123 4567"
                   value={form.values.contact ?? ""}
                   onChange={(e) => form.set("contact", e.target.value)}

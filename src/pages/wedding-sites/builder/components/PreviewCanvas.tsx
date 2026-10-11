@@ -14,21 +14,43 @@ const GUTTER = 24;
  * size from their own container (see the Scrapbook template's container
  * queries), so nothing preview-specific leaks into the published page.
  */
-export default function PreviewCanvas({ children, deviceWidth = DESKTOP_WIDTH }: { children: ReactNode; deviceWidth?: number }) {
+/**
+ * `deviceWidth="fill"`: lay the template out at the pane's own width, unscaled —
+ * the builder's phone layout uses this so the preview IS what a guest on that
+ * phone sees. `gutter` is the padding around the page (24px by default).
+ */
+export default function PreviewCanvas({
+  children,
+  deviceWidth = DESKTOP_WIDTH,
+  gutter = GUTTER,
+}: {
+  children: ReactNode;
+  deviceWidth?: number | "fill";
+  gutter?: number;
+}) {
   const outerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [scaledHeight, setScaledHeight] = useState(0);
+  const [fillWidth, setFillWidth] = useState(() => (typeof window === "undefined" ? 390 : Math.max(window.innerWidth - gutter * 2, 240)));
+  const width = deviceWidth === "fill" ? fillWidth : deviceWidth;
 
   const measure = useCallback(() => {
     const outer = outerRef.current;
     const content = contentRef.current;
     if (!outer || !content) return;
-    const available = Math.max(outer.clientWidth - GUTTER * 2, 240);
+    if (deviceWidth === "fill") {
+      // A hidden pane (0 wide) keeps the last real width.
+      if (outer.clientWidth > 0) setFillWidth(Math.max(outer.clientWidth - gutter * 2, 240));
+      setScale(1);
+      setScaledHeight(content.scrollHeight);
+      return;
+    }
+    const available = Math.max(outer.clientWidth - gutter * 2, 240);
     const nextScale = Math.min(1, available / deviceWidth);
     setScale(nextScale);
     setScaledHeight(content.scrollHeight * nextScale);
-  }, [deviceWidth]);
+  }, [deviceWidth, gutter]);
 
   useEffect(() => {
     measure();
@@ -46,11 +68,11 @@ export default function PreviewCanvas({ children, deviceWidth = DESKTOP_WIDTH }:
   return (
     <div
       ref={outerRef}
-      style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", background: "#e3ded4", padding: GUTTER }}
+      style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", background: "#e3ded4", padding: gutter }}
     >
       <div
         style={{
-          width: deviceWidth * scale,
+          width: width * scale,
           height: scaledHeight,
           margin: "0 auto",
           position: "relative",
@@ -60,7 +82,7 @@ export default function PreviewCanvas({ children, deviceWidth = DESKTOP_WIDTH }:
         <div
           ref={contentRef}
           style={{
-            width: deviceWidth,
+            width,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
             position: "absolute",

@@ -38,8 +38,11 @@ type Form = keyof typeof FORMS;
 
 type Attachment = { filename: string; content: string; size?: number };
 
+// Friendlier names for a few keys in the studio email. (`website_url` is the partner
+// form's visible Website field — `website` itself is reserved for the honeypot.)
+const LABELS: Record<string, string> = { website_url: "Website", ig_handle: "Instagram", files_not_attached: "Files not attached" };
 function labelize(key: string) {
-  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /** Only plain strings / short string lists, with sane limits. */
@@ -74,7 +77,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const body = (req.body ?? {}) as { form?: string; values?: Record<string, unknown>; attachments?: Attachment[]; website?: string };
-  // Honeypot: real people never see or fill this field.
+  // Honeypot: real people never see or fill this field. Only the hidden trap uses the
+  // `website` key — visible website fields are sent as `website_url`.
   if (clean(body.website, 200) || clean(body.values?.website, 200)) return res.status(200).json({ ok: true, omitted: [] });
 
   const form = (Object.keys(FORMS).includes(String(body.form)) ? body.form : "project-inquiry") as Form;

@@ -41,38 +41,38 @@ export default function FooterSection() {
               alt="The RSVP Studio"
               className="h-12 w-auto"
             />
-            <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">
+            <p className="mt-5 max-w-xs text-[15px] md:text-sm leading-relaxed text-white/65">
               Interactive digital invitations and event websites for life's most
               meaningful milestones.
             </p>
             <a
               href="mailto:hello@thersvpstudio.com"
-              className="mt-5 inline-block text-sm text-white/80 underline underline-offset-4 hover:text-white"
+              className="mt-3 inline-block py-2 text-[15px] md:text-sm text-white/80 underline underline-offset-4 [overflow-wrap:anywhere] hover:text-white"
             >
               hello@thersvpstudio.com
             </a>
-            <div className="mt-6 flex gap-4 text-xl">
-              <a href="https://www.instagram.com/rsvpstudioo/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-white">
+            <div className="mt-3 -ml-2.5 flex gap-1 text-xl md:mt-4">
+              <a href="https://www.instagram.com/rsvpstudioo/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid h-11 w-11 place-items-center hover:text-white">
                 <i className="ri-instagram-line" />
               </a>
-              <a href="https://www.facebook.com/share/19fvSStpSZ/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-white">
+              <a href="https://www.facebook.com/share/19fvSStpSZ/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="grid h-11 w-11 place-items-center hover:text-white">
                 <i className="ri-facebook-circle-line" />
               </a>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-8 md:gap-8">
             {COLUMNS.map((col) => (
               <div key={col.title}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                <p className="text-[12px] md:text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60 md:text-white/50">
                   {col.title}
                 </p>
-                <ul className="mt-4 space-y-2.5">
+                <ul className="mt-2 md:mt-4 md:space-y-2.5">
                   {col.links.map((l) => (
                     <li key={l.label}>
                       <button
                         onClick={() => goTo(navigate, l.to)}
-                        className="text-sm text-white/70 hover:text-white transition-colors text-left"
+                        className="block w-full py-2 text-left text-[15px] text-white/75 transition-colors hover:text-white md:inline md:w-auto md:py-0 md:text-sm md:text-white/70"
                       >
                         {l.label}
                       </button>
@@ -84,14 +84,14 @@ export default function FooterSection() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-white/10 pt-6 flex flex-col gap-3 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="mt-12 border-t border-white/10 pt-6 flex flex-col gap-3 text-[13px] md:text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
             <span>© 2026 The RSVP Studio. All rights reserved.</span>
-            <span className="flex gap-4">
-              <Link to="/privacy" className="underline underline-offset-4 hover:text-white">
+            <span className="flex gap-5 sm:gap-4">
+              <Link to="/privacy" className="inline-block py-2.5 underline underline-offset-4 hover:text-white sm:py-0">
                 Privacy Policy
               </Link>
-              <Link to="/terms" className="underline underline-offset-4 hover:text-white">
+              <Link to="/terms" className="inline-block py-2.5 underline underline-offset-4 hover:text-white sm:py-0">
                 Terms of Service
               </Link>
             </span>
@@ -102,7 +102,7 @@ export default function FooterSection() {
               href="https://hunacreatives.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-4 hover:text-white"
+              className="py-2 underline underline-offset-4 hover:text-white"
             >
               Huna Creatives
             </a>

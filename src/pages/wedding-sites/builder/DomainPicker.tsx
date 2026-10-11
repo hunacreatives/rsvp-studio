@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import * as api from "@/pages/account/portal/api";
+import "./builder.css";
 
 // Custom domains for a site (api/_lib/domains.ts): the search box + results, the
 // perks, and the "setting it up" screen after paying. Used at publish time and on
@@ -55,12 +56,16 @@ export function DomainPicker({ eventId, suggestion, onPick, busy }: { eventId: s
           {state.results.length ? (
             <ul style={{ listStyle: "none", margin: 0, padding: 0, border: "1px solid #e7e7e0", borderRadius: 14, overflow: "hidden" }}>
               {state.results.map((r, i) => (
-                <li key={r.domain} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderTop: i ? "1px solid #e7e7e0" : "none" }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: "#000727", overflowWrap: "anywhere" }}>{r.domain}</span>
-                  <span style={{ fontSize: 13, color: "#55556a", whiteSpace: "nowrap" }}>{peso(r.php)} / year</span>
-                  <button onClick={() => onPick(r.domain, r.php)} disabled={busy} style={{ ...pill(false), padding: "6px 14px", fontSize: 13 }}>
-                    Choose
-                  </button>
+                // Wraps on narrow screens: the domain gets its own line, price + Choose
+                // drop below it (on wider cards everything still fits on one line).
+                <li key={r.domain} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 10px", padding: "10px 14px", borderTop: i ? "1px solid #e7e7e0" : "none" }}>
+                  <span style={{ flex: "1 1 150px", minWidth: 0, fontSize: 15, fontWeight: 600, color: "#000727", overflowWrap: "anywhere" }}>{r.domain}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 10, marginLeft: "auto" }}>
+                    <span style={{ fontSize: 13, color: "#55556a", whiteSpace: "nowrap" }}>{peso(r.php)} / year</span>
+                    <button onClick={() => onPick(r.domain, r.php)} disabled={busy} className="rb-tap44" style={{ ...pill(false), padding: "6px 14px", fontSize: 13 }}>
+                      Choose
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -119,8 +124,8 @@ export function DomainReturnDialog({ flow }: { flow: ReturnType<typeof useDomain
   const { state } = flow;
   if (state.kind === "closed") return null;
   return (
-    <div role="dialog" aria-modal="true" onClick={state.kind === "working" ? undefined : flow.close} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,7,39,0.45)", display: "grid", placeItems: "center", padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 20, padding: 28, fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
+    <div role="dialog" aria-modal="true" onClick={state.kind === "working" ? undefined : flow.close} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,7,39,0.45)", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", placeItems: "center", padding: 16, overflowY: "auto", overscrollBehavior: "contain" }}>
+      <div className="rb-dialog-card" onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 20, padding: 28, fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
         {state.kind === "working" ? (
           <p style={{ margin: 0, fontSize: 16 }}>{state.text}</p>
         ) : state.kind === "live" ? (

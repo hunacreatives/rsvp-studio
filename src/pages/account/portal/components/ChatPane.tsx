@@ -25,10 +25,10 @@ export function FileChips({ files, onRemove }: { files: File[]; onRemove: (i: nu
   return (
     <div className="flex flex-wrap gap-2">
       {files.map((f, i) => (
-        <span key={`${f.name}-${i}`} className="inline-flex max-w-[220px] items-center gap-1.5 rounded-full bg-[var(--paper)] py-1 pl-3 pr-1 text-[12px] text-[var(--ink)]">
+        <span key={`${f.name}-${i}`} className="inline-flex min-h-[36px] max-w-[240px] items-center gap-1.5 rounded-full bg-[var(--paper)] py-0.5 pl-3 pr-0.5 text-[13px] text-[var(--ink)]">
           <i className="ri-attachment-2" />
           <span className="truncate">{f.name}</span>
-          <button onClick={() => onRemove(i)} aria-label={`Remove ${f.name}`} className="grid h-5 w-5 place-items-center rounded-full hover:bg-black/10">
+          <button onClick={() => onRemove(i)} aria-label={`Remove ${f.name}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-black/10">
             <i className="ri-close-line" />
           </button>
         </span>
@@ -57,7 +57,7 @@ function AttachmentCard({ a, demo }: { a: Attachment; demo: boolean }) {
       </span>
       <span className="min-w-0">
         <span className="block truncate text-[14px] font-semibold text-[var(--ink)]">{a.name}</span>
-        <span className="block text-[12px] text-[var(--slate)]">{busy ? "Opening…" : formatBytes(a.size)}</span>
+        <span className="block text-[13px] text-[var(--slate)]">{busy ? "Opening…" : formatBytes(a.size)}</span>
       </span>
     </button>
   );
@@ -100,6 +100,15 @@ export default function ChatPane({
   const [note, setNote] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
+
+  // The reply box grows with what's typed (up to max-h-32, then it scrolls).
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [body]);
 
   useEffect(() => {
     let live = true;
@@ -143,16 +152,18 @@ export default function ChatPane({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-4 md:px-5">
+      <div className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3 md:px-5 md:py-4">
         {onBack ? (
-          <button onClick={onBack} aria-label="Back to conversations" className="grid h-9 w-9 place-items-center rounded-full hover:bg-black/5 md:hidden">
+          <button onClick={onBack} aria-label="Back to conversations" className="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-black/5 md:hidden">
             <i className="ri-arrow-left-line text-xl" />
           </button>
         ) : null}
-        <Avatar name={thread.counterpartName} url={thread.counterpartAvatar} size={48} tone="#e4e4e8" />
+        <span className="hidden shrink-0 sm:block">
+          <Avatar name={thread.counterpartName} url={thread.counterpartAvatar} size={44} tone="#e4e4e8" />
+        </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-semibold text-[var(--ink)]">{thread.counterpartName}</p>
-          <p className="truncate text-[14px] text-[var(--ink)]">{header ?? thread.subject}</p>
+          <p className="line-clamp-2 text-[14px] leading-snug text-[var(--ink)] md:line-clamp-1">{header ?? thread.subject}</p>
         </div>
       </div>
       {toolbar ? <div className="flex flex-wrap items-center gap-2 border-b border-[var(--line)] bg-[#fafafb] px-4 py-2.5 md:px-5">{toolbar}</div> : null}
@@ -169,26 +180,26 @@ export default function ChatPane({
             return (
               <Fragment key={m.id}>
                 {showDay ? (
-                  <div className="my-4 flex items-center gap-3 text-[11px] text-[var(--slate)]">
+                  <div className="my-4 flex items-center gap-3 text-[12px] text-[var(--slate)]">
                     <span className="h-px flex-1 bg-[var(--line)]" />
                     {formatDate(m.created_at)}
                     <span className="h-px flex-1 bg-[var(--line)]" />
                   </div>
                 ) : null}
-                <div className={`mb-4 flex items-end gap-3 ${mine ? "flex-row-reverse" : ""}`}>
-                  <Avatar name={nameOf(m.sender_id)} url={avatarOf(m.sender_id)} size={36} tone="#e4e4e8" />
-                  <div className={`flex max-w-[78%] flex-col gap-2 ${mine ? "items-end" : "items-start"}`}>
+                <div className={`mb-4 flex items-end gap-2 md:gap-3 ${mine ? "flex-row-reverse" : ""}`}>
+                  <Avatar name={nameOf(m.sender_id)} url={avatarOf(m.sender_id)} size={32} tone="#e4e4e8" />
+                  <div className={`flex min-w-0 max-w-[82%] flex-col gap-2 md:max-w-[78%] ${mine ? "items-end" : "items-start"}`}>
                     {m.body ? (
                       <div
-                        className={`rounded-2xl px-4 py-3 text-[14px] leading-relaxed text-[var(--ink)] ${m.internal ? "border border-dashed border-[#e0c06a] bg-[#fff7dc]" : mine ? "bg-[#e4ecff]" : "bg-[var(--paper)]"}`}
+                        className={`max-w-full break-words rounded-2xl px-4 py-3 text-[15px] leading-relaxed text-[var(--ink)] md:text-[14px] ${m.internal ? "border border-dashed border-[#e0c06a] bg-[#fff7dc]" : mine ? "bg-[#e4ecff]" : "bg-[var(--paper)]"}`}
                       >
                         {m.internal ? (
-                          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8a6a00]">
+                          <p className="mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[#8a6a00]">
                             <i className="ri-lock-line" /> Internal note · {nameOf(m.sender_id)}
                           </p>
                         ) : null}
                         <p className="whitespace-pre-line">{m.body}</p>
-                        <p className={`mt-2 text-[11px] text-[var(--slate)] ${mine ? "text-right" : ""}`}>
+                        <p className={`mt-2 text-[12px] text-[var(--slate)] ${mine ? "text-right" : ""}`}>
                           {formatTime(m.created_at)}
                           {m.via === "email" ? (
                             <span title="Sent as an email reply">
@@ -212,17 +223,18 @@ export default function ChatPane({
       </div>
 
       {closedNote ? (
-        <div className="border-t border-[var(--line)] bg-[#fafafb] px-4 py-4 text-center text-[13px] text-[var(--slate)] md:px-5">{closedNote}</div>
+        <div className="border-t border-[var(--line)] bg-[#fafafb] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 text-center text-[14px] text-[var(--slate)] md:px-5">{closedNote}</div>
       ) : (
-      <div className={`border-t px-4 py-4 md:px-5 ${note ? "border-[#e0c06a] bg-[#fffbec]" : "border-[var(--line)]"}`}>
+      <div className={`border-t px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:px-5 md:py-4 ${note ? "border-[#e0c06a] bg-[#fffbec]" : "border-[var(--line)]"}`}>
         {allowNotes || composerExtras ? (
-          <div className="mb-2.5 flex flex-wrap items-center gap-2">
+          // One row that scrolls sideways on small phones instead of stacking.
+          <div className="-mx-3 mb-2.5 flex items-center gap-2 overflow-x-auto px-3 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&>*]:shrink-0">
             {allowNotes ? (
-              <span className="inline-flex rounded-full border border-[var(--line)] bg-white p-0.5 text-[12px]">
-                <button onClick={() => setNote(false)} className={`rounded-full px-3 py-1 ${!note ? "bg-[var(--ink)] text-white" : "text-[var(--ink)]"}`}>
+              <span className="inline-flex rounded-full border border-[var(--line)] bg-white p-0.5 text-[13px] md:text-[12px]">
+                <button onClick={() => setNote(false)} className={`min-h-[44px] whitespace-nowrap rounded-full px-3 py-1 md:min-h-0 ${!note ? "bg-[var(--ink)] text-white" : "text-[var(--ink)]"}`}>
                   Reply to customer
                 </button>
-                <button onClick={() => setNote(true)} className={`rounded-full px-3 py-1 ${note ? "bg-[#8a6a00] text-white" : "text-[var(--ink)]"}`}>
+                <button onClick={() => setNote(true)} className={`min-h-[44px] whitespace-nowrap rounded-full px-3 py-1 md:min-h-0 ${note ? "bg-[#8a6a00] text-white" : "text-[var(--ink)]"}`}>
                   <i className="ri-lock-line" /> Note to team
                 </button>
               </span>
@@ -232,9 +244,9 @@ export default function ChatPane({
         ) : null}
         <FileChips files={files} onRemove={(i) => setFiles((f) => f.filter((_, j) => j !== i))} />
         {error ? <p className="mb-2 text-[13px] text-[#c2412d]">{error}</p> : null}
-        <div className={`flex items-center gap-3 ${files.length ? "mt-3" : ""}`}>
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-[var(--paper)] px-4">
-            <button onClick={() => fileRef.current?.click()} aria-label="Attach files" className="text-xl text-[var(--ink)]">
+        <div className={`flex items-end gap-2 md:gap-3 ${files.length ? "mt-3" : ""}`}>
+          <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[24px] bg-[var(--paper)] pl-1 pr-4">
+            <button onClick={() => fileRef.current?.click()} aria-label="Attach files" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-xl text-[var(--ink)] hover:bg-black/5">
               <i className="ri-attachment-2" />
             </button>
             <input
@@ -250,17 +262,20 @@ export default function ChatPane({
               }}
             />
             <textarea
+              ref={box}
               rows={1}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                // Enter sends on a computer; on a phone/tablet keyboard it's a new line (tap Send).
+                const touch = typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+                if (e.key === "Enter" && !e.shiftKey && !touch && !e.nativeEvent.isComposing) {
                   e.preventDefault();
                   send();
                 }
               }}
               placeholder={note ? "Write a note for the team (the customer won’t see it)…" : "Type a message here…"}
-              className="max-h-32 min-w-0 flex-1 resize-none bg-transparent py-3 text-[14px] text-[var(--ink)] outline-none"
+              className="max-h-32 min-w-0 flex-1 resize-none bg-transparent py-[11px] text-[16px] leading-[22px] text-[var(--ink)] outline-none md:text-[14px]"
             />
           </div>
           <button

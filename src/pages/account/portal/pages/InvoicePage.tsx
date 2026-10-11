@@ -68,7 +68,7 @@ export default function InvoicePage() {
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link to="/account/billing" className="inline-flex items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
+        <Link to="/account/billing" className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
           <i className="ri-arrow-left-line" /> Billing
         </Link>
         <div className="flex flex-wrap gap-2">
@@ -110,7 +110,7 @@ export default function InvoicePage() {
               hello@thersvpstudio.com · Philippines
             </p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="font-display text-[2rem] font-semibold leading-none text-[var(--ink)]">{paid ? "Receipt" : "Invoice"}</p>
             <p className="mt-2 text-[14px] text-[var(--ink)]">{inv.number}</p>
             <div className="mt-2">
@@ -155,7 +155,7 @@ export default function InvoicePage() {
           </tbody>
           <tfoot>
             <tr>
-              <td className="pt-5 text-right text-[13px] uppercase tracking-[0.06em] text-[var(--slate)]">{paid ? "Total paid" : "Total due"}</td>
+              <td className="pr-4 pt-5 text-right text-[13px] uppercase tracking-[0.06em] text-[var(--slate)]">{paid ? "Total paid" : "Total due"}</td>
               <td className="pt-5 text-right text-[22px] font-semibold text-[var(--ink)]">{formatMoney(inv.amount)}</td>
             </tr>
           </tfoot>
@@ -175,7 +175,7 @@ export default function InvoicePage() {
               </PillButton>
               <button
               onClick={() => navigate(`/account/messages?project=${inv.event_id}`)}
-              className="text-[14px] font-medium text-[var(--acc-blue)] hover:underline print:hidden"
+              className="min-h-[44px] text-left text-[14px] font-medium text-[var(--acc-blue)] hover:underline print:hidden md:min-h-0"
             >
               Message us about this invoice →
             </button>
@@ -192,7 +192,7 @@ function Notice({ tone, onClose, children }: { tone: "good" | "info"; onClose?: 
     <div className={`mb-4 flex items-start gap-3 rounded-2xl px-5 py-3 text-[14px] print:hidden ${tone === "good" ? "bg-[#e6f4e6] text-[#2f6b2f]" : "bg-[#e8eeff] text-[#1d4fd7]"}`}>
       <span className="flex-1">{children}</span>
       {onClose ? (
-        <button onClick={onClose} aria-label="Dismiss" className="opacity-60 hover:opacity-100">
+        <button onClick={onClose} aria-label="Dismiss" className="-my-2 -mr-3 grid h-10 w-10 shrink-0 place-items-center rounded-full opacity-60 hover:opacity-100">
           <i className="ri-close-line" />
         </button>
       ) : null}

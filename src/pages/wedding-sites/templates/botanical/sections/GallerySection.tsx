@@ -23,14 +23,15 @@ export default function GallerySection({ content, theme }: GallerySectionProps) 
 
   return (
     <section style={{ background: theme.background, padding: "72px 24px", textAlign: "center" }}>
-      <div style={{ width: "min(920px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 920, margin: "0 auto" }}>
         <p style={{ fontFamily: theme.displayFont, fontSize: 30, color: theme.ink, margin: 0 }}>Gallery</p>
         <LeafDivider color={theme.ink} />
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(200px, 45%), 1fr))",
+            gridAutoFlow: "dense",
             gridAutoRows: 140,
             gap: 10,
           }}
@@ -38,6 +39,8 @@ export default function GallerySection({ content, theme }: GallerySectionProps) 
           {items.map((item) => (
             <div key={item.id} style={{ ...spanFor(item.layoutHint), overflow: "hidden", borderRadius: 4 }}>
               <img
+                loading="lazy"
+                decoding="async"
                 src={item.image.masterUrl}
                 alt={item.image.alt}
                 style={{

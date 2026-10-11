@@ -45,6 +45,16 @@ export default function DeviceFrame({
   const isLaptop = type === "laptop";
   const bezelPaddingH = isLaptop ? 12 : 10;
   const bezelWidthPx = scale * width + bezelPaddingH;
+  // Touch screens: a swipe that starts on an embedded site scrolls the site,
+  // not the page, so a big frame can trap the visitor. Keep the iframe inert
+  // until they tap "Tap to explore", and offer "Done" to hand scrolling back.
+  const [isTouch] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(hover: none)").matches,
+  );
+  const [exploring, setExploring] = useState(false);
+  const inert = isTouch && !exploring;
+  // Too small to use by touch (the laptop on a phone): just a picture.
+  const tooSmall = scale > 0 && scale < 0.3;
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -98,10 +108,33 @@ export default function DeviceFrame({
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",
                 border: 0,
+                pointerEvents: inert || (isTouch && tooSmall) ? "none" : undefined,
               }}
               loading="lazy"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
             />
+          )}
+          {isTouch && scale > 0 && !tooSmall && (
+            exploring ? (
+              <button
+                type="button"
+                onClick={() => setExploring(false)}
+                className="absolute right-2 top-2 z-10 inline-flex min-h-[40px] items-center rounded-full bg-black/70 px-4 text-[13px] font-medium text-white backdrop-blur"
+              >
+                Done
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setExploring(true)}
+                aria-label={`Tap to explore ${title}`}
+                className="absolute inset-0 z-10 flex items-end justify-center pb-5"
+              >
+                <span className="inline-flex min-h-[40px] items-center rounded-full bg-white/95 px-4 text-[13px] font-semibold text-[var(--ink)] shadow-lg">
+                  Tap to explore
+                </span>
+              </button>
+            )
           )}
         </div>
       </div>

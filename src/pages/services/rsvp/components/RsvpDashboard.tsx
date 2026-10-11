@@ -60,13 +60,13 @@ export default function RsvpDashboard({ sidebar = false }: { sidebar?: boolean }
           </aside>
         )}
 
-        <div className="min-w-0 flex-1 p-5">
-          <div className="flex items-center justify-between">
-            <div>
+        <div className="min-w-0 flex-1 p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <p className="font-semibold text-[var(--ink)]">RSVP Responses</p>
               <p className="text-xs text-[var(--slate)]">Carla &amp; Trixia · 28 November 2026</p>
             </div>
-            <span className="rounded-md border border-[var(--line)] px-2.5 py-1 text-xs text-[var(--slate)]">
+            <span className="shrink-0 rounded-md border border-[var(--line)] px-2.5 py-1 text-xs text-[var(--slate)]">
               Refresh
             </span>
           </div>
@@ -75,25 +75,46 @@ export default function RsvpDashboard({ sidebar = false }: { sidebar?: boolean }
             {STATS.map((s) => (
               <div key={s.label} className="rounded-lg bg-[var(--paper)] p-3">
                 <p className="text-lg font-semibold text-[var(--ink)]">{s.value}</p>
-                <p className="text-[10px] uppercase tracking-wide text-[var(--slate)]">
+                <p className="text-xs leading-snug text-[var(--slate)]">
                   {s.label}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <span className="flex-1 rounded-md border border-[var(--line)] px-3 py-1.5 text-xs text-[var(--slate)]">
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <span className="min-w-0 truncate rounded-md border border-[var(--line)] px-3 py-1.5 text-xs text-[var(--slate)] sm:flex-1">
               Search name or email…
             </span>
-            <div className="flex gap-1 text-xs">
+            <div className="flex shrink-0 gap-1 text-xs">
               <span className="rounded-md bg-[var(--ink)] px-2.5 py-1 text-white">All</span>
               <span className="rounded-md px-2.5 py-1 text-[var(--slate)]">Attending</span>
               <span className="rounded-md px-2.5 py-1 text-[var(--slate)]">Declined</span>
             </div>
           </div>
 
-          <div className="mt-3 overflow-x-auto">
+          {/* Phones: one stacked row per guest instead of a 7-column table. */}
+          <ul className="mt-3 md:hidden">
+            {ROWS.map((r) => (
+              <li key={r.name} className="border-b border-[var(--line)]/70 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm text-[var(--ink)]">{r.name}</p>
+                    <p className="truncate text-xs text-[var(--slate)]">{r.email}</p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--acc-green)]/12 px-2 py-0.5 text-xs text-[var(--acc-green)]">
+                    <i className="ri-check-line" />
+                    Attending
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-[var(--slate)]">
+                  {r.plus1 ? `+1 · ${r.guest}` : "No +1"} · {r.dietary}
+                </p>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-3 hidden overflow-x-auto md:block">
             <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="text-[var(--slate)]">
                 <tr className="border-b border-[var(--line)]">
@@ -111,7 +132,7 @@ export default function RsvpDashboard({ sidebar = false }: { sidebar?: boolean }
                   <tr key={r.name} className="border-b border-[var(--line)]/70">
                     <td className="py-2.5 pr-3">
                       <span className="block text-[var(--ink)]">{r.name}</span>
-                      <span className="block text-[10px] text-[var(--slate)]">{r.email}</span>
+                      <span className="block text-[11px] text-[var(--slate)]">{r.email}</span>
                     </td>
                     <td className="py-2.5 pr-3">
                       <span className="inline-flex items-center gap-1 rounded-full bg-[var(--acc-green)]/12 px-2 py-0.5 text-[11px] text-[var(--acc-green)]">

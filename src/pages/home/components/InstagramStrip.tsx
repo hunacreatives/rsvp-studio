@@ -7,7 +7,7 @@ export default function InstagramStrip() {
   return (
     <section className="py-20 md:py-24" style={{ background: "var(--warm-white)" }}>
       <div className="container-x text-center">
-        <Reveal as="p" className="eyebrow flex items-center justify-center gap-2">
+        <Reveal as="p" className="eyebrow flex items-center justify-center gap-2 !tracking-[0.12em] sm:!tracking-[0.18em]">
           <i className="ri-instagram-line text-base" />
           Follow Along on Instagram
         </Reveal>
@@ -16,7 +16,7 @@ export default function InstagramStrip() {
             href={IG_PROFILE.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-block font-display text-2xl md:text-3xl font-semibold tracking-[-0.01em] text-[var(--ink)] hover:text-[var(--acc-blue)] transition-colors"
+            className="mt-1.5 inline-block py-1.5 font-display text-2xl md:text-3xl font-semibold tracking-[-0.01em] text-[var(--ink)] hover:text-[var(--acc-blue)] transition-colors"
           >
             @{IG_PROFILE.handle}
           </a>

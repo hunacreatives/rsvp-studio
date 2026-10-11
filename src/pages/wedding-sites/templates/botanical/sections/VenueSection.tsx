@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { LeafDivider } from "../Ornament";
@@ -34,9 +35,9 @@ function ScallopCard({ theme, eyebrow, title, subtitle, linkLabel, linkHref }: C
             fontFamily: theme.bodyFont,
             textTransform: "uppercase",
             letterSpacing: "0.12em",
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 600,
-            color: theme.muted,
+            color: mutedText(theme),
             margin: "0 0 8px",
           }}
         >
@@ -44,7 +45,7 @@ function ScallopCard({ theme, eyebrow, title, subtitle, linkLabel, linkHref }: C
         </p>
         <p style={{ fontFamily: theme.displayFont, fontSize: 22, color: theme.ink, margin: 0 }}>{title}</p>
         {subtitle ? (
-          <p style={{ fontFamily: theme.bodyFont, fontSize: 13, color: theme.muted, margin: "6px 0 0", lineHeight: 1.6 }}>
+          <p style={{ fontFamily: theme.bodyFont, fontSize: 16, color: mutedText(theme), margin: "6px 0 0", lineHeight: 1.6 }}>
             {subtitle}
           </p>
         ) : null}
@@ -53,7 +54,7 @@ function ScallopCard({ theme, eyebrow, title, subtitle, linkLabel, linkHref }: C
             href={linkHref}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontFamily: theme.bodyFont, fontSize: 12, fontWeight: 600, color: theme.ink, marginTop: 10, display: "inline-block" }}
+            style={{ fontFamily: theme.bodyFont, fontSize: 15, fontWeight: 600, color: theme.ink, marginTop: 4, display: "inline-flex", alignItems: "center", minHeight: 44 }}
           >
             {linkLabel ?? "View"} &rarr;
           </a>
@@ -70,7 +71,7 @@ export default function VenueSection({ content, theme }: VenueSectionProps) {
 
   return (
     <section style={{ background: theme.background, padding: "72px 24px", textAlign: "center" }}>
-      <div style={{ width: "min(880px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 880, margin: "0 auto" }}>
         <p style={{ fontFamily: theme.displayFont, fontSize: 30, color: theme.ink, margin: 0 }}>
           Travel &amp; Accommodations
         </p>

@@ -1,10 +1,11 @@
-import { createContext, useContext, useLayoutEffect, useRef } from "react";
+import { createContext, useContext, useId, useLayoutEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { EventContent } from "../../content/types";
 import { bindingSample, boundText } from "../bindings";
 import type { CanvasSectionSpec, FieldLayerSpec, LayerSpec, LinkLayerSpec, TemplateSpec, TextLayerSpec } from "../schema";
 import { colorOf, useSpecTheme } from "./theme";
 import { useRsvpForm } from "./useRsvpForm";
+import { RsvpBlock } from "./blocks";
 
 // The art-directed part of an uploaded design: a background image with
 // layers placed in normalized boxes. All sizes are `cqw` of the canvas
@@ -21,6 +22,7 @@ interface Props {
 
 export default function CanvasSection({ section, spec, content, editorPreview }: Props) {
   const theme = useSpecTheme();
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const [w, h] = section.aspect;
   const bg = section.backgroundAssetId ? spec.assets[section.backgroundAssetId] : undefined;
   const hostCount = content.hosts.filter((x) => x.name.trim()).length;
@@ -45,14 +47,26 @@ export default function CanvasSection({ section, spec, content, editorPreview }:
     <>
       {bg ? <img src={bg.url} alt="" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} /> : null}
       {section.layers.filter(visible).map((layer) => (
-        <Layer key={layer.id} layer={layer} spec={spec} content={content} editorPreview={editorPreview} />
+        <Layer key={layer.id} layer={layer} spec={spec} content={content} editorPreview={editorPreview} ratio={h / w} />
       ))}
     </>
   );
   const hasForm = section.layers.some((l) => l.type === "field");
 
-  return (
-    <section style={{ background: colorOf(theme, section.band), padding: section.padding === "none" ? 0 : "clamp(24px, 6cqw, 64px) clamp(12px, 3cqw, 24px)" }}>
+  // A traced form only works while its drawn boxes are big enough to type in.
+  // The fields scale with the canvas, so below the template width where the
+  // smallest one would be ~32px tall (a desktop design on a phone) guests get
+  // the shared RSVP form instead. A design's own phone version keeps its form.
+  const fieldHeights = section.layers.filter((l) => l.type === "field").map((l) => l.box.h);
+  const minField = fieldHeights.length ? Math.min(...fieldHeights) : 0;
+  // + 48: the section's side padding at most.
+  const swapBelow = hasForm && section.screen !== "phone" && minField > 0 ? Math.ceil(32 / ((minField * h) / w)) + 48 : 0;
+
+  const drawn = (
+    <section
+      className={swapBelow ? `rs-dfw-${uid}` : undefined}
+      style={{ background: colorOf(theme, section.band), padding: section.padding === "none" ? 0 : "clamp(24px, 6cqw, 64px) clamp(12px, 3cqw, 24px)" }}
+    >
       {hasForm ? (
         <DrawnForm section={section} content={content} editorPreview={editorPreview} style={frame}>
           {inner}
@@ -61,6 +75,23 @@ export default function CanvasSection({ section, spec, content, editorPreview }:
         <div style={frame}>{inner}</div>
       )}
     </section>
+  );
+  if (!swapBelow) return drawn;
+  return (
+    <>
+      <style>
+        {`@container rsroot (max-width:${swapBelow - 0.02}px){.rs-dfw-${uid}{display:none!important}}` +
+          `@container rsroot (min-width:${swapBelow}px){.rs-dfn-${uid}{display:none!important}}`}
+      </style>
+      <div className={`rs-dfn-${uid}`}>
+        <RsvpBlock
+          section={{ id: `${section.id}-phone`, kind: "block", block: "rsvp", band: section.band, divider: "line", align: "center" }}
+          content={content}
+          editorPreview={editorPreview}
+        />
+      </div>
+      {drawn}
+    </>
   );
 }
 
@@ -96,7 +127,7 @@ function DrawnForm({ section, content, editorPreview, style, children }: { secti
         margin: 0,
         textAlign: "center",
         fontFamily: theme.bodyFont,
-        fontSize: "max(2.2cqw, 12px)",
+        fontSize: "max(2.2cqw, 14px)",
         color,
       }}
     >
@@ -162,6 +193,8 @@ function FieldLayer({ layer }: { layer: FieldLayerSpec }) {
   const common = {
     name: layer.key,
     "aria-label": layer.placeholder || layer.key,
+    autoComplete: layer.key === "name" ? "name" : layer.key === "email" ? "email" : "off",
+    autoCapitalize: layer.key === "name" ? "words" : layer.key === "email" ? "none" : undefined,
     placeholder: layer.placeholder,
     value: form?.values[layer.key] ?? "",
     className: "rs-drawn-field",
@@ -187,9 +220,9 @@ function visibleTarget(selector: string): HTMLElement | null {
   return Array.from(document.querySelectorAll<HTMLElement>(selector)).find((el) => el.getClientRects().length > 0) ?? null;
 }
 
-function LinkLayer({ layer, content }: { layer: LinkLayerSpec; content: EventContent }) {
+function LinkLayer({ layer, content, ratio }: { layer: LinkLayerSpec; content: EventContent; ratio: number }) {
   const form = useContext(FormCtx);
-  const css: CSSProperties = { ...boxStyle(layer), display: "block", background: "transparent", border: "none", padding: 0, cursor: "pointer", borderRadius: `${layer.radius}cqw` };
+  const css: CSSProperties = { ...boxStyle(layer), ...hitBox(layer, ratio), display: "block", background: "transparent", border: "none", padding: 0, cursor: "pointer", borderRadius: `${layer.radius}cqw` };
   if (layer.action === "submit") {
     return <button type="submit" aria-label={layer.label || "Send RSVP"} disabled={form?.state === "submitting"} style={css} />;
   }
@@ -214,6 +247,19 @@ function LinkLayer({ layer, content }: { layer: LinkLayerSpec; content: EventCon
   );
 }
 
+/** An invisible link over the art grows to at least 44×44px (centred on the
+ *  drawn box) so it stays tappable when the canvas is scaled down on a phone. */
+function hitBox(layer: LayerSpec, ratio: number): CSSProperties {
+  const wq = layer.box.w * 100;
+  const hq = layer.box.h * ratio * 100;
+  return {
+    width: `max(44px, ${wq.toFixed(3)}cqw)`,
+    height: `max(44px, ${hq.toFixed(3)}cqw)`,
+    left: `calc(${(layer.box.x * 100).toFixed(3)}cqw - (max(44px, ${wq.toFixed(3)}cqw) - ${wq.toFixed(3)}cqw) / 2)`,
+    top: `calc(${(layer.box.y * ratio * 100).toFixed(3)}cqw - (max(44px, ${hq.toFixed(3)}cqw) - ${hq.toFixed(3)}cqw) / 2)`,
+  };
+}
+
 function boxStyle(layer: LayerSpec): CSSProperties {
   return {
     position: "absolute",
@@ -226,7 +272,7 @@ function boxStyle(layer: LayerSpec): CSSProperties {
   };
 }
 
-function Layer({ layer, spec, content, editorPreview }: { layer: LayerSpec; spec: TemplateSpec; content: EventContent; editorPreview?: boolean }) {
+function Layer({ layer, spec, content, editorPreview, ratio }: { layer: LayerSpec; spec: TemplateSpec; content: EventContent; editorPreview?: boolean; ratio: number }) {
   const theme = useSpecTheme();
   switch (layer.type) {
     case "text":
@@ -278,11 +324,17 @@ function Layer({ layer, spec, content, editorPreview }: { layer: LayerSpec; spec
     case "field":
       return <FieldLayer layer={layer} />;
     case "link":
-      return <LinkLayer layer={layer} content={content} />;
+      return <LinkLayer layer={layer} content={content} ratio={ratio} />;
     case "rsvpButton":
       return (
         <a
           href="#rsvp"
+          onClick={(e) => {
+            const target = visibleTarget("[data-rsvp], #rsvp");
+            if (!target) return;
+            e.preventDefault();
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
           style={{
             ...boxStyle(layer),
             display: "grid",
@@ -291,7 +343,7 @@ function Layer({ layer, spec, content, editorPreview }: { layer: LayerSpec; spec
             background: colorOf(theme, layer.fill),
             color: colorOf(theme, layer.color),
             fontFamily: theme.bodyFont,
-            fontSize: `${layer.size}cqw`,
+            fontSize: `max(${layer.size}cqw, 14px)`,
             fontWeight: 600,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
@@ -308,7 +360,9 @@ function Layer({ layer, spec, content, editorPreview }: { layer: LayerSpec; spec
  *  a phone can push small lines (venue, date) under legibility; past this
  *  floor the text stops shrinking and wraps instead. */
 const MIN_PX = 11;
-const sizeCss = (cqw: number) => `max(${cqw.toFixed(3)}cqw, ${MIN_PX}px)`;
+/** Bound text is the event's real details (names, date, venue): readable on a phone. */
+const BOUND_MIN_PX = 13;
+const sizeCss = (cqw: number, floor = MIN_PX) => `max(${cqw.toFixed(3)}cqw, ${floor}px)`;
 
 /**
  * A text box in the design. Bound text (names, date, venue) shrinks toward
@@ -322,6 +376,7 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
 
   const bound = layer.bind ? boundText(content, layer.bind) : "";
   const isHint = Boolean(layer.bind && !bound && editorPreview);
+  const floor = layer.bind ? BOUND_MIN_PX : MIN_PX;
   const value = layer.bind
     ? bound || (editorPreview ? layer.editorHint ?? bindingSample(layer.bind.field, layer.bind.format) : layer.text ?? "")
     : layer.text ?? "";
@@ -333,11 +388,14 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
     const min = Math.min(layer.minSize ?? layer.size * 0.6, layer.size);
     const fit = () => {
       let size = layer.size;
-      text.style.fontSize = sizeCss(size);
+      text.style.overflowWrap = "normal";
+      text.style.fontSize = sizeCss(size, floor);
       while (size > min && (text.offsetHeight > box.clientHeight + 1 || text.scrollWidth > box.clientWidth + 1)) {
         size = Math.max(min, size * 0.94);
-        text.style.fontSize = sizeCss(size);
+        text.style.fontSize = sizeCss(size, floor);
       }
+      // Still too wide at the smallest size (one very long word): wrap it rather than clip it.
+      if (text.scrollWidth > box.clientWidth + 1) text.style.overflowWrap = "anywhere";
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -351,7 +409,7 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
       ro.disconnect();
       document.fonts?.removeEventListener?.("loadingdone", fit);
     };
-  }, [value, layer.size, layer.minSize]);
+  }, [value, layer.size, layer.minSize, floor]);
 
   if (!value || (layer.hideWhenEmpty && layer.bind && !bound && !editorPreview)) return null;
 
@@ -372,7 +430,7 @@ function TextLayer({ layer, content, editorPreview }: { layer: TextLayerSpec; co
         style={{
           display: "block",
           fontFamily: theme.fonts[layer.font] ?? theme.bodyFont,
-          fontSize: sizeCss(layer.size),
+          fontSize: sizeCss(layer.size, floor),
           color: colorOf(theme, layer.color),
           fontWeight: layer.weight,
           fontStyle: layer.italic || isHint ? "italic" : "normal",

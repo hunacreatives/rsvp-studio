@@ -74,15 +74,19 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
           placeholder="Search name, email or mobile…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="flex-1 min-w-[220px] rounded-xl px-4 py-3 text-[15px] outline-none"
-          style={{ background: "#fff", border: "1px solid var(--line)" }}
+          className="w-full flex-1 rounded-xl px-4 py-3 text-[16px] outline-none sm:w-auto sm:min-w-[220px] md:text-[15px]"
+          style={{ background: "#fff", border: "1px solid rgba(0,7,39,0.16)" }}
         />
-        <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid var(--line)" }}>
+        {/* Phones: the filters share one full-width row (no buttons cut off at the edge). */}
+        <div
+          className="grid w-full overflow-hidden rounded-xl sm:flex sm:w-auto"
+          style={{ border: "1px solid var(--line)", gridTemplateColumns: `repeat(${hasDetails ? 4 : 3}, minmax(0, 1fr))` }}
+        >
           {(hasDetails ? (["all", "coming", "declined", "with"] as const) : (["all", "with", "without"] as const)).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className="px-4 py-3 text-[13px] font-medium transition-colors"
+              className="min-h-[48px] px-2 py-2 text-[13px] font-medium leading-tight transition-colors sm:px-4 sm:py-3"
               style={{
                 background: filter === f ? "var(--ink)" : "transparent",
                 color: filter === f ? "#fff" : "var(--slate)",
@@ -100,7 +104,55 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl" style={{ border: "1px solid var(--line)" }}>
+      {/* Phones: one card per guest instead of a 7-column table. */}
+      <ul className="space-y-3 md:hidden">
+        {filtered.map((g) => (
+          <li key={g.id} className="rounded-2xl bg-white px-4 py-4" style={{ border: "1px solid var(--line)" }}>
+            <div className="flex items-start justify-between gap-3">
+              <p className="min-w-0 break-words text-[16px] font-semibold" style={{ color: "var(--ink)" }}>{g.name || "—"}</p>
+              {hasDetails && g.attending === true ? (
+                <span className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#ecfbcc", color: "#3d5a12" }}>
+                  Coming{g.guest_count && g.guest_count > 1 ? ` · ${g.guest_count}` : ""}
+                </span>
+              ) : hasDetails && g.attending === false ? (
+                <span className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#ececec", color: "#55556a" }}>Not coming</span>
+              ) : null}
+            </div>
+            {g.email || g.phone ? (
+              <p className="mt-0.5 break-all text-[14px]" style={{ color: "var(--slate)" }}>
+                {[g.email, g.phone].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
+            {hasDetails && g.dietary ? (
+              <p className="mt-2 text-[14px]" style={{ color: "var(--ink)" }}>
+                <span style={{ color: "var(--slate)" }}>Dietary: </span>
+                {g.dietary}
+              </p>
+            ) : null}
+            {g.bringing ? (
+              <p className="mt-2 text-[14px]" style={{ color: "var(--ink)" }}>
+                <span style={{ color: "var(--slate)" }}>Bringing: </span>
+                {g.bringing}
+              </p>
+            ) : null}
+            {g.message ? (
+              <p className="mt-2 text-[14px] italic" style={{ color: "var(--slate)" }}>“{g.message}”</p>
+            ) : null}
+            {g.created_at ? (
+              <p className="mt-2 text-[12px]" style={{ color: "var(--slate)" }}>
+                {new Date(g.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+              </p>
+            ) : null}
+          </li>
+        ))}
+        {filtered.length === 0 && (
+          <li className="rounded-2xl px-5 py-8 text-center text-[14px]" style={{ border: "1px solid var(--line)", color: "var(--slate)" }}>
+            No RSVPs match.
+          </li>
+        )}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-2xl md:block" style={{ border: "1px solid var(--line)" }}>
         <table className="w-full text-left text-[14px]">
           <thead>
             <tr style={{ background: "var(--paper)", color: "var(--slate)" }}>

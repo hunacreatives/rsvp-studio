@@ -53,7 +53,7 @@ export default function ImageBand({
   return (
     <section
       ref={root}
-      className="relative overflow-hidden isolate flex items-center justify-center text-center min-h-[520px] md:min-h-[600px] py-28"
+      className="relative overflow-hidden isolate flex items-center justify-center text-center min-h-[380px] md:min-h-[600px] py-20 md:py-28"
     >
       <div
         ref={layer}
@@ -67,9 +67,9 @@ export default function ImageBand({
           <p className="eyebrow !text-white/70 mb-4">{eyebrow}</p>
         )}
         <h2 className="h-section text-white mx-auto max-w-3xl">{title}</h2>
-        <p className="mt-4 text-white/85 text-lg mx-auto max-w-xl">{subtitle}</p>
+        <p className="mt-4 text-white/85 text-base md:text-lg mx-auto max-w-xl">{subtitle}</p>
         <button
-          className="btn btn-white mt-8"
+          className="btn btn-white mt-8 max-w-full text-balance"
           onClick={() => goTo(navigate, ctaTo)}
         >
           {ctaLabel}

@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 
@@ -15,10 +16,10 @@ export default function VenueSection({ content, theme }: VenueSectionProps) {
     <section style={{ background: theme.background, padding: "64px 32px" }}>
       <div
         style={{
-          width: "min(880px, 92vw)",
+          width: "100%", maxWidth: 880,
           margin: "0 auto",
           display: "grid",
-          gridTemplateColumns: hasAccommodations && hasTravel ? "1fr 1fr" : "1fr",
+          gridTemplateColumns: hasAccommodations && hasTravel ? "repeat(auto-fit, minmax(min(260px, 100%), 1fr))" : "1fr",
           gap: 48,
         }}
       >
@@ -29,9 +30,9 @@ export default function VenueSection({ content, theme }: VenueSectionProps) {
                 fontFamily: theme.bodyFont,
                 textTransform: "uppercase",
                 letterSpacing: "0.14em",
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
-                color: theme.muted,
+                color: mutedText(theme),
                 margin: "0 0 16px",
               }}
             >
@@ -43,7 +44,7 @@ export default function VenueSection({ content, theme }: VenueSectionProps) {
                   <p style={{ fontFamily: theme.bodyFont, fontWeight: 600, color: theme.ink, margin: 0 }}>
                     {place.name}
                   </p>
-                  <p style={{ fontFamily: theme.bodyFont, fontSize: 13, color: theme.muted, margin: "2px 0 0" }}>
+                  <p style={{ fontFamily: theme.bodyFont, fontSize: 14, color: mutedText(theme), margin: "2px 0 0" }}>
                     {place.addressLine}
                   </p>
                   {place.bookingUrl ? (
@@ -51,7 +52,7 @@ export default function VenueSection({ content, theme }: VenueSectionProps) {
                       href={place.bookingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontFamily: theme.bodyFont, fontSize: 12, fontWeight: 600, color: theme.ink }}
+                      style={{ fontFamily: theme.bodyFont, fontSize: 14, fontWeight: 600, color: theme.ink, display: "inline-flex", alignItems: "center", minHeight: 44 }}
                     >
                       Book &rarr;
                     </a>
@@ -69,9 +70,9 @@ export default function VenueSection({ content, theme }: VenueSectionProps) {
                 fontFamily: theme.bodyFont,
                 textTransform: "uppercase",
                 letterSpacing: "0.14em",
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
-                color: theme.muted,
+                color: mutedText(theme),
                 margin: "0 0 16px",
               }}
             >
@@ -83,7 +84,7 @@ export default function VenueSection({ content, theme }: VenueSectionProps) {
                   <p style={{ fontFamily: theme.bodyFont, fontWeight: 600, color: theme.ink, margin: 0 }}>
                     {info.title}
                   </p>
-                  <p style={{ fontFamily: theme.bodyFont, fontSize: 13, color: theme.muted, margin: "2px 0 0", lineHeight: 1.6 }}>
+                  <p style={{ fontFamily: theme.bodyFont, fontSize: 14, color: mutedText(theme), margin: "2px 0 0", lineHeight: 1.6 }}>
                     {info.body}
                   </p>
                 </div>

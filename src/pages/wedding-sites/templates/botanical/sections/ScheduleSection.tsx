@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { LeafDivider } from "../Ornament";
@@ -23,7 +24,7 @@ export default function ScheduleSection({ content, theme }: ScheduleSectionProps
 
   return (
     <section style={{ background: `${theme.ink}06`, padding: "72px 24px" }}>
-      <div style={{ width: "min(520px, 92vw)", margin: "0 auto", textAlign: "center" }}>
+      <div style={{ width: "100%", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
         <p style={{ fontFamily: theme.displayFont, fontSize: 30, color: theme.ink, margin: 0 }}>
           Order of Events
         </p>
@@ -61,9 +62,9 @@ export default function ScheduleSection({ content, theme }: ScheduleSectionProps
                   fontFamily: theme.bodyFont,
                   textTransform: "uppercase",
                   letterSpacing: "0.12em",
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: 600,
-                  color: theme.muted,
+                  color: mutedText(theme),
                   margin: "0 0 4px",
                 }}
               >
@@ -74,7 +75,7 @@ export default function ScheduleSection({ content, theme }: ScheduleSectionProps
                 {item.label}
               </p>
               {item.description ? (
-                <p style={{ fontFamily: theme.bodyFont, fontSize: 14, color: theme.muted, margin: "6px 0 0", lineHeight: 1.6 }}>
+                <p style={{ fontFamily: theme.bodyFont, fontSize: 16, color: mutedText(theme), margin: "6px 0 0", lineHeight: 1.6 }}>
                   {item.description}
                 </p>
               ) : null}

@@ -75,6 +75,18 @@ export default function Navbar({
   const [panelTop, setPanelTop] = useState(64);
   const scrollYRef = useRef(0);
 
+  // Escape closes whichever overlay (menu / search) is open.
+  useEffect(() => {
+    if (!mobileOpen && !searchOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setMobileOpen(false);
+      setSearchOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen, searchOpen]);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -192,7 +204,7 @@ export default function Navbar({
               e.preventDefault();
               go("/");
             }}
-            className="flex-shrink-0"
+            className="flex min-h-11 flex-shrink-0 items-center"
             aria-label="The RSVP Studio — home"
           >
             <img
@@ -246,11 +258,15 @@ export default function Navbar({
           </nav>
 
           {/* Right */}
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-1.5 md:gap-4">
             <button
               aria-label="Search"
-              onClick={() => setSearchOpen((v) => !v)}
-              className="hidden md:grid place-items-center w-9 h-9 rounded-full transition-colors hover:bg-black/5"
+              aria-expanded={searchOpen}
+              onClick={() => {
+                setMobileOpen(false);
+                setSearchOpen((v) => !v);
+              }}
+              className="grid place-items-center w-11 h-11 md:w-9 md:h-9 rounded-full transition-colors hover:bg-black/5"
               style={{ color: "var(--indigo)" }}
             >
               <i className="ri-search-line text-lg" />
@@ -304,10 +320,36 @@ export default function Navbar({
                 Log in / Sign up
               </button>
             )}
+            {/* Phones: log in (or open your account) without going through the menu. */}
+            {accountName ? (
+              <button
+                onClick={() => go(accountHome)}
+                aria-label={accountLabel}
+                className="md:hidden grid place-items-center w-11 h-11 rounded-full"
+              >
+                <img src={avatarUrl || defaultAvatar(accountName)} alt="" className="h-8 w-8 rounded-full object-cover" />
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  setAuthOpen(true);
+                }}
+                className="md:hidden inline-flex items-center h-11 px-4 rounded-full text-[14px] font-medium text-white"
+                style={{ background: "var(--ink)" }}
+              >
+                Log in
+              </button>
+            )}
             <button
-              aria-label="Menu"
-              className="lg:hidden grid place-items-center w-10 h-10 -mr-2"
-              onClick={() => setMobileOpen((v) => !v)}
+              aria-label={mobileOpen ? "Close menu" : "Menu"}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav"
+              className="lg:hidden grid place-items-center w-11 h-11 -mr-2.5"
+              onClick={() => {
+                setSearchOpen(false);
+                setMobileOpen((v) => !v);
+              }}
               style={{ color: "var(--ink)" }}
             >
               <i className={`${mobileOpen ? "ri-close-line" : "ri-menu-line"} text-2xl`} />
@@ -317,8 +359,11 @@ export default function Navbar({
 
         {/* Search drawer */}
         {searchOpen && (
-          <div className="hidden md:block border-t border-[var(--line)] bg-[var(--warm-white)]">
-            <div className="container-x py-8">
+          <div
+            data-lenis-prevent
+            className="border-t border-[var(--line)] bg-[var(--warm-white)] max-h-[calc(100dvh-64px)] overflow-y-auto overscroll-contain"
+          >
+            <div className="container-x py-5 md:py-8">
               <div className="flex items-center gap-3 border-b border-[var(--ink)] pb-3 max-w-2xl">
                 <i className="ri-search-line text-xl text-[var(--slate)]" />
                 <input
@@ -337,7 +382,7 @@ export default function Navbar({
                 <ul className="mt-4 space-y-1">
                   {searchHits.map((h) => (
                     <li key={h.to + h.label}>
-                      <button onClick={() => go(h.to)} className="w-full rounded-lg px-2 py-2 text-left hover:bg-black/5">
+                      <button onClick={() => go(h.to)} className="w-full rounded-lg px-2 py-3 md:py-2 text-left hover:bg-black/5">
                         <span className="block text-[15px] text-[var(--ink)]">{h.label}</span>
                         <span className="block text-[12px] text-[var(--slate)]">{h.where}</span>
                       </button>
@@ -346,16 +391,16 @@ export default function Navbar({
                   {!searchHits.length ? (
                     <li className="px-2 py-2 text-[14px] text-[var(--slate)]">
                       Nothing found.{" "}
-                      <button onClick={() => go("/faqs#ask")} className="underline underline-offset-2">Ask us a question</button>
+                      <button onClick={() => go("/faqs#ask")} className="py-2 underline underline-offset-2">Ask us a question</button>
                     </li>
                   ) : null}
                 </ul>
               ) : (
                 <>
                   <p className="eyebrow mt-6 mb-3">Quick Links</p>
-                  <div className="flex flex-wrap gap-6">
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 md:gap-6">
                     {[["Services", "/services"], ["Collections", "/collections"], ["Our work", "/portfolio"], ["FAQ", "/faqs"], ["Get a quote", "/enquire#start"]].map(([label, to]) => (
-                      <button key={to} onClick={() => go(to)} className="text-[var(--indigo)] hover:text-[var(--acc-blue)] transition-colors">
+                      <button key={to} onClick={() => go(to)} className="py-2.5 md:py-0 text-[var(--indigo)] hover:text-[var(--acc-blue)] transition-colors">
                         {label}
                       </button>
                     ))}
@@ -414,7 +459,9 @@ export default function Navbar({
       {/* Mobile panel */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-x-0 bottom-0 bg-[var(--warm-white)] overflow-y-auto"
+          id="mobile-nav"
+          data-lenis-prevent
+          className="lg:hidden fixed inset-x-0 bottom-0 bg-[var(--warm-white)] overflow-y-auto overscroll-contain"
           style={{ top: panelTop }}
         >
           <div className="container-x py-6">
@@ -448,22 +495,22 @@ export default function Navbar({
                     )}
                   </button>
                   {item.mega && expanded && (
-                    <div className="pb-5 pl-1 space-y-5">
+                    <div className="pb-4 pl-1 space-y-4">
                       <button
                         onClick={() => go(item.mega!.exploreCta.to)}
-                        className="block text-[15px] font-medium text-[var(--acc-blue)]"
+                        className="block w-full py-2.5 text-left text-[16px] font-medium text-[var(--acc-blue)]"
                       >
                         {item.mega.exploreCta.label}
                       </button>
                       {item.mega.groups.map((group) => (
                         <div key={group.title}>
-                          <p className="eyebrow mb-2">{group.title}</p>
-                          <ul className="space-y-2.5">
+                          <p className="eyebrow mb-1">{group.title}</p>
+                          <ul>
                             {group.links.map((l) => (
                               <li key={l.label}>
                                 <button
                                   onClick={() => go(l.to)}
-                                  className="text-[15px] text-[var(--indigo)] text-left"
+                                  className="block w-full py-2.5 text-[16px] text-[var(--indigo)] text-left"
                                 >
                                   {l.label}
                                 </button>

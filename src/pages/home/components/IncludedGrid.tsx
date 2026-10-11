@@ -53,18 +53,21 @@ export default function IncludedGrid() {
           every invitation
         </Reveal>
 
-        <div className="mt-12 md:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="mt-10 md:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           {FEATURES.map((f, i) => (
             <Reveal
               key={f.title}
               delay={(i % 4) * 0.06}
-              className="flex flex-col items-center rounded-2xl border border-[var(--line)] bg-white p-7 text-center shadow-[0_20px_40px_-28px_rgba(0,7,39,0.2)]"
+              className="flex items-start gap-4 rounded-2xl border border-[var(--line)] bg-white p-5 text-left shadow-[0_20px_40px_-28px_rgba(0,7,39,0.2)] sm:flex-col sm:items-center sm:gap-0 sm:p-7 sm:text-center"
             >
-              <i className={`${f.icon} text-[2.2rem] leading-none text-[var(--ink)]`} />
-              <h3 className="mt-5 font-semibold text-[var(--ink)]">{f.title}</h3>
-              <p className="mt-2 max-w-[15rem] text-sm leading-relaxed text-[var(--slate)]">
-                {f.copy}
-              </p>
+              {/* Phones: compact row (icon beside text); sm+: the centred card. */}
+              <i className={`${f.icon} shrink-0 text-[1.75rem] sm:text-[2.2rem] leading-none text-[var(--ink)]`} />
+              <div className="sm:flex sm:flex-col sm:items-center">
+                <h3 className="font-semibold leading-snug text-[var(--ink)] sm:mt-5">{f.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--slate)] sm:mt-2 sm:max-w-[15rem]">
+                  {f.copy}
+                </p>
+              </div>
             </Reveal>
           ))}
         </div>

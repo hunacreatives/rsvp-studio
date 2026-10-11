@@ -16,7 +16,7 @@ export default function GallerySection({ content, theme }: GallerySectionProps) 
 
   return (
     <section style={{ background: theme.background, padding: "64px 24px" }}>
-      <div style={{ width: "min(880px, 94vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 880, margin: "0 auto" }}>
         {galleries.map((gallery) => (
           <div key={gallery.id} style={{ marginBottom: 48 }}>
             {gallery.title ? (
@@ -35,7 +35,8 @@ export default function GallerySection({ content, theme }: GallerySectionProps) 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 45%), 1fr))",
+                gridAutoFlow: "dense",
                 gridAutoRows: 200,
                 gap: 12,
               }}
@@ -55,6 +56,8 @@ export default function GallerySection({ content, theme }: GallerySectionProps) 
                     }}
                   >
                     <img
+                      loading="lazy"
+                      decoding="async"
                       src={item.image.masterUrl}
                       alt={item.image.alt}
                       style={{
@@ -75,7 +78,7 @@ export default function GallerySection({ content, theme }: GallerySectionProps) 
                           background: "rgba(0,0,0,0.45)",
                           color: "#fff",
                           fontFamily: theme.bodyFont,
-                          fontSize: 12,
+                          fontSize: 13,
                         }}
                       >
                         {item.caption}

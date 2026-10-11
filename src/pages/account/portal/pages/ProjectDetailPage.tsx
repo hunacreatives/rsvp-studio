@@ -42,7 +42,7 @@ export default function ProjectDetailPage() {
 
   return (
     <>
-      <Link to="/account/projects" className="mb-5 inline-flex items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
+      <Link to="/account/projects" className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
         <i className="ri-arrow-left-line" /> All projects
       </Link>
 
@@ -111,6 +111,7 @@ export default function ProjectDetailPage() {
 
       <div className="mb-8 mt-8">
         <FilterTabs<Tab>
+          fill
           value={tab}
           onChange={setTab}
           options={[
@@ -134,7 +135,7 @@ export default function ProjectDetailPage() {
             </section>
           </div>
           <section className="min-w-0">
-            <SectionTitle action={<Link to="/account/billing" className="text-[14px] font-medium text-[var(--acc-blue)] hover:underline">All billing →</Link>}>
+            <SectionTitle action={<Link to="/account/billing" className="inline-flex min-h-[44px] items-center text-[14px] font-medium text-[var(--acc-blue)] hover:underline md:min-h-0">All billing →</Link>}>
               Invoices
             </SectionTitle>
             <InvoiceTable invoices={projectInvoices} payable />
@@ -164,7 +165,7 @@ function WebsiteTab({ project }: { project: Project }) {
     const template = site.templateId ? getTemplateDefinition(site.templateId)?.label ?? site.templateId : null;
     const publicUrl = `${window.location.origin}/invite/${site.slug}`;
     return (
-      <OutlineCard className="p-6 md:p-8">
+      <OutlineCard className="p-5 sm:p-6 md:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="eyebrow">Your website</p>
@@ -194,7 +195,7 @@ function WebsiteTab({ project }: { project: Project }) {
         {site.publishedAt ? (
           <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl bg-[var(--paper)] px-4 py-3">
             <i className="ri-link text-[var(--slate)]" />
-            <a href={publicUrl} target="_blank" rel="noreferrer" className="min-w-0 truncate text-[14px] text-[var(--acc-blue)] hover:underline">
+            <a href={publicUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 break-all text-[14px] text-[var(--acc-blue)] hover:underline sm:flex-none sm:truncate">
               {publicUrl}
             </a>
             <PillButton className="ml-auto" onClick={() => navigator.clipboard?.writeText(publicUrl)}>
@@ -214,10 +215,10 @@ function WebsiteTab({ project }: { project: Project }) {
 
   if (project.site_url) {
     return (
-      <OutlineCard className="p-6 md:p-8">
+      <OutlineCard className="p-5 sm:p-6 md:p-8">
         <p className="eyebrow">Your website</p>
         <p className="mt-2 font-display text-2xl font-semibold text-[var(--ink)]">Designed and hosted by our studio</p>
-        <a href={project.site_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-[15px] text-[var(--acc-blue)] hover:underline">
+        <a href={project.site_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 break-all text-[15px] text-[var(--acc-blue)] hover:underline">
           {project.site_url.replace(/^https?:\/\//, "")} <i className="ri-external-link-line" />
         </a>
         <p className="mt-4 text-[14px] text-[var(--slate)]">Need a change? Message us and we’ll update it for you.</p>

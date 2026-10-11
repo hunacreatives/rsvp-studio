@@ -1,5 +1,7 @@
-import type { Gallery, GalleryItem, EventContent } from "../../content/types";
+import { useRef, useState } from "react";
+import type { Gallery, GalleryItem, EventContent, ImageAsset } from "../../content/types";
 import { createId } from "../../content/id";
+import { uploadEventImage, UploadEventImageError } from "../../content/uploadEventImage";
 import { FormField, inputStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
 import { ImageUploadField } from "../components/ImageUploadField";
@@ -19,6 +21,22 @@ function ensureGallery(content: EventContent): Gallery {
   return content.galleries[0] ?? { id: createId("gallery"), items: [] };
 }
 
+function newGalleryItem(order: number, uploaded?: ImageAsset): GalleryItem {
+  return {
+    id: createId("gallery-item"),
+    order,
+    image: {
+      id: createId("image"),
+      masterUrl: uploaded?.masterUrl ?? "",
+      width: uploaded?.width ?? 1600,
+      height: uploaded?.height ?? 1600,
+      alt: "",
+      focalPoint: { x: 0.5, y: 0.5 },
+      createdAt: new Date().toISOString(),
+    },
+  };
+}
+
 export default function GalleryFields({ content, onChange, eventId, limit }: GalleryFieldsProps) {
   const gallery = ensureGallery(content);
 
@@ -26,6 +44,20 @@ export default function GalleryFields({ content, onChange, eventId, limit }: Gal
     const next = { ...gallery, ...patch };
     const galleries = content.galleries.length > 0 ? [next, ...content.galleries.slice(1)] : [next];
     onChange({ ...content, galleries });
+  }
+
+  // Several photos at once (phones: pick a batch from the camera roll). Uploads
+  // run one after another; the new items are appended to the LATEST content, so
+  // edits made while they upload aren't lost.
+  const latest = useRef(content);
+  latest.current = content;
+  function appendUploaded(images: ImageAsset[]) {
+    const current = latest.current;
+    const g = ensureGallery(current);
+    const items = [...g.items, ...images.map((img, i) => newGalleryItem(g.items.length + i + 1, img))];
+    const next = { ...g, items };
+    const galleries = current.galleries.length > 0 ? [next, ...current.galleries.slice(1)] : [next];
+    onChange({ ...current, galleries });
   }
 
   return (
@@ -45,22 +77,12 @@ export default function GalleryFields({ content, onChange, eventId, limit }: Gal
         </FormField>
       )}
 
+      <AddPhotosButton eventId={eventId} onUploaded={appendUploaded} />
+
       <ListEditor<GalleryItem>
         items={gallery.items}
         onChange={(items) => updateGallery({ items })}
-        createItem={() => ({
-          id: createId("gallery-item"),
-          order: gallery.items.length + 1,
-          image: {
-            id: createId("image"),
-            masterUrl: "",
-            width: 1600,
-            height: 1600,
-            alt: "",
-            focalPoint: { x: 0.5, y: 0.5 },
-            createdAt: new Date().toISOString(),
-          },
-        })}
+        createItem={() => newGalleryItem(gallery.items.length + 1)}
         addLabel="Add photo"
         emptyLabel="No photos yet."
         renderItem={(item, update) => (
@@ -106,7 +128,7 @@ export default function GalleryFields({ content, onChange, eventId, limit }: Gal
               </FormField>
             ) : null}
             <details style={{ marginTop: 8 }}>
-              <summary style={{ fontSize: 12, color: "var(--slate)", cursor: "pointer" }}>More options</summary>
+              <summary className="rb-summary-tap" style={{ fontSize: 12, color: "var(--slate)", cursor: "pointer" }}>More options</summary>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
               <FormField label="Focus across (0–1)">
                 <input
@@ -158,6 +180,73 @@ export default function GalleryFields({ content, onChange, eventId, limit }: Gal
   );
 }
 
+function AddPhotosButton({ eventId, onUploaded }: { eventId: string | undefined; onUploaded: (images: ImageAsset[]) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFiles(files: File[]) {
+    if (!eventId || files.length === 0) return;
+    setError(null);
+    const uploaded: ImageAsset[] = [];
+    let failed = 0;
+    let lastError = "";
+    for (let i = 0; i < files.length; i++) {
+      setProgress({ done: i, total: files.length });
+      try {
+        uploaded.push(await uploadEventImage(files[i], eventId));
+      } catch (err) {
+        failed++;
+        lastError = err instanceof UploadEventImageError ? err.message : "Upload failed — please try again.";
+      }
+    }
+    setProgress(null);
+    if (uploaded.length) onUploaded(uploaded);
+    if (failed) setError(failed === files.length ? lastError : `${failed} of ${files.length} photos couldn’t be added. ${lastError}`);
+  }
+
+  const busy = progress !== null;
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <button
+        type="button"
+        className="rb-tap44"
+        onClick={() => inputRef.current?.click()}
+        disabled={!eventId || busy}
+        style={{
+          width: "100%",
+          padding: "10px 16px",
+          borderRadius: 8,
+          border: "1px solid var(--line)",
+          background: "#fff",
+          color: "var(--ink)",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: !eventId || busy ? "default" : "pointer",
+          opacity: !eventId ? 0.6 : 1,
+        }}
+      >
+        {progress ? `Uploading ${progress.done + 1} of ${progress.total}…` : "Add photos"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: "none" }}
+        onChange={(e) => {
+          void handleFiles(Array.from(e.target.files ?? []));
+          e.target.value = "";
+        }}
+      />
+      <p style={{ fontSize: 12, color: "var(--slate)", margin: "4px 0 0" }} aria-live="polite">
+        {busy ? "Keep this page open until it finishes." : "Pick several at once from your phone or computer."}
+      </p>
+      {error ? <p style={{ fontSize: 12, color: "#b3382c", margin: "4px 0 0" }}>{error}</p> : null}
+    </div>
+  );
+}
+
 /** Tap a point on the photo to set its focus (what stays visible when cropped). */
 function FocusPicker({ url, focus, onChange }: { url: string; focus: { x: number; y: number }; onChange: (f: { x: number; y: number }) => void }) {
   return (
@@ -170,6 +259,7 @@ function FocusPicker({ url, focus, onChange }: { url: string; focus: { x: number
         const round = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 100) / 100;
         onChange({ x: round((e.clientX - r.left) / r.width), y: round((e.clientY - r.top) / r.height) });
       }}
+      className="rb-focus"
       style={{ position: "relative", cursor: "crosshair", borderRadius: 10, overflow: "hidden", lineHeight: 0 }}
     >
       <img src={url} alt="" style={{ width: "100%", display: "block" }} />

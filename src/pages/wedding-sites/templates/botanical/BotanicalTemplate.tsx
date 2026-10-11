@@ -23,7 +23,7 @@ export default function BotanicalTemplate({ content, settings, editorPreview = f
   const visibility = settings.sectionVisibility;
 
   return (
-    <div style={{ background: theme.background, minHeight: "100vh" }}>
+    <div style={{ background: theme.background, minHeight: "100svh" }}>
       {visibility.hero ? <Hero content={content} theme={theme} /> : null}
       {visibility.hostIntro ? <HostIntro content={content} theme={theme} /> : null}
       {visibility.schedule ? <ScheduleSection content={content} theme={theme} /> : null}
@@ -37,7 +37,7 @@ export default function BotanicalTemplate({ content, settings, editorPreview = f
 
       {credit.show ? (
         <div style={{ width: "100%", background: theme.ink, padding: "24px 0", textAlign: "center" }}>
-          <p style={{ color: theme.background, fontSize: 12, margin: 0, fontFamily: theme.bodyFont, letterSpacing: "0.06em" }}>
+          <p style={{ color: theme.background, fontSize: 14, margin: 0, fontFamily: theme.bodyFont, letterSpacing: "0.06em" }}>
             <CreditLine linkStyle={{color: theme.background, fontWeight: 700}} />
           </p>
         </div>

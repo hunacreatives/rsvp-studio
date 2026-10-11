@@ -43,7 +43,7 @@ function useAction() {
 function Card({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   return (
     <OutlineCard className="p-5 md:p-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-display text-[1.3rem] font-semibold text-[var(--ink)]">{title}</h3>
         {action}
       </div>
@@ -61,7 +61,7 @@ function ServicesPicker({ value, onChange }: { value: string[]; onChange: (v: st
           key={s}
           type="button"
           onClick={() => toggle(s)}
-          className="rounded-full border px-3 py-1 text-[13px] transition-colors"
+          className="min-h-[40px] rounded-full border px-3.5 py-1.5 text-[14px] transition-colors md:min-h-0 md:px-3 md:py-1 md:text-[13px]"
           style={{ borderColor: "var(--ink)", background: value.includes(s) ? "var(--ink)" : "#fff", color: value.includes(s) ? "#fff" : "var(--ink)" }}
         >
           {s}
@@ -335,12 +335,12 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
     <Card title="Client access" action={<PillButton onClick={onOpenInbox}><i className="ri-chat-3-line" /> Messages</PillButton>}>
       <div className="space-y-1 text-[14px]">
         {owner ? (
-          <p className="text-[var(--ink)]"><span className="text-[var(--slate)]">Owner:</span> {owner.full_name || "—"} · {owner.email}</p>
+          <p className="break-words text-[var(--ink)] [overflow-wrap:anywhere]"><span className="text-[var(--slate)]">Owner:</span> {owner.full_name || "—"} · {owner.email}</p>
         ) : (
           <p className="text-[var(--slate)]">Not linked to a client yet — generate a code and send it to them.</p>
         )}
         {members.map((m) => (
-          <p key={m.id} className="text-[var(--ink)]"><span className="text-[var(--slate)]">Member:</span> {m.full_name || "—"} · {m.email}</p>
+          <p key={m.id} className="break-words text-[var(--ink)] [overflow-wrap:anywhere]"><span className="text-[var(--slate)]">Member:</span> {m.full_name || "—"} · {m.email}</p>
         ))}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -349,9 +349,10 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
             key={c.code}
             onClick={() => copy(c.code)}
             title={c.used_at ? `Used ${formatDate(c.used_at)}` : "Click to copy"}
-            className={`rounded-full px-3 py-1 font-mono text-[13px] ${c.used_at ? "bg-[var(--paper)] text-[var(--slate)] line-through" : "bg-[#ecfbcc] text-[#3d5a12]"}`}
+            className={`min-h-[40px] rounded-full px-3.5 py-1.5 font-mono text-[14px] md:min-h-0 md:px-3 md:py-1 md:text-[13px] ${c.used_at ? "bg-[var(--paper)] text-[var(--slate)]" : "bg-[#ecfbcc] text-[#3d5a12]"}`}
           >
-            {c.code}
+            <span className={c.used_at ? "line-through" : ""}>{c.code}</span>
+            {c.used_at ? <span className="ml-1.5 font-sans text-[12px]">used {formatDate(c.used_at)}</span> : null}
           </button>
         ))}
       </div>
@@ -370,8 +371,8 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
         Generate invite code
       </PillButton>
       {unused ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Input type="email" value={sendTo} onChange={(e) => setSendTo(e.target.value)} placeholder="client@email.com" className="!w-[240px]" />
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <Input type="email" value={sendTo} onChange={(e) => setSendTo(e.target.value)} placeholder="client@email.com" className="sm:!w-[240px]" />
           <PillButton
             tone="dark"
             disabled={busy || !/^\S+@\S+\.\S+$/.test(sendTo.trim())}
@@ -433,16 +434,20 @@ function TasksCard({ project }: { project: Project }) {
     <Card title="Client tasks">
       <ul className="divide-y divide-[var(--line)]">
         {mine.map((t) => (
-          <li key={t.id} className="flex items-center gap-3 py-2.5">
-            <input
-              type="checkbox"
-              checked={!!t.done_at}
-              onChange={(e) => run(() => studio.setTask(t.id, { done_at: e.target.checked ? new Date().toISOString() : null }))}
-              className="h-4 w-4 accent-[var(--acc-green)]"
-            />
-            <span className={`flex-1 text-[14px] ${t.done_at ? "text-[var(--slate)] line-through" : "text-[var(--ink)]"}`}>{t.title}</span>
-            <span className="text-[12px] text-[var(--slate)]">{t.due_date ? `Due ${formatDate(t.due_date)}` : ""}</span>
-            <button onClick={() => window.confirm(`Delete the task “${t.title}”?`) && run(() => studio.deleteTask(t.id))} aria-label={`Delete ${t.title}`} className="text-[var(--slate)] hover:text-[#c2412d]">
+          <li key={t.id} className="flex items-center gap-1 py-1">
+            <label className="flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={!!t.done_at}
+                onChange={(e) => run(() => studio.setTask(t.id, { done_at: e.target.checked ? new Date().toISOString() : null }))}
+                className="h-5 w-5 shrink-0 accent-[var(--acc-green)] md:h-4 md:w-4"
+              />
+              <span className="min-w-0 flex-1 sm:flex sm:items-center sm:gap-3">
+                <span className={`block break-words text-[15px] sm:flex-1 md:text-[14px] ${t.done_at ? "text-[var(--slate)] line-through" : "text-[var(--ink)]"}`}>{t.title}</span>
+                {t.due_date ? <span className="block text-[13px] text-[var(--slate)] sm:shrink-0 md:text-[12px]">Due {formatDate(t.due_date)}</span> : null}
+              </span>
+            </label>
+            <button onClick={() => window.confirm(`Delete the task “${t.title}”?`) && run(() => studio.deleteTask(t.id))} aria-label={`Delete ${t.title}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[18px] text-[var(--slate)] hover:bg-black/5 hover:text-[#c2412d]">
               <i className="ri-delete-bin-line" />
             </button>
           </li>
@@ -484,10 +489,10 @@ function InvoicesCard({ project }: { project: Project }) {
     <Card title="Invoices">
       <ul className="divide-y divide-[var(--line)]">
         {mine.map((inv) => (
-          <li key={inv.id} className="flex flex-wrap items-center gap-3 py-3">
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] text-[var(--ink)]">{inv.description}</span>
-              <span className="block text-[12px] text-[var(--slate)]">
+          <li key={inv.id} className="flex flex-wrap items-center gap-2 py-3 sm:gap-3">
+            <span className="min-w-0 basis-full sm:basis-0 sm:flex-1">
+              <span className="block break-words text-[15px] text-[var(--ink)] md:text-[14px]">{inv.description}</span>
+              <span className="block text-[13px] text-[var(--slate)] md:text-[12px]">
                 {inv.number} · {formatMoney(inv.amount)} · {invoiceSummary(inv)}
               </span>
             </span>

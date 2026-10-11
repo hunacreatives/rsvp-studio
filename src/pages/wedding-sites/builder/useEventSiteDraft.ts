@@ -232,6 +232,21 @@ export function useEventSiteDraft(eventId: string | undefined) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [unsaved]);
+  // Phones: switching to Photos/Messenger can get the tab discarded without a
+  // beforeunload, so save straight away when the page is hidden.
+  useEffect(() => {
+    if (!unsaved) return;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") void save();
+    };
+    const onPageHide = () => void save();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [unsaved, save]);
 
   /**
    * Go live. A DIY site has to be paid for first: the database refuses with

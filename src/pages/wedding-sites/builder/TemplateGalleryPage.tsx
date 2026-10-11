@@ -39,10 +39,13 @@ const priceLabel = (amount: number | undefined) =>
 function TemplateCard({
   template,
   selected,
+  opening,
   onSelect,
 }: {
   template: TemplateDefinition;
   selected: boolean;
+  /** Tapped: saving the choice before the editor opens. */
+  opening: boolean;
   onSelect: () => void;
 }) {
   const prices = useSitePrices();
@@ -53,6 +56,7 @@ function TemplateCard({
     <div
       role="button"
       tabIndex={0}
+      aria-busy={opening || undefined}
       onClick={onSelect}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -84,24 +88,28 @@ function TemplateCard({
 
         <div
           className={`absolute inset-0 flex items-center justify-center transition-opacity ${
-            selected ? "" : "opacity-0 group-hover:opacity-100"
+            selected || opening ? "" : "opacity-0 group-hover:opacity-100"
           }`}
           style={{
             background: "rgba(0,7,39,0.55)",
-            opacity: selected ? 1 : undefined,
+            opacity: selected || opening ? 1 : undefined,
           }}
         >
           <span
             className="px-5 py-2.5 rounded-full text-[13px] font-medium"
             style={{ background: "#fff", color: "var(--ink)" }}
           >
-            {selected ? "Selected — continue editing →" : "Select Design →"}
+            {opening ? "Opening…" : selected ? "Selected — continue editing →" : "Select Design →"}
           </span>
         </div>
       </div>
 
       <p className="font-display text-center text-[17px] mt-3" style={{ color: "var(--ink)" }}>
         {template.label}
+      </p>
+      {/* Phones have no hover, so the action is spelled out under the name. */}
+      <p className="md:hidden text-center text-[14px] font-semibold mt-1" style={{ color: "var(--acc-blue)" }}>
+        {selected ? "Continue editing →" : "Use this design →"}
       </p>
     </div>
   );
@@ -114,6 +122,7 @@ export default function TemplateGalleryPage() {
   const { templates } = useTemplateCatalog();
   const [eventType, setEventType] = useState<string | null>(null);
   const [archetypeFilter, setArchetypeFilter] = useState<TemplateArchetype | "all">("all");
+  const [opening, setOpening] = useState<string | null>(null);
 
   useEffect(() => {
     if (!eventId) return;
@@ -130,6 +139,9 @@ export default function TemplateGalleryPage() {
   const visibleTemplates = templates.filter((t) => archetypeFilter === "all" || t.archetype === archetypeFilter);
 
   async function chooseTemplate(templateId: string) {
+    // Saving can take a moment on mobile data: show "Opening…" and ignore repeat taps.
+    if (opening) return;
+    setOpening(templateId);
     // Computed explicitly (not via setPresentation's updater callback)
     // so the exact new value can be passed straight to save() below —
     // save() previously ran with the pre-update `presentation` still in
@@ -149,7 +161,12 @@ export default function TemplateGalleryPage() {
     // Persist the selection immediately so it's never lost, then move into
     // the editor. Selecting a template only ever touches draft state —
     // nothing is published here.
-    await save({ presentation: nextPresentation });
+    try {
+      await save({ presentation: nextPresentation });
+    } catch {
+      setOpening(null);
+      return;
+    }
     navigate(`/account/events/${eventId}/site-builder/edit`);
   }
 
@@ -174,7 +191,7 @@ export default function TemplateGalleryPage() {
         <div className="flex flex-wrap justify-center gap-2 mt-8">
           <button
             onClick={() => setArchetypeFilter("all")}
-            className="px-4 py-2 rounded-full text-[13px] font-medium"
+            className="px-4 py-2 rounded-full text-[13px] font-medium min-h-[44px] md:min-h-0"
             style={{
               background: archetypeFilter === "all" ? "var(--ink)" : "var(--paper)",
               color: archetypeFilter === "all" ? "#fff" : "var(--ink)",
@@ -186,7 +203,7 @@ export default function TemplateGalleryPage() {
             <button
               key={archetype}
               onClick={() => setArchetypeFilter(archetype)}
-              className="px-4 py-2 rounded-full text-[13px] font-medium capitalize"
+              className="px-4 py-2 rounded-full text-[13px] font-medium capitalize min-h-[44px] md:min-h-0"
               style={{
                 background: archetypeFilter === archetype ? "var(--ink)" : "var(--paper)",
                 color: archetypeFilter === archetype ? "#fff" : "var(--ink)",
@@ -220,6 +237,7 @@ export default function TemplateGalleryPage() {
                 key={template.id}
                 template={template}
                 selected={presentation.activeTemplateId === template.id}
+                opening={opening === template.id}
                 onSelect={() => chooseTemplate(template.id)}
               />
             ))}

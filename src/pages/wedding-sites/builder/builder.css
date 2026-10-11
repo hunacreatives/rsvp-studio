@@ -1,0 +1,82 @@
+/* Builder (DIY website editor) — phone-only adjustments.
+   Desktop styling lives inline in the components and is untouched: every rule
+   that changes how something looks sits inside the max-width: 767px query, and
+   uses !important only to win over those inline styles on phones. */
+
+:root {
+  --rb-field-font: 14px;
+}
+
+/* Fills the screen; dvh keeps the bottom clear of mobile browser toolbars. */
+.rb-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
+@media (max-width: 767px) {
+  /* iOS zooms in on fields under 16px (FormField's inputStyle reads this). */
+  :root {
+    --rb-field-font: 16px;
+  }
+
+  /* Tap targets */
+  .rb-tap44 {
+    min-height: 44px !important;
+  }
+
+  /* List items: move/remove controls become a header row of 40px buttons */
+  .rb-list-controls {
+    position: static !important;
+    justify-content: flex-end;
+    margin: -8px -8px 6px 0;
+    gap: 4px !important;
+  }
+  .rb-list-btn {
+    min-width: 40px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* "More options" disclosure in the gallery */
+  .rb-summary-tap {
+    padding: 12px 0 !important;
+    font-size: 14px !important;
+  }
+
+  /* Look & feel → Sections to show */
+  .rb-check-row {
+    min-height: 44px;
+    gap: 12px !important;
+  }
+  .rb-check {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* Gallery focus picker: keep tall portrait photos to a sensible height */
+  .rb-focus {
+    display: inline-block !important;
+    max-width: 100%;
+  }
+  .rb-focus > img {
+    width: auto !important;
+    max-width: 100%;
+    max-height: 320px;
+  }
+
+  /* Dialogs: a little less padding on phones */
+  .rb-dialog-card {
+    padding: 22px 20px !important;
+  }
+}
+
+/* Side-by-side date/time fields stack when there's no room for both */
+@media (max-width: 479px) {
+  .rb-stack {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+}

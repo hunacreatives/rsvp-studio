@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
 import { DOMAIN_PERKS, DomainPicker, peso as pesoWhole } from "./DomainPicker";
+import "./builder.css";
 
 // Publishing a site from the builder:
 //   1. try to publish — studio projects and free templates just go live;
@@ -149,15 +150,18 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
   const shareText = encodeURIComponent(`You’re invited! RSVP here: ${url}`);
 
   return (
-    <div role="dialog" aria-modal="true" onClick={step.kind === "working" ? undefined : flow.close} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,7,39,0.45)", display: "grid", placeItems: "center", padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 24px 60px -24px rgba(0,7,39,0.45)", fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
+    // Scrolls when the card is taller than the screen (short phones, keyboard open).
+    // The web-address step doesn't close on an outside tap — tapping away to dismiss
+    // the keyboard would lose the search; it has its own Cancel button.
+    <div role="dialog" aria-modal="true" onClick={step.kind === "working" || step.kind === "address" ? undefined : flow.close} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,7,39,0.45)", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", placeItems: "center", padding: 16, overflowY: "auto", overscrollBehavior: "contain" }}>
+      <div className="rb-dialog-card" onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 24px 60px -24px rgba(0,7,39,0.45)", fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
         {step.kind === "working" ? (
           <p style={{ margin: 0, fontSize: 16 }}>{step.text}</p>
         ) : step.kind === "address" ? (
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Choose your web address</h2>
             <button onClick={flow.chooseFree} style={{ ...btn(false), width: "100%", justifyContent: "space-between", marginTop: 16, borderRadius: 14, padding: "12px 16px" }}>
-              <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>thersvpstudio.com/invite/{slug}</span>
+              <span style={{ minWidth: 0, textAlign: "left", overflowWrap: "anywhere" }}>thersvpstudio.com/invite/{slug}</span>
               <span style={{ color: "#55556a", fontWeight: 500 }}>Free</span>
             </button>
             <p style={{ margin: "20px 0 8px", fontSize: 15, fontWeight: 600 }}>Or get your own, like {slug.replace(/-/g, "")}.com</p>
@@ -168,6 +172,9 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
             </ul>
             <DomainPicker eventId={flow.eventId!} suggestion={slug.replace(/-/g, "")} onPick={flow.chooseDomain} />
             <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#868697" }}>Your site goes live on the free link right away; your own address follows a few minutes after you pay.</p>
+            <button onClick={flow.close} style={{ ...btn(false), marginTop: 16 }}>
+              Cancel
+            </button>
           </>
         ) : step.kind === "pay" ? (
           <>
@@ -208,7 +215,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
             <p style={{ margin: "10px 0 14px", fontSize: 15, color: "#55556a" }}>Share this link with your guests:</p>
             <div style={{ display: "flex", gap: 8, alignItems: "center", background: "#f5f5f2", borderRadius: 12, padding: "10px 12px" }}>
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 14 }}>{url}</span>
-              <button onClick={copy} style={{ ...btn(true), padding: "8px 14px", fontSize: 13 }}>
+              <button onClick={copy} className="rb-tap44" style={{ ...btn(true), padding: "8px 14px", fontSize: 13 }}>
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>

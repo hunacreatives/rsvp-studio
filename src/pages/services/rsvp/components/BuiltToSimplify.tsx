@@ -33,23 +33,25 @@ export default function BuiltToSimplify() {
         <Reveal
           as="h2"
           delay={0.05}
-          className="mt-3 font-display font-semibold tracking-[-0.02em] text-[var(--ink)]"
+          className="mt-3 font-display font-semibold tracking-[-0.02em] leading-[1.15] text-[var(--ink)]"
           style={{ fontSize: "clamp(1.9rem, 4vw, 2.8rem)" }}
         >
           Everything you need,{" "}
           <span className="italic">beautifully organized.</span>
         </Reveal>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 sm:mt-14 grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f, i) => (
             <Reveal
               key={f.title}
               delay={(i % 4) * 0.05}
-              className="rounded-2xl bg-white p-7 text-center shadow-[0_18px_40px_-30px_rgba(0,7,39,0.2)]"
+              className="flex items-start gap-4 rounded-2xl bg-white p-5 text-left shadow-[0_18px_40px_-30px_rgba(0,7,39,0.2)] sm:block sm:p-7 sm:text-center"
             >
-              <i className={`${f.icon} text-3xl text-[var(--ink)]`} />
-              <h3 className="mt-4 font-semibold text-[var(--ink)]">{f.title}</h3>
-              <p className="mt-2 text-sm text-[var(--slate)]">{f.copy}</p>
+              <i className={`${f.icon} shrink-0 text-2xl leading-7 sm:text-3xl text-[var(--ink)]`} />
+              <div>
+                <h3 className="font-semibold text-[var(--ink)] sm:mt-4">{f.title}</h3>
+                <p className="mt-1 sm:mt-2 text-sm text-[var(--slate)]">{f.copy}</p>
+              </div>
             </Reveal>
           ))}
         </div>

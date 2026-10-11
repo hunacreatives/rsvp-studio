@@ -22,7 +22,7 @@ export default function EditorialFormalTemplate({ content, settings, editorPrevi
   const visibility = settings.sectionVisibility;
 
   return (
-    <div style={{ background: theme.background, minHeight: "100vh" }}>
+    <div style={{ background: theme.background, minHeight: "100svh" }}>
       {visibility.hero ? (
         <Hero
           content={content}

@@ -32,7 +32,7 @@ export default function ServicesHero() {
   return (
     <section
       ref={root}
-      className="relative isolate overflow-hidden flex items-center min-h-[560px] md:min-h-[640px] pt-28 pb-20"
+      className="relative isolate overflow-hidden flex items-center min-h-[440px] sm:min-h-[560px] md:min-h-[640px] pt-24 sm:pt-28 pb-16 sm:pb-20"
     >
       <div
         ref={layer}

@@ -40,22 +40,22 @@ export default function ChooseExperience() {
           Choose Your Experience.
         </Reveal>
 
-        <div className="mt-14 md:mt-16 grid gap-10 md:grid-cols-2 md:divide-x md:divide-[var(--line)]">
+        <div className="mt-10 md:mt-16 grid gap-6 md:gap-10 md:grid-cols-2 md:divide-x md:divide-[var(--line)]">
           {PLANS.map((p, i) => (
-            <Reveal key={p.title} delay={i * 0.08} className="md:px-8 first:md:pl-0 last:md:pr-0">
+            <Reveal key={p.title} delay={i * 0.08} className="rounded-3xl bg-white p-4 min-[381px]:p-5 shadow-[0_18px_40px_-30px_rgba(0,7,39,0.2)] sm:p-8 md:rounded-none md:bg-transparent md:p-0 md:px-8 md:shadow-none first:md:pl-0 last:md:pr-0">
               <h3 className="font-display text-2xl font-semibold text-center text-[var(--ink)]">
                 {p.title}
               </h3>
-              <div className="mt-6 overflow-hidden rounded-2xl shadow-[0_28px_56px_-30px_rgba(0,7,39,0.3)]">
-                <img src={p.img} alt={`${p.title} example`} className="w-full h-[300px] object-cover object-top" />
+              <div className="mt-5 md:mt-6 overflow-hidden rounded-2xl shadow-[0_28px_56px_-30px_rgba(0,7,39,0.3)]">
+                <img src={p.img} alt={`${p.title} example`} className="w-full h-[220px] sm:h-[300px] object-cover object-top" />
               </div>
-              <p className="mt-6 text-center text-[var(--slate)]">
+              <p className="mt-5 md:mt-6 text-center text-[var(--slate)]">
                 starts at{" "}
                 <span className="font-semibold text-[var(--acc-blue)]">{p.price}</span>
               </p>
-              <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary max-[380px]:px-4 max-[380px]:text-[12px] max-[380px]:tracking-[0.06em]"
                   onClick={() => navigate(inquiryLink({ service: "website", design: p.title === "Custom" ? "custom" : "semi-custom" }))}
                 >
                   Get a {p.title} quote
@@ -71,14 +71,17 @@ export default function ChooseExperience() {
                 )}
               </div>
 
-              <ul className="mt-10 space-y-8">
+              {/* Phones: compact left-aligned list; md+: centred stack. */}
+              <ul className="mt-8 space-y-4 border-t border-[var(--line)] pt-6 md:mt-10 md:space-y-8 md:border-0 md:pt-0">
                 {p.features.map((f) => (
-                  <li key={f.title} className="text-center">
-                    <i className={`${f.icon} text-2xl text-[var(--ink)]`} />
-                    <p className="mt-2 font-semibold text-[var(--ink)]">{f.title}</p>
-                    <p className="mt-1 text-sm text-[var(--slate)] max-w-xs mx-auto">
-                      {f.copy}
-                    </p>
+                  <li key={f.title} className="flex items-start gap-3 text-left md:block md:text-center">
+                    <i className={`${f.icon} shrink-0 text-xl leading-6 md:text-2xl text-[var(--ink)]`} />
+                    <div>
+                      <p className="font-semibold text-[var(--ink)] md:mt-2">{f.title}</p>
+                      <p className="mt-0.5 md:mt-1 text-sm text-[var(--slate)] md:max-w-xs md:mx-auto">
+                        {f.copy}
+                      </p>
+                    </div>
                   </li>
                 ))}
               </ul>

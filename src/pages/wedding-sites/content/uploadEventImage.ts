@@ -1,5 +1,6 @@
 import { supabase } from "../../../lib/supabase";
 import { createId } from "./id";
+import { compressImage } from "../../../lib/compressImage";
 import type { ImageAsset } from "./types";
 
 const BUCKET = "event-site-images";
@@ -30,9 +31,20 @@ function readNaturalSize(file: File): Promise<{ width: number; height: number }>
  * id so storage RLS can check upload ownership from the path alone.
  * Returns a real ImageAsset — the caller just merges it into content.
  */
-export async function uploadEventImage(file: File, eventId: string): Promise<ImageAsset> {
-  if (!ACCEPTED_TYPES.includes(file.type)) {
+export async function uploadEventImage(original: File, eventId: string): Promise<ImageAsset> {
+  // The picker accepts image/* (so phones open their photo library); the real
+  // type check happens here, after phone photos are shrunk to ≤2400px JPEGs.
+  const isHeic = /\.(heic|heif)$/i.test(original.name) || /image\/hei[cf]/.test(original.type);
+  if (!original.type.startsWith("image/") && !isHeic) {
     throw new UploadEventImageError("Please choose a PNG, JPEG, WebP, or GIF image.");
+  }
+  const file = await compressImage(original, { maxEdge: 2400, quality: 0.85 });
+  if (!ACCEPTED_TYPES.includes(file.type)) {
+    throw new UploadEventImageError(
+      isHeic
+        ? "This browser can’t open HEIC photos. Choose the photo from your Photos app, or save it as a JPEG first."
+        : "Please choose a PNG, JPEG, WebP, or GIF image.",
+    );
   }
   if (file.size > MAX_MB * 1024 * 1024) {
     throw new UploadEventImageError(`That photo is over ${MAX_MB} MB — please choose a smaller file.`);

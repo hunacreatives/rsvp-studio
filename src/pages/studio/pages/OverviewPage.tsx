@@ -5,6 +5,7 @@ import { ActivityList, isOverdue } from "@/pages/account/portal/components/block
 import { formatDate, formatMoney, inboxStamp } from "@/pages/account/portal/format";
 import { Avatar } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
+import BannerCard from "../BannerCard";
 import { isOverdue as replyOverdue } from "@/pages/account/portal/support";
 import { countNewLeads, loadFreeSiteStats, useHolidays, type FreeSiteStats } from "../studioApi";
 
@@ -61,7 +62,7 @@ export default function OverviewPage() {
     <>
       <StudioHeader title={`${greeting}${profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.`} sub="Here’s what needs the studio’s attention." />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         <Stat label="New leads" value={String(leads)} sub="inquiries waiting for a reply" to="/studio/leads" tone={leads ? "coral" : undefined} />
         <Stat label="Active projects" value={String(active.length)} sub={`${projects.length} total${diyCount ? ` · ${diyCount} DIY sites` : ""}`} to="/studio/projects" />
         <Stat
@@ -72,7 +73,7 @@ export default function OverviewPage() {
           tone={supportLate.length ? "coral" : undefined}
         />
         <Stat label="Outstanding" value={formatMoney(outstanding)} sub={`${open.length} open · ${overdue.length} overdue`} to="/studio/invoices" tone={overdue.length ? "coral" : undefined} />
-        <Stat label="Paid this month" value={formatMoney(paidThisMonth)} sub="from client invoices" to="/studio/invoices" />
+        <Stat label="Paid this month" value={formatMoney(paidThisMonth)} sub="from client invoices" to="/studio/invoices" className="col-span-2 sm:col-span-1" />
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
@@ -138,8 +139,9 @@ export default function OverviewPage() {
           {openTasks.map((t) => (
             <Link key={t.id} to={`/studio/projects?project=${t.event_id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
               <i className="ri-checkbox-blank-circle-line text-[var(--slate)]" />
-              <span className="min-w-0 flex-1 truncate text-[14px] text-[var(--ink)]">
-                {t.title} <span className="text-[var(--slate)]">· {name(t.event_id)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] text-[var(--ink)]">{t.title}</span>
+                <span className="block truncate text-[13px] text-[var(--slate)]">{name(t.event_id)}</span>
               </span>
               <span className={`shrink-0 text-[12px] ${t.due_date! < today() ? "font-medium text-[#c2412d]" : "text-[var(--slate)]"}`}>{formatDate(t.due_date)}</span>
             </Link>
@@ -182,6 +184,8 @@ export default function OverviewPage() {
         ) : null}
       </div>
 
+      <BannerCard />
+
       <section className="mt-8">
         <h2 className="mb-4 font-display text-[1.4rem] font-semibold text-[var(--ink)]">Recent activity</h2>
         <div className="[&>div]:border [&>div]:border-[var(--line)] [&>div]:!bg-white">
@@ -192,11 +196,11 @@ export default function OverviewPage() {
   );
 }
 
-function Stat({ label, value, sub, to, tone }: { label: string; value: string; sub: string; to: string; tone?: "coral" }) {
+function Stat({ label, value, sub, to, tone, className = "" }: { label: string; value: string; sub: string; to: string; tone?: "coral"; className?: string }) {
   return (
-    <Link to={to} className="rounded-[20px] border border-[var(--line)] bg-white px-5 py-4 transition-colors hover:border-[var(--ink)]">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">{label}</p>
-      <p className={`mt-1 text-[28px] font-semibold ${tone === "coral" ? "text-[#c2412d]" : "text-[var(--ink)]"}`}>{value}</p>
+    <Link to={to} className={`min-w-0 rounded-[20px] border border-[var(--line)] bg-white px-4 py-3.5 transition-colors hover:border-[var(--ink)] sm:px-5 sm:py-4 ${className}`}>
+      <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--slate)] sm:tracking-[0.08em]">{label}</p>
+      <p className={`mt-1 break-words text-[22px] font-semibold sm:text-[28px] ${tone === "coral" ? "text-[#c2412d]" : "text-[var(--ink)]"}`}>{value}</p>
       <p className="text-[13px] text-[var(--slate)]">{sub}</p>
     </Link>
   );
@@ -205,9 +209,9 @@ function Stat({ label, value, sub, to, tone }: { label: string; value: string; s
 function Box({ title, link, empty, children }: { title: string; link?: { to: string; label: string }; empty?: string | false; children: ReactNode }) {
   return (
     <section className="min-w-0 rounded-[22px] border border-[var(--line)] bg-white px-5 py-4">
-      <div className="mb-1 flex items-center justify-between">
-        <h2 className="font-display text-[1.25rem] font-semibold text-[var(--ink)]">{title}</h2>
-        {link ? <Link to={link.to} className="text-[13px] text-[var(--acc-blue)] hover:underline">{link.label} →</Link> : null}
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <h2 className="min-w-0 font-display text-[1.25rem] font-semibold text-[var(--ink)]">{title}</h2>
+        {link ? <Link to={link.to} className="-mr-2 inline-flex min-h-[44px] shrink-0 items-center whitespace-nowrap px-2 text-[14px] text-[var(--acc-blue)] hover:underline md:min-h-0 md:text-[13px]">{link.label} →</Link> : null}
       </div>
       {empty ? <p className="py-6 text-[14px] text-[var(--slate)]">{empty}</p> : <div className="divide-y divide-[var(--line)]">{children}</div>}
     </section>

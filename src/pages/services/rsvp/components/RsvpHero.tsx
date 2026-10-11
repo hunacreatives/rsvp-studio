@@ -13,7 +13,7 @@ export default function RsvpHero() {
       <div className="container-x grid items-center gap-12 lg:grid-cols-2">
         <div>
           <h1
-            className="font-display font-semibold tracking-[-0.02em] text-[var(--ink)]"
+            className="font-display font-semibold tracking-[-0.02em] leading-[1.1] text-[var(--ink)]"
             style={{ fontSize: "clamp(2.4rem, 5vw, 3.6rem)" }}
           >
             RSVP Management
@@ -23,11 +23,11 @@ export default function RsvpHero() {
           </p>
           <button
             onClick={scrollToHow}
-            className="mt-8 inline-flex items-center gap-2 font-medium text-[var(--acc-blue)] hover:underline underline-offset-4"
+            className="mt-6 inline-flex min-h-[44px] items-center gap-2 font-medium text-[var(--acc-blue)] hover:underline underline-offset-4"
           >
             See how it works
             <span className="grid h-6 w-6 place-items-center rounded-full border border-[var(--acc-blue)]">
-              <i className="ri-play-fill text-sm" />
+              <i className="ri-arrow-down-line text-sm" />
             </span>
           </button>
         </div>

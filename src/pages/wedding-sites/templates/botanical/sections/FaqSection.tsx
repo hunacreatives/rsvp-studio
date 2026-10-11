@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { LeafDivider } from "../Ornament";
@@ -12,7 +13,7 @@ export default function FaqSection({ content, theme }: FaqSectionProps) {
 
   return (
     <section style={{ background: theme.background, padding: "72px 24px", textAlign: "center" }}>
-      <div style={{ width: "min(600px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 600, margin: "0 auto" }}>
         <p style={{ fontFamily: theme.displayFont, fontSize: 28, color: theme.ink, margin: 0 }}>Questions</p>
         <LeafDivider color={theme.ink} />
         <div style={{ textAlign: "left" }}>
@@ -22,7 +23,7 @@ export default function FaqSection({ content, theme }: FaqSectionProps) {
               style={{ padding: "18px 0", borderBottom: i < arr.length - 1 ? `1px solid ${theme.ink}22` : "none" }}
             >
               <p style={{ fontFamily: theme.displayFont, fontSize: 19, color: theme.ink, margin: 0 }}>{faq.question}</p>
-              <p style={{ fontFamily: theme.bodyFont, fontSize: 14, color: theme.muted, margin: "6px 0 0", lineHeight: 1.6 }}>
+              <p style={{ fontFamily: theme.bodyFont, fontSize: 14, color: mutedText(theme), margin: "6px 0 0", lineHeight: 1.6 }}>
                 {faq.answer}
               </p>
             </div>

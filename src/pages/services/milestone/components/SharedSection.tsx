@@ -23,13 +23,13 @@ export default function SharedSection() {
             Share through your favorite apps and platforms, so everyone receives
             your announcement instantly.
           </p>
-          <div className="mt-10 flex flex-wrap gap-8">
+          <div className="mt-8 grid max-w-sm grid-cols-4 gap-2 sm:mt-10 sm:flex sm:max-w-none sm:flex-wrap sm:gap-8">
             {CHANNELS.map((c) => (
               <div key={c.label} className="flex flex-col items-center gap-2">
-                <span className="grid place-items-center w-14 h-14 rounded-full bg-white border border-[var(--line)] text-2xl text-[var(--ink)]">
+                <span className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white border border-[var(--line)] text-2xl text-[var(--ink)]">
                   <i className={c.icon} />
                 </span>
-                <span className="text-sm text-[var(--slate)]">{c.label}</span>
+                <span className="text-[13px] sm:text-sm text-[var(--slate)]">{c.label}</span>
               </div>
             ))}
           </div>

@@ -85,14 +85,14 @@ export default function SupportReport({ requests, holidays }: { requests: Thread
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
         <PillButton onClick={() => setMonth(shiftMonth(month, -1))}>‹</PillButton>
-        <span className="min-w-[150px] text-center text-[15px] font-semibold text-[var(--ink)]">{monthName(month)}</span>
+        <span className="min-w-[130px] text-center text-[15px] font-semibold text-[var(--ink)]">{monthName(month)}</span>
         <PillButton onClick={() => setMonth(shiftMonth(month, 1))} disabled={month >= thisMonth}>
           ›
         </PillButton>
         <span className="ml-auto text-[12px] text-[var(--slate)]">Times count office hours only: Mon–Fri, 9 AM–6 PM Manila, minus holidays.</span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Received" value={String(now.received)} sub={vs(now.received, prev.received)} />
         <Stat
           label="Solved"
@@ -193,9 +193,9 @@ export default function SupportReport({ requests, holidays }: { requests: Thread
 function Stat({ label, value, sub, tone, onClick }: { label: string; value: string; sub?: string; tone?: "late"; onClick?: () => void }) {
   const Tag = onClick ? "button" : "div";
   return (
-    <Tag onClick={onClick} className={`rounded-[18px] border border-[var(--line)] bg-white p-4 text-left ${onClick ? "hover:border-[var(--ink)]" : ""}`}>
-      <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">{label}</span>
-      <span className={`mt-1.5 block text-[22px] font-semibold ${tone === "late" ? "text-[#c2412d]" : "text-[var(--ink)]"}`}>{value}</span>
+    <Tag onClick={onClick} className={`min-w-0 rounded-[18px] border border-[var(--line)] bg-white p-3.5 text-left sm:p-4 ${onClick ? "hover:border-[var(--ink)]" : ""}`}>
+      <span className="block text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--slate)] md:text-[11px] md:tracking-[0.08em]">{label}</span>
+      <span className={`mt-1.5 block break-words text-[20px] font-semibold sm:text-[22px] ${tone === "late" ? "text-[#c2412d]" : "text-[var(--ink)]"}`}>{value}</span>
       {sub ? <span className="mt-0.5 block text-[12px] text-[var(--slate)]">{sub}</span> : null}
     </Tag>
   );
@@ -205,7 +205,7 @@ function Card({ title, children, aside }: { title: string; children: React.React
   return (
     <section className="rounded-[22px] border border-[var(--line)] bg-white p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">{title}</h3>
+        <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)] md:text-[11px]">{title}</h3>
         {aside}
       </div>
       {children}
@@ -349,7 +349,7 @@ function EmailRepliesCard({ onOpen }: { onOpen: (id: string) => void }) {
               <span className="w-[120px] shrink-0 text-[12px] text-[var(--slate)]">
                 {new Date(r.received_at ?? r.created_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
               </span>
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${OUTCOME[r.outcome].tone}`}>{OUTCOME[r.outcome].label}</span>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-medium md:text-[11px] ${OUTCOME[r.outcome].tone}`}>{OUTCOME[r.outcome].label}</span>
               <span className="min-w-0 flex-1 truncate text-[var(--ink)]">
                 {r.from_address ?? "—"}
                 {r.subject ? <span className="text-[var(--slate)]"> · {r.subject}</span> : null}

@@ -20,14 +20,17 @@ export function creditHref(slug?: string) {
 export function CreditLine({ linkStyle }: { linkStyle?: CSSProperties }) {
   const { slug } = useSiteCredit();
   const href = creditHref(slug);
+  // A 44px-tall tap area on phones without changing the footer's layout:
+  // the padding is cancelled by an equal negative margin.
+  const style: CSSProperties = { display: "inline-block", padding: "12px 2px", margin: "-12px 0", ...linkStyle };
   return (
     <>
       Made with love by{" "}
-      <a href={href} target="_blank" rel="noopener" style={linkStyle}>
+      <a href={href} target="_blank" rel="noopener" style={style}>
         The RSVP Studio
       </a>
       {" · "}
-      <a href={href} target="_blank" rel="noopener" style={linkStyle}>
+      <a href={href} target="_blank" rel="noopener" style={style}>
         Make your own
       </a>
     </>

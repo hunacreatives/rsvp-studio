@@ -120,11 +120,11 @@ function RecordPayment({ inv, busy, error, onClose, onSave }: { inv: Invoice; bu
           <Input value={reference} onChange={(e) => setReference(e.target.value)} />
         </Field>
       </div>
-      <label className="mt-4 flex items-center gap-2 text-[14px] text-[var(--ink)]">
-        <input type="checkbox" checked={sendReceipt} onChange={(e) => setSendReceipt(e.target.checked)} /> Email the client a receipt
+      <label className="mt-3 flex min-h-[44px] cursor-pointer items-center gap-2.5 text-[15px] text-[var(--ink)] md:text-[14px]">
+        <input type="checkbox" checked={sendReceipt} onChange={(e) => setSendReceipt(e.target.checked)} className="h-5 w-5 shrink-0" /> Email the client a receipt
       </label>
       <ErrorText>{error}</ErrorText>
-      <div className="mt-6 flex justify-end gap-2">
+      <div className="mt-6 flex flex-wrap justify-end gap-2">
         <PillButton onClick={onClose}>Cancel</PillButton>
         <PrimaryButton disabled={busy || !paidOn} onClick={() => onSave({ paidOn, method, reference, sendReceipt })}>
           {busy ? "Saving…" : "Mark as paid"}
@@ -151,7 +151,7 @@ function EditInvoice({ inv, busy, error, onClose, onSave }: { inv: Invoice; busy
         <Field label="Notes (shown on the invoice)"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="!min-h-[60px]" /></Field>
       </div>
       <ErrorText>{error}</ErrorText>
-      <div className="mt-6 flex justify-end gap-2">
+      <div className="mt-6 flex flex-wrap justify-end gap-2">
         <PillButton onClick={onClose}>Cancel</PillButton>
         <PrimaryButton
           disabled={busy || !description.trim() || !(Number(amount) > 0)}
@@ -170,8 +170,8 @@ function TellClient({ title, body, confirm, busy, error, onClose, onConfirm }: {
   return (
     <Modal open onClose={onClose} title={title}>
       <p className="-mt-2 text-[14px] text-[var(--slate)]">{body}</p>
-      <label className="mt-5 flex items-center gap-2 text-[14px] text-[var(--ink)]">
-        <input type="checkbox" checked={tell} onChange={(e) => setTell(e.target.checked)} /> Let the client know by email
+      <label className="mt-4 flex min-h-[44px] cursor-pointer items-center gap-2.5 text-[15px] text-[var(--ink)] md:text-[14px]">
+        <input type="checkbox" checked={tell} onChange={(e) => setTell(e.target.checked)} className="h-5 w-5 shrink-0" /> Let the client know by email
       </label>
       {tell ? (
         <div className="mt-3">
@@ -181,7 +181,7 @@ function TellClient({ title, body, confirm, busy, error, onClose, onConfirm }: {
         </div>
       ) : null}
       <ErrorText>{error}</ErrorText>
-      <div className="mt-6 flex justify-end gap-2">
+      <div className="mt-6 flex flex-wrap justify-end gap-2">
         <PillButton onClick={onClose}>Keep it</PillButton>
         <PrimaryButton disabled={busy} onClick={() => onConfirm(tell, note)}>
           {busy ? "Saving…" : confirm}

@@ -66,8 +66,18 @@ export default function ProjectsPage() {
     const next = new URLSearchParams(params);
     next.set("project", id);
     setParams(next);
+    // Below xl the editor replaces the list, so bring it into view.
+    if (window.matchMedia("(max-width: 1279px)").matches) window.scrollTo({ top: 0 });
   };
   const project = projects.find((p) => p.id === selected) ?? null;
+  // Phones/tablets show the list or the editor, never both.
+  const editing = selected === "new" || !!project;
+  const backToList = () => {
+    const next = new URLSearchParams(params);
+    next.delete("project");
+    next.delete("lead");
+    setParams(next);
+  };
   // "Turn into project" from Studio → Leads: pre-fill from what they told us.
   const leadId = params.get("lead");
   const [lead, setLead] = useState<studio.Lead | null>(null);
@@ -80,6 +90,7 @@ export default function ProjectsPage() {
     <>
       <StudioHeader
         title="Projects"
+        hideOnPhone={editing}
         sub={filter === "diy" ? "Websites customers built themselves with Build Your Website." : "Every client project — set progress, tasks, invoices, and access."}
         action={
           <PillButton tone="dark" className="!px-5 !py-2.5" onClick={() => select("new")} disabled={demo}>
@@ -87,7 +98,7 @@ export default function ProjectsPage() {
           </PillButton>
         }
       />
-      <div className="mb-5">
+      <div className={`mb-5 ${editing && filter !== "deleted" ? "hidden xl:block" : ""}`}>
         <FilterTabs<Filter>
           value={filter}
           onChange={setFilter}
@@ -108,7 +119,7 @@ export default function ProjectsPage() {
             <ul className="divide-y divide-[var(--line)]">
               {deleted.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate text-[15px] font-semibold text-[var(--ink)]">{p.name}</span>
                     <span className="block text-[13px] text-[var(--slate)]">
                       {p.managed_by_studio ? "Studio project" : "DIY website"} · deleted {formatDate(p.deleted_at)} · removed for good {formatDate(new Date(Date.parse(p.deleted_at) + 30 * 86_400_000).toISOString())}
@@ -126,15 +137,15 @@ export default function ProjectsPage() {
           {restoreError ? <p className="px-5 pb-4 text-[13px] text-[#c2412d]">{restoreError}</p> : null}
         </section>
       ) : (
-      <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-        <aside className="space-y-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className={`min-w-0 space-y-3 ${editing ? "hidden xl:block" : ""}`}>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search projects or clients"
-            className="w-full rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-[14px] outline-none focus:border-[var(--ink)]"
+            className="w-full rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-[16px] outline-none focus:border-[var(--ink)] md:text-[14px]"
           />
-          <ul className="max-h-[72vh] space-y-1.5 overflow-y-auto pr-1" data-lenis-prevent>
+          <ul className="space-y-1.5 xl:max-h-[72vh] xl:overflow-y-auto xl:pr-1" data-lenis-prevent>
             {visible.map((p) => {
               const owner = owners[p.id];
               return (
@@ -147,7 +158,7 @@ export default function ProjectsPage() {
                       <span className="truncate font-semibold text-[var(--ink)]">{p.name}</span>
                       <span className="text-[12px] text-[var(--slate)]">{p.progress}%</span>
                     </span>
-                    <span className="block truncate text-[12px] text-[var(--slate)]">
+                    <span className="block truncate text-[13px] text-[var(--slate)]">
                       {owner ? owner.email || owner.full_name : p.owner_id ? "Client" : "No client linked yet"}
                     </span>
                     {filter === "diy" && diy[p.id] ? (
@@ -166,7 +177,7 @@ export default function ProjectsPage() {
                     ) : null}
                     <span className="mt-1.5 flex items-center justify-between">
                       <ProjectStatusPill project={p} />
-                      <span className="text-[11px] text-[var(--slate)]">{formatDate(p.updated_at)}</span>
+                      <span className="text-[12px] text-[var(--slate)]">{formatDate(p.updated_at)}</span>
                     </span>
                   </button>
                 </li>
@@ -177,6 +188,12 @@ export default function ProjectsPage() {
         </aside>
 
         <section className="min-w-0">
+          {editing ? (
+            <button onClick={backToList} className="-ml-2 mb-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-2 text-[14px] font-medium text-[var(--ink)] xl:hidden">
+              <i className="ri-arrow-left-line text-[18px]" /> All projects
+            </button>
+          ) : null}
+          {editing && project ? <h1 className="mb-4 break-words font-display text-[1.7rem] font-semibold leading-tight text-[var(--ink)] md:hidden">{project.name}</h1> : null}
           {selected === "new" ? (
             leadId && !lead ? (
               <p className="text-[14px] text-[var(--slate)]">Loading the lead…</p>
@@ -207,7 +224,7 @@ export default function ProjectsPage() {
               }}
             />
           ) : (
-            <div className="grid min-h-[320px] place-items-center rounded-[22px] border border-dashed border-[var(--line)] bg-white/60 text-[var(--slate)]">
+            <div className="hidden min-h-[320px] place-items-center rounded-[22px] border border-dashed xl:grid border-[var(--line)] bg-white/60 text-[var(--slate)]">
               Select a project to manage it.
             </div>
           )}

@@ -3,7 +3,8 @@ import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
 import { Reveal } from "@/lib/Reveal";
-import { Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
+import { DATE_INPUT, Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
+import { todayISO } from "./today";
 import { HEAR_ABOUT } from "./occasions";
 import { submitInquiry } from "./submit";
 
@@ -90,11 +91,11 @@ export default function PartnerInquiry() {
                 <SectionTitle>About you</SectionTitle>
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <Field label="Your name">
-                    <input type="text" value={getStr("your_name")} onChange={(e) => set("your_name", e.target.value)} placeholder="Your name" className={INPUT} required />
+                  <Field label="Your name" required>
+                    <input type="text" value={getStr("your_name")} onChange={(e) => set("your_name", e.target.value)} placeholder="Your name" autoComplete="name" autoCapitalize="words" className={INPUT} required />
                   </Field>
-                  <Field label="Business / studio name">
-                    <input type="text" value={getStr("business_name")} onChange={(e) => set("business_name", e.target.value)} placeholder="Studio name" className={INPUT} required />
+                  <Field label="Business / studio name" required>
+                    <input type="text" value={getStr("business_name")} onChange={(e) => set("business_name", e.target.value)} placeholder="Studio name" autoComplete="organization" autoCapitalize="words" className={INPUT} required />
                   </Field>
                 </div>
 
@@ -106,16 +107,17 @@ export default function PartnerInquiry() {
                 />
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <Field label="Email">
-                    <input type="email" value={getStr("email")} onChange={(e) => set("email", e.target.value)} placeholder="you@studio.com" className={INPUT} required />
+                  <Field label="Email" required>
+                    <input type="email" value={getStr("email")} onChange={(e) => set("email", e.target.value)} placeholder="you@studio.com" autoComplete="email" autoCapitalize="none" spellCheck={false} className={INPUT} required />
                   </Field>
                   <Field label="Website (optional)">
-                    <input type="text" value={getStr("website")} onChange={(e) => set("website", e.target.value)} placeholder="studio.com" className={INPUT} />
+                    {/* Not "website": that key is the hidden spam trap, and filling it drops the whole inquiry. */}
+                    <input type="text" inputMode="url" value={getStr("website_url")} onChange={(e) => set("website_url", e.target.value)} placeholder="studio.com" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={INPUT} />
                   </Field>
                 </div>
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <Field label="Instagram (optional)">
-                    <input type="text" value={getStr("instagram")} onChange={(e) => set("instagram", e.target.value)} placeholder="@studio" className={INPUT} />
+                    <input type="text" value={getStr("instagram")} onChange={(e) => set("instagram", e.target.value)} placeholder="@studio" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={INPUT} />
                   </Field>
                   <Field label="Based in / regions you serve">
                     <input type="text" value={getStr("regions")} onChange={(e) => set("regions", e.target.value)} placeholder="e.g. Manila, destination weddings" className={INPUT} />
@@ -142,7 +144,7 @@ export default function PartnerInquiry() {
                 {specificEvent && (
                   <>
                     <Field label="Event date">
-                      <input type="date" value={getStr("event_date")} onChange={(e) => set("event_date", e.target.value)} className={INPUT} />
+                      <input type="date" min={todayISO()} value={getStr("event_date")} onChange={(e) => set("event_date", e.target.value)} className={DATE_INPUT} />
                     </Field>
                     <Field label="Brief on the event">
                       <textarea

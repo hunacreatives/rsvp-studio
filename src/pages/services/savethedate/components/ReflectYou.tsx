@@ -17,18 +17,21 @@ export default function ReflectYou() {
           Every design is customized to tell your story.
         </Reveal>
 
-        <div className="mt-16 flex items-end justify-center gap-4 sm:gap-8">
+        <div className="mt-16 flex items-end justify-center gap-1.5 sm:gap-8">
           {PHONES.map((p, i) => (
             <Reveal
               key={p.img}
               delay={i * 0.08}
-              className={`w-[30%] max-w-[220px] shrink-0 ${
-                i === 1 ? "-translate-y-6 md:-translate-y-10" : ""
-              }`}
+              className="w-[32%] max-w-[220px] shrink-0 sm:w-[30%]"
             >
-              <div className="relative aspect-[9/19] rounded-[30px] border-[9px] border-[#111] bg-[#111] shadow-[0_40px_80px_-32px_rgba(0,7,39,0.38)]">
+              {/* Offset lives on the inner phone: Reveal resets its own transform once shown. */}
+              <div
+                className={`relative aspect-[9/19] rounded-[22px] border-[6px] border-[#111] bg-[#111] shadow-[0_40px_80px_-32px_rgba(0,7,39,0.38)] sm:rounded-[30px] sm:border-[9px] ${
+                  i === 1 ? "-translate-y-6 md:-translate-y-10" : ""
+                }`}
+              >
                 <div className="absolute left-1/2 top-1.5 -translate-x-1/2 h-1 w-10 rounded-full bg-black/50" />
-                <div className="absolute inset-0 m-[2px] overflow-hidden rounded-[22px]">
+                <div className="absolute inset-0 m-[2px] overflow-hidden rounded-[15px] sm:rounded-[22px]">
                   <img src={p.img} alt={p.alt} className="h-full w-full object-cover" />
                 </div>
               </div>

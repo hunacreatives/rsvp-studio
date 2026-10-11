@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { takeAuthNext } from "@/lib/authNext";
 import Navbar, { PROFILE_EVENT } from "@/pages/home/components/Navbar";
 import AuthModal from "@/pages/home/components/AuthModal";
 import * as api from "./api";
@@ -44,6 +45,9 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
       setSnap((s) => s ?? demoSnapshot(demoAs));
       return;
     }
+    // The page they asked for, noted before waiting on the session.
+    const base = __BASE_PATH__.replace(/\/$/, "");
+    const asked = window.location.pathname.slice(base.length) + window.location.search;
     const { data } = await supabase.auth.getSession();
     const user = data.session?.user;
     if (!user) {
@@ -56,7 +60,11 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
         setLinkProblem(info.get("error_code") ?? info.get("error") ?? "link");
         return;
       }
-      navigate("/", { replace: true });
+      // Signed out (a bookmark, or a link in one of our emails): open the
+      // log-in form, then bring them back to the page they asked for.
+      // (Skipped if they've already moved on, e.g. a second check after this one.)
+      if (window.location.pathname.slice(base.length) + window.location.search !== asked) return;
+      navigate(`/?auth=signin&next=${encodeURIComponent(asked)}`, { replace: true });
       return;
     }
     // First visit after verifying their email → send the welcome email once.
@@ -72,6 +80,9 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
       }).catch(() => undefined);
     }
     claimSignupRef();
+    // Back from Google sign-in: on to the page they were headed to.
+    const headedTo = takeAuthNext();
+    if (headedTo && headedTo !== asked) navigate(headedTo, { replace: true });
     const next = await api.loadSnapshot(user.id);
     if (next) setSnap(next);
   }, [demo, demoAs, navigate]);

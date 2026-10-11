@@ -41,11 +41,12 @@ textarea.rs-in{height:calc(var(--fh)*var(--u))}
   .rs-stack{width:100%;align-items:stretch}
   .rs-text{width:100%;min-height:0;font-size:max(calc(var(--fs)*var(--u)*1.8),var(--floor))}
   .rs-photo,.rs-image,.rs-form{width:100%}
-  .rs-btn{width:auto;min-width:min(100%,calc(var(--w)*var(--u)*1.8));height:auto;padding:12px 20px;font-size:max(calc(var(--fs)*var(--u)*1.8),min(var(--fs)*1px,14px));align-self:flex-start}
+  .rs-btn{width:auto;min-width:min(100%,calc(var(--w)*var(--u)*1.8));height:auto;padding:12px 20px;font-size:max(calc(var(--fs)*var(--u)*1.8),min(var(--fs)*1px,14px));align-self:flex-start;min-height:44px}
   .rs-divider{width:100%}
-  .rs-in{height:auto;min-height:44px;font-size:16px}
+  .rs-in{height:auto;min-height:44px;font-size:16px;padding:10px 14px!important}
+  .rs-form .rs-msg{font-size:15px!important;line-height:1.4!important}
   .rs-form label{font-size:max(14px,calc(var(--ls)*var(--u)))!important}
-  .rs-form .rs-note{font-size:12px!important}
+  .rs-form .rs-note{font-size:13px!important}
   textarea.rs-in{min-height:96px}
   .rs-pair{grid-template-columns:1fr}
 }
@@ -305,6 +306,9 @@ function FormNode({ node, vars, ctx }: { node: LayoutFormNode; vars: CSSProperti
                   id={`${ctx.sectionId}-${f.key}`}
                   className="rs-in"
                   type={f.kind === "email" ? "email" : f.kind === "number" ? "number" : "text"}
+                  autoComplete={f.key === "name" ? "name" : f.kind === "email" ? "email" : "off"}
+                  autoCapitalize={f.key === "name" ? "words" : f.kind === "email" ? "none" : undefined}
+                  enterKeyHint="next"
                   required={f.key === "name" || f.key === "email"}
                   min={f.kind === "number" ? 1 : undefined}
                   max={f.kind === "number" ? 10 : undefined}
@@ -326,8 +330,8 @@ function FormNode({ node, vars, ctx }: { node: LayoutFormNode; vars: CSSProperti
       >
         {state === "submitting" ? "Sending…" : node.button.label}
       </button>
-      {editorPreview ? <p style={{ ...label, marginTop: u(8), textAlign: "center" }}>Guests can RSVP once your site is published.</p> : null}
-      {error ? <p style={{ ...label, marginTop: u(8), color: "#c2412d", textAlign: "center" }}>{error}</p> : null}
+      {editorPreview ? <p className="rs-msg" style={{ ...label, marginTop: u(8), textAlign: "center" }}>Guests can RSVP once your site is published.</p> : null}
+      {error ? <p className="rs-msg" role="alert" style={{ ...label, marginTop: u(8), color: "#c2412d", textAlign: "center" }}>{error}</p> : null}
       {node.note ? <p className="rs-note" style={{ ...label, fontSize: u(node.labelStyle.size * 0.75), lineHeight: 1.2, marginTop: u(node.noteGap ?? 8), marginBottom: 0, textAlign: "center", opacity: 0.8 }}>{node.note}</p> : null}
     </>
   );

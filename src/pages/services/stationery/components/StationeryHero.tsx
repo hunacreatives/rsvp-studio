@@ -6,15 +6,15 @@ import { Reveal } from "@/lib/Reveal";
 gsap.registerPlugin(ScrollTrigger);
 
 const PIECES: { src: string; className: string; drift: number }[] = [
-  { src: "/services/stationery/hero-map.webp", className: "left-[2%] top-[2%] w-[35%] min-w-[240px]", drift: -10 },
-  { src: "/services/stationery/hero-heart.png", className: "left-[47%] top-[5%] w-[22%] min-w-[150px]", drift: 6 },
+  { src: "/services/stationery/hero-map.webp", className: "left-[2%] top-[2%] w-[35%] min-w-[190px] sm:min-w-[240px]", drift: -10 },
+  { src: "/services/stationery/hero-heart.png", className: "hidden sm:block left-[47%] top-[5%] w-[22%] min-w-[150px]", drift: 6 },
   { src: "/services/stationery/hero-palm-invite.webp", className: "right-[16%] top-[1%] w-[21%] min-w-[150px]", drift: -8 },
   { src: "/services/stationery/hero-flower.png", className: "left-[31%] top-[29%] w-[12%] min-w-[80px]", drift: 12 },
-  { src: "/services/stationery/hero-rsvp-oval.png", className: "left-[-2%] top-[44%] w-[19%] min-w-[130px]", drift: 9 },
+  { src: "/services/stationery/hero-rsvp-oval.png", className: "left-0 sm:left-[-2%] top-[44%] w-[19%] min-w-[118px] sm:min-w-[130px]", drift: 9 },
   { src: "/services/stationery/hero-coconut.png", className: "left-[21%] top-[47%] w-[11%] min-w-[72px]", drift: -12 },
   { src: "/services/stationery/hero-sparkle.png", className: "left-[34%] top-[54%] w-[5%] min-w-[30px]", drift: 16 },
   { src: "/services/stationery/hero-turtle.png", className: "left-[24%] top-[68%] w-[15%] min-w-[100px]", drift: 8 },
-  { src: "/services/stationery/hero-building.png", className: "left-[55%] top-[56%] w-[34%] min-w-[240px]", drift: -6 },
+  { src: "/services/stationery/hero-building.png", className: "right-0 sm:right-auto sm:left-[55%] top-[56%] w-[34%] min-w-[190px] sm:min-w-[240px]", drift: -6 },
   { src: "/services/stationery/hero-ornate-invite.webp", className: "right-[1%] top-[33%] w-[22%] min-w-[150px]", drift: 10 },
 ];
 
@@ -43,7 +43,7 @@ export default function StationeryHero() {
     >
       <div className="container-x relative z-10 text-center">
         <h1
-          className="font-display font-semibold tracking-[-0.02em] text-[var(--ink)]"
+          className="font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)]"
           style={{ fontSize: "clamp(2.4rem, 5vw, 3.6rem)" }}
         >
           Stationery Design
@@ -70,7 +70,7 @@ export default function StationeryHero() {
       <div className="container-x mt-6 text-center">
         <Reveal
           as="h2"
-          className="mx-auto max-w-2xl font-display text-[clamp(1.6rem,3vw,2.2rem)] font-semibold tracking-[-0.01em] text-[var(--ink)]"
+          className="mx-auto max-w-2xl font-display text-[clamp(1.6rem,3vw,2.2rem)] font-semibold leading-[1.15] tracking-[-0.01em] text-[var(--ink)]"
         >
           Designed around <span className="text-[var(--slate)]">your story.</span>
         </Reveal>

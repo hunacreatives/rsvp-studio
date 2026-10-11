@@ -115,11 +115,11 @@ export default function Hero() {
         <p className="mx-auto mt-4 max-w-xl text-[15px] text-[var(--slate)] md:text-[17px]">
           Weddings, birthdays, christenings and more — with RSVPs built in. Websites from ₱3,000.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button className="btn btn-primary" onClick={() => navigate("/enquire#start")}>
+        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
+          <button className="btn btn-primary w-full max-w-[280px] sm:w-auto sm:max-w-none" onClick={() => navigate("/enquire#start")}>
             Get a quote
           </button>
-          <button className="btn btn-ghost" onClick={() => navigate("/build")}>
+          <button className="btn btn-ghost w-full max-w-[280px] sm:w-auto sm:max-w-none" onClick={() => navigate("/build")}>
             Make it yourself
           </button>
         </div>
@@ -175,7 +175,7 @@ export default function Hero() {
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div
             ref={phone}
-            className="pointer-events-auto relative w-[160px] sm:w-[190px] md:w-[270px] aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] shadow-[0_50px_90px_-30px_rgba(0,7,39,0.5)]"
+            className="pointer-events-auto relative w-[190px] md:w-[270px] aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] shadow-[0_50px_90px_-30px_rgba(0,7,39,0.5)]"
           >
             <div className="absolute left-1/2 top-2 -translate-x-1/2 w-16 h-1.5 rounded-full bg-black/70 z-10" />
             <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[#3f4a32]">
@@ -195,7 +195,7 @@ export default function Hero() {
             {/* Featured tag — links to the case study */}
             <Link
               to="/portfolio/carlo-and-trixia"
-              className="absolute left-1/2 -bottom-5 z-20 -translate-x-1/2 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--line)] bg-white px-3 py-1.5 md:px-4 md:py-2 text-[11px] md:text-[13px] leading-none text-[var(--ink)] shadow-[0_12px_30px_-12px_rgba(0,7,39,0.35)] transition-transform hover:-translate-y-0.5"
+              className="absolute left-1/2 -bottom-5 z-20 -translate-x-1/2 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--line)] bg-white px-4 py-2.5 md:py-2 text-[12px] md:text-[13px] leading-none before:absolute before:-inset-2 before:content-[''] text-[var(--ink)] shadow-[0_12px_30px_-12px_rgba(0,7,39,0.35)] transition-transform hover:-translate-y-0.5"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--acc-coral)]" />
               <span className="font-semibold uppercase tracking-[0.12em] text-[var(--slate)]">Featured</span>

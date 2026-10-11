@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 
@@ -16,7 +17,7 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
 
   return (
     <section style={{ background: theme.background, padding: "64px 32px" }}>
-      <div style={{ width: "min(880px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 880, margin: "0 auto" }}>
         {paragraphs.length > 0 ? (
           <div style={{ maxWidth: 560 }}>
             <p
@@ -24,9 +25,9 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
                 fontFamily: theme.bodyFont,
                 textTransform: "uppercase",
                 letterSpacing: "0.14em",
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
-                color: theme.muted,
+                color: mutedText(theme),
                 margin: "0 0 16px",
               }}
             >
@@ -50,9 +51,9 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
                 fontFamily: theme.bodyFont,
                 textTransform: "uppercase",
                 letterSpacing: "0.14em",
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
-                color: theme.muted,
+                color: mutedText(theme),
                 margin: "0 0 16px",
               }}
             >
@@ -73,7 +74,7 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
                     {person.name}
                   </span>
                   {person.role ? (
-                    <span style={{ fontFamily: theme.bodyFont, fontSize: 13, color: theme.muted }}>
+                    <span style={{ fontFamily: theme.bodyFont, fontSize: 14, color: mutedText(theme) }}>
                       {person.role}
                     </span>
                   ) : null}

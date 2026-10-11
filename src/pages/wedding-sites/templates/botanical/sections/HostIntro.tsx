@@ -1,3 +1,4 @@
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { LeafDivider } from "../Ornament";
@@ -26,7 +27,7 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
 
   return (
     <section style={{ background: theme.background, padding: "72px 24px", textAlign: "center" }}>
-      <div style={{ width: "min(600px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 600, margin: "0 auto" }}>
         {paragraphs.length > 0 ? (
           <>
             <p
@@ -81,6 +82,8 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
                   >
                     {person.photo ? (
                       <img
+                        loading="lazy"
+                        decoding="async"
                         src={person.photo.masterUrl}
                         alt={person.photo.alt}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -91,11 +94,11 @@ export default function HostIntro({ content, theme }: HostIntroProps) {
                       </span>
                     )}
                   </div>
-                  <p style={{ fontFamily: theme.bodyFont, fontWeight: 600, color: theme.ink, margin: 0, fontSize: 14 }}>
+                  <p style={{ fontFamily: theme.bodyFont, fontWeight: 600, color: theme.ink, margin: 0, fontSize: 16 }}>
                     {person.name}
                   </p>
                   {person.role ? (
-                    <p style={{ fontFamily: theme.bodyFont, fontSize: 12, color: theme.muted, margin: "2px 0 0" }}>
+                    <p style={{ fontFamily: theme.bodyFont, fontSize: 14, color: mutedText(theme), margin: "2px 0 0" }}>
                       {person.role}
                     </p>
                   ) : null}

@@ -23,15 +23,24 @@ export function useScrollScrubVideo(videoRef: React.RefObject<HTMLVideoElement |
 
     const setupScrollScrub = () => {
       const duration = video.duration;
-      const handleScroll = () => {
+      let frame = 0;
+      // One seek per frame at most: scroll events fire far faster than the video can seek on phones.
+      const seek = () => {
+        frame = 0;
         const scrollTop = window.scrollY || window.pageYOffset;
         const docHeight = document.documentElement.scrollHeight - window.innerHeight;
         const scrollPercent = docHeight > 0 ? Math.min(Math.max(scrollTop / docHeight, 0), 1) : 0;
         video.currentTime = scrollPercent * duration;
       };
-      handleScroll();
+      const handleScroll = () => {
+        if (!frame) frame = requestAnimationFrame(seek);
+      };
+      seek();
       window.addEventListener("scroll", handleScroll, { passive: true });
-      cleanupScroll = () => window.removeEventListener("scroll", handleScroll);
+      cleanupScroll = () => {
+        window.removeEventListener("scroll", handleScroll);
+        cancelAnimationFrame(frame);
+      };
     };
 
     const initVideo = () => {

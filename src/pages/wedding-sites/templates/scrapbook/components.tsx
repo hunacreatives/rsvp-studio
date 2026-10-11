@@ -24,6 +24,8 @@ export type FlowerVariant = keyof typeof FLOWER_SRC;
 export function Flower({ variant, width, style, className }: { variant: FlowerVariant; width: string | number; style?: CSSProperties; className?: string }) {
   return (
     <img
+      loading="lazy"
+      decoding="async"
       src={FLOWER_SRC[variant]}
       alt=""
       aria-hidden
@@ -116,6 +118,8 @@ export function Polaroid({
       <div className="sb-pol__frame">
         <div className="sb-pol__win" style={{ ["--ar" as string]: ar }}>
           <img
+            loading="lazy"
+            decoding="async"
             src={image.masterUrl}
             alt={image.alt}
             style={{ objectPosition: `${image.focalPoint.x * 100}% ${image.focalPoint.y * 100}%` }}

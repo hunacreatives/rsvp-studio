@@ -8,6 +8,7 @@ import { Reveal } from "@/lib/Reveal";
 import { WORKS } from "./works";
 import { inquiryLink } from "@/pages/enquire/prefill";
 import { inquiryFor } from "./inquiry";
+import FilterTabs from "./components/FilterTabs";
 
 type Category =
   | "All"
@@ -78,7 +79,7 @@ export default function PortfolioPage() {
         >
           <div className="container-x">
             <h1
-              className="font-display font-semibold tracking-[-0.02em] text-[var(--ink)]"
+              className="text-balance font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)]"
               style={{ fontSize: "clamp(2.4rem, 5vw, 3.6rem)" }}
             >
               Featured Work
@@ -91,41 +92,36 @@ export default function PortfolioPage() {
 
         <section className="py-12 md:py-16" style={{ background: "var(--warm-white)" }}>
           <div className="container-x">
-            <div className="flex flex-wrap justify-center gap-x-8 gap-y-3">
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => {
-                    setCategory(c);
-                    setTag(null);
-                  }}
-                  className={`text-sm font-medium uppercase tracking-[0.12em] transition-colors pb-1 ${
-                    category === c
-                      ? "text-[var(--ink)] border-b border-[var(--ink)]"
-                      : "text-[var(--slate)] hover:text-[var(--ink)]"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
+            <FilterTabs
+              options={CATEGORIES}
+              value={category}
+              onChange={(c) => {
+                setCategory(c);
+                setTag(null);
+              }}
+              label="Filter by service"
+            />
 
             {groups && (
-              <div className="mt-8 grid gap-6 rounded-2xl bg-[var(--paper)] p-6 sm:grid-cols-2 lg:grid-cols-5">
+              // Phones: a full-bleed band where each group is one sideways-scrolling
+              // row of chips, so the results stay close. sm+: the original list grid.
+              <div className="-mx-6 mt-6 grid gap-4 bg-[var(--paper)] py-5 sm:mx-0 sm:mt-8 sm:grid-cols-2 sm:gap-6 sm:rounded-2xl sm:p-6 lg:grid-cols-5">
                 {groups.map((g) => (
                   <div key={g.label}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--slate)]">
+                    <p className="px-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--slate)] sm:px-0">
                       {g.label}
                     </p>
-                    <ul className="mt-3 space-y-2">
+                    <ul className="mt-2 flex gap-2 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-3 sm:block sm:space-y-2 sm:overflow-visible sm:px-0">
                       {g.tags.map((t) => (
-                        <li key={t}>
+                        <li key={t} className="shrink-0">
                           <button
+                            type="button"
+                            aria-pressed={tag === t}
                             onClick={() => setTag(tag === t ? null : t)}
-                            className={`text-sm transition-colors ${
+                            className={`min-h-[40px] whitespace-nowrap rounded-full border px-4 text-sm transition-colors sm:min-h-0 sm:whitespace-normal sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:text-left ${
                               tag === t
-                                ? "font-medium text-[var(--acc-blue)]"
-                                : "text-[var(--ink)] hover:text-[var(--acc-blue)]"
+                                ? "border-[var(--ink)] bg-[var(--ink)] font-medium text-white sm:text-[var(--acc-blue)]"
+                                : "border-[var(--line)] bg-white text-[var(--ink)] hover:text-[var(--acc-blue)]"
                             }`}
                           >
                             {t}
@@ -138,10 +134,25 @@ export default function PortfolioPage() {
               </div>
             )}
 
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {tag && (
+              <p className="mt-5 flex items-center justify-center gap-3 text-sm text-[var(--slate)]" aria-live="polite">
+                <span>
+                  {shown.length} {shown.length === 1 ? "result" : "results"} for &ldquo;{tag}&rdquo;
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setTag(null)}
+                  className="inline-flex min-h-[40px] items-center px-2 font-medium text-[var(--ink)] underline underline-offset-4"
+                >
+                  Clear
+                </button>
+              </p>
+            )}
+
+            <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 sm:mt-12 sm:gap-6 lg:grid-cols-4">
               {shown.map((w, i) => {
                 const card = (
-                  <div className="group">
+                  <div>
                     <div className="relative overflow-hidden rounded-[14px]" style={{ boxShadow: "0 30px 60px -30px rgba(0,7,39,0.28)" }}>
                       {w.thumbnail ? (
                         <img
@@ -152,22 +163,26 @@ export default function PortfolioPage() {
                       ) : (
                         <InvitePlaceholder seed={w.seed} className="w-full aspect-[3/4]" />
                       )}
-                      <span className="absolute inset-0 flex items-end justify-center bg-black/0 pb-6 opacity-0 transition-all duration-200 group-hover:bg-black/20 group-hover:opacity-100 group-focus-visible:opacity-100">
+                      <span className="absolute inset-0 hidden items-end justify-center bg-black/0 pb-6 opacity-0 sm:flex transition-all duration-200 group-hover:bg-black/20 group-hover:opacity-100 group-focus-visible:opacity-100">
                         <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink)]">
                           {w.liveUrl ? "View Project" : "Ask about this"}
                         </span>
                       </span>
                     </div>
-                    <h3 className="mt-3 font-display text-lg font-semibold text-[var(--ink)]">
+                    <h3 className="mt-3 font-display text-base font-semibold leading-snug text-[var(--ink)] sm:text-lg">
                       {w.title}
                     </h3>
-                    <p className="mt-0.5 text-sm text-[var(--slate)]">{w.meta}</p>
+                    <p className="mt-0.5 text-[13px] leading-snug text-[var(--slate)] sm:text-sm">{w.meta}</p>
+                    {/* Touch screens have no hover, so the card's action is spelled out. */}
+                    <span className="mt-2 inline-block text-[13px] font-medium text-[var(--acc-blue)] [@media(hover:hover)]:hidden">
+                      {w.liveUrl ? "View project →" : "Ask about this →"}
+                    </span>
                   </div>
                 );
                 return (
                   <Reveal key={w.slug} delay={(i % 4) * 0.04}>
                     {/* Live sites open their case study; the rest go straight to an inquiry like this one. */}
-                    <Link to={w.liveUrl ? `/portfolio/${w.slug}` : inquiryLink(inquiryFor(w))}>{card}</Link>
+                    <Link className="group block" to={w.liveUrl ? `/portfolio/${w.slug}` : inquiryLink(inquiryFor(w))}>{card}</Link>
                   </Reveal>
                 );
               })}

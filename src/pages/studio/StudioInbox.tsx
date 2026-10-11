@@ -40,17 +40,19 @@ export default function StudioInbox({ owners }: { owners: Record<string, PersonL
     const next = new URLSearchParams(params);
     next.set("thread", id);
     setParams(next);
+    // Phones: the chat replaces the list, so start it at the top of the screen.
+    if (window.matchMedia("(max-width: 767px)").matches) window.scrollTo({ top: 0 });
   };
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className={`mb-4 justify-end ${active ? "hidden md:flex" : "flex"}`}>
         <PillButton tone="dark" onClick={() => setComposeFor("")}>+ Message a client</PillButton>
       </div>
-      <div className="grid h-[680px] overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:grid-cols-[300px_1fr]">
-        <div className={`min-h-0 flex-col border-r border-[var(--line)] ${active ? "hidden md:flex" : "flex"}`}>
+      <div className="grid h-[calc(100dvh_-_164px_-_env(safe-area-inset-bottom))] min-h-[420px] grid-cols-1 overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:h-[680px] md:grid-cols-[300px_minmax(0,1fr)]">
+        <div className={`min-h-0 min-w-0 flex-col border-r border-[var(--line)] ${active ? "hidden md:flex" : "flex"}`}>
           <div className="p-4">
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search conversations" className="w-full rounded-full bg-[var(--paper)] px-4 py-2.5 text-[13px] outline-none" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search conversations" className="w-full rounded-full bg-[var(--paper)] px-4 py-2.5 text-[16px] outline-none md:text-[13px]" />
           </div>
           <ul className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
             {filtered.map((t) => (
@@ -59,16 +61,16 @@ export default function StudioInbox({ owners }: { owners: Record<string, PersonL
                   <Avatar name={t.counterpartName} url={t.counterpartAvatar} size={38} tone="#cfd6ea" />
                   <span className="min-w-0 flex-1">
                     <span className="flex justify-between gap-2">
-                      <span className={`truncate text-[13px] text-[var(--ink)] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>
-                      <span className="shrink-0 text-[10px] text-[var(--slate)]">{inboxStamp(t.last_message_at)}</span>
+                      <span className={`truncate text-[15px] text-[var(--ink)] md:text-[13px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>
+                      <span className="shrink-0 text-[12px] text-[var(--slate)] md:text-[11px]">{inboxStamp(t.last_message_at)}</span>
                     </span>
-                    <span className="block truncate text-[12px] text-[var(--ink)]">
+                    <span className="block truncate text-[14px] text-[var(--ink)] md:text-[12px]">
                       {t.kind === "support" ? "🛟 " : ""}
                       {projectName(t.event_id) ?? t.subject}
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--slate)]">{t.lastMessage?.body || (t.lastMessage?.attachments.length ? "Sent a file" : "")}</span>
-                      {t.unread ? <span className="h-2 w-2 rounded-full bg-[var(--acc-blue)]" /> : null}
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-[var(--slate)] md:text-[12px]">{t.lastMessage?.body || (t.lastMessage?.attachments.length ? "Sent a file" : "")}</span>
+                      {t.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--acc-blue)]" /> : null}
                     </span>
                   </span>
                 </button>
@@ -77,7 +79,7 @@ export default function StudioInbox({ owners }: { owners: Record<string, PersonL
             {!filtered.length ? <li className="p-8 text-center text-[13px] text-[var(--slate)]">No conversations.</li> : null}
           </ul>
         </div>
-        <div className={`min-h-0 ${active ? "flex flex-col" : "hidden md:flex md:flex-col"}`}>
+        <div className={`min-h-0 min-w-0 ${active ? "flex flex-col" : "hidden md:flex md:flex-col"}`}>
           {active ? (
             <ChatPane
               key={active.id}

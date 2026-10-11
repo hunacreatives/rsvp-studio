@@ -1,3 +1,4 @@
+import VenueLinks from "../../shared/VenueLinks";
 import { occasionWords } from "../../../content/occasion";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
@@ -52,10 +53,11 @@ export default function Hero({ content, theme }: HeroProps) {
     <section style={{ width: "100%", background: theme.background, padding: "56px 24px 64px" }}>
       <div
         style={{
-          width: "min(600px, 92vw)",
+          width: "100%", maxWidth: 600,
           margin: "0 auto",
           position: "relative",
           aspectRatio: "900 / 1863",
+          containerType: "inline-size",
         }}
       >
         <img
@@ -97,7 +99,7 @@ export default function Hero({ content, theme }: HeroProps) {
                 <p style={{ fontFamily: theme.displayFont, fontSize: "clamp(1.8rem, 7.5vw, 2.8rem)", color: theme.background, margin: 0, lineHeight: 1.1 }}>
                   {hosts[0]}
                 </p>
-                <p style={{ fontFamily: theme.bodyFont, fontSize: "clamp(11px, 1.8vw, 13px)", color: theme.background, margin: "2px 0", opacity: 0.85, textTransform: "uppercase", letterSpacing: "0.2em" }}>
+                <p style={{ fontFamily: theme.bodyFont, fontSize: "clamp(12px, 1.8vw, 13px)", color: theme.background, margin: "2px 0", opacity: 0.85, textTransform: "uppercase", letterSpacing: "0.2em" }}>
                   and
                 </p>
                 <p style={{ fontFamily: theme.displayFont, fontSize: "clamp(1.8rem, 7.5vw, 2.8rem)", color: theme.background, margin: 0, lineHeight: 1.1 }}>
@@ -115,13 +117,13 @@ export default function Hero({ content, theme }: HeroProps) {
             <div style={{ display: "flex", alignItems: "stretch", justifyContent: "center", gap: 16 }}>
               {formattedDate ? (
                 <div style={{ textAlign: "left" }}>
-                  <p style={{ fontFamily: theme.bodyFont, fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: theme.background, margin: 0, opacity: 0.85 }}>
+                  <p style={{ fontFamily: theme.bodyFont, fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", color: theme.background, margin: 0, opacity: 0.85 }}>
                     {formattedDate.month}
                   </p>
                   <p style={{ fontFamily: theme.displayFont, fontSize: "clamp(1.6rem, 5vw, 2.2rem)", fontWeight: 700, color: theme.background, margin: 0, lineHeight: 1 }}>
                     {formattedDate.day}
                   </p>
-                  <p style={{ fontFamily: theme.bodyFont, fontSize: 11, color: theme.background, margin: 0, opacity: 0.85 }}>
+                  <p style={{ fontFamily: theme.bodyFont, fontSize: 13, color: theme.background, margin: 0, opacity: 0.85 }}>
                     {formattedDate.year}
                   </p>
                 </div>
@@ -132,7 +134,7 @@ export default function Hero({ content, theme }: HeroProps) {
               ) : null}
 
               {formattedDate?.time || hasLocation ? (
-                <div style={{ textAlign: "left", fontFamily: theme.bodyFont, fontSize: "clamp(11px, 1.8vw, 13px)", color: theme.background }}>
+                <div style={{ textAlign: "left", fontFamily: theme.bodyFont, fontSize: "clamp(14px, 2.6cqw, 16px)", color: theme.background, maxWidth: "29cqw" }}>
                   {formattedDate?.time ? <p style={{ margin: "0 0 4px", fontWeight: 700 }}>{formattedDate.time}</p> : null}
                   {hasLocation ? (
                     <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
@@ -145,6 +147,7 @@ export default function Hero({ content, theme }: HeroProps) {
           ) : null}
         </div>
       </div>
+      {hasLocation ? <VenueLinks content={content} font={theme.bodyFont} color={theme.ink} size={16} style={{ marginTop: 12 }} /> : null}
     </section>
   );
 }

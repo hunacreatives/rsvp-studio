@@ -90,7 +90,7 @@ export default function TemplateNewPage() {
 
   return (
     <>
-      <Link to={forId ? `/studio/templates/${forId}` : "/studio/templates"} className="mb-4 inline-flex items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
+      <Link to={forId ? `/studio/templates/${forId}` : "/studio/templates"} className="mb-2 inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
         <i className="ri-arrow-left-line" /> Templates
       </Link>
       <StudioHeader
@@ -99,7 +99,7 @@ export default function TemplateNewPage() {
       />
 
       <OutlineCard className="max-w-3xl p-6 md:p-8">
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field label="Template name" hint={id ? `ID: ${id}` : "Shown to customers in the gallery"}>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Garden Arch" disabled={!!forId} />
           </Field>
@@ -121,7 +121,7 @@ export default function TemplateNewPage() {
                   key={t.id}
                   type="button"
                   onClick={() => setEventTypes(on ? eventTypes.filter((x) => x !== t.id) : [...eventTypes, t.id])}
-                  className="rounded-full border px-3 py-1 text-[13px]"
+                  className="min-h-[40px] rounded-full border px-3.5 py-1.5 text-[14px] md:min-h-0 md:px-3 md:py-1 md:text-[13px]"
                   style={{ borderColor: "var(--ink)", background: on ? "var(--ink)" : "#fff", color: on ? "#fff" : "var(--ink)" }}
                 >
                   {t.label}
@@ -131,7 +131,7 @@ export default function TemplateNewPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           <button
             type="button"
             onClick={() => specRef.current?.click()}

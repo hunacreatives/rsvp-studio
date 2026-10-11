@@ -10,12 +10,15 @@ export const CINEMATIC_CSS = `
   container: cn / inline-size;
   position: relative;
   min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   overflow-x: clip;
   isolation: isolate;
   font-family: var(--cn-sans);
   color: var(--cn-sage);
+  /* The sage, deepened only for the lines guests must read (date, venue, form labels). */
+  --cn-sage-strong: color-mix(in srgb, var(--cn-sage) 72%, #000);
   -webkit-font-smoothing: antialiased;
 }
 .cn-root *{box-sizing:border-box;}
@@ -60,7 +63,7 @@ export const CINEMATIC_CSS = `
 .cn-in.is-on{opacity:1;transform:none!important;}
 
 /* ---------- main content ---------- */
-.cn-main{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:4rem 1rem;}
+.cn-main{position:relative;z-index:10;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;align-items:center;padding:4rem 1rem;}
 .cn-col{max-width:520px;width:100%;text-align:center;}
 
 .cn-headline{font-family:var(--cn-script);font-weight:400;color:var(--cn-rose);margin:0;line-height:1.15;
@@ -104,10 +107,12 @@ export const CINEMATIC_CSS = `
 .cn-hand--note + .cn-hand--note{margin-top:.75em;}
 .cn-details{margin-top:2rem;display:flex;flex-direction:column;gap:.25rem;}
 .cn-details.cn-in:not(.is-on){transform:translateY(1.25rem);}
-.cn-hand--date{font-size:1.5rem;line-height:1.25;transform:rotate(-.3deg);text-shadow:0 1px 10px rgba(139,154,110,.1);}
-.cn-hand--venue{font-size:1.25rem;line-height:1.25;transform:rotate(.3deg);text-shadow:0 1px 10px rgba(139,154,110,.1);}
-.cn-hand--venue a{color:inherit;text-decoration:none;}
-.cn-divider{margin-top:2.5rem;display:flex;justify-content:center;}
+.cn-hand--date{font-size:1.5rem;line-height:1.25;color:var(--cn-sage-strong);transform:rotate(-.3deg);text-shadow:0 1px 10px rgba(139,154,110,.1);}
+.cn-hand--venue{font-size:1.25rem;line-height:1.25;color:var(--cn-sage-strong);transform:rotate(.3deg);text-shadow:0 1px 10px rgba(139,154,110,.1);}
+.cn-hand--venue a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:5px;text-decoration-color:color-mix(in srgb, currentColor 35%, transparent);}
+/* margin-bottom only matters when the page content outgrows one screen (most phones):
+   it stops the Dress Code note, pulled up by its -6rem margin, landing on the divider. */
+.cn-divider{margin-top:2.5rem;margin-bottom:3rem;display:flex;justify-content:center;}
 .cn-divider>div{display:flex;align-items:center;gap:.75rem;}
 .cn-divider i{display:block;width:2.5rem;height:1px;background:color-mix(in srgb, #C9A0A0 50%, transparent);}
 .cn-hint{opacity:.45;font-style:italic;}
@@ -134,21 +139,21 @@ export const CINEMATIC_CSS = `
 
 .cn-card{background:rgba(255,255,255,.3);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:1rem;
   border:1px solid rgba(255,255,255,.4);box-shadow:0 4px 24px rgba(0,0,0,.08);}
-.cn-card--form{padding:1rem;transform:rotate(-.3deg);}
+.cn-card--form{padding:1rem;transform:rotate(-.3deg);scroll-margin-top:16px;}
 .cn-card--done{padding:1.5rem;text-align:center;}
 .cn-card h3{font-family:var(--cn-script);font-weight:400;color:var(--cn-rose);margin:0;font-size:1.5rem;line-height:2rem;}
 .cn-card--form h3{text-align:center;margin-bottom:.25rem;text-shadow:0 1px 8px rgba(192,96,110,.1);}
 .cn-card__sub{font-family:var(--cn-hand);font-size:1.125rem;line-height:1.75rem;color:var(--cn-sage);text-align:center;margin:0 0 2rem;}
 .cn-form{display:flex;flex-direction:column;gap:1.25rem;text-align:left;transform:rotate(.3deg);}
-.cn-form label{font-family:var(--cn-hand);font-size:1rem;line-height:1.5rem;color:var(--cn-sage);display:block;margin-bottom:.375rem;}
+.cn-form label{font-family:var(--cn-hand);font-size:1rem;line-height:1.5rem;color:var(--cn-sage-strong);display:block;margin-bottom:.375rem;}
 .cn-field{width:100%;padding:.75rem 1rem;border-radius:.75rem;background:rgba(255,255,255,.5);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
   border:1px solid color-mix(in srgb, #D4727A 15%, transparent);font-family:var(--cn-sans);font-size:16px;line-height:1.25rem;color:#3A3A3A;
   transition:all .15s;outline:none;}
-.cn-field::placeholder{color:#d1d5db;}
+.cn-field::placeholder{color:#a3a8ae;}
 .cn-field:focus{border-color:color-mix(in srgb, #D4727A 40%, transparent);box-shadow:0 0 0 2px color-mix(in srgb, #D4727A 10%, transparent);}
 select.cn-field{cursor:pointer;}
 textarea.cn-field{resize:none;}
-.cn-count{font-family:var(--cn-sans);font-size:.75rem;line-height:1rem;color:#d1d5db;text-align:right;margin:.25rem 0 0;}
+.cn-count{font-family:var(--cn-sans);font-size:.75rem;line-height:1rem;color:#a3a8ae;text-align:right;margin:.25rem 0 0;}
 .cn-error{font-family:var(--cn-hand);font-size:1.1rem;color:var(--cn-rose);margin:0;text-align:center;}
 .cn-actions{display:flex;flex-direction:column;gap:.75rem;padding-top:.5rem;}
 .cn-actions .cn-btn{flex:1;padding:.75rem 2rem;background:rgba(255,255,255,.5);}
@@ -167,7 +172,7 @@ textarea.cn-field{resize:none;}
 .cn-sign p:last-child{font-family:var(--cn-script);font-size:1.5rem;line-height:2rem;color:var(--cn-rose);margin:.25rem 0 0;text-shadow:0 1px 10px rgba(192,96,110,.12);}
 
 /* ---------- footer (Footer.tsx) ---------- */
-.cn-footer{position:relative;z-index:10;width:100%;padding:1.25rem 1rem;text-align:center;background:var(--cn-sage);}
+.cn-footer{position:relative;z-index:10;width:100%;padding:1.25rem 1rem;text-align:center;background:color-mix(in srgb, var(--cn-sage) 76%, #000);}
 .cn-footer p{font-family:var(--cn-sans);font-size:.875rem;line-height:1.25rem;color:#fff;margin:0;}
 
 /* ---------- sm / md / lg / xl ---------- */

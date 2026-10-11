@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { lenisRef } from "@/lib/lenis";
 import { readInquiryParams } from "./prefill";
@@ -8,7 +8,8 @@ import FooterSection from "@/pages/home/components/FooterSection";
 import { Reveal } from "@/lib/Reveal";
 import Fireworks from "./components/Fireworks";
 import FileDrop, { type PickedFile } from "./components/FileDrop";
-import { Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
+import { DATE_INPUT, Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
+import { todayISO } from "./today";
 import { submitInquiry } from "./submit";
 import {
   ADDONS,
@@ -34,11 +35,26 @@ const STEP_LABELS = ["The Occasion", "Event Details", "Services & Direction"];
 
 type Values = Record<string, string | string[]>;
 
+const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Scroll an element to just under the sticky header (Lenis when it's running). */
+function scrollToEl(el: HTMLElement, offset = -84) {
+  // An absolute target (not the element) so Lenis can't aim from a stale position.
+  const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY + offset);
+  if (lenisRef.current) lenisRef.current.scrollTo(top, { duration: 0.6 });
+  else window.scrollTo({ top, behavior: "smooth" });
+}
+
 export default function ProjectInquiry() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
+  const [omitted, setOmitted] = useState<string[]>([]);
+  // Which step the visitor tried to leave with something missing (shows the messages).
+  const [tried, setTried] = useState(0);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
   // A CTA elsewhere can open the form already filled in (see ./prefill.ts).
   const [prefill] = useState(() => readInquiryParams(window.location.search));
   const [v, setV] = useState<Values>(() => ({ services: [], ...prefill.values }));
@@ -102,10 +118,56 @@ export default function ProjectInquiry() {
 
   const visionLen = getStr("vision").length;
 
-  const step1Valid = getStr("occasion") && getStr("your_name").trim() && getStr("email").trim();
-  const step2Valid = getStr("event_date") && getStr("event_location").trim();
+  const today = todayISO();
+  // Missing/invalid answers per step, in the order they appear on screen.
+  const problems: Record<string, string> =
+    step === 1
+      ? {
+          ...(!getStr("occasion") && { occasion: "Choose what you’re celebrating." }),
+          ...(!getStr("your_name").trim() && { your_name: "Add your name." }),
+          ...(!getStr("email").trim()
+            ? { email: "Add your email so we can reply." }
+            : !EMAIL_OK.test(getStr("email").trim()) && { email: "Check your email address — it looks incomplete." }),
+        }
+      : step === 2
+        ? {
+            ...(!getStr("event_date")
+              ? { event_date: "Add the event date — a best guess is fine." }
+              : getStr("event_date") < today && { event_date: "Pick a date from today onwards." }),
+            ...(!getStr("event_location").trim() && { event_location: "Add the city where it’s happening." }),
+          }
+        : {};
+  const err = (k: string) => (tried === step ? problems[k] : undefined);
 
-  const next = () => setStep((s) => Math.min(3, s + 1));
+  // Changing step keeps the page where the button was, which on a phone lands deep in
+  // the next step (or right on Submit). Bring the top of the form back into view and
+  // move focus to the new step's heading.
+  const shownStep = useRef(step);
+  useEffect(() => {
+    if (shownStep.current === step) return;
+    shownStep.current = step;
+    const form = formRef.current;
+    if (!form) return;
+    // Keyboard users (focus still inside the form) continue from the new heading.
+    const keyboard = form.contains(document.activeElement) && document.activeElement !== document.body;
+    if (form.getBoundingClientRect().top < 72) scrollToEl(form);
+    if (keyboard) form.querySelector<HTMLElement>("h3")?.focus({ preventScroll: true });
+  }, [step]);
+
+  const next = () => {
+    const missing = Object.keys(problems);
+    if (missing.length) {
+      setTried(step);
+      const el = formRef.current?.querySelector<HTMLElement>(`[data-field="${missing[0]}"]`);
+      if (el) {
+        scrollToEl(el, -100);
+        el.querySelector<HTMLElement>("input, textarea")?.focus({ preventScroll: true });
+      }
+      return;
+    }
+    setTried(0);
+    setStep((s) => Math.min(3, s + 1));
+  };
   const back = () => setStep((s) => Math.max(1, s - 1));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,8 +176,11 @@ export default function ProjectInquiry() {
     setSubmitting(true);
     setError(false);
     try {
-      await submitInquiry(v, files, { form: "project-inquiry" });
+      const result = await submitInquiry(v, files, { form: "project-inquiry" });
+      setOmitted(result.omitted ?? []);
       setSubmitted(true);
+      // The thank-you card is much shorter than the form: bring it into view.
+      requestAnimationFrame(() => sectionRef.current && scrollToEl(sectionRef.current));
     } catch {
       setError(true);
     } finally {
@@ -129,6 +194,7 @@ export default function ProjectInquiry() {
         <Field key={spec.name} label={spec.label}>
           <input
             type="text"
+            autoCapitalize={/_names?$/.test(spec.name) ? "words" : undefined}
             value={getStr(spec.name)}
             onChange={(e) => set(spec.name, e.target.value)}
             placeholder={spec.placeholder}
@@ -187,34 +253,49 @@ export default function ProjectInquiry() {
           </div>
         </section>
 
-        <section id="start" className="scroll-mt-24 pb-24 pt-4 md:pt-8" style={{ background: "var(--paper)" }}>
+        <section ref={sectionRef} id="start" className="scroll-mt-24 pb-24 pt-4 md:pt-8" style={{ background: "var(--paper)" }}>
           <div className="container-x mx-auto max-w-2xl">
             {submitted ? (
               <SuccessCard
                 title="Inquiry received"
                 message="We'll reply within 1 business day (Monday to Friday, Philippine time)."
+                note={
+                  omitted.length ? (
+                    <>
+                      We couldn’t attach {omitted.length === 1 ? "this file" : "these files"}: {omitted.join(", ")}. Please email{" "}
+                      {omitted.length === 1 ? "it" : "them"} to{" "}
+                      <a href="mailto:hello@thersvpstudio.com" className="underline underline-offset-4">
+                        hello@thersvpstudio.com
+                      </a>
+                      .
+                    </>
+                  ) : undefined
+                }
               />
             ) : (
               <form
+                ref={formRef}
                 onSubmit={handleSubmit}
-                className="relative rounded-2xl bg-white p-6 shadow-[0_24px_60px_-32px_rgba(0,7,39,0.25)] md:p-10"
+                noValidate
+                className="relative rounded-2xl bg-white p-5 shadow-[0_24px_60px_-32px_rgba(0,7,39,0.25)] sm:p-6 md:p-10"
                 style={{ border: "1px solid var(--line)" }}
               >
                 <Honeypot value={getStr("website")} onChange={(val) => set("website", val)} />
                 {askingAbout ? (
                   <div className="mb-8 flex items-start gap-3 rounded-xl bg-[var(--paper)] px-4 py-3 text-[14px] text-[var(--ink)]">
                     <i className="ri-sparkling-line mt-0.5 text-[var(--acc-blue)]" aria-hidden />
-                    <p className="flex-1">
+                    <p className="min-w-0 flex-1">
                       You’re asking about: <strong>{askingAbout}</strong>
-                      <span className="block text-[12px] text-[var(--slate)]">We’ve filled that in for you on step 3 — you can change it there.</span>
+                      <span className="block text-[13px] text-[var(--slate)] md:text-[12px]">We’ve filled that in for you on step 3 — you can change it there.</span>
                     </p>
-                    <button type="button" onClick={clearPrefill} className="text-[13px] text-[var(--slate)] underline underline-offset-2 hover:text-[var(--ink)]">
+                    <button type="button" onClick={clearPrefill} className="-my-2 -mr-2 min-h-[44px] shrink-0 px-2 text-[13px] text-[var(--slate)] underline underline-offset-2 hover:text-[var(--ink)]">
                       Clear
                     </button>
                   </div>
                 ) : null}
                 {/* Step indicator */}
-                <div className="mb-10 flex items-center gap-3">
+                <div className="mb-8 sm:mb-10">
+                <div className="flex items-center gap-3">
                   {STEP_LABELS.map((label, i) => {
                     const n = i + 1;
                     const state = n === step ? "current" : n < step ? "done" : "todo";
@@ -243,19 +324,25 @@ export default function ProjectInquiry() {
                     );
                   })}
                 </div>
+                {/* Phones hide the labels beside the dots, so name the current step here. */}
+                <p className="mt-3 text-[13px] text-[var(--slate)] sm:hidden" aria-live="polite">
+                  Step {step} of 3 · <span className="font-medium text-[var(--ink)]">{STEP_LABELS[step - 1]}</span>
+                </p>
+                </div>
 
                 {/* STEP 1 */}
                 {step === 1 && (
                   <div className="space-y-8">
                     <SectionTitle>The occasion</SectionTitle>
-                    <Field label="What are we celebrating?">
+                    <Field label="What are we celebrating?" name="occasion" required error={err("occasion")}>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {OCCASIONS.map((o) => (
                           <button
                             key={o.key}
                             type="button"
                             onClick={() => set("occasion", o.key)}
-                            className={`rounded-xl border px-3 py-3 text-sm transition-colors ${
+                            aria-pressed={getStr("occasion") === o.key}
+                            className={`min-h-[48px] rounded-xl border px-3 py-3 text-sm leading-snug transition-colors ${
                               getStr("occasion") === o.key
                                 ? "border-[var(--ink)] bg-[var(--ink)] text-white"
                                 : "border-[var(--line)] text-[var(--ink)] hover:border-[var(--ink)]"
@@ -268,15 +355,15 @@ export default function ProjectInquiry() {
                     </Field>
 
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                      <Field label="Your name">
-                        <input type="text" value={getStr("your_name")} onChange={(e) => set("your_name", e.target.value)} placeholder="Your name" className={INPUT} />
+                      <Field label="Your name" name="your_name" required error={err("your_name")}>
+                        <input type="text" value={getStr("your_name")} onChange={(e) => set("your_name", e.target.value)} placeholder="Your name" autoComplete="name" autoCapitalize="words" className={INPUT} />
                       </Field>
-                      <Field label="Email address">
-                        <input type="email" value={getStr("email")} onChange={(e) => set("email", e.target.value)} placeholder="your@email.com" className={INPUT} />
+                      <Field label="Email address" name="email" required error={err("email")}>
+                        <input type="email" value={getStr("email")} onChange={(e) => set("email", e.target.value)} placeholder="your@email.com" autoComplete="email" autoCapitalize="none" spellCheck={false} className={INPUT} />
                       </Field>
                     </div>
                     <Field label="Instagram handle (optional)">
-                      <input type="text" value={getStr("ig_handle")} onChange={(e) => set("ig_handle", e.target.value)} placeholder="@yourhandle" className={INPUT} />
+                      <input type="text" value={getStr("ig_handle")} onChange={(e) => set("ig_handle", e.target.value)} placeholder="@yourhandle" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={INPUT} />
                     </Field>
                     <PillGroup
                       label="How did you hear about us?"
@@ -292,15 +379,15 @@ export default function ProjectInquiry() {
                   <div className="space-y-8">
                     <SectionTitle>Event details</SectionTitle>
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                      <Field label="Event date">
-                        <input type="date" value={getStr("event_date")} onChange={(e) => set("event_date", e.target.value)} className={INPUT} />
+                      <Field label="Event date" name="event_date" required error={err("event_date")}>
+                        <input type="date" min={today} value={getStr("event_date")} onChange={(e) => set("event_date", e.target.value)} className={DATE_INPUT} />
                       </Field>
-                      <Field label="Event location">
-                        <input type="text" value={getStr("event_location")} onChange={(e) => set("event_location", e.target.value)} placeholder="City, Country" className={INPUT} />
+                      <Field label="Event location" name="event_location" required error={err("event_location")}>
+                        <input type="text" value={getStr("event_location")} onChange={(e) => set("event_location", e.target.value)} placeholder="City, Country" autoCapitalize="words" className={INPUT} />
                       </Field>
                     </div>
                     <Field label="Approximate number of guests">
-                      <input type="number" value={getStr("guest_count")} onChange={(e) => set("guest_count", e.target.value)} placeholder="e.g. 100" className={INPUT} />
+                      <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={getStr("guest_count")} onChange={(e) => set("guest_count", e.target.value.replace(/\D/g, ""))} placeholder="e.g. 100" className={INPUT} />
                     </Field>
 
                     {occasion?.fields.map(renderSpec)}
@@ -326,14 +413,18 @@ export default function ProjectInquiry() {
                             key={opt.val}
                             type="button"
                             onClick={() => set("design_type", opt.val)}
-                            className={`rounded-xl border p-4 text-left transition-colors ${
+                            aria-pressed={getStr("design_type") === opt.val}
+                            className={`relative rounded-xl border p-4 pr-10 text-left transition-colors ${
                               getStr("design_type") === opt.val
-                                ? "border-[var(--ink)] bg-white"
+                                ? "border-[var(--ink)] bg-white ring-1 ring-[var(--ink)]"
                                 : "border-[var(--line)] hover:border-[var(--ink)]"
                             }`}
                           >
+                            {getStr("design_type") === opt.val ? (
+                              <i className="ri-checkbox-circle-fill absolute right-3 top-3 text-lg text-[var(--ink)]" aria-hidden />
+                            ) : null}
                             <p className="text-sm font-semibold text-[var(--ink)]">{opt.title}</p>
-                            <p className="mt-1 text-xs text-[var(--slate)]">{opt.desc}</p>
+                            <p className="mt-1 text-[13px] text-[var(--slate)] md:text-xs">{opt.desc}</p>
                           </button>
                         ))}
                       </div>
@@ -384,7 +475,7 @@ export default function ProjectInquiry() {
                         placeholder="Describe the feeling, aesthetic, colours, or references…"
                         className={`${INPUT} resize-none`}
                       />
-                      <p className={`mt-1 text-right text-[11px] ${visionLen > 480 ? "text-[var(--acc-coral)]" : "text-[var(--slate)]"}`}>
+                      <p aria-live="polite" className={`mt-1 text-right text-xs md:text-[11px] ${visionLen > 480 ? "text-[#c2410c]" : "text-[var(--slate)]"}`}>
                         {visionLen}/500
                       </p>
                     </Field>
@@ -406,7 +497,7 @@ export default function ProjectInquiry() {
                 )}
 
                 {error && (
-                  <p className="mt-6 text-sm text-[var(--acc-coral)]">
+                  <p role="alert" className="mt-6 text-sm text-[#c2410c]">
                     Something went wrong sending your inquiry. Please try again, or email us
                     directly at{" "}
                     <a href="mailto:hello@thersvpstudio.com" className="underline underline-offset-4">
@@ -417,28 +508,24 @@ export default function ProjectInquiry() {
                 )}
 
                 {/* Nav */}
-                <div className="mt-10 flex items-center justify-between">
+                {/* Phones: full-width stacked buttons (main action first) so they never wrap or collide. */}
+                <div className="mt-10 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                   {step > 1 ? (
-                    <button type="button" onClick={back} className="btn btn-ghost">
+                    <button type="button" onClick={back} className="btn btn-ghost w-full sm:w-auto">
                       Back
                     </button>
                   ) : (
-                    <span />
+                    <span className="hidden sm:block" />
                   )}
                   {step < 3 ? (
-                    <button
-                      type="button"
-                      onClick={next}
-                      disabled={(step === 1 && !step1Valid) || (step === 2 && !step2Valid)}
-                      className="btn btn-primary disabled:opacity-50"
-                    >
+                    <button type="button" onClick={next} className="btn btn-primary w-full sm:w-auto">
                       Continue
                     </button>
                   ) : (
                     <button
                       type="submit"
                       disabled={submitting || visionLen > 500}
-                      className="btn btn-primary disabled:opacity-50"
+                      className="btn btn-primary w-full whitespace-nowrap disabled:opacity-50 sm:w-auto"
                     >
                       {submitting ? "Sending…" : "Submit Inquiry"}
                     </button>

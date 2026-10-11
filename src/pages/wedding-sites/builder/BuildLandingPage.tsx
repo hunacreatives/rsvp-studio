@@ -42,7 +42,10 @@ export default function BuildLandingPage() {
     })();
     // Signed up right here (no page change): credit the free site that sent them.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") claimSignupRef();
+      if (event === "SIGNED_IN") {
+        claimSignupRef();
+        setSignedIn(true);
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -60,7 +63,12 @@ export default function BuildLandingPage() {
           it your own.
         </p>
 
-        {signedIn === false ? (
+        {signedIn === null ? (
+          // Still checking: hold the space, but nothing to tap yet.
+          <span className="btn mt-8 invisible" aria-hidden>
+            Sign In to Get Started
+          </span>
+        ) : signedIn === false ? (
           <button onClick={() => setAuthOpen(true)} className="btn btn-primary mt-8">
             Sign In to Get Started
           </button>
@@ -75,11 +83,11 @@ export default function BuildLandingPage() {
         )}
 
         {signedIn && eventCount > 0 ? (
-          <p className="mt-6 text-[13px]" style={{ color: "var(--slate)" }}>
+          <p className="mt-6 text-[14px]" style={{ color: "var(--slate)" }}>
             Continuing something you already started?{" "}
             <Link
               to="/account/projects"
-              className="font-medium underline"
+              className="inline-flex min-h-[44px] items-center font-medium underline"
               style={{ color: "var(--ink)" }}
             >
               Go to your profile &rarr;
@@ -95,7 +103,8 @@ export default function BuildLandingPage() {
         <FloatingTemplateSamples />
       </div>
 
-      {authOpen ? <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} /> : null}
+      {/* After logging in they stay here, ready to create their event. */}
+      {authOpen ? <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} next="/build" /> : null}
       {creatingEvent ? (
         <CreateEventModal
           onClose={() => setCreatingEvent(false)}

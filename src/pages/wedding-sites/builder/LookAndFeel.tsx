@@ -6,6 +6,7 @@ import { loadPairingFonts } from "../presentation/loadFonts";
 import { palettes } from "../presentation/palettes";
 import { defaultSectionVisibility, type BaseTemplateSettings, type PresentationState, type SectionVisibility } from "../presentation/types";
 import { ImageUploadField } from "./components/ImageUploadField";
+import "./builder.css";
 
 // "Look & feel" in the builder: cover photo, colours, fonts, and which sections
 // show. Settings are saved per template (switching templates keeps each one's).
@@ -28,10 +29,13 @@ export default function LookAndFeel({
   presentation,
   onChange,
   eventId,
+  loadFontPreviews = true,
 }: {
   presentation: PresentationState;
   onChange: (next: PresentationState) => void;
   eventId: string | undefined;
+  /** False while the panel is collapsed: the "Aa" samples would download every pairing's fonts. */
+  loadFontPreviews?: boolean;
 }) {
   const id = presentation.activeTemplateId;
   const def = getTemplateDefinition(id);
@@ -66,7 +70,7 @@ export default function LookAndFeel({
             <p style={label}>Colours</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {palettes.map((p) => (
-                <button key={p.id} type="button" onClick={() => set({ paletteId: p.id })} aria-pressed={settings.paletteId === p.id} style={choice(settings.paletteId === p.id)}>
+                <button key={p.id} type="button" className="rb-tap44" onClick={() => set({ paletteId: p.id })} aria-pressed={settings.paletteId === p.id} style={choice(settings.paletteId === p.id)}>
                   <span style={{ display: "flex", gap: 3 }}>
                     {p.swatches.slice(0, 3).map((c) => (
                       <span key={c} style={{ width: 14, height: 14, borderRadius: 999, background: c, border: "1px solid rgba(0,0,0,.12)" }} />
@@ -81,7 +85,7 @@ export default function LookAndFeel({
             <p style={label}>Fonts</p>
             <div style={{ display: "grid", gap: 8 }}>
               {fontPairings.map((f) => {
-                loadPairingFonts(f.id);
+                if (loadFontPreviews) loadPairingFonts(f.id);
                 return (
                   <button key={f.id} type="button" onClick={() => set({ fontPairingId: f.id })} aria-pressed={settings.fontPairingId === f.id} style={{ ...choice(settings.fontPairingId === f.id), justifyContent: "space-between" }}>
                     <span style={{ fontFamily: f.displayFont, fontSize: 18 }}>Aa</span>
@@ -98,8 +102,8 @@ export default function LookAndFeel({
         <p style={label}>Sections to show</p>
         <div style={{ display: "grid", gap: 6 }}>
           {SECTIONS.map((s) => (
-            <label key={s.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--ink)" }}>
-              <input type="checkbox" checked={visibility[s.key]} onChange={(e) => set({ sectionVisibility: { ...visibility, [s.key]: e.target.checked } })} />
+            <label key={s.key} className="rb-check-row" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--ink)" }}>
+              <input type="checkbox" className="rb-check" checked={visibility[s.key]} onChange={(e) => set({ sectionVisibility: { ...visibility, [s.key]: e.target.checked } })} />
               {s.label}
               {s.key === "rsvp" && !visibility.rsvp ? <span style={{ fontSize: 12, color: "#8a5a00" }}>— guests won’t be able to reply</span> : null}
             </label>

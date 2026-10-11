@@ -1,3 +1,5 @@
+import VenueLinks from "../../shared/VenueLinks";
+import { mutedText } from "../../../engine/theme";
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { parseEventDate } from "../../../content/parseEventDate";
@@ -35,7 +37,7 @@ export default function Hero({ content, theme }: HeroProps) {
         borderBottom: `1px solid ${theme.muted}33`,
       }}
     >
-      <div style={{ width: "min(880px, 92vw)", margin: "0 auto" }}>
+      <div style={{ width: "100%", maxWidth: 880, margin: "0 auto" }}>
         <p
           style={{
             fontFamily: theme.bodyFont,
@@ -43,7 +45,7 @@ export default function Hero({ content, theme }: HeroProps) {
             letterSpacing: "0.18em",
             fontSize: 12,
             fontWeight: 600,
-            color: theme.muted,
+            color: mutedText(theme),
             margin: "0 0 24px",
           }}
         >
@@ -80,9 +82,9 @@ export default function Hero({ content, theme }: HeroProps) {
                   fontFamily: theme.bodyFont,
                   textTransform: "uppercase",
                   letterSpacing: "0.14em",
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
-                  color: theme.muted,
+                  color: mutedText(theme),
                   margin: "0 0 6px",
                 }}
               >
@@ -100,9 +102,9 @@ export default function Hero({ content, theme }: HeroProps) {
                   fontFamily: theme.bodyFont,
                   textTransform: "uppercase",
                   letterSpacing: "0.14em",
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
-                  color: theme.muted,
+                  color: mutedText(theme),
                   margin: "0 0 6px",
                 }}
               >
@@ -113,6 +115,7 @@ export default function Hero({ content, theme }: HeroProps) {
                 {content.primaryLocation.name && content.primaryLocation.addressLine ? " — " : ""}
                 {content.primaryLocation.addressLine}
               </p>
+              <VenueLinks content={content} font={theme.bodyFont} color={theme.ink} align="left" style={{ marginTop: 2 }} />
             </div>
           ) : null}
         </div>

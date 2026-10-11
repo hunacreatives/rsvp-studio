@@ -66,7 +66,14 @@ const CARD_CSS = `
 @media (prefers-reduced-motion: reduce) { .rs-tcard { transition: none; } }
 `;
 
-function Card({ q, className = "", style }: { q: Quote; className?: string; style?: React.CSSProperties }) {
+/** Mix a card's accent ink 65/35 with the site navy, so body text clears 4.5:1 on its pastel. */
+function deepInk(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  const mix = (c: number, navy: number) => Math.round(c * 0.65 + navy * 0.35);
+  return `rgb(${mix(n >> 16, 0)}, ${mix((n >> 8) & 255, 7)}, ${mix(n & 255, 39)})`;
+}
+
+function Card({ q, className = "", style, phone = false }: { q: Quote; className?: string; style?: React.CSSProperties; phone?: boolean }) {
   return (
     <figure className={`rounded-[24px] p-6 text-left shadow-[0_14px_34px_-22px_rgba(0,7,39,0.35)] ${className}`} style={{ background: q.bg, color: q.ink, ...style }} tabIndex={0}>
       <div className="flex gap-1 text-[17px]" aria-label="5 out of 5 stars">
@@ -74,10 +81,15 @@ function Card({ q, className = "", style }: { q: Quote; className?: string; styl
           <i key={i} className="ri-star-fill" aria-hidden />
         ))}
       </div>
-      <blockquote className="mt-3 text-[13.5px] leading-[1.45]">&ldquo;{q.quote}&rdquo;</blockquote>
+      <blockquote
+        className={phone ? "mt-3 text-[15px] leading-[1.55]" : "mt-3 text-[13.5px] leading-[1.45]"}
+        style={phone ? { color: deepInk(q.ink) } : undefined}
+      >
+        &ldquo;{q.quote}&rdquo;
+      </blockquote>
       <figcaption className="mt-4 border-t pt-3" style={{ borderColor: q.ink }}>
         <p className="text-[14px] font-semibold italic">{q.name}</p>
-        <p className="text-[13px]">{q.place}</p>
+        <p className="text-[13px]" style={phone ? { color: deepInk(q.ink) } : undefined}>{q.place}</p>
       </figcaption>
     </figure>
   );
@@ -108,10 +120,10 @@ export default function Testimonials() {
         ))}
       </Reveal>
 
-      {/* Phones: one under another, slightly tilted */}
+      {/* Phones: one under another, barely tilted (keeps the text crisp) */}
       <div className="container-x mt-10 grid gap-5 md:hidden">
         {QUOTES.map((q, i) => (
-          <Card key={q.name} q={q} className="mx-auto w-full max-w-[340px]" style={{ transform: `rotate(${i % 2 ? 1.5 : -1.5}deg)` }} />
+          <Card key={q.name} q={q} phone className="mx-auto w-full max-w-[340px]" style={{ transform: `rotate(${i % 2 ? 0.75 : -0.75}deg)` }} />
         ))}
       </div>
     </section>

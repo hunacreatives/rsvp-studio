@@ -46,7 +46,7 @@ export default function HomePage() {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => navigate("/account/projects")}
-                className="rounded-full bg-[var(--acc-blue)] px-4 py-1.5 text-[14px] font-medium uppercase tracking-[0.02em] text-white hover:bg-[#2453bd]"
+                className="min-h-[44px] rounded-full bg-[var(--acc-blue)] px-5 py-1.5 text-[14px] font-medium uppercase md:min-h-0 tracking-[0.02em] text-white hover:bg-[#2453bd]"
               >
                 Show more
               </button>

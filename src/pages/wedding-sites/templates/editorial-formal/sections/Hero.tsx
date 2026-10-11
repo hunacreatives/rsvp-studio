@@ -1,3 +1,5 @@
+import VenueLinks from "../../shared/VenueLinks";
+import { mutedText } from "../../../engine/theme";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { EventContent } from "../../../content/types";
 import { usePrefersReducedMotion } from "../../../engine/motion";
@@ -71,7 +73,7 @@ export default function Hero({ content, theme, heroTreatment, heroImageUrl }: He
     <section
       style={{
         width: "100%",
-        minHeight: heroImageUrl || formattedDate ? "80vh" : undefined,
+        minHeight: heroImageUrl || formattedDate ? "80svh" : undefined,
         position: "relative",
         background: `radial-gradient(120% 100% at 50% 0%, ${theme.ink}08, ${theme.background} 60%)`,
         display: "flex",
@@ -111,7 +113,7 @@ export default function Hero({ content, theme, heroTreatment, heroImageUrl }: He
         </span>
       ) : null}
 
-      <div style={{ width: "min(680px, 92vw)", position: "relative", zIndex: 1 }}>
+      <div style={{ width: "100%", maxWidth: 680, position: "relative", zIndex: 1 }}>
         <div
           ref={introGroupRef}
           style={{
@@ -128,7 +130,7 @@ export default function Hero({ content, theme, heroTreatment, heroImageUrl }: He
               letterSpacing: "0.22em",
               fontSize: "clamp(12px, 3vw, 15px)",
               fontWeight: 700,
-              color: theme.muted,
+              color: mutedText(theme),
               margin: 0,
             }}
           >
@@ -162,7 +164,7 @@ export default function Hero({ content, theme, heroTreatment, heroImageUrl }: He
                   textTransform: "uppercase",
                   letterSpacing: "0.12em",
                   fontSize: "clamp(13px, 2.5vw, 15px)",
-                  color: theme.muted,
+                  color: mutedText(theme),
                   marginTop: 4,
                 }}
               >
@@ -216,7 +218,7 @@ export default function Hero({ content, theme, heroTreatment, heroImageUrl }: He
               style={{
                 fontFamily: theme.bodyFont,
                 fontSize: 18,
-                color: theme.muted,
+                color: mutedText(theme),
                 marginTop: 12,
               }}
             >
@@ -238,6 +240,9 @@ export default function Hero({ content, theme, heroTreatment, heroImageUrl }: He
               {content.primaryLocation.name && content.primaryLocation.addressLine ? <br /> : null}
               {content.primaryLocation.addressLine}
             </p>
+          ) : null}
+          {hasLocation ? (
+            <VenueLinks content={content} font={theme.bodyFont} color={theme.ink} align={heroTreatment === "centered-numeral" ? "center" : "left"} style={{ marginTop: 8 }} />
           ) : null}
 
           <div

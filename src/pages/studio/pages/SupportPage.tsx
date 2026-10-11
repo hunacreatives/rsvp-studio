@@ -110,27 +110,33 @@ export default function SupportPage() {
     if (id) next.set("thread", id);
     else next.delete("thread");
     setParams(next);
+    // Phones: the request replaces the list, so start it at the top of the screen.
+    if (id && window.matchMedia("(max-width: 767px)").matches) window.scrollTo({ top: 0 });
   };
+  // Phones and tablets: the customer panel opens as a sheet instead of a third column.
+  const [showCustomer, setShowCustomer] = useState(false);
+  useEffect(() => setShowCustomer(false), [activeId]);
 
   return (
     <>
       <StudioHeader
         title="Support"
         sub={`${counts.needs_reply} need a reply${counts.overdue ? ` · ${counts.overdue} overdue` : ""} · we promise a reply within 1 business day (Mon–Fri, 9 AM–6 PM Manila).`}
+        hideOnPhone={!!active}
       />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className={`mb-4 flex-wrap items-center gap-2 ${active ? "hidden md:flex" : "flex"}`}>
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => (setTab(t.id), setQuery(""))}
-            className={`rounded-full border px-4 py-2 text-[13px] transition-colors ${tab === t.id && !query ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"}`}
+            className={`min-h-[44px] rounded-full border px-4 py-2 text-[14px] transition-colors md:min-h-0 md:text-[13px] ${tab === t.id && !query ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"}`}
           >
             {t.label} {t.id !== "report" ? <span className="opacity-60">{counts[t.id]}</span> : null}
           </button>
         ))}
-        <span className="ml-auto inline-flex rounded-full border border-[var(--line)] bg-white p-0.5 text-[13px]">
+        <span className={`w-full rounded-full border border-[var(--line)] bg-white p-0.5 text-[13px] sm:ml-auto sm:w-auto ${tab === "report" && !query ? "hidden" : "flex"}`}>
           {(["everyone", "mine", "unassigned"] as Who[]).map((w) => (
-            <button key={w} onClick={() => setWho(w)} className={`rounded-full px-3 py-1.5 ${who === w ? "bg-[var(--ink)] text-white" : "text-[var(--ink)]"}`}>
+            <button key={w} onClick={() => setWho(w)} className={`min-h-[40px] flex-1 whitespace-nowrap rounded-full px-2.5 py-1.5 sm:flex-none sm:px-3 md:min-h-0 ${who === w ? "bg-[var(--ink)] text-white" : "text-[var(--ink)]"}`}>
               {w === "mine" ? "Assigned to me" : w === "unassigned" ? "Unassigned" : "Everyone"}
             </button>
           ))}
@@ -140,14 +146,14 @@ export default function SupportPage() {
       {tab === "report" && !query ? (
         <SupportReport requests={requests} holidays={holidays} />
       ) : (
-      <div className={`grid h-[720px] overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:grid-cols-[320px_1fr] ${active ? "xl:grid-cols-[300px_1fr_280px]" : ""}`}>
-        <div className={`min-h-0 flex-col border-r border-[var(--line)] ${active ? "hidden md:flex" : "flex"}`}>
+      <div className={`grid h-[calc(100dvh_-_164px_-_env(safe-area-inset-bottom))] min-h-[460px] grid-cols-1 overflow-hidden rounded-[22px] border border-[var(--line)] bg-white md:h-[720px] md:grid-cols-[320px_minmax(0,1fr)] ${active ? "xl:grid-cols-[300px_minmax(0,1fr)_280px]" : ""}`}>
+        <div className={`min-h-0 min-w-0 flex-col border-r border-[var(--line)] ${active ? "hidden md:flex" : "flex"}`}>
           <div className="p-4">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search: SUP-1042, a name, email or any word"
-              className="w-full rounded-full bg-[var(--paper)] px-4 py-2.5 text-[13px] outline-none"
+              className="w-full rounded-full bg-[var(--paper)] px-4 py-2.5 text-[16px] outline-none md:text-[13px]"
             />
           </div>
           <ul className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
@@ -162,12 +168,12 @@ export default function SupportPage() {
                     <Avatar name={t.counterpartName} url={t.counterpartAvatar} size={36} tone="#cfd6ea" />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className={`truncate text-[13px] text-[var(--ink)] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>
-                        <span className="shrink-0 text-[10px] text-[var(--slate)]">{inboxStamp(t.last_message_at)}</span>
+                        <span className={`truncate text-[15px] text-[var(--ink)] md:text-[13px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>
+                        <span className="shrink-0 text-[12px] text-[var(--slate)] md:text-[11px]">{inboxStamp(t.last_message_at)}</span>
                       </span>
-                      <span className="flex items-center gap-1.5 text-[12px] text-[var(--ink)]">
-                        <span className="font-medium">{ticketCode(t.ticket_number)}</span>
-                        <span className="truncate text-[var(--slate)]">· {categoryLabel(t.category)}</span>
+                      <span className="flex min-w-0 items-center gap-1.5 text-[14px] text-[var(--ink)] md:text-[12px]">
+                        <span className="shrink-0 font-medium">{ticketCode(t.ticket_number)}</span>
+                        <span className="min-w-0 truncate text-[var(--slate)]">· {categoryLabel(t.category)}</span>
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-1.5">
                         {t.urgent ? <Chip tone="late">Urgent</Chip> : null}
@@ -177,11 +183,11 @@ export default function SupportPage() {
                         {t.auto_closed_at && t.status === "resolved" ? <Chip tone="done">Auto-closed</Chip> : null}
                         {t.rating ? <span title={`Rated ${RATING_LABEL[t.rating].label}`} className="text-[12px]">{RATING_LABEL[t.rating].emoji}</span> : null}
                         {tab === "all" || query ? <Chip tone={t.status === "resolved" ? "done" : t.status === "waiting" ? "you" : "open"}>{STAFF_STATUS[t.status ?? "needs_reply"]}</Chip> : null}
-                        <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--slate)]">
+                        <span className="min-w-0 flex-1 truncate text-[13px] text-[var(--slate)] md:text-[12px]">
                           {t.lastMessage?.internal ? <span className="font-medium text-[#8a6a00]">Note: </span> : null}
                           {t.lastMessage?.body || (t.lastMessage?.attachments.length ? "Sent a file" : "")}
                         </span>
-                        {t.unread ? <span className="h-2 w-2 rounded-full bg-[var(--acc-blue)]" /> : null}
+                        {t.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--acc-blue)]" /> : null}
                       </span>
                     </span>
                   </button>
@@ -195,14 +201,14 @@ export default function SupportPage() {
             ) : null}
           </ul>
         </div>
-        <div className={`min-h-0 ${active ? "flex flex-col" : "hidden md:flex md:flex-col"}`}>
+        <div className={`min-h-0 min-w-0 ${active ? "flex flex-col" : "hidden md:flex md:flex-col"}`}>
           {active ? (
             <ChatPane
               key={active.id}
               thread={active}
               header={`${ticketCode(active.ticket_number)} · ${categoryLabel(active.category)}${projectOf(active) ? ` · ${projectOf(active)!.name}` : ""}`}
               onBack={() => open(null)}
-              toolbar={<StaffToolbar t={active} email={emailOf(active)} eventDate={projectOf(active)?.event_date ?? null} holidays={holidays} />}
+              toolbar={<StaffToolbar t={active} email={emailOf(active)} eventDate={projectOf(active)?.event_date ?? null} holidays={holidays} onCustomer={() => setShowCustomer(true)} />}
               allowNotes
               messageActions={(m) =>
                 m.sender_id === active.profile_id && !m.internal ? <SplitButton messageId={m.id} onDone={open} /> : null
@@ -215,9 +221,20 @@ export default function SupportPage() {
             <div className="grid flex-1 place-items-center text-[14px] text-[var(--slate)]">Pick a request, or search by its number.</div>
           )}
         </div>
-        {active ? <CustomerPanel t={active} requests={requests} onOpen={open} /> : null}
+        {active ? (
+          <aside className="hidden min-h-0 overflow-y-auto border-l border-[var(--line)] p-5 text-[13px] xl:block" data-lenis-prevent>
+            <CustomerPanel t={active} requests={requests} onOpen={open} />
+          </aside>
+        ) : null}
       </div>
       )}
+      {active ? (
+        <Modal open={showCustomer} onClose={() => setShowCustomer(false)} title="Customer">
+          <div className="text-[14px]">
+            <CustomerPanel t={active} requests={requests} onOpen={(id) => (setShowCustomer(false), open(id))} />
+          </div>
+        </Modal>
+      ) : null}
     </>
   );
 }
@@ -240,7 +257,7 @@ function SplitButton({ messageId, onDone }: { messageId: string; onDone: (id: st
     setBusy(false);
   };
   return (
-    <button onClick={run} disabled={busy} className="text-[11px] text-[var(--slate)] hover:text-[var(--ink)] hover:underline">
+    <button onClick={run} disabled={busy} className="min-h-[40px] px-1 text-[13px] text-[var(--slate)] hover:text-[var(--ink)] hover:underline md:min-h-0 md:text-[11px]">
       {busy ? "Moving…" : "Move to new request"}
     </button>
   );
@@ -248,15 +265,17 @@ function SplitButton({ messageId, onDone }: { messageId: string; onDone: (id: st
 
 function Chip({ tone, children }: { tone: keyof typeof STATUS_STYLE; children: React.ReactNode }) {
   return (
-    <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={STATUS_STYLE[tone]}>
+    <span className="shrink-0 rounded-full px-2 py-0.5 text-[12px] font-medium md:text-[11px]" style={STATUS_STYLE[tone]}>
       {children}
     </span>
   );
 }
 
 /** Status, topic and urgency for the request that's open, plus when a reply is due. */
-function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; email: string; eventDate: string | null; holidays: Holidays }) {
+function StaffToolbar({ t, email, eventDate, holidays, onCustomer }: { t: ThreadSummary; email: string; eventDate: string | null; holidays: Holidays; onCustomer: () => void }) {
   const { refresh, demo, people, profile } = usePortal();
+  // Phones: the assign/topic/hold/urgent controls fold away behind "Details".
+  const [more, setMore] = useState(false);
   const team = Object.values(people).filter((p) => p.is_staff);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -274,6 +293,15 @@ function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; ema
   };
   const due = t.status === "needs_reply" ? replyDueAt(t.last_customer_at ?? t.last_message_at, holidays) : null;
   const late = isOverdue(t, holidays);
+  const statusButton = t.status === "resolved" ? (
+          <button disabled={busy} onClick={() => save({ status: "needs_reply" })} className="min-h-[40px] md:min-h-0 rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[13px] font-medium text-[var(--ink)] md:text-[12px]">
+            Reopen
+          </button>
+        ) : (
+          <button disabled={busy} onClick={() => window.confirm("Mark this request done? The customer gets an email asking how we did.") && save({ status: "resolved" })} className="min-h-[40px] md:min-h-0 rounded-full bg-[var(--ink)] px-3 py-1 text-[13px] font-medium text-white md:text-[12px]">
+            Resolve
+          </button>
+        );
   return (
     <>
       <Chip tone={t.status === "resolved" ? "done" : t.status === "waiting" ? "you" : "open"}>{isClosed(t) ? "Closed" : STAFF_STATUS[t.status ?? "needs_reply"]}</Chip>
@@ -290,13 +318,25 @@ function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; ema
           {t.rating_comment ? <span className="text-[var(--slate)]"> · “{t.rating_comment.length > 60 ? `${t.rating_comment.slice(0, 60)}…` : t.rating_comment}”</span> : null}
         </span>
       ) : null}
-      <span className="text-[12px] text-[var(--slate)]">
+      <span className={`min-w-0 break-all text-[13px] text-[var(--slate)] md:inline md:text-[12px] ${more ? "inline" : "hidden"}`}>
         {email}
         {eventDate ? ` · event ${formatDate(eventDate)}` : ""}
       </span>
-      <span className="ml-auto flex flex-wrap items-center gap-2">
+      <span className="ml-auto flex flex-wrap items-center justify-end gap-2 md:hidden">
+        <button onClick={onCustomer} aria-label="Customer details" className="min-h-[40px] rounded-full border border-[var(--line)] bg-white px-3 text-[13px] font-medium text-[var(--ink)] xl:hidden">
+          <i className="ri-user-line" /><span className="hidden min-[360px]:inline"> Customer</span>
+        </button>
+        <button onClick={() => setMore((v) => !v)} aria-expanded={more} className="min-h-[40px] rounded-full border border-[var(--line)] bg-white px-3 text-[13px] font-medium text-[var(--ink)]">
+          {more ? "Less" : "Details"} <i className={more ? "ri-arrow-up-s-line" : "ri-arrow-down-s-line"} />
+        </button>
+        {statusButton}
+      </span>
+      <span className={`w-full flex-wrap items-center gap-2 md:ml-auto md:flex md:w-auto ${more ? "flex" : "hidden"}`}>
+        <button onClick={onCustomer} className="hidden rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[12px] font-medium text-[var(--ink)] md:inline-block xl:hidden">
+          <i className="ri-user-line" /> Customer
+        </button>
         {!t.assigned_to ? (
-          <button disabled={busy} onClick={() => save({ assigned_to: profile.id })} className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[12px] font-medium text-[var(--ink)]">
+          <button disabled={busy} onClick={() => save({ assigned_to: profile.id })} className="min-h-[40px] md:min-h-0 rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[13px] font-medium text-[var(--ink)] md:text-[12px]">
             Assign to me
           </button>
         ) : null}
@@ -304,7 +344,7 @@ function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; ema
           value={t.assigned_to ?? ""}
           disabled={busy}
           onChange={(e) => save({ assigned_to: e.target.value || null })}
-          className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[12px] text-[var(--ink)]"
+          className="min-h-[40px] md:min-h-0 rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[16px] text-[var(--ink)] md:text-[12px]"
           aria-label="Assigned to"
         >
           <option value="">Unassigned</option>
@@ -316,7 +356,7 @@ function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; ema
           value={t.category ?? "other"}
           disabled={busy}
           onChange={(e) => save({ category: e.target.value as SupportCategory })}
-          className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[12px] text-[var(--ink)]"
+          className="min-h-[40px] md:min-h-0 max-w-full rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[16px] text-[var(--ink)] md:text-[12px]"
           aria-label="Topic"
         >
           {SUPPORT_CATEGORIES.map((c) => (
@@ -325,7 +365,7 @@ function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; ema
         </select>
         {t.status !== "resolved" ? (
           <label
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] ${onHold(t) ? "border-[#8a5a00] text-[#8a5a00]" : "border-[var(--line)] text-[var(--ink)]"}`}
+            className={`min-h-[40px] md:min-h-0 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[13px] md:text-[12px] ${onHold(t) ? "border-[#8a5a00] text-[#8a5a00]" : "border-[var(--line)] text-[var(--ink)]"}`}
             title="No reminder or auto-close until after this date — e.g. waiting on their venue or photos."
           >
             {onHold(t) ? "On hold until" : "Hold until"}
@@ -335,10 +375,10 @@ function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; ema
               min={new Date().toISOString().slice(0, 10)}
               disabled={busy}
               onChange={(e) => save({ hold_until: e.target.value || null })}
-              className="bg-transparent text-[12px] outline-none"
+              className="min-w-0 bg-transparent text-[16px] outline-none md:text-[12px]"
             />
             {t.hold_until ? (
-              <button type="button" disabled={busy} onClick={() => save({ hold_until: null })} aria-label="Clear hold" className="opacity-60 hover:opacity-100">
+              <button type="button" disabled={busy} onClick={() => save({ hold_until: null })} aria-label="Clear hold" className="grid h-8 w-8 place-items-center opacity-60 hover:opacity-100 md:h-auto md:w-auto">
                 ×
               </button>
             ) : null}
@@ -347,19 +387,11 @@ function StaffToolbar({ t, email, eventDate, holidays }: { t: ThreadSummary; ema
         <button
           disabled={busy}
           onClick={() => save({ urgent: !t.urgent })}
-          className={`rounded-full border px-3 py-1 text-[12px] font-medium ${t.urgent ? "border-[#c2412d] text-[#c2412d]" : "border-[var(--line)] text-[var(--ink)]"}`}
+          className={`min-h-[40px] md:min-h-0 rounded-full border px-3 py-1 text-[13px] font-medium md:text-[12px] ${t.urgent ? "border-[#c2412d] text-[#c2412d]" : "border-[var(--line)] text-[var(--ink)]"}`}
         >
           {t.urgent ? "Urgent ✓" : "Mark urgent"}
         </button>
-        {t.status === "resolved" ? (
-          <button disabled={busy} onClick={() => save({ status: "needs_reply" })} className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[12px] font-medium text-[var(--ink)]">
-            Reopen
-          </button>
-        ) : (
-          <button disabled={busy} onClick={() => window.confirm("Mark this request done? The customer gets an email asking how we did.") && save({ status: "resolved" })} className="rounded-full bg-[var(--ink)] px-3 py-1 text-[12px] font-medium text-white">
-            Resolve
-          </button>
-        )}
+        <span className="hidden md:inline-flex">{statusButton}</span>
       </span>
       {error ? <span className="w-full text-[12px] text-[#c2412d]">{error}</span> : null}
     </>
@@ -373,23 +405,23 @@ function SavedReplies({ replies, reload, firstName, onPick }: { replies: studio.
   const fill = (body: string) => body.replaceAll("{name}", firstName || "there");
   return (
     <span className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[12px] text-[var(--ink)]">
+      <button onClick={() => setOpen((o) => !o)} className="min-h-[40px] md:min-h-0 rounded-full border border-[var(--line)] bg-white px-3 py-1 text-[13px] text-[var(--ink)] md:text-[12px]">
         <i className="ri-chat-quote-line" /> Saved replies
       </button>
       {open ? (
-        <span className="absolute bottom-full left-0 z-20 mb-2 block w-[320px] rounded-2xl border border-[var(--line)] bg-white p-2 shadow-[0_18px_40px_-18px_rgba(0,7,39,0.35)]">
+        <span className="fixed inset-x-4 bottom-[calc(150px_+_env(safe-area-inset-bottom))] z-[80] mb-2 block max-h-[50dvh] overflow-y-auto rounded-2xl md:absolute md:inset-x-auto md:bottom-full md:left-0 md:z-20 md:w-[320px] border border-[var(--line)] bg-white p-2 shadow-[0_18px_40px_-18px_rgba(0,7,39,0.35)]">
           {replies.map((r) => (
             <button
               key={r.id}
               onClick={() => (onPick(fill(r.body)), setOpen(false))}
-              className="block w-full rounded-xl px-3 py-2 text-left hover:bg-[var(--paper)]"
+              className="block min-h-[44px] w-full rounded-xl px-3 py-2 text-left hover:bg-[var(--paper)]"
             >
-              <span className="block text-[13px] font-medium text-[var(--ink)]">{r.title}</span>
+              <span className="block text-[14px] font-medium md:text-[13px] text-[var(--ink)]">{r.title}</span>
               <span className="block truncate text-[12px] text-[var(--slate)]">{fill(r.body)}</span>
             </button>
           ))}
           {!replies.length ? <span className="block px-3 py-2 text-[12px] text-[var(--slate)]">No saved replies yet.</span> : null}
-          <button onClick={() => (setManaging(true), setOpen(false))} className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-[12px] font-medium text-[var(--acc-blue)] hover:bg-[var(--paper)]">
+          <button onClick={() => (setManaging(true), setOpen(false))} className="mt-1 block min-h-[44px] w-full rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[var(--acc-blue)] md:min-h-0 md:text-[12px] hover:bg-[var(--paper)]">
             Manage saved replies…
           </button>
         </span>
@@ -469,7 +501,7 @@ function CustomerPanel({ t, requests, onOpen }: { t: ThreadSummary; requests: Th
   const others = requests.filter((r) => r.profile_id === t.profile_id && r.id !== t.id);
   const email = person?.email ?? people[t.profile_id]?.email;
   return (
-    <aside className="hidden min-h-0 overflow-y-auto border-l border-[var(--line)] p-5 text-[13px] xl:block" data-lenis-prevent>
+    <div>
       <div className="flex items-center gap-3">
         <Avatar name={t.counterpartName} url={t.counterpartAvatar} size={44} tone="#cfd6ea" />
         <span className="min-w-0">
@@ -483,10 +515,10 @@ function CustomerPanel({ t, requests, onOpen }: { t: ThreadSummary; requests: Th
         {person?.created_at ? <Row label="Customer since">{formatDate(person.created_at)}</Row> : null}
       </dl>
 
-      <h3 className="mt-6 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Projects</h3>
+      <h3 className="mt-6 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Projects</h3>
       {theirs.length ? (
         theirs.map((p) => (
-          <Link key={p.id} to={`/studio/projects?project=${p.id}`} className="mt-2 block rounded-xl bg-[var(--paper)] px-3 py-2 hover:bg-[#ececee]">
+          <Link key={p.id} to={`/studio/projects?project=${p.id}`} className="mt-2 block min-h-[44px] rounded-xl bg-[var(--paper)] px-3 py-2 hover:bg-[#ececee]">
             <span className="block font-medium text-[var(--ink)]">{p.name}</span>
             <span className="block text-[12px] text-[var(--slate)]">
               {p.event_date ? `Event ${formatDate(p.event_date)}` : "No event date"} · {p.project_status.replace("_", " ")}
@@ -497,17 +529,17 @@ function CustomerPanel({ t, requests, onOpen }: { t: ThreadSummary; requests: Th
         <p className="mt-2 text-[var(--slate)]">No linked projects.</p>
       )}
 
-      <h3 className="mt-6 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Billing</h3>
+      <h3 className="mt-6 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Billing</h3>
       <p className={`mt-2 ${late.length ? "font-medium text-[#c2412d]" : "text-[var(--ink)]"}`}>
         {open.length ? `${formatMoney(open.reduce((s, i) => s + i.amount, 0))} open${late.length ? ` · ${late.length} overdue` : ""}` : "Nothing outstanding"}
       </p>
 
       <ReplyAddress t={t} />
 
-      <h3 className="mt-6 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Other requests</h3>
+      <h3 className="mt-6 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Other requests</h3>
       {others.length ? (
         others.map((r) => (
-          <button key={r.id} onClick={() => onOpen(r.id)} className="mt-2 flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left hover:bg-[var(--paper)]">
+          <button key={r.id} onClick={() => onOpen(r.id)} className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left hover:bg-[var(--paper)]">
             <span>
               <span className="block font-medium text-[var(--ink)]">{ticketCode(r.ticket_number)}</span>
               <span className="block text-[12px] text-[var(--slate)]">{categoryLabel(r.category)}</span>
@@ -518,7 +550,7 @@ function CustomerPanel({ t, requests, onOpen }: { t: ThreadSummary; requests: Th
       ) : (
         <p className="mt-2 text-[var(--slate)]">None — this is their first.</p>
       )}
-    </aside>
+    </div>
   );
 }
 
@@ -541,7 +573,7 @@ function ReplyAddress({ t }: { t: ThreadSummary }) {
   };
   return (
     <>
-      <h3 className="mt-6 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Email reply address</h3>
+      <h3 className="mt-6 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)]">Email reply address</h3>
       <p className="mt-2 break-all text-[12px] text-[var(--ink)]">sup-{t.ticket_number}.{t.reply_key}@reply.thersvpstudio.com</p>
       <button onClick={reset} disabled={busy} className="mt-1 text-[12px] text-[var(--acc-blue)] hover:underline">
         {busy ? "Resetting…" : "Reset address"}

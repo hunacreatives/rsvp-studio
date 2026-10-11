@@ -16,7 +16,7 @@ const STATUS_LABEL: Record<studio.LeadStatus, string> = { new: "New", contacted:
 // Shown first, in this order; anything else the form sent follows.
 const ORDER = ["interested_in", "occasion", "event_date", "event_location", "guest_count", "services", "design_type", "semi_collections", "bespoke_collections", "addons", "budget", "timeline", "vision", "message", "business_name", "role", "looking_for", "regions", "volume", "event_brief", "ig_handle", "instagram", "hear_about"];
 const HIDDEN = new Set(["your_name", "full_name", "email", "website"]);
-const LABEL: Record<string, string> = { interested_in: "Asked about", event_date: "Event date", event_location: "Where", guest_count: "Guests", design_type: "Custom or Semi-Custom", semi_collections: "Collections", bespoke_collections: "Stationery suites", addons: "Add-ons", vision: "Their vision", ig_handle: "Instagram", hear_about: "Found us via", event_brief: "Event brief", looking_for: "Looking for" };
+const LABEL: Record<string, string> = { interested_in: "Asked about", event_date: "Event date", event_location: "Where", guest_count: "Guests", design_type: "Custom or Semi-Custom", semi_collections: "Collections", bespoke_collections: "Stationery suites", addons: "Add-ons", vision: "Their vision", ig_handle: "Instagram", hear_about: "Found us via", event_brief: "Event brief", looking_for: "Looking for", website_url: "Website", files_not_attached: "Files not attached" };
 const labelize = (k: string) => LABEL[k] ?? k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
 export default function LeadsPage() {
@@ -75,21 +75,24 @@ export default function LeadsPage() {
           return (
             <article key={l.id} className="rounded-[22px] border border-[var(--line)] bg-white p-5">
               <header className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[17px] font-semibold text-[var(--ink)]">{l.name || "No name"}</p>
+                <div className="min-w-0 flex-1 basis-[220px]">
+                  <p className="break-words text-[17px] font-semibold text-[var(--ink)]">{l.name || "No name"}</p>
                   <p className="text-[13px] text-[var(--slate)]">
                     {FORM_LABEL[l.form] ?? l.form} · {formatDate(l.created_at)}
                     {l.status !== "new" ? ` · ${STATUS_LABEL[l.status]}` : ""}
                   </p>
-                  <p className="mt-1 text-[14px]">
+                  <p className="mt-1 text-[14px] [overflow-wrap:anywhere]">
                     {l.email ? <a href={mailto} className="text-[var(--acc-blue)] hover:underline">{l.email}</a> : null}
                     {l.phone ? <span className="text-[var(--slate)]"> · {l.phone}</span> : null}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {l.email ? (
-                    <a href={mailto}>
-                      <PillButton disabled={busy === l.id}>Reply by email</PillButton>
+                    <a
+                      href={mailto}
+                      className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-[var(--ink)] bg-white px-4 py-1.5 text-[13px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--ink)] hover:text-white md:min-h-0"
+                    >
+                      Reply by email
                     </a>
                   ) : null}
                   {l.status === "new" ? <PillButton disabled={busy === l.id} onClick={() => setStatus(l, "contacted")}>Mark contacted</PillButton> : null}
@@ -113,14 +116,14 @@ export default function LeadsPage() {
                   {keys.map((k) => (
                     <div key={k} className={["vision", "message", "event_brief"].includes(k) ? "sm:col-span-2" : ""}>
                       <dt className="text-[12px] uppercase tracking-[0.06em] text-[var(--slate)]">{labelize(k)}</dt>
-                      <dd className="whitespace-pre-line text-[var(--ink)]">
+                      <dd className="whitespace-pre-line text-[var(--ink)] [overflow-wrap:anywhere]">
                         {Array.isArray(v[k]) ? (v[k] as string[]).join(", ") : /^\d{4}-\d{2}-\d{2}$/.test(String(v[k])) ? formatDate(String(v[k])) : String(v[k])}
                       </dd>
                     </div>
                   ))}
                 </dl>
               ) : null}
-              {l.attachments?.length ? <p className="mt-3 text-[13px] text-[var(--slate)]">Files (in the hello@ email): {l.attachments.join(", ")}</p> : null}
+              {l.attachments?.length ? <p className="mt-3 text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">Files (in the hello@ email): {l.attachments.join(", ")}</p> : null}
             </article>
           );
         })}
