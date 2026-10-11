@@ -89,7 +89,7 @@ export function DiySiteSummary({ project }: { project: Project }) {
         site.guestsPurgedAt ? `Removed ${formatDate(site.guestsPurgedAt)}` : `Download it before ${formatDate(keptUntil)}`,
       ]
     : live
-      ? ["Website", `Live since ${formatDate(site!.publishedAt)}`, "Stays online until", site!.liveUntil ? formatDate(site!.liveUntil) : "—"]
+      ? ["Website", `Live since ${formatDate(site!.publishedAt)}`, "Next step", "Share your link with your guests"]
       : ["Website", site ? "Draft — not published yet" : "Not started", "Next step", site ? "Publish it when it’s ready" : "Pick a template"];
   return (
     <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#dcdce0] pt-4 text-[13px]">

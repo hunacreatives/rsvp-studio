@@ -167,6 +167,20 @@ function WebsiteTab({ project }: { project: Project }) {
             <p className="mt-1 text-[14px] text-[var(--slate)]">
               {site.publishedAt ? `Published ${formatDate(site.publishedAt)}` : "Draft — not published yet"}
             </p>
+            {/* How long it stays up (supabase/project-lifecycle.sql) — a detail, so it lives here, not on the cards. */}
+            {site.liveUntil && !site.ended ? (
+              <p className="mt-1 text-[14px] text-[var(--slate)]">
+                {site.publishedAt ? "Stays online until" : "Once published, stays online until"} {formatDate(site.liveUntil)}.
+              </p>
+            ) : null}
+            {site.ended ? (
+              <p className="mt-1 text-[14px] text-[var(--slate)]">
+                Went offline {formatDate(site.liveUntil)}.{" "}
+                {site.guestsPurgedAt
+                  ? `Guest list removed ${formatDate(site.guestsPurgedAt)}.`
+                  : `Guest list kept until ${formatDate(new Date(Date.parse(site.liveUntil!) + 30 * 86_400_000).toISOString())}.`}
+              </p>
+            ) : null}
           </div>
           <span className={`rounded-full px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.06em] ${site.publishedAt ? "bg-[#ecfbcc] text-[#3d5a12]" : "bg-[#ececec] text-[#55556a]"}`}>
             {site.publishedAt ? "Live" : "Draft"}
