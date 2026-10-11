@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { esc } from "./_lib/email.js";
 import { processInbound } from "./_lib/support-inbound.js";
+import { sendRsvpDigests } from "./_lib/rsvp-digest.js";
 import { code, customerReplyTo, reqCode, emailRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
 
 // The daily support job — Vercel Cron, ~9 AM Manila (vercel.json: "0 1 * * *" UTC).
@@ -10,7 +11,9 @@ import { code, customerReplyTo, reqCode, emailRepliesOn, firstName, FROM, isMani
 //   2. Auto-close: waiting 7 days, reminded ≥ 2 days ago, not urgent, not on hold,
 //      and never within 14 days of the customer's event.
 //   3. Weekday staff digest: urgent requests, replies past the 1-business-day promise.
-//   4. Heartbeat, shown in the Studio, so a job that stops running gets noticed.
+//   4. RSVP summary for free sites: one email to the hosts with yesterday's replies
+//      (Premium sites get an email per RSVP instead — see api/wedding-rsvp.ts).
+//   5. Heartbeat, shown in the Studio, so a job that stops running gets noticed.
 // The database claims each reminder / close in one UPDATE, and Resend drops repeat
 // sends with the same idempotency key — a double run can't double-email.
 
@@ -42,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!secret) return res.status(500).json({ error: "CRON_SECRET is not set" });
   if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
 
-  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, errors: [] as string[] };
+  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, rsvpDigests: 0, rsvpDigestsSkipped: 0, errors: [] as string[] };
   const today = new Date();
   const dayKey = today.toISOString().slice(0, 10);
   const { data: hol } = await supabaseAdmin.from("support_holidays").select("day").gte("day", new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10));
@@ -202,7 +205,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // 4. Heartbeat
+  // 4. RSVP summaries (free sites)
+  const rsvp = await sendRsvpDigests(supabaseAdmin, sendMail, SITE, dayKey);
+  report.rsvpDigests = rsvp.sent;
+  report.rsvpDigestsSkipped = rsvp.skipped;
+  report.errors.push(...rsvp.errors);
+
+  // 5. Heartbeat
   await supabaseAdmin.from("support_job_runs").upsert({ job: "support-daily", last_run_at: new Date().toISOString(), details: report });
   return res.status(report.errors.length ? 207 : 200).json(report);
 }

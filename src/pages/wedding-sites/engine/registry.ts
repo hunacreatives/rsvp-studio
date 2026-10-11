@@ -25,6 +25,12 @@ export interface TemplateProps<S extends BaseTemplateSettings = BaseTemplateSett
    * the published site, which does not pass this flag.
    */
   editorPreview?: boolean;
+  /**
+   * True only on the published page (/invite/:slug) — the one place a
+   * full-screen opening animation or timed reveal may play. Gallery cards
+   * and the builder render the finished, resting state instead.
+   */
+  live?: boolean;
 }
 
 export type TemplateArchetype =
@@ -59,6 +65,36 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
    * content; a template without it falls back to a schematic mockup.
    */
   demoContent?: EventContent;
+  /**
+   * The standard editor sections this design actually shows. The builder
+   * hides the rest, so a host never fills in something that won't appear.
+   * Missing = every section (the general-purpose templates).
+   */
+  uses?: StandardSection[];
+  /** How many gallery photos the design shows (the builder says so). */
+  galleryLimit?: number;
+  /** What this design calls the "story" (e.g. "Invitation message"). */
+  storyLabel?: string;
+  storyHint?: string;
+  /**
+   * Fields only this design has — a headline, a dress code, a favorite
+   * song… Answers are stored in content.custom[key] and edited in the
+   * builder's "<template> details" section.
+   */
+  customFields?: CustomField[];
+}
+
+export type StandardSection = "story" | "dateVenue" | "schedule" | "accommodations" | "travel" | "gallery" | "keyPeople" | "registry" | "faqs";
+
+export interface CustomField {
+  /** Stable storage key (content.custom[key]). Reuse a key across templates to share the answer. */
+  key: string;
+  label: string;
+  hint?: string;
+  /** Shown faded in the empty field. */
+  placeholder?: string;
+  multiline?: boolean;
+  maxLength?: number;
 }
 
 // `any` here is the one intentional escape hatch: the registry is

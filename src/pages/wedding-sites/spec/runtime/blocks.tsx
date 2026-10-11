@@ -7,6 +7,7 @@ import type { BlockSectionSpec, BlockType } from "../schema";
 import { colorOf, useSpecTheme, type SpecTheme } from "./theme";
 import RsvpForm from "../../templates/shared/RsvpForm";
 import { calendarUrl } from "../../content/calendar";
+import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
 
 // The shared block library: every section an uploaded template needs that
 // the designer's file didn't draw. Built once, styled entirely from the
@@ -514,15 +515,15 @@ function RsvpBlock({ section, content, editorPreview }: BlockProps) {
   );
 }
 
-function FooterBlock() {
+/** The free-site credit. Premium sites render nothing here. */
+export function FooterBlock() {
   const theme = useSpecTheme();
+  const credit = useSiteCredit();
+  if (!credit.show) return null;
   return (
     <footer style={{ background: colorOf(theme, "accent"), padding: "22px 16px", textAlign: "center" }}>
       <p style={{ margin: 0, fontFamily: theme.bodyFont, fontSize: 12, letterSpacing: "0.06em", color: colorOf(theme, "onAccent") }}>
-        Made with love by{" "}
-        <a href="https://thersvpstudio.com" target="_blank" rel="noopener noreferrer" style={{ color: colorOf(theme, "onAccent"), fontWeight: 700 }}>
-          The RSVP Studio
-        </a>
+        <CreditLine linkStyle={{ color: colorOf(theme, "onAccent"), fontWeight: 700 }} />
       </p>
     </footer>
   );

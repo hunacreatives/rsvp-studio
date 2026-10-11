@@ -37,6 +37,16 @@ function asArray<T>(value: unknown): unknown[] {
   return Array.isArray(value) ? (value as unknown[]) : ([] as T[]);
 }
 
+/** Template-only answers: plain strings, capped, nothing else. */
+function normalizeCustom(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (/^[a-zA-Z0-9_-]{1,40}$/.test(k) && typeof v === "string") out[k] = v.slice(0, 2000);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function normalizeImageAsset(raw: unknown): ImageAsset | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
@@ -189,5 +199,6 @@ export function normalizeEventContent(raw: unknown): EventContent {
     keyPeople: asArray<unknown>(r.keyPeople).map(normalizePerson),
     rsvpTableName: asString(r.rsvpTableName),
     occasion: (["wedding", "birthday", "anniversary", "other"] as const).find((o) => o === r.occasion),
+    custom: normalizeCustom(r.custom),
   };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { claimSignupRef, rememberSignupRef } from "@/lib/signupRef";
 import Navbar from "@/pages/home/components/Navbar";
 import AuthModal from "@/pages/home/components/AuthModal";
 import CreateEventModal from "@/pages/account/components/CreateEventModal";
@@ -21,12 +22,15 @@ export default function BuildLandingPage() {
   const [eventCount, setEventCount] = useState(0);
 
   useEffect(() => {
+    // Arrived from a free site's "Make your own" link: remember which one.
+    rememberSignupRef(window.location.search);
     (async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       setSignedIn(Boolean(session));
       if (!session) return;
+      claimSignupRef();
 
       const [ownEvents, memberEvents] = await Promise.all([
         supabase.from("events").select("id").eq("owner_id", session.user.id),
@@ -36,6 +40,11 @@ export default function BuildLandingPage() {
         (ownEvents.data ?? []).length + (memberEvents.data ?? []).filter((r) => r.events).length
       );
     })();
+    // Signed up right here (no page change): credit the free site that sent them.
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") claimSignupRef();
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   return (

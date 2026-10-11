@@ -46,9 +46,11 @@ export default function Terms() {
       <div>
         <h2>4. Building your own website</h2>
         <p>
-          You can design and preview your site for free. Publishing a site may have a one-time fee, shown before
-          you pay; once paid, you can keep editing, unpublish and publish again without paying again. We keep a
-          published site online for the period described in your package or at the time you publish.
+          You can design and preview your site for free, and publish it with a Standard template for free. Free sites
+          show a small &ldquo;Made with The RSVP Studio&rdquo; line and link at the bottom of the page. Premium templates
+          and upgrading a site to Premium are a one-time fee, shown before you pay; once paid, you can keep editing,
+          unpublish and publish again without paying again. We keep a published site online for the period described
+          in your package or at the time you publish.
         </p>
         <p>
           You&rsquo;re responsible for what you put on your site — make sure you have the right to use your photos,

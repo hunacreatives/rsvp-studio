@@ -31,7 +31,7 @@ function describe(c: Content) {
     when = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
   }
   const where = c.primaryLocation?.name || c.primaryLocation?.addressLine || "";
-  const description = [`${kind}celebration${names ? ` of ${names}` : ""}`, when, where].filter(Boolean).join(" · ") + ". Tap to see the details and RSVP.";
+  const description = [`${kind}celebration${names ? ` of ${names}` : ""}`, when, where].filter(Boolean).join(" · ") + ". Tap to see the details and RSVP. Made with The RSVP Studio.";
   return { title, description: description.charAt(0).toUpperCase() + description.slice(1) };
 }
 
@@ -68,6 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `<meta property="og:title" content="${esc(title)}" />`,
         `<meta property="og:description" content="${esc(description)}" />`,
         `<meta property="og:type" content="website" />`,
+        `<meta property="og:site_name" content="The RSVP Studio" />`,
         `<meta property="og:url" content="${esc(`${origin}/invite/${slug}`)}" />`,
         image ? `<meta property="og:image" content="${esc(image)}" />` : "",
         image ? `<meta name="twitter:card" content="summary_large_image" />` : "",
@@ -75,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       html = html
         .replace(/<title>[\s\S]*?<\/title>/, "")
         .replace(/<meta\s+name="description"[\s\S]*?\/>/, "")
-        .replace(/<meta\s+property="og:(title|description|type|url)"[\s\S]*?\/>/g, "")
+        .replace(/<meta\s+property="og:(title|description|type|url|site_name)"[\s\S]*?\/>/g, "")
         .replace(image ? /<meta\s+(property="og:image(:\w+)?"|name="twitter:card")[\s\S]*?\/>/g : /$^/, "")
         .replace("</head>", `    ${tags}\n  </head>`);
     }

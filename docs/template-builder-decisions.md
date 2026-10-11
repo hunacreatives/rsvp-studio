@@ -568,3 +568,25 @@ detailed reasoning if you need it.
   /internal/event-site-preview?template=spec:botanical.
 - Known: the Botanical card art itself has a baked "8" smudge and a stray
   vertical line (inpainting leftovers) — visible in both versions.
+
+## Cinematic rebuilt from scratch as the real "gel-at-30" (Oct 2026)
+- Decision: the first Cinematic pass drifted far from the reference (name-only
+  hero, plain photos, FAQ cards, generic RSVP form) — Francis: "wrong as hell".
+  Deleted and rebuilt 1:1 from `~/angelica-birthday-website` source (CinematicContent,
+  AnimatedBackground, RSVP at commit 71e547e4 — before the form was retired),
+  with Tailwind classes ported to container queries at the same sm/md/lg/xl widths.
+- Polaroids: the reference baked the photos INTO the frame PNGs. Frames were cut
+  out (photo found by tint — frame is bluish, photo neutral — then the area the
+  frame border encloses), giving `polaroid-*-frame.webp` + `polaroid-*-window.png`.
+  The host's photo sits under the frame, rotated to the window's measured tilt
+  (-4.75° / 5.75°) and masked by the window. GOTCHA: CSS masks use ALPHA — a
+  greyscale PNG with no alpha masks nothing. Window PNGs must be RGBA.
+- New template-level contract (registry.ts): `uses` (which standard editor
+  sections the design shows — the builder hides the rest), `galleryLimit`,
+  `storyLabel/storyHint`, and `customFields` (fields only this design has; answers
+  in `content.custom[key]`, edited under "<template> details"). Templates are now
+  custom builds per design, so design-only sections (dress code, favorite song…)
+  get their own fields instead of being squeezed into FAQs.
+- `live` prop: true only on /invite/:slug. Full-screen intros / timed reveals run
+  only there (the intro is portalled to <body>, because `container-type` on the
+  root contains position:fixed). Builder + gallery cards render the resting state.

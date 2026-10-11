@@ -248,7 +248,7 @@ function pairFields(fields: LayoutFormNode["fields"]) {
 /** The design's own RSVP form, made real: same fields, labels and styling, posting to /api/wedding-rsvp. */
 function FormNode({ node, vars, ctx }: { node: LayoutFormNode; vars: CSSProperties; ctx: Ctx }) {
   const { theme, content, editorPreview } = ctx;
-  const { values, set, state, error, website, setWebsite, attending, submit } = useRsvpForm(content, editorPreview, { asksAttending: node.fields.some((f) => f.key === "attending") });
+  const { values, set, state, error, website, setWebsite, attending, submit, emailed } = useRsvpForm(content, editorPreview, { asksAttending: node.fields.some((f) => f.key === "attending") });
 
   const u = (px: number) => `calc(${px} * var(--u))`;
   const label = { fontFamily: theme.fonts[node.labelStyle.font] ?? theme.bodyFont, fontSize: u(node.labelStyle.size), lineHeight: 1, color: colorOf(theme, node.labelStyle.color), fontWeight: node.labelStyle.weight, marginBottom: u(6) };
@@ -346,7 +346,7 @@ function FormNode({ node, vars, ctx }: { node: LayoutFormNode; vars: CSSProperti
     >
       {state === "success" ? (
         <p style={{ ...label, fontSize: `max(16px, ${u(node.labelStyle.size * 1.2)})` }}>
-          {attending === "no" ? "Thank you — we’ll miss you. Your reply has been sent." : "Thank you — your RSVP is in. A confirmation is on its way to your inbox."}
+          {attending === "no" ? "Thank you — we’ll miss you. Your reply has been sent." : `Thank you — your RSVP is in.${emailed ? " A confirmation is on its way to your inbox." : ""}`}
         </p>
       ) : (
         wrap

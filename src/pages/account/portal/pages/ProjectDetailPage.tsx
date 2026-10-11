@@ -17,7 +17,11 @@ export default function ProjectDetailPage() {
   const { projects, tasks, activity, invoices } = usePortal();
   const navigate = useNavigate();
   const cover = useProjectCover();
-  const [tab, setTab] = useState<Tab>("overview");
+  // ?tab=guests opens straight on the guest list (the daily RSVP summary email links here).
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return t === "website" || t === "guests" ? t : "overview";
+  });
   const project = projects.find((p) => p.id === projectId);
 
   if (!project) return <Navigate to="/account/projects" replace />;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getTemplateDefinition } from "../engine/registry";
 import { useTemplateCatalog } from "../engine/catalog";
@@ -9,6 +9,8 @@ import { useEventSiteDraft } from "./useEventSiteDraft";
 import { PublishDialog, usePublishFlow } from "./PublishDialog";
 import LookAndFeel from "./LookAndFeel";
 import { loadPairingFonts } from "../presentation/loadFonts";
+import { SiteCreditProvider } from "../engine/siteCredit";
+import { PlanBadge, UpgradeDialog, peso, useSitePlan, useUpgradeFlow } from "./SitePlan";
 
 // V1 builder shell: template picker + content editing forms + a live
 // preview, all against a real Supabase-backed draft. Requires
@@ -34,6 +36,13 @@ export default function BuilderShellPage() {
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
   const [lookOpen, setLookOpen] = useState(false);
   const flow = usePublishFlow(eventId, publish, save);
+  const { plan, reload: reloadPlan } = useSitePlan(eventId);
+  const upgrade = useUpgradeFlow(eventId, reloadPlan);
+  // Publishing a Premium template (paid, or a ₱0 promo) can make the site Premium.
+  useEffect(() => {
+    if (flow.step.kind === "live") reloadPlan();
+  }, [flow.step.kind, reloadPlan]);
+  const canUpgrade = !!plan && !plan.managed && !plan.premium && plan.upgradeCentavos > 0;
 
   const catalog = useTemplateCatalog();
   const resolved = resolveTemplate(presentation);
@@ -79,6 +88,8 @@ export default function BuilderShellPage() {
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
           {activeDefinition?.label ?? "No template selected"}
         </span>
+
+        <PlanBadge plan={plan} onUpgrade={upgrade.open} />
 
         <div style={{ flex: 1 }} />
 
@@ -143,7 +154,8 @@ export default function BuilderShellPage() {
           </>
         ) : null}
       </header>
-      <PublishDialog flow={flow} slug={slug} />
+      <PublishDialog flow={flow} slug={slug} upsell={canUpgrade ? { price: peso(plan!.upgradeCentavos), open: upgrade.open } : null} />
+      <UpgradeDialog flow={upgrade} plan={plan} />
 
       <div style={{ flex: 1, display: "flex", minHeight: 0, overflow: "hidden" }}>
         <div
@@ -175,7 +187,7 @@ export default function BuilderShellPage() {
                   <LookAndFeel presentation={presentation} onChange={setPresentation} eventId={eventId} />
                 </div>
               </details>
-              <ContentEditor content={content} onChange={setContent} eventId={eventId} />
+              <ContentEditor content={content} onChange={setContent} eventId={eventId} template={activeDefinition} />
             </div>
           </div>
 
@@ -220,7 +232,10 @@ export default function BuilderShellPage() {
         </div>
         {resolved ? (
           <PreviewCanvas key={device} deviceWidth={device === "phone" ? 390 : undefined}>
-            <resolved.definition.component content={content} settings={resolved.settings} editorPreview />
+            {/* The preview shows the credit exactly as guests will see it. */}
+            <SiteCreditProvider value={{ show: !plan?.premium, slug }}>
+              <resolved.definition.component content={content} settings={resolved.settings} editorPreview />
+            </SiteCreditProvider>
           </PreviewCanvas>
         ) : (
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", background: "#f5f5f2", padding: 48, color: "var(--slate)" }}>

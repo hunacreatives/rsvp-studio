@@ -174,7 +174,7 @@ export default function PreviewHarnessPage() {
         </div>
       ) : resolved ? (
         <div style={{ width: previewWidth ?? "100%", maxWidth: "100%", margin: "0 auto" }}>
-          <resolved.definition.component content={content} settings={resolved.settings} editorPreview={editorPreview} />
+          <resolved.definition.component content={content} settings={resolved.settings} editorPreview={editorPreview} live={searchParams.get("live") === "1"} />
         </div>
       ) : (
         <div style={{ padding: 48, textAlign: "center", color: "#868697" }}>

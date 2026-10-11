@@ -7,6 +7,7 @@ import AuthModal from "@/pages/home/components/AuthModal";
 import * as api from "./api";
 import { demoMessages, demoSnapshot, isDemoMode } from "./demo";
 import type { Message, Profile, SupportCategory, Thread, ThreadKind } from "./types";
+import { claimSignupRef } from "@/lib/signupRef";
 
 type Ctx = api.PortalSnapshot & {
   demo: boolean;
@@ -70,6 +71,7 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
         headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` },
       }).catch(() => undefined);
     }
+    claimSignupRef();
     const next = await api.loadSnapshot(user.id);
     if (next) setSnap(next);
   }, [demo, demoAs, navigate]);

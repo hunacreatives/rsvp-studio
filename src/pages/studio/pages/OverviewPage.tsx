@@ -6,7 +6,7 @@ import { formatDate, formatMoney, inboxStamp } from "@/pages/account/portal/form
 import { Avatar } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import { isOverdue as replyOverdue } from "@/pages/account/portal/support";
-import { countNewLeads, useHolidays } from "../studioApi";
+import { countNewLeads, loadFreeSiteStats, useHolidays, type FreeSiteStats } from "../studioApi";
 
 /** Today in Manila ("YYYY-MM-DD"), plus/minus days. */
 const today = (plusDays = 0) => new Date(Date.now() + 8 * 3_600_000 + plusDays * 86_400_000).toISOString().slice(0, 10);
@@ -18,8 +18,11 @@ export default function OverviewPage() {
   const projects = all.filter((p) => p.managed_by_studio !== false);
   const diyCount = all.length - projects.length;
   const [leads, setLeads] = useState(0);
+  const [freeSites, setFreeSites] = useState<FreeSiteStats | null>(null);
   useEffect(() => {
-    if (!demo) countNewLeads().then(setLeads);
+    if (demo) return;
+    countNewLeads().then(setLeads);
+    loadFreeSiteStats().then(setFreeSites);
   }, [demo]);
 
   const active = projects.filter((p) => p.project_status === "in_progress");
@@ -156,6 +159,27 @@ export default function OverviewPage() {
             </Link>
           ))}
         </Box>
+
+        {freeSites ? (
+          <Box title="Signups from free sites" empty={false}>
+            <p className="py-3 text-[14px] text-[var(--ink)]">
+              <strong>{freeSites.signups}</strong> in the last 30 days
+              <span className="text-[var(--slate)]">
+                {" "}
+                · {freeSites.viaSite} from a site’s “Make your own” link · {freeSites.viaEmail} from a guest email
+              </span>
+            </p>
+            {freeSites.topSites.map((s) => (
+              <a key={s.slug} href={`/invite/${s.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 py-3 hover:opacity-80">
+                <span className="min-w-0 flex-1 truncate text-[14px] text-[var(--ink)]">/invite/{s.slug}</span>
+                <span className="text-[12px] text-[var(--slate)]">
+                  {s.count} {s.count === 1 ? "signup" : "signups"}
+                </span>
+              </a>
+            ))}
+            <p className="py-3 text-[13px] text-[var(--slate)]">RSVP emails sent in the last 24 hours: {freeSites.rsvpEmails24h}. Resend’s free plan allows 100 a day for everything.</p>
+          </Box>
+        ) : null}
       </div>
 
       <section className="mt-8">

@@ -32,7 +32,7 @@ export type Topic = { slug: string; title: string; blurb: string; icon: string; 
 
 export const TOPICS: Topic[] = [
   { slug: "booking", title: "Booking & Process", blurb: "Inquiries, timelines, and what to expect.", icon: "ri-chat-1-line", tint: "#fbd5ef", items: faq("booking") },
-  { slug: "website", title: "Website Experience", blurb: "Managing your event website.", icon: "ri-computer-line", tint: "#bfe5f7", items: faq("website") },
+  { slug: "website", title: "Website Experience", blurb: "Managing your event website.", icon: "ri-computer-line", tint: "#bfe5f7", items: [...faq("website"), ...faq("build")] },
   { slug: "invitations", title: "Digital Invitations", blurb: "Designs, sending, and guest RSVPs.", icon: "ri-mail-line", tint: "#ecdcfb", items: [...faq("invitations"), ...faq("rsvp")] },
   { slug: "billing", title: "Billing & Payments", blurb: "Invoices, payments, and receipts.", icon: "ri-bank-card-line", tint: "#fbd5ef", items: BILLING },
   { slug: "stationery", title: "Stationery Design", blurb: "Customization, proofs, and printing.", icon: "ri-quill-pen-line", tint: "#ecfbcc", items: faq("stationery") },

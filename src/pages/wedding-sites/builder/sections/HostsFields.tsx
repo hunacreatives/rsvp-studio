@@ -6,13 +6,17 @@ import { ListEditor } from "../components/ListEditor";
 interface HostsFieldsProps {
   content: EventContent;
   onChange: (next: EventContent) => void;
+  /** The template doesn't show a story: names only. */
+  hideStory?: boolean;
+  storyLabel?: string;
+  storyHint?: string;
 }
 
 // Hosts is a LIST, not a fixed pair — works for a couple (2 hosts), a
 // single birthday honoree (1 host), joint siblings' birthdays (3+ hosts),
 // etc. See Decision log for why this replaced an earlier fixed
 // "partnerOne/partnerTwo" shape.
-export default function HostsFields({ content, onChange }: HostsFieldsProps) {
+export default function HostsFields({ content, onChange, hideStory, storyLabel, storyHint }: HostsFieldsProps) {
   return (
     <div>
       <ListEditor<Person>
@@ -28,8 +32,9 @@ export default function HostsFields({ content, onChange }: HostsFieldsProps) {
         )}
       />
 
+      {hideStory ? null : (
       <div style={{ marginTop: 20 }}>
-        <FormField label="Your story" hint="A few lines in your own words. Press Enter twice to start a new paragraph.">
+        <FormField label={storyLabel ?? "Your story"} hint={storyHint ?? "A few lines in your own words. Press Enter twice to start a new paragraph."}>
           <textarea
             style={{ ...textareaStyle, minHeight: 160 }}
             value={content.story ?? ""}
@@ -37,6 +42,7 @@ export default function HostsFields({ content, onChange }: HostsFieldsProps) {
           />
         </FormField>
       </div>
+      )}
     </div>
   );
 }

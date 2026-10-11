@@ -290,11 +290,11 @@ export async function loadGuests(project: Pick<Project, "id" | "table_name">) {
 }
 
 /**
- * Start a PayMongo checkout (api/pay-checkout.ts) for an invoice, or to publish a
- * DIY website. Returns the PayMongo page to send the customer to, or `free` when
- * nothing is owed (e.g. a free template).
+ * Start a PayMongo checkout (api/pay-checkout.ts) for an invoice, to publish a
+ * DIY website, or (`upgrade`) to make a free-template site Premium. Returns the
+ * PayMongo page to send the customer to, or `free` when nothing is owed (e.g. a free template).
  */
-export async function startCheckout(target: { invoiceId: string } | { eventId: string }): Promise<{ checkoutUrl?: string; free?: boolean }> {
+export async function startCheckout(target: { invoiceId: string } | { eventId: string; upgrade?: boolean }): Promise<{ checkoutUrl?: string; free?: boolean }> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Please sign in again to pay.");

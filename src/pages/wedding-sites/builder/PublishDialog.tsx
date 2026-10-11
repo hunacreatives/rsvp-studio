@@ -72,7 +72,8 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
   return { step, start, pay, close: () => setStep({ kind: "closed" }) };
 }
 
-export function PublishDialog({ flow, slug }: { flow: ReturnType<typeof usePublishFlow>; slug: string }) {
+/** `upsell`: a free site — after it goes live, offer Premium (no credit, an email per RSVP). */
+export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof usePublishFlow>; slug: string; upsell?: { price: string; open: () => void } | null }) {
   const { step } = flow;
   const [copied, setCopied] = useState(false);
   if (step.kind === "closed") return null;
@@ -93,7 +94,16 @@ export function PublishDialog({ flow, slug }: { flow: ReturnType<typeof usePubli
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Publish your site</h2>
             <p style={{ margin: "10px 0 0", fontSize: 15, lineHeight: 1.6, color: "#55556a" }}>
-              Publishing a site with a {step.tier === "premium" ? "Premium" : "Standard"} template is a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>. Pay with GCash, Maya, card or QR Ph — your site goes live as soon as it’s paid, and you can keep editing it afterwards.
+              {step.tier === "premium" ? (
+                <>
+                  Premium templates are a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>, and include Premium: no “Made with The RSVP Studio” line, and an email for every RSVP.
+                </>
+              ) : (
+                <>
+                  Publishing a site with a Standard template is a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>.
+                </>
+              )}{" "}
+              Pay with GCash, Maya, card or QR Ph — your site goes live as soon as it’s paid, and you can keep editing it afterwards.
             </p>
             <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
               <button onClick={flow.pay} style={btn(true)}>
@@ -129,6 +139,21 @@ export function PublishDialog({ flow, slug }: { flow: ReturnType<typeof usePubli
               </a>
             </div>
             <p style={{ margin: "16px 0 0", fontSize: 13, color: "#55556a" }}>Changed something later? Tap “Update live site” to put your edits online.</p>
+            {upsell ? (
+              <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>
+                Your site shows a small “Made with The RSVP Studio” line at the bottom, and you’ll get one RSVP summary email a day.{" "}
+                <button
+                  onClick={() => {
+                    flow.close();
+                    upsell.open();
+                  }}
+                  style={{ font: "inherit", fontWeight: 600, color: "#2f61d5", background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
+                >
+                  Upgrade to Premium for {upsell.price}
+                </button>{" "}
+                to remove the line and get an email for every RSVP.
+              </p>
+            ) : null}
             <button onClick={flow.close} style={{ ...btn(false), marginTop: 16 }}>
               Done
             </button>

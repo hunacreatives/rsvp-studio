@@ -28,6 +28,15 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     ],
   },
   {
+    slug: "build",
+    category: "Build Your Own Website",
+    items: [
+      { q: "Is Build Your Website free?", a: "Yes. You can design, preview and publish your event website with any Standard template for free. Free sites show a small \u201cMade with The RSVP Studio\u201d line at the bottom, and you get one email a day with your new RSVPs. Every reply is always in your dashboard as soon as it comes in." },
+      { q: "What does Premium include?", a: "Premium is a one-time fee per site, shown before you pay (currently \u20b1499). Your site has no \u201cMade with The RSVP Studio\u201d line, you get an email the moment each guest RSVPs, guest confirmation emails are sent in your names, and you can use any Premium template at no extra cost. You can upgrade a free site anytime from the website builder." },
+      { q: "Do my guests get a confirmation email?", a: "Yes. Guests who reply with an email address get a confirmation on both free and Premium sites. Guests who reply with a mobile number see their confirmation on screen." },
+    ],
+  },
+  {
     slug: "rsvp",
     category: "RSVP & Guest Management",
     items: [

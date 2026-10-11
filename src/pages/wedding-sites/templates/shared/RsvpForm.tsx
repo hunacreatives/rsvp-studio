@@ -29,10 +29,9 @@ export type RsvpSkin = {
 const MAX_PARTY = 10;
 
 export default function RsvpForm({ content, editorPreview, skin }: { content: EventContent; editorPreview?: boolean; skin: RsvpSkin }) {
-  const { values, set, state, error, website, setWebsite, attending, submit } = useRsvpForm(content, editorPreview, { asksAttending: true });
+  const { values, set, state, error, website, setWebsite, attending, submit, emailed } = useRsvpForm(content, editorPreview, { asksAttending: true });
   const id = useId();
   const first = (values.name ?? "").trim().split(" ")[0];
-  const byEmail = (values.contact ?? "").includes("@");
 
   const text: CSSProperties = { fontFamily: skin.font, color: skin.ink };
   const label: CSSProperties = { ...text, display: "block", fontSize: 14, fontWeight: 600, margin: "0 0 6px", textAlign: "left" };
@@ -45,7 +44,7 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
         {attending === "no" ? (
           <p style={{ margin: 0 }}>Thank you, {first}. We’ll miss you — your reply has been sent.</p>
         ) : (
-          <p style={{ margin: 0 }}>Thank you, {first} — you’re on the list.{byEmail ? " A copy is on its way to your email." : ""}</p>
+          <p style={{ margin: 0 }}>Thank you, {first} — you’re on the list.{emailed ? " A copy is on its way to your email." : ""}</p>
         )}
         {attending !== "no" && calendarUrl(content) ? (
           <p style={{ margin: "12px 0 0", fontSize: 15 }}>

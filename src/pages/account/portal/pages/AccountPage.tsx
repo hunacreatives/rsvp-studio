@@ -105,7 +105,7 @@ export default function AccountPage() {
         <OutlineCard>
           <Row
             title="Project updates"
-            sub="Emails when we message you, post an update or add a task — and when a guest RSVPs."
+            sub="Emails when we message you, post an update or add a task — and about new RSVPs (right away on Premium sites, or one summary a day on free sites)."
             action={
               <Toggle
                 label="Project updates"

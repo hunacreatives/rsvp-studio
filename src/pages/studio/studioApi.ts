@@ -374,6 +374,28 @@ export async function countNewLeads() {
   return count ?? 0;
 }
 
+/** Free sites as advertising: signups their "Make your own" links brought in (last 30 days),
+ *  and RSVP emails sent in the last 24 hours (the budget in supabase/free-premium.sql). */
+export type FreeSiteStats = { signups: number; viaSite: number; viaEmail: number; topSites: { slug: string; count: number }[]; rsvpEmails24h: number };
+export async function loadFreeSiteStats(): Promise<FreeSiteStats | null> {
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const [refs, emails] = await Promise.all([
+    supabase.from("profiles").select("referred_by, referred_via").not("referred_by", "is", null).gte("created_at", since).limit(5000),
+    supabase.from("rsvp_email_log").select("recipients").gte("sent_at", new Date(Date.now() - 86_400_000).toISOString()).limit(10000),
+  ]);
+  if (refs.error || emails.error) return null; // free-premium.sql not run yet
+  const rows = (refs.data ?? []) as { referred_by: string; referred_via: string | null }[];
+  const bySite = new Map<string, number>();
+  for (const r of rows) bySite.set(r.referred_by, (bySite.get(r.referred_by) ?? 0) + 1);
+  return {
+    signups: rows.length,
+    viaSite: rows.filter((r) => r.referred_via !== "email").length,
+    viaEmail: rows.filter((r) => r.referred_via === "email").length,
+    topSites: [...bySite].map(([slug, count]) => ({ slug, count })).sort((a, b) => b.count - a.count).slice(0, 5),
+    rsvpEmails24h: (emails.data ?? []).reduce((n, e) => n + (e.recipients as number), 0),
+  };
+}
+
 export async function setLeadStatus(id: string, status: LeadStatus, eventId?: string) {
   must(await supabase.from("enquiries").update({ status, ...(eventId ? { event_id: eventId } : {}) }).eq("id", id));
 }

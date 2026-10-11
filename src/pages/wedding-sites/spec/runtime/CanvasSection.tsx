@@ -130,7 +130,7 @@ function DrawnForm({ section, content, editorPreview, style, children }: { secti
             color: colorOf(theme, "ink"),
           }}
         >
-          Thank you — your RSVP is in. A confirmation is on its way to your inbox.
+          Thank you — your RSVP is in.{form.emailed ? " A confirmation is on its way to your inbox." : ""}
         </div>
       ) : null}
       {form.error ? note(form.error, "#c2412d") : null}

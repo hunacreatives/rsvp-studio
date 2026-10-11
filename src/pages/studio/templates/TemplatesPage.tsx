@@ -118,7 +118,7 @@ function SitePricesCard() {
       <div className="flex flex-wrap items-end gap-4">
         <div className="min-w-[220px] flex-1">
           <p className="text-[15px] font-semibold text-[var(--ink)]">Price to publish a DIY website</p>
-          <p className="text-[13px] text-[var(--slate)]">Customers pay once, by GCash, Maya, card or QR Ph, before their site goes live. ₱0 = free. Studio projects never pay.</p>
+          <p className="text-[13px] text-[var(--slate)]">Customers pay once, by GCash, Maya, card or QR Ph, before their site goes live. ₱0 = free. Free sites show “Made with The RSVP Studio” and get one RSVP summary email a day. Premium removes the line and emails the hosts for every RSVP; the Premium price is also what a free site pays to upgrade. Studio projects never pay.</p>
           {unset ? <p className="mt-1 text-[13px] font-medium text-[#8a5a00]">Both are ₱0 — anyone can publish for free until you set a price.</p> : null}
         </div>
         <label className="text-[13px] text-[var(--ink)]">

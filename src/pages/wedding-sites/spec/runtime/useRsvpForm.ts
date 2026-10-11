@@ -13,6 +13,8 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   const [state, setState] = useState<SubmitState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
+  // True only when the server actually sent the guest a confirmation email.
+  const [emailed, setEmailed] = useState(false);
   const set = (k: string, v: string) => setValues((cur) => ({ ...cur, [k]: v }));
   const attending = values.attending === "yes" ? "yes" : values.attending === "no" ? "no" : null;
 
@@ -47,8 +49,9 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
           dietary: attending !== "no" ? values.dietary ?? "" : "",
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; emailed?: boolean };
       if (!res.ok) throw new Error(data.error ?? "Something went wrong — please try again.");
+      setEmailed(data.emailed === true);
       setState("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong — please try again.");
@@ -56,5 +59,5 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
     }
   }
 
-  return { values, set, state, error, website, setWebsite, attending, submit };
+  return { values, set, state, error, website, setWebsite, attending, submit, emailed };
 }

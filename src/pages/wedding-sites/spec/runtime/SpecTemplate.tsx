@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import type { TemplateProps } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import type { TemplateSpec } from "../schema";
-import { Block } from "./blocks";
+import { Block, FooterBlock } from "./blocks";
 import CanvasSection from "./CanvasSection";
 import LayoutSection from "./LayoutSection";
 import { resolveSpecTheme, SpecThemeContext, useSpecFonts } from "./theme";
@@ -27,6 +27,10 @@ export default function SpecTemplate({
   useSpecFonts(spec);
   const visibility = settings.sectionVisibility;
   const twoVersions = spec.sections.some((s) => s.screen);
+  // Every free site carries the credit, even a design without a (visible) footer.
+  const hasFooter = spec.sections.some(
+    (s) => s.kind === "block" && s.block === "footer" && !(s.visibilityKey && visibility[s.visibilityKey] === false),
+  );
 
   return (
     <SpecThemeContext.Provider value={theme}>
@@ -62,6 +66,7 @@ export default function SpecTemplate({
             <Fragment key={section.id}>{el}</Fragment>
           );
         })}
+        {hasFooter ? null : <FooterBlock />}
       </div>
     </SpecThemeContext.Provider>
   );

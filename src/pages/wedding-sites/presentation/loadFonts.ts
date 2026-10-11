@@ -9,7 +9,7 @@ const EXTRA: Record<string, string[]> = {
   "cormorant-work-sans": [CORMORANT, "Work+Sans:wght@400;500;600;700"],
   "dancing-cormorant": [DANCING, CORMORANT],
   "dancing-inter": [DANCING],
-  "homemade-caveat": ["Homemade+Apple", "Caveat:wght@400;500;600;700"],
+  "homemade-caveat": ["Homemade+Apple", "Caveat:wght@400;500;600;700", "Montserrat:wght@400;500;600"],
 };
 const loaded = new Set<string>();
 

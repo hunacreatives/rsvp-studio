@@ -14,6 +14,7 @@ import RegistrySection from "./sections/RegistrySection";
 import FaqSection from "./sections/FaqSection";
 import GallerySection from "./sections/GallerySection";
 import FinalCollage from "./sections/FinalCollage";
+import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
 
 /**
  * "Scrapbook" archetype — a full-bleed, art-directed long-form page
@@ -38,6 +39,7 @@ import FinalCollage from "./sections/FinalCollage";
  *    preview and the published page render identically.
  */
 export default function ScrapbookTemplate({ content, settings, editorPreview = false }: TemplateProps<BaseTemplateSettings>) {
+  const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
   const visibility = settings.sectionVisibility;
   const slots = resolvePhotoSlots(content, settings.heroImage);
@@ -136,14 +138,13 @@ export default function ScrapbookTemplate({ content, settings, editorPreview = f
         <div key={i}>{band.render(band.tone)}</div>
       ))}
 
-      <div className="sb-footer">
-        <p className="sb-eyebrow" style={{ letterSpacing: "0.12em", opacity: 0.9 }}>
-          Made with love by{" "}
-          <a href="https://www.hunacreatives.com/contact" target="_blank" rel="noopener noreferrer">
-            The RSVP Studio
-          </a>
-        </p>
-      </div>
+      {credit.show ? (
+        <div className="sb-footer">
+          <p className="sb-eyebrow" style={{ letterSpacing: "0.12em", opacity: 0.9 }}>
+            <CreditLine />
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

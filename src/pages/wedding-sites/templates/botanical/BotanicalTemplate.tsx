@@ -9,6 +9,7 @@ import GallerySection from "./sections/GallerySection";
 import RegistrySection from "./sections/RegistrySection";
 import FaqSection from "./sections/FaqSection";
 import RsvpSection from "./sections/RsvpSection";
+import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
 
 // "Template C" — the ornamental/narrative archetype: centered layouts,
 // arch-framed imagery, a vertical order-of-events timeline, and
@@ -17,6 +18,7 @@ import RsvpSection from "./sections/RsvpSection";
 // proof point for the canonical EventContent schema, alongside
 // editorial-formal (centered/animated) and modern-minimal (grid/static).
 export default function BotanicalTemplate({ content, settings, editorPreview = false }: TemplateProps<BaseTemplateSettings>) {
+  const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
   const visibility = settings.sectionVisibility;
 
@@ -33,14 +35,13 @@ export default function BotanicalTemplate({ content, settings, editorPreview = f
       {visibility.faqs ? <FaqSection content={content} theme={theme} /> : null}
       {visibility.rsvp ? <RsvpSection content={content} theme={theme} editorPreview={editorPreview} /> : null}
 
-      <div style={{ width: "100%", background: theme.ink, padding: "24px 0", textAlign: "center" }}>
-        <p style={{ color: theme.background, fontSize: 12, margin: 0, fontFamily: theme.bodyFont, letterSpacing: "0.06em" }}>
-          Made with love by{" "}
-          <a href="https://www.hunacreatives.com/contact" target="_blank" rel="noopener noreferrer" style={{ color: theme.background, fontWeight: 700 }}>
-            The RSVP Studio
-          </a>
-        </p>
-      </div>
+      {credit.show ? (
+        <div style={{ width: "100%", background: theme.ink, padding: "24px 0", textAlign: "center" }}>
+          <p style={{ color: theme.background, fontSize: 12, margin: 0, fontFamily: theme.bodyFont, letterSpacing: "0.06em" }}>
+            <CreditLine linkStyle={{color: theme.background, fontWeight: 700}} />
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

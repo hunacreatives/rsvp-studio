@@ -11,6 +11,7 @@ import { getTemplateDefinition, registerTemplate } from "../engine/registry";
 import { loadTemplateCatalog } from "../engine/catalog";
 import { parseSpec } from "../spec/schema";
 import { definitionFromSpec } from "../spec/definitionFromSpec";
+import { SiteCreditProvider } from "../engine/siteCredit";
 
 // The live, public event site: /invite/:slug. Reads ONLY the published_*
 // columns (never draft_*) — see the RLS note in
@@ -19,7 +20,7 @@ import { definitionFromSpec } from "../spec/definitionFromSpec";
 type LoadState =
   | { status: "loading" }
   | { status: "not-found" }
-  | { status: "ready"; presentation: PresentationState; rawContent: unknown };
+  | { status: "ready"; presentation: PresentationState; rawContent: unknown; premium: boolean };
 
 export default function PublicEventSitePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -36,7 +37,7 @@ export default function PublicEventSitePage() {
       // get_public_site() returns only the published columns for one slug
       // (supabase/site-security-fixes.sql). Until that SQL is applied, fall
       // back to the direct table read so live sites never go dark.
-      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown };
+      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown; is_premium?: boolean };
       let data: Row | null = null;
       let error: { code?: string } | null = null;
       const rpc = await supabase.rpc("get_public_site", { p_slug: slug });
@@ -78,6 +79,8 @@ export default function PublicEventSitePage() {
       setState({
         status: "ready",
         rawContent: data.published_content,
+        // Premium sites don't show the "Made with The RSVP Studio" credit.
+        premium: data.is_premium === true,
         presentation: (data.published_presentation as PresentationState) ?? {
           activeTemplateId: "",
           byTemplate: {},
@@ -121,7 +124,9 @@ export default function PublicEventSitePage() {
         </div>
       )}
     >
-      <resolved.definition.component content={content} settings={resolved.settings} />
+      <SiteCreditProvider value={{ show: !state.premium, slug }}>
+        <resolved.definition.component content={content} settings={resolved.settings} live />
+      </SiteCreditProvider>
     </ErrorBoundary>
   );
 }

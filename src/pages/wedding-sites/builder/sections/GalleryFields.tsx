@@ -8,6 +8,8 @@ interface GalleryFieldsProps {
   content: EventContent;
   onChange: (next: EventContent) => void;
   eventId: string | undefined;
+  /** The template shows only this many photos (and no gallery title). */
+  limit?: number;
 }
 
 // V1 simplification: one gallery, managed here. Real upload now exists
@@ -17,7 +19,7 @@ function ensureGallery(content: EventContent): Gallery {
   return content.galleries[0] ?? { id: createId("gallery"), items: [] };
 }
 
-export default function GalleryFields({ content, onChange, eventId }: GalleryFieldsProps) {
+export default function GalleryFields({ content, onChange, eventId, limit }: GalleryFieldsProps) {
   const gallery = ensureGallery(content);
 
   function updateGallery(patch: Partial<Gallery>) {
@@ -28,14 +30,20 @@ export default function GalleryFields({ content, onChange, eventId }: GalleryFie
 
   return (
     <div>
-      <FormField label="Gallery title (optional)">
-        <input
-          style={inputStyle}
-          placeholder="Our story in photos"
-          value={gallery.title ?? ""}
-          onChange={(e) => updateGallery({ title: e.target.value || undefined })}
-        />
-      </FormField>
+      {limit ? (
+        <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--slate)" }}>
+          This design shows your first {limit === 1 ? "photo" : `${limit} photos`}.
+        </p>
+      ) : (
+        <FormField label="Gallery title (optional)">
+          <input
+            style={inputStyle}
+            placeholder="Our story in photos"
+            value={gallery.title ?? ""}
+            onChange={(e) => updateGallery({ title: e.target.value || undefined })}
+          />
+        </FormField>
+      )}
 
       <ListEditor<GalleryItem>
         items={gallery.items}

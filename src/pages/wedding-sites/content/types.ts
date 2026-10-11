@@ -161,4 +161,11 @@ export interface EventContent {
   /** What kind of celebration this is (from the event) — picks wording like
    *  "Wedding Invitation" vs "Birthday Invitation". Missing on older content. */
   occasion?: Occasion;
+  /**
+   * Answers to a template's OWN fields (TemplateDefinition.customFields) —
+   * things only that design has, e.g. a headline, a dress code, a favorite
+   * song. Keyed by the field's key; kept when switching templates, so a
+   * template that shares a key (e.g. "headline") picks the answer up.
+   */
+  custom?: Record<string, string>;
 }

@@ -5,6 +5,8 @@ import { createCheckoutSession, MIN_CENTAVOS, paymongoConfigured } from "./_lib/
 // Start a PayMongo checkout for the signed-in customer:
 //   { invoiceId }  pay an open invoice on one of their events
 //   { eventId }    pay to publish their DIY website (price from Studio → Templates)
+//   { eventId, upgrade: true }  make a free-template site Premium (the Premium price,
+//                  less anything already paid) — no credit on the site, an email per RSVP
 // The amount is always worked out here, never taken from the browser. A pending
 // payment row is saved first; api/paymongo-webhook.ts marks it paid.
 
@@ -27,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!paymongoConfigured()) return res.status(503).json({ error: "Online payment isn’t switched on yet. Message us and we’ll help you pay another way." });
 
   const origin = `https://${req.headers["x-forwarded-host"] ?? req.headers.host}`;
-  const body = (req.body ?? {}) as { invoiceId?: string; eventId?: string };
+  const body = (req.body ?? {}) as { invoiceId?: string; eventId?: string; upgrade?: boolean };
 
   let kind: "invoice" | "site_publish";
   let eventId: string;
@@ -37,6 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let invoiceId: string | null = null;
   let tier: string | null = null;
   let back: string;
+  let returnParam = "paid";
 
   if (body.invoiceId) {
     const { data: inv } = await db.from("invoices").select("id, number, event_id, description, amount, status").eq("id", body.invoiceId).maybeSingle();
@@ -50,6 +53,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     name = `${ev.name}: ${inv.description}`;
     description = `The RSVP Studio — invoice ${inv.number}`;
     back = `${origin}/account/billing/${inv.id}`;
+  } else if (body.eventId && body.upgrade === true) {
+    const ev = await canAccess(body.eventId, user.id);
+    if (!ev) return res.status(404).json({ error: "We couldn’t find that event." });
+    const { data: due, error } = await db.rpc("site_upgrade_due", { p_event: body.eventId });
+    if (error) throw error;
+    const u = (Array.isArray(due) ? due[0] : due) as { premium: boolean; due_centavos: number } | null;
+    if (!u || u.premium) return res.status(409).json({ error: "This site is already Premium." });
+    if (u.due_centavos <= 0) return res.status(409).json({ error: "Premium isn’t available to buy right now — message us and we’ll help." });
+    kind = "site_publish";
+    eventId = body.eventId;
+    tier = "premium";
+    amountCentavos = u.due_centavos;
+    name = `${ev.name}: Premium for your event website`;
+    description = "The RSVP Studio — Premium event website";
+    back = `${origin}/account/events/${body.eventId}/site-builder/edit`;
+    returnParam = "upgraded";
   } else if (body.eventId) {
     const ev = await canAccess(body.eventId, user.id);
     if (!ev) return res.status(404).json({ error: "We couldn’t find that event." });
@@ -79,6 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq("kind", kind)
     .eq("status", "pending")
     .eq("profile_id", user.id)
+    .eq("description", name) // a publish checkout is never reused for an upgrade, or the other way round
     .gte("created_at", new Date(Date.now() - 20 * 3_600_000).toISOString())
     .order("created_at", { ascending: false })
     .limit(1);
@@ -102,8 +122,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name,
       description,
       email: user.email,
-      successUrl: `${back}?paid=${payment.id}`,
-      cancelUrl: `${back}?cancelled=1`,
+      successUrl: `${back}?${returnParam}=${payment.id}`,
+      cancelUrl: `${back}?${returnParam === "upgraded" ? "upgrade_cancelled" : "cancelled"}=1`,
       metadata: { payment_id: payment.id, kind },
     });
     await db.from("payments").update({ checkout_session_id: session.id, checkout_url: session.checkoutUrl, updated_at: new Date().toISOString() }).eq("id", payment.id);
