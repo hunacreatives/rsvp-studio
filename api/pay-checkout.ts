@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { createCheckoutSession, MIN_CENTAVOS, paymongoConfigured } from "./_lib/paymongo.js";
 import { domainsReady, loadSettings, pesoPrice, quoteDomain, RateLimited } from "./_lib/domains.js";
+import { domainSearchHandler, domainStatusHandler } from "./_lib/domain-handlers.js";
 
 // Start a PayMongo checkout for the signed-in customer:
 //   { invoiceId }  pay an open invoice on one of their events
@@ -24,6 +25,10 @@ async function canAccess(eventId: string, userId: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // /api/domain-search and /api/domain-status are rewritten here (vercel.json): the Hobby
+  // plan allows 12 functions per deploy, so they share this one.
+  if (req.query.op === "domain-search") return domainSearchHandler(req, res);
+  if (req.query.op === "domain-status") return domainStatusHandler(req, res);
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
   const { data: auth } = await db.auth.getUser(token);

@@ -12,6 +12,14 @@
       "destination": "/api/invite-page?domain=1"
     },
     {
+      "source": "/api/domain-search",
+      "destination": "/api/pay-checkout?op=domain-search"
+    },
+    {
+      "source": "/api/domain-status",
+      "destination": "/api/pay-checkout?op=domain-status"
+    },
+    {
       "source": "/invite/:slug",
       "destination": "/api/invite-page?slug=:slug"
     },
