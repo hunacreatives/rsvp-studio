@@ -108,8 +108,11 @@ export default function Privacy() {
         <h2>6. How long we keep it</h2>
         <p>
           Inquiries: as long as needed to follow up, then a reasonable period for our records. Accounts: while your
-          account is open. Event websites and RSVP lists: while the website is online and for a reasonable period
-          after the event, so you can still download your guest list — then deleted, or sooner if you ask.
+          account is open. Websites you build yourself stay online until 30 days after the event (Premium: one
+          year after the event; with no event date, one year after publishing). Their guest RSVPs and photos are
+          kept 30 days after the website goes offline, so you can still download your guest list, then deleted.
+          If you delete a project, it&rsquo;s removed for good 30 days later. Studio projects follow your project
+          agreement. You can ask us to delete anything sooner.
           Payment records: as long as Philippine tax and accounting rules require.
         </p>
       </div>

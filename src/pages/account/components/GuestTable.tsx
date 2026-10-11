@@ -14,6 +14,31 @@ export type Guest = {
   dietary?: string | null;
 };
 
+/** Save a guest list as a CSV (opens in Excel/Sheets). Also used before deleting a project. */
+export function downloadGuestCsv(rows: Guest[], hasDetails = rows.some((g) => g.attending !== undefined && g.attending !== null), fileName = "rsvps.csv") {
+  const header = ["Name", "Email", "Mobile", ...(hasDetails ? ["Coming", "Party size", "Dietary"] : []), "Bringing", "Message", "Submitted"];
+  const lines = rows.map((g) => [
+    g.name ?? "",
+    g.email ?? "",
+    g.phone ?? "",
+    ...(hasDetails
+      ? [g.attending === true ? "Yes" : g.attending === false ? "No" : "", g.attending ? String(g.guest_count ?? 1) : "", (g.dietary ?? "").replace(/"/g, '""')]
+      : []),
+    g.bringing ?? "",
+    (g.message ?? "").replace(/"/g, '""'),
+    g.created_at ? new Date(g.created_at).toLocaleDateString("en-PH") : "",
+  ]);
+  const csv = [header, ...lines].map((r) => r.map((cell) => `"${cell}"`).join(",")).join("\n");
+  // The BOM tells Excel it's UTF-8, so names like "Ñ" come through intact.
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function GuestTable({ guests }: { guests: Guest[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "with" | "without" | "coming" | "declined">("all");
@@ -39,31 +64,7 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
   const headcount = coming.reduce((n, g) => n + (g.guest_count ?? 1), 0);
   const dietaryNotes = coming.filter((g) => g.dietary).length;
 
-  const exportCsv = () => {
-    const header = ["Name", "Email", "Mobile", ...(hasDetails ? ["Coming", "Party size", "Dietary"] : []), "Bringing", "Message", "Submitted"];
-    const rows = filtered.map((g) => [
-      g.name ?? "",
-      g.email ?? "",
-      g.phone ?? "",
-      ...(hasDetails
-        ? [g.attending === true ? "Yes" : g.attending === false ? "No" : "", g.attending ? String(g.guest_count ?? 1) : "", (g.dietary ?? "").replace(/"/g, '""')]
-        : []),
-      g.bringing ?? "",
-      (g.message ?? "").replace(/"/g, '""'),
-      g.created_at ? new Date(g.created_at).toLocaleDateString("en-PH") : "",
-    ]);
-    const csv = [header, ...rows]
-      .map((r) => r.map((cell) => `"${cell}"`).join(","))
-      .join("\n");
-    // The BOM tells Excel it's UTF-8, so names like "Ñ" come through intact.
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "rsvps.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const exportCsv = () => downloadGuestCsv(filtered, hasDetails);
 
   return (
     <div>

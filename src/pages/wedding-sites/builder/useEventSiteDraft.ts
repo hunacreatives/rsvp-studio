@@ -141,16 +141,24 @@ export function useEventSiteDraft(eventId: string | undefined) {
       const initialPresentation = defaultPresentation();
       const baseSlug = slugify(event.name);
 
-      const { data: inserted, error: insertError } = await supabase
-        .from("wedding_sites")
-        .insert({
-          event_id: eventId,
-          slug: baseSlug,
-          draft_content: initialContent,
-          draft_presentation: initialPresentation,
-        })
-        .select("id, slug")
-        .single();
+      // A taken or retired link (supabase/project-lifecycle.sql) → try the next suffix, as useCreateEvent does.
+      let inserted: { id: string; slug: string } | null = null;
+      let insertError: { code?: string; message: string } | null = null;
+      for (let attempt = 1; attempt <= 20; attempt++) {
+        const r = await supabase
+          .from("wedding_sites")
+          .insert({
+            event_id: eventId,
+            slug: attempt === 1 ? baseSlug : `${baseSlug}-${attempt}`,
+            draft_content: initialContent,
+            draft_presentation: initialPresentation,
+          })
+          .select("id, slug")
+          .single();
+        inserted = r.data;
+        insertError = r.error;
+        if (!r.error || r.error.code !== "23505") break;
+      }
 
       if (cancelled) return;
 

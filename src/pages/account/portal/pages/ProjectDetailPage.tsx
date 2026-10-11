@@ -5,7 +5,8 @@ import { getTemplateDefinition } from "@/pages/wedding-sites/engine/registry";
 import { useTemplateCatalog } from "@/pages/wedding-sites/engine/catalog";
 import { usePortal } from "../PortalContext";
 import * as api from "../api";
-import { ActivityList, InvoiceTable, ProjectStatusPill, TaskList, useProjectCover, nextStepLabel } from "../components/blocks";
+import ProjectDangerZone from "../components/ProjectDangerZone";
+import { ActivityList, DiySiteSummary, InvoiceTable, ProjectStatusPill, TaskList, isDiy, useProjectCover, nextStepLabel } from "../components/blocks";
 import { formatDate, formatLongDate, servicesLabel } from "../format";
 import type { Project } from "../types";
 import { Cover, FilterTabs, OutlineCard, Panel, PillButton, ProgressBar, SectionTitle } from "../ui";
@@ -14,7 +15,7 @@ type Tab = "overview" | "website" | "guests";
 
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
-  const { projects, tasks, activity, invoices } = usePortal();
+  const { projects, tasks, activity, invoices, sites } = usePortal();
   const navigate = useNavigate();
   const cover = useProjectCover();
   // ?tab=guests opens straight on the guest list (the daily RSVP summary email links here).
@@ -27,6 +28,8 @@ export default function ProjectDetailPage() {
   if (!project) return <Navigate to="/account/projects" replace />;
 
   const done = project.project_status === "completed";
+  const diy = isDiy(project);
+  const site = sites[project.id];
   const projectTasks = tasks
     .filter((t) => t.event_id === project.id)
     .sort((a, b) => Number(!!a.done_at) - Number(!!b.done_at) || (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"));
@@ -58,11 +61,28 @@ export default function ProjectDetailPage() {
                 </p>
               ) : null}
             </div>
-            <PillButton tone="dark" onClick={() => navigate(`/account/messages?project=${project.id}`)}>
-              <i className="ri-chat-3-line" /> Message the studio
-            </PillButton>
+            {diy ? (
+              <div className="flex flex-wrap gap-2">
+                {site?.publishedAt ? (
+                  <PillButton onClick={() => window.open(`/invite/${site.slug}`, "_blank", "noopener")}>
+                    <i className="ri-external-link-line" /> View site
+                  </PillButton>
+                ) : null}
+                <PillButton tone="dark" onClick={() => navigate(`/account/events/${project.id}/site-builder${site ? "/edit" : ""}`)}>
+                  <i className="ri-edit-2-line" /> {site?.publishedAt ? "Edit site" : site ? "Continue building" : "Pick a template"}
+                </PillButton>
+              </div>
+            ) : (
+              <PillButton tone="dark" onClick={() => navigate(`/account/messages?project=${project.id}`)}>
+                <i className="ri-chat-3-line" /> Message the studio
+              </PillButton>
+            )}
           </div>
 
+          {diy ? (
+            <DiySiteSummary project={project} />
+          ) : (
+            <>
           <div className="mt-6 flex items-center justify-between text-[13px]">
             <span className="text-[var(--ink)]">Project progress</span>
             <span className="text-[var(--slate)]">{project.progress}%</span>
@@ -80,6 +100,8 @@ export default function ProjectDetailPage() {
               <p className="text-[var(--ink)]">{(done ? formatDate(project.completed_at) : formatDate(project.next_step_due)) || "—"}</p>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -115,7 +137,10 @@ export default function ProjectDetailPage() {
           </section>
         </div>
       ) : tab === "website" ? (
-        <WebsiteTab project={project} />
+        <>
+          <WebsiteTab project={project} />
+          <ProjectDangerZone project={project} />
+        </>
       ) : (
         <GuestsTab project={project} />
       )}

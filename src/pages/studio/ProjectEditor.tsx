@@ -7,6 +7,7 @@ import { formatDate, formatMoney } from "@/pages/account/portal/format";
 import type { PersonLite, Project, ProjectStatus } from "@/pages/account/portal/types";
 import { Cover, ErrorText, Field, Input, OutlineCard, PillButton, Select, Textarea } from "@/pages/account/portal/ui";
 import * as studio from "./studioApi";
+import { deleteProject } from "@/pages/account/portal/api";
 
 const SERVICE_PRESETS = ["Wedding Website", "Event Website", "Digital Invitations", "Digital Save the Date", "Monogram Design", "Stationery Design", "RSVP Management"];
 const EVENT_TYPES = [
@@ -131,11 +132,13 @@ export default function ProjectEditor({
   owner,
   members,
   onOpenInbox,
+  onDeleted,
 }: {
   project: Project;
   owner?: PersonLite;
   members: PersonLite[];
   onOpenInbox: () => void;
+  onDeleted: () => void;
 }) {
   return (
     <div className="space-y-5">
@@ -145,7 +148,41 @@ export default function ProjectEditor({
       <UpdateCard project={project} />
       <TasksCard project={project} />
       <InvoicesCard project={project} />
+      <DeleteCard project={project} onDeleted={onDeleted} />
     </div>
+  );
+}
+
+/** Staff delete: hidden at once, restorable from Projects → Deleted for 30 days (supabase/project-lifecycle.sql). */
+function DeleteCard({ project, onDeleted }: { project: Project; onDeleted: () => void }) {
+  const { busy, error, run } = useAction();
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <OutlineCard className="p-5 md:p-6">
+      {confirming ? (
+        <>
+          <p className="text-[15px] font-semibold text-[var(--ink)]">Delete {project.name}?</p>
+          <p className="mt-1 max-w-[62ch] text-[13px] text-[var(--slate)]">
+            Its website goes offline and it disappears from the client’s dashboard right away. You can restore it from Projects → Deleted for 30 days; after that it’s removed for good, with its guest RSVPs and photos. Payments and invoices are kept.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <PillButton tone="danger" disabled={busy} onClick={async () => (await run(() => deleteProject(project.id))) && onDeleted()}>
+              {busy ? "Deleting…" : "Delete project"}
+            </PillButton>
+            <PillButton disabled={busy} onClick={() => setConfirming(false)}>Cancel</PillButton>
+          </div>
+          <ErrorText>{error}</ErrorText>
+        </>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[15px] font-semibold text-[var(--ink)]">Delete project</p>
+            <p className="text-[13px] text-[var(--slate)]">Restorable for 30 days from Projects → Deleted.</p>
+          </div>
+          <PillButton tone="danger" onClick={() => setConfirming(true)}>Delete project</PillButton>
+        </div>
+      )}
+    </OutlineCard>
   );
 }
 

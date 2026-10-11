@@ -31,7 +31,7 @@ function describe(c: Content) {
     when = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
   }
   const where = c.primaryLocation?.name || c.primaryLocation?.addressLine || "";
-  const description = [`${kind}celebration${names ? ` of ${names}` : ""}`, when, where].filter(Boolean).join(" · ") + ". Tap to see the details and RSVP. Made with The RSVP Studio.";
+  const description = [`${kind}celebration${names ? ` of ${names}` : ""}`, when, where].filter(Boolean).join(" · ") + ". Tap to see the details and RSVP. Made with love by The RSVP Studio.";
   return { title, description: description.charAt(0).toUpperCase() + description.slice(1) };
 }
 

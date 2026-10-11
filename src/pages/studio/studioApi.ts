@@ -396,6 +396,17 @@ export async function loadFreeSiteStats(): Promise<FreeSiteStats | null> {
   };
 }
 
+/** Projects deleted in the last 30 days (after that the daily job removes them for good). */
+export type DeletedProject = { id: string; name: string; deleted_at: string; managed_by_studio: boolean };
+export async function loadDeletedProjects(): Promise<DeletedProject[]> {
+  const { data } = await supabase.from("events").select("id, name, deleted_at, managed_by_studio").not("deleted_at", "is", null).order("deleted_at", { ascending: false });
+  return (data ?? []) as DeletedProject[];
+}
+export async function restoreProject(id: string) {
+  const { error } = await supabase.rpc("restore_project", { p_event: id });
+  if (error) throw new Error("Couldn’t restore the project — please try again.");
+}
+
 export async function setLeadStatus(id: string, status: LeadStatus, eventId?: string) {
   must(await supabase.from("enquiries").update({ status, ...(eventId ? { event_id: eventId } : {}) }).eq("id", id));
 }

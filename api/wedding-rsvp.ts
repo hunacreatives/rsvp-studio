@@ -104,9 +104,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { data: event } = await supabaseAdmin.from("events").select("table_name").eq("id", site.event_id).maybeSingle();
-  if (!event) {
-    res.status(404).json({ error: "That event no longer exists" });
+  const { data: event } = await supabaseAdmin.from("events").select("table_name, deleted_at").eq("id", site.event_id).maybeSingle();
+  if (!event || event.deleted_at) {
+    res.status(404).json({ error: "This invitation is no longer available." });
+    return;
+  }
+  // DIY sites go offline after their event (supabase/project-lifecycle.sql): RSVPs close with them.
+  const { data: liveUntil } = await supabaseAdmin.rpc("site_live_until", { p_event: site.event_id });
+  if (typeof liveUntil === "string" && Date.parse(liveUntil) < Date.now()) {
+    res.status(410).json({ error: "This event has ended, so RSVPs are closed." });
     return;
   }
 

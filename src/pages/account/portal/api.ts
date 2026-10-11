@@ -6,6 +6,13 @@ export type SiteInfo = {
   publishedAt: string | null;
   templateId: string | null;
   heroUrl: string | null;
+  /** DIY sites (supabase/project-lifecycle.sql): online until this date; null = no end set. */
+  liveUntil?: string | null;
+  /** The site went offline after its event. */
+  ended?: boolean;
+  premium?: boolean;
+  /** When its guest RSVPs and photos were removed (30 days after it ended). */
+  guestsPurgedAt?: string | null;
 };
 
 export type PortalSnapshot = {
@@ -37,7 +44,7 @@ const PROFILE_COLS =
   "id, full_name, email, created_at, is_staff, phone, location, avatar_url, billing_name, billing_email, billing_address, notify_project_updates, notify_billing_updates, password_changed_at";
 
 const PROJECT_COLS =
-  "id, name, event_date, event_type, table_name, status, project_status, services, progress, next_step, next_step_due, cover_image_url, site_url, completed_at, updated_at, created_at, owner_id, next_step_owner, managed_by_studio";
+  "id, name, event_date, event_type, table_name, status, project_status, services, progress, next_step, next_step_due, cover_image_url, site_url, completed_at, updated_at, created_at, owner_id, next_step_owner, managed_by_studio, deleted_at";
 
 type SiteRow = {
   event_id: string;
@@ -62,7 +69,8 @@ function siteInfo(row: SiteRow): SiteInfo {
 /** Projects the user can see. Staff see every project (RLS allows it). */
 async function loadProjects(userId: string, staff: boolean): Promise<Project[]> {
   if (staff) {
-    const { data } = await supabase.from("events").select(PROJECT_COLS).order("updated_at", { ascending: false });
+    // Deleted projects only appear in Studio → Projects → Deleted (studioApi.loadDeletedProjects).
+    const { data } = await supabase.from("events").select(PROJECT_COLS).is("deleted_at", null).order("updated_at", { ascending: false });
     return (data ?? []).map((e) => ({ ...(e as Omit<Project, "role">), role: e.owner_id === userId ? "Owner" : "Member" }));
   }
   const [own, member] = await Promise.all([
@@ -76,7 +84,7 @@ async function loadProjects(userId: string, staff: boolean): Promise<Project[]> 
     if (e && !byId.has(e.id)) byId.set(e.id, { ...e, role: "Member" });
   }
   return [...byId.values()]
-    .filter((p) => p.status !== "archived")
+    .filter((p) => p.status !== "archived" && !p.deleted_at)
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 }
 
@@ -146,12 +154,13 @@ export async function loadSnapshot(userId: string): Promise<PortalSnapshot | nul
   const ids = projects.map((p) => p.id);
 
   const none = { data: [] as never[] };
-  const [tasks, activity, invoices, staffPeople, sites] = await Promise.all([
+  const [tasks, activity, invoices, staffPeople, sites, lifecycle] = await Promise.all([
     ids.length ? supabase.from("project_tasks").select("*").in("event_id", ids).order("due_date", { ascending: true, nullsFirst: false }) : none,
     ids.length ? supabase.from("project_activity").select("*").in("event_id", ids).order("created_at", { ascending: false }).limit(60) : none,
     ids.length ? supabase.from("invoices").select("*").in("event_id", ids).order("issued_at", { ascending: false }) : none,
     supabase.from("profiles").select("id, full_name, avatar_url, is_staff, email").eq("is_staff", true),
     ids.length ? supabase.from("wedding_sites").select("event_id, slug, published_at, draft_content, draft_presentation").in("event_id", ids) : none,
+    ids.length ? supabase.rpc("project_lifecycle", { p_ids: ids }) : none,
   ]);
 
   const people: Record<string, PersonLite> = {};
@@ -160,6 +169,11 @@ export async function loadSnapshot(userId: string): Promise<PortalSnapshot | nul
 
   const siteMap: Record<string, SiteInfo> = {};
   for (const row of (sites.data ?? []) as SiteRow[]) siteMap[row.event_id] = siteInfo(row);
+  type Life = { event_id: string; premium: boolean; live_until: string | null; ended: boolean; guests_purged_at: string | null };
+  for (const l of (lifecycle.data ?? []) as Life[]) {
+    const s = siteMap[l.event_id];
+    if (s) Object.assign(s, { liveUntil: l.live_until, ended: l.ended, premium: l.premium, guestsPurgedAt: l.guests_purged_at });
+  }
 
   const threads = await loadThreadSummaries(userId, staff, people);
 
@@ -306,6 +320,25 @@ export async function startCheckout(target: { invoiceId: string } | { eventId: s
   const json = (await res.json().catch(() => ({}))) as { checkout_url?: string; free?: boolean; error?: string };
   if (!res.ok) throw new Error(json.error ?? "Couldn’t start the payment — please try again.");
   return { checkoutUrl: json.checkout_url, free: json.free };
+}
+
+/** Delete a project (owner: their own DIY site · staff: any). Hidden at once; removed for good after 30 days. */
+export async function deleteProject(eventId: string) {
+  const { error } = await supabase.rpc("delete_project", { p_event: eventId });
+  if (error) throw new Error(/NOT_ALLOWED/.test(error.message) ? "Only the owner can delete this project." : "Couldn’t delete the project — please try again.");
+}
+
+/** A co-host takes themselves off a project. */
+export async function leaveProject(eventId: string) {
+  const { error } = await supabase.rpc("leave_project", { p_event: eventId });
+  if (error) throw new Error("Couldn’t leave the project — please try again.");
+}
+
+/** The customer's current free website, if they have one (one free site at a time). Staff: always null. */
+export async function myFreeSite(): Promise<{ id: string; name: string } | null> {
+  const { data, error } = await supabase.rpc("my_free_site");
+  if (error) return null;
+  return ((Array.isArray(data) ? data[0] : data) as { id: string; name: string } | undefined) ?? null;
 }
 
 /** A payment's status, for the "checking your payment…" screen after PayMongo sends the customer back. */

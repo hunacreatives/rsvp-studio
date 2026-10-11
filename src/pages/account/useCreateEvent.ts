@@ -74,7 +74,11 @@ export function useCreateEvent() {
 
     if (eventError || !event) {
       console.error("useCreateEvent: failed to insert events row", eventError);
-      setErrorDetail(eventError?.message ?? "Failed to create event.");
+      setErrorDetail(
+        /FREE_LIMIT/.test(eventError?.message ?? "")
+          ? "You already have a free website. Make it Premium or delete it to start another."
+          : "Couldn’t create your event — please try again.",
+      );
       setStatus("error");
       return null;
     }

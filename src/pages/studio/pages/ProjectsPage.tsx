@@ -9,10 +9,10 @@ import { projectFromLead } from "../leads";
 import * as studio from "../studioApi";
 import { StudioHeader, useStudio } from "../StudioLayout";
 
-type Filter = "all" | "in_progress" | "completed" | "unlinked" | "diy";
+type Filter = "all" | "in_progress" | "completed" | "unlinked" | "diy" | "deleted";
 
 export default function ProjectsPage() {
-  const { projects, demo } = usePortal();
+  const { projects, demo, refresh } = usePortal();
   const { owners, members } = useStudio();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -30,6 +30,27 @@ export default function ProjectsPage() {
     studio.loadDiySites(projects.filter(isDiy).map((p) => p.id)).then(setDiy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, projects, demo]);
+
+  // Deleted in the last 30 days — restorable until the daily job removes them.
+  const [deleted, setDeleted] = useState<studio.DeletedProject[]>([]);
+  const [restoring, setRestoring] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  useEffect(() => {
+    if (filter === "deleted" && !demo) studio.loadDeletedProjects().then(setDeleted);
+  }, [filter, demo]);
+  const restore = async (id: string) => {
+    setRestoring(id);
+    setRestoreError(null);
+    try {
+      await studio.restoreProject(id);
+      setDeleted((d) => d.filter((p) => p.id !== id));
+      await refresh();
+    } catch (e) {
+      setRestoreError(e instanceof Error ? e.message : "Couldn’t restore it.");
+    } finally {
+      setRestoring(null);
+    }
+  };
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -76,10 +97,35 @@ export default function ProjectsPage() {
             { value: "completed", label: "Completed" },
             { value: "unlinked", label: "No client yet" },
             { value: "diy", label: `DIY websites (${diyCount})` },
+            { value: "deleted", label: "Deleted" },
           ]}
         />
       </div>
 
+      {filter === "deleted" ? (
+        <section className="rounded-[22px] border border-[var(--line)] bg-white">
+          {deleted.length ? (
+            <ul className="divide-y divide-[var(--line)]">
+              {deleted.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                  <span className="min-w-0">
+                    <span className="block truncate text-[15px] font-semibold text-[var(--ink)]">{p.name}</span>
+                    <span className="block text-[13px] text-[var(--slate)]">
+                      {p.managed_by_studio ? "Studio project" : "DIY website"} · deleted {formatDate(p.deleted_at)} · removed for good {formatDate(new Date(Date.parse(p.deleted_at) + 30 * 86_400_000).toISOString())}
+                    </span>
+                  </span>
+                  <PillButton onClick={() => restore(p.id)} disabled={restoring === p.id || demo}>
+                    {restoring === p.id ? "Restoring…" : "Restore"}
+                  </PillButton>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="px-5 py-8 text-[14px] text-[var(--slate)]">Nothing deleted in the last 30 days.</p>
+          )}
+          {restoreError ? <p className="px-5 pb-4 text-[13px] text-[#c2412d]">{restoreError}</p> : null}
+        </section>
+      ) : (
       <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
         <aside className="space-y-3">
           <input
@@ -106,12 +152,14 @@ export default function ProjectsPage() {
                     </span>
                     {filter === "diy" && diy[p.id] ? (
                       <span className="mt-1 block text-[12px] text-[var(--slate)]">
+                        {/* Live / Draft is the pill below; this line is just the details. */}
                         {diy[p.id].published_at ? (
-                          <a href={`/invite/${diy[p.id].slug}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-[var(--acc-blue)] hover:underline">Live</a>
-                        ) : (
-                          "Not published"
-                        )}
-                        {` · ${diy[p.id].rsvps} RSVP${diy[p.id].rsvps === 1 ? "" : "s"}`}
+                          <>
+                            <a href={`/invite/${diy[p.id].slug}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-[var(--acc-blue)] hover:underline">View site</a>
+                            {" · "}
+                          </>
+                        ) : null}
+                        {`${diy[p.id].rsvps} RSVP${diy[p.id].rsvps === 1 ? "" : "s"}`}
                         {diy[p.id].paid ? ` · paid ₱${diy[p.id].paid.toLocaleString("en-PH")}` : ""}
                         {diy[p.id].template ? ` · ${diy[p.id].template}` : ""}
                       </span>
@@ -152,6 +200,11 @@ export default function ProjectsPage() {
               owner={owners[project.id]}
               members={members[project.id] ?? []}
               onOpenInbox={() => navigate(`/studio/inbox?project=${project.id}`)}
+              onDeleted={() => {
+                const next = new URLSearchParams(params);
+                next.delete("project");
+                setParams(next);
+              }}
             />
           ) : (
             <div className="grid min-h-[320px] place-items-center rounded-[22px] border border-dashed border-[var(--line)] bg-white/60 text-[var(--slate)]">
@@ -160,6 +213,7 @@ export default function ProjectsPage() {
           )}
         </section>
       </div>
+      )}
     </>
   );
 }

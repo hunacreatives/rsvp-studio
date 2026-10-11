@@ -46,11 +46,18 @@ export default function Terms() {
       <div>
         <h2>4. Building your own website</h2>
         <p>
-          You can design and preview your site for free, and publish it with a Standard template for free. Free sites
-          show a small &ldquo;Made with The RSVP Studio&rdquo; line and link at the bottom of the page. Premium templates
+          You can design and preview your site for free, and publish it with a Standard template for free. Every site
+          shows a small &ldquo;Made with love by The RSVP Studio&rdquo; line and link at the bottom of the page. Premium templates
           and upgrading a site to Premium are a one-time fee, shown before you pay; once paid, you can keep editing,
-          unpublish and publish again without paying again. We keep a published site online for the period described
-          in your package or at the time you publish.
+          unpublish and publish again without paying again.
+        </p>
+        <p>
+          Each account can have one free website at a time; to start another, make your current one Premium or
+          delete it. A free website stays online until 30 days after the event, and a Premium website until one year
+          after the event (with no event date, one year after publishing). Guest RSVPs and photos are removed 30 days
+          after a website goes offline. You can delete a project anytime: it goes offline right away and is removed
+          for good after 30 days. Premium belongs to the website it was bought for and doesn&rsquo;t move to another
+          project.
         </p>
         <p>
           You&rsquo;re responsible for what you put on your site — make sure you have the right to use your photos,

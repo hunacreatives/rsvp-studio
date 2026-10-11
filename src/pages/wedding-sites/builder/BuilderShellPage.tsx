@@ -233,7 +233,7 @@ export default function BuilderShellPage() {
         {resolved ? (
           <PreviewCanvas key={device} deviceWidth={device === "phone" ? 390 : undefined}>
             {/* The preview shows the credit exactly as guests will see it. */}
-            <SiteCreditProvider value={{ show: !plan?.premium, slug }}>
+            <SiteCreditProvider value={{ show: true, slug }}>
               <resolved.definition.component content={content} settings={resolved.settings} editorPreview />
             </SiteCreditProvider>
           </PreviewCanvas>

@@ -42,6 +42,8 @@ export type Project = {
   updated_at: string;
   created_at: string;
   owner_id: string | null;
+  /** Deleted projects are hidden everywhere except Studio → Projects → Deleted. */
+  deleted_at?: string | null;
   role: "Owner" | "Member";
 };
 

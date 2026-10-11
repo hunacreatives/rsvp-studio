@@ -12,6 +12,7 @@ import { loadTemplateCatalog } from "../engine/catalog";
 import { parseSpec } from "../spec/schema";
 import { definitionFromSpec } from "../spec/definitionFromSpec";
 import { SiteCreditProvider } from "../engine/siteCredit";
+import SiteEndedPage from "./SiteEndedPage";
 
 // The live, public event site: /invite/:slug. Reads ONLY the published_*
 // columns (never draft_*) — see the RLS note in
@@ -20,7 +21,8 @@ import { SiteCreditProvider } from "../engine/siteCredit";
 type LoadState =
   | { status: "loading" }
   | { status: "not-found" }
-  | { status: "ready"; presentation: PresentationState; rawContent: unknown; premium: boolean };
+  | { status: "gone"; state: "ended" | "deleted"; rawContent: unknown }
+  | { status: "ready"; presentation: PresentationState; rawContent: unknown };
 
 export default function PublicEventSitePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -37,7 +39,7 @@ export default function PublicEventSitePage() {
       // get_public_site() returns only the published columns for one slug
       // (supabase/site-security-fixes.sql). Until that SQL is applied, fall
       // back to the direct table read so live sites never go dark.
-      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown; is_premium?: boolean };
+      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown; state?: "live" | "ended" | "deleted" };
       let data: Row | null = null;
       let error: { code?: string } | null = null;
       const rpc = await supabase.rpc("get_public_site", { p_slug: slug });
@@ -56,6 +58,11 @@ export default function PublicEventSitePage() {
       }
 
       if (cancelled) return;
+      // Past its event, or deleted by the host: a branded page instead of the site.
+      if (!error && data && (data.state === "ended" || data.state === "deleted")) {
+        setState({ status: "gone", state: data.state, rawContent: data.published_content });
+        return;
+      }
       if (error || !data || !data.published_content) {
         setState({ status: "not-found" });
         return;
@@ -79,8 +86,6 @@ export default function PublicEventSitePage() {
       setState({
         status: "ready",
         rawContent: data.published_content,
-        // Premium sites don't show the "Made with The RSVP Studio" credit.
-        premium: data.is_premium === true,
         presentation: (data.published_presentation as PresentationState) ?? {
           activeTemplateId: "",
           byTemplate: {},
@@ -99,6 +104,9 @@ export default function PublicEventSitePage() {
   }
   if (state.status === "not-found") {
     return <NotFound />;
+  }
+  if (state.status === "gone") {
+    return <SiteEndedPage state={state.state} content={state.rawContent ? normalizeEventContent(state.rawContent) : null} slug={slug ?? ""} />;
   }
 
   // The RSVP form posts content.slug; older publishes saved it empty, so
@@ -124,7 +132,8 @@ export default function PublicEventSitePage() {
         </div>
       )}
     >
-      <SiteCreditProvider value={{ show: !state.premium, slug }}>
+      {/* Every site carries the credit, Premium included. */}
+      <SiteCreditProvider value={{ show: true, slug }}>
         <resolved.definition.component content={content} settings={resolved.settings} live />
       </SiteCreditProvider>
     </ErrorBoundary>

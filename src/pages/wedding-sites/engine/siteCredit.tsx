@@ -1,9 +1,10 @@
 import { createContext, useContext, type CSSProperties } from "react";
 
-// "Made with The RSVP Studio · Make your own" at the foot of every FREE site.
-// Premium sites and studio projects don't show it (event_is_premium in
-// supabase/free-premium.sql). Templates draw it in their own footer style;
-// the link carries the site's slug so Studio can count the signups it brings.
+// "Made with love by The RSVP Studio · Make your own" at the foot of EVERY
+// site — free, Premium and studio projects alike (Francis, Oct 11 2026).
+// Templates draw it in their own footer style; the link carries the site's
+// slug so Studio can count the signups it brings. `show` stays as a switch
+// in case a future plan ever turns it off.
 
 export type SiteCredit = { show: boolean; slug?: string };
 
@@ -21,7 +22,7 @@ export function CreditLine({ linkStyle }: { linkStyle?: CSSProperties }) {
   const href = creditHref(slug);
   return (
     <>
-      Made with{" "}
+      Made with love by{" "}
       <a href={href} target="_blank" rel="noopener" style={linkStyle}>
         The RSVP Studio
       </a>

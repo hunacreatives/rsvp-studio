@@ -10,7 +10,17 @@ export function useProjectCover() {
   return (p: Project) => p.cover_image_url || sites[p.id]?.heroUrl || null;
 }
 
+/** A site the customer builds themselves (Build Your Website) — not a studio project. */
+export const isDiy = (p: Pick<Project, "managed_by_studio">) => p.managed_by_studio === false;
+
 export function ProjectStatusPill({ project }: { project: Project }) {
+  const { sites } = usePortal();
+  // DIY sites have no studio progress: they're a draft until published, then live.
+  if (isDiy(project)) {
+    const site = sites[project.id];
+    if (site?.ended) return <StatusPill tone="grey">Ended</StatusPill>;
+    return site?.publishedAt ? <StatusPill tone="lime">Live</StatusPill> : <StatusPill tone="grey">Draft</StatusPill>;
+  }
   return project.project_status === "completed" ? (
     <StatusPill tone="lime">Completed</StatusPill>
   ) : (
@@ -64,6 +74,37 @@ export function ProjectCard({ project }: { project: Project }) {
   );
 }
 
+/** For DIY sites, in place of studio progress / next step: where the website is at. */
+export function DiySiteSummary({ project }: { project: Project }) {
+  const { sites } = usePortal();
+  const site = sites[project.id];
+  const live = !!site?.publishedAt;
+  // Guest list + photos are kept 30 days after the site ends (supabase/project-lifecycle.sql).
+  const keptUntil = site?.liveUntil ? new Date(Date.parse(site.liveUntil) + 30 * 86_400_000).toISOString() : null;
+  const [left, leftValue, right, rightValue] = site?.ended
+    ? [
+        "Website",
+        `Ended ${formatDate(site.liveUntil)}`,
+        "Guest list",
+        site.guestsPurgedAt ? `Removed ${formatDate(site.guestsPurgedAt)}` : `Download it before ${formatDate(keptUntil)}`,
+      ]
+    : live
+      ? ["Website", `Live since ${formatDate(site!.publishedAt)}`, "Stays online until", site!.liveUntil ? formatDate(site!.liveUntil) : "—"]
+      : ["Website", site ? "Draft — not published yet" : "Not started", "Next step", site ? "Publish it when it’s ready" : "Pick a template"];
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#dcdce0] pt-4 text-[13px]">
+      <div>
+        <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{left}</p>
+        <p className="text-[var(--ink)]">{leftValue}</p>
+      </div>
+      <div>
+        <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{right}</p>
+        <p className="text-[var(--ink)]">{rightValue}</p>
+      </div>
+    </div>
+  );
+}
+
 /** Full-width card with progress (design: Projects page). */
 export function ProjectRow({ project }: { project: Project }) {
   const cover = useProjectCover();
@@ -78,6 +119,10 @@ export function ProjectRow({ project }: { project: Project }) {
       <div className="px-5 pb-5 pt-5 md:px-6">
         <p className="text-[20px] font-semibold text-[var(--ink)] group-hover:underline">{project.name}</p>
         <p className="text-[15px] text-[var(--ink)]">{servicesLabel(project.services, project.event_type)}</p>
+        {isDiy(project) ? (
+          <DiySiteSummary project={project} />
+        ) : (
+          <>
         <div className="mt-6 flex items-center justify-between text-[13px]">
           <span className="text-[var(--ink)]">Project progress</span>
           <span className="text-[var(--slate)]">{project.progress}%</span>
@@ -97,6 +142,8 @@ export function ProjectRow({ project }: { project: Project }) {
             </p>
           </div>
         </div>
+          </>
+        )}
       </div>
     </Link>
   );

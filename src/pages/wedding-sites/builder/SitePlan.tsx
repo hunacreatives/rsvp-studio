@@ -4,8 +4,9 @@ import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
 
 // Free vs Premium in the builder (site_plan in supabase/free-premium.sql).
-//   Free: "Made with The RSVP Studio" on the site, one RSVP summary email a day.
-//   Premium: no credit, an email per RSVP, guest emails sent in the hosts' names.
+//   Free: one RSVP summary email a day.
+//   Premium: an email per RSVP, guest emails sent in the hosts' names, Premium templates.
+//   (Every site shows "Made with love by The RSVP Studio" either way.)
 // A free-template site can upgrade (PayMongo, back here with ?upgraded=…).
 
 export type SitePlan = { premium: boolean; managed: boolean; upgradeCentavos: number };
@@ -76,7 +77,6 @@ export function useUpgradeFlow(eventId: string | undefined, reload: () => Promis
 }
 
 export const PREMIUM_PERKS = [
-  "No “Made with The RSVP Studio” line on your site",
   "An email the moment each guest RSVPs, instead of one summary a day",
   "Guest confirmation emails sent in your names",
   "Any Premium template, at no extra cost",
@@ -133,7 +133,7 @@ export function UpgradeDialog({ flow, plan }: { flow: ReturnType<typeof useUpgra
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>You’re on Premium</h2>
             <p style={{ margin: "10px 0 0", fontSize: 15, lineHeight: 1.6, color: "#55556a" }}>
-              The “Made with The RSVP Studio” line is gone from your site, and you’ll get an email for every new RSVP.
+              You’ll get an email for every new RSVP, your guests’ confirmations come from you, and every Premium template is yours to use.
             </p>
             <button onClick={flow.close} style={{ ...btn(true), marginTop: 18 }}>
               Done

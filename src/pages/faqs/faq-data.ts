@@ -31,8 +31,11 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     slug: "build",
     category: "Build Your Own Website",
     items: [
-      { q: "Is Build Your Website free?", a: "Yes. You can design, preview and publish your event website with any Standard template for free. Free sites show a small \u201cMade with The RSVP Studio\u201d line at the bottom, and you get one email a day with your new RSVPs. Every reply is always in your dashboard as soon as it comes in." },
-      { q: "What does Premium include?", a: "Premium is a one-time fee per site, shown before you pay (currently \u20b1499). Your site has no \u201cMade with The RSVP Studio\u201d line, you get an email the moment each guest RSVPs, guest confirmation emails are sent in your names, and you can use any Premium template at no extra cost. You can upgrade a free site anytime from the website builder." },
+      { q: "Is Build Your Website free?", a: "Yes. You can design, preview and publish your event website with any Standard template for free. You get one email a day with your new RSVPs. Every reply is always in your dashboard as soon as it comes in." },
+      { q: "What does Premium include?", a: "Premium is a one-time fee per site, shown before you pay (currently \u20b1499). You get an email the moment each guest RSVPs, guest confirmation emails are sent in your names, and you can use any Premium template at no extra cost. You can upgrade a free site anytime from the website builder." },
+      { q: "Can I make more than one website for free?", a: "You can have one free website at a time. To start another, make your current one Premium or delete it from your dashboard (Project \u2192 Website)." },
+      { q: "How long does my website stay online?", a: "A free website stays online until 30 days after your event. A Premium website stays online for a year after your event. After that, the link shows a thank-you page, and your guest list and photos are kept for 30 more days so you can download them. We\u2019ll email you two weeks before your website goes offline." },
+      { q: "Can I delete my website?", a: "Yes. Open the project in your dashboard, go to Website, and choose Delete project. It goes offline right away and is removed for good after 30 days. Download your guest list first if you need it. Premium payments aren\u2019t refunded when a website is deleted." },
       { q: "Do my guests get a confirmation email?", a: "Yes. Guests who reply with an email address get a confirmation on both free and Premium sites. Guests who reply with a mobile number see their confirmation on screen." },
     ],
   },

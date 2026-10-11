@@ -96,7 +96,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
             <p style={{ margin: "10px 0 0", fontSize: 15, lineHeight: 1.6, color: "#55556a" }}>
               {step.tier === "premium" ? (
                 <>
-                  Premium templates are a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>, and include Premium: no “Made with The RSVP Studio” line, and an email for every RSVP.
+                  Premium templates are a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>, and include Premium: an email for every RSVP, and guest confirmations sent in your names.
                 </>
               ) : (
                 <>
@@ -141,7 +141,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
             <p style={{ margin: "16px 0 0", fontSize: 13, color: "#55556a" }}>Changed something later? Tap “Update live site” to put your edits online.</p>
             {upsell ? (
               <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>
-                Your site shows a small “Made with The RSVP Studio” line at the bottom, and you’ll get one RSVP summary email a day.{" "}
+                You’ll get one email a day with your new RSVPs.{" "}
                 <button
                   onClick={() => {
                     flow.close();
@@ -151,7 +151,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
                 >
                   Upgrade to Premium for {upsell.price}
                 </button>{" "}
-                to remove the line and get an email for every RSVP.
+                to get an email for every RSVP and use any Premium template.
               </p>
             ) : null}
             <button onClick={flow.close} style={{ ...btn(false), marginTop: 16 }}>
