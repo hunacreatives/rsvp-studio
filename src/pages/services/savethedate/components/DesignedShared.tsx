@@ -7,7 +7,7 @@ const FEATURES = [
   { icon: "ri-link", title: "Seamless Integration", copy: "Link to your event website for all the details.", bg: "#d9cef5" },
   { icon: "ri-sparkling-2-line", title: "Beautifully Designed", copy: "A custom look that reflects your celebration.", bg: "#cfe0f7" },
   { icon: "ri-leaf-line", title: "Eco Friendly", copy: "A sustainable choice for a modern couple.", bg: "#cfeed8" },
-  { icon: "ri-time-line", title: "Instant Delivery", copy: "Delivered as a PDF, ready to share right away.", bg: "#cfeaf3" },
+  { icon: "ri-time-line", title: "Instant Delivery", copy: "Delivered as an animated video or a still JPEG and PDF, ready to share right away.", bg: "#cfeaf3" },
 ];
 
 export default function DesignedShared() {

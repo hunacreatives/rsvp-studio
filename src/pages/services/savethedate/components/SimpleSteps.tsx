@@ -15,7 +15,7 @@ const STEPS = [
   {
     num: "03",
     title: "You Share",
-    copy: "You receive your JPEG and PDF files, ready to send to your guests however you like.",
+    copy: "You receive your files — animated, or still as JPEG and PDF — ready to send to your guests however you like.",
   },
 ];
 

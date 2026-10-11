@@ -46,7 +46,7 @@ export default function Services() {
           id="save-the-date"
           title="Digital Save the Date"
           subtitle="A first glimpse of what's to come."
-          body="An animated digital Save the Date that sets the tone months ahead — your names, palette, and the feeling of the day, ready to share the moment it's done."
+          body="A digital Save the Date, animated or still, that sets the tone months ahead — your names, palette, and the feeling of the day, ready to share the moment it's done."
           ctaLabel="Explore Save the Dates"
           ctaTo="/services/save-the-date"
           visual={<SaveTheDateMockup />}

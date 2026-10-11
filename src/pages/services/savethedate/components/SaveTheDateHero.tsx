@@ -34,10 +34,10 @@ export default function SaveTheDateHero() {
           className="font-display font-semibold tracking-[-0.02em] text-[var(--ink)]"
           style={{ fontSize: "clamp(2.2rem, 5vw, 3.6rem)" }}
         >
-          Animated Digital Save the Date
+          Digital Save the Date
         </h1>
         <p className="mt-3 text-lg md:text-xl text-[var(--slate)]">
-          The first glimpse of your celebration.
+          Animated or still — the first glimpse of your celebration.
         </p>
       </div>
 
