@@ -6,6 +6,7 @@ import { ErrorText, Input, PillButton, StatusPill } from "@/pages/account/portal
 import { StudioHeader } from "../StudioLayout";
 import { listTemplates, type TemplateRow } from "../templatesApi";
 import * as studio from "../studioApi";
+import DomainsCard from "./DomainsCard";
 
 const STATUS_TONE = { listed: "lime", draft: "lavender", hidden: "grey", retired: "grey" } as const;
 const STATUS_LABEL = { listed: "In gallery", draft: "Draft", hidden: "Hidden", retired: "Retired" } as const;
@@ -41,6 +42,7 @@ export default function TemplatesPage() {
       />
       {error ? <p className="mb-4 rounded-2xl bg-[#fff3f0] px-5 py-4 text-[14px] text-[#c2412d]">{error}</p> : null}
       {!demo ? <SitePricesCard /> : null}
+      {!demo ? <DomainsCard /> : null}
       {demo ? <p className="mb-4 text-[14px] text-[var(--slate)]">Templates aren’t part of demo data.</p> : null}
 
       <div className="overflow-x-auto rounded-[22px] border border-[var(--line)] bg-white">

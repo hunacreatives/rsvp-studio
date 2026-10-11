@@ -60,6 +60,12 @@ export default function Terms() {
           project.
         </p>
         <p>
+          If you buy a custom web address, we register it on your behalf, in our name, for the year you pay for, and
+          your website stays online while it&rsquo;s active. Domain fees aren&rsquo;t refundable once the address is
+          registered. Renewing is optional and offered before it expires; if you don&rsquo;t renew, the address stops
+          working. We can transfer an address to you on request, for a fee.
+        </p>
+        <p>
           You&rsquo;re responsible for what you put on your site — make sure you have the right to use your photos,
           words and anything else you upload, and that your guests are happy for you to collect their replies.
         </p>

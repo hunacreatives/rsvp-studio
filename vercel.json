@@ -2,6 +2,16 @@
   "outputDirectory": "out",
   "rewrites": [
     {
+      "source": "/(.*)",
+      "missing": [
+        {
+          "type": "host",
+          "value": "(?:.*\\.)?(?:thersvpstudio\\.com|vercel\\.app)"
+        }
+      ],
+      "destination": "/api/invite-page?domain=1"
+    },
+    {
       "source": "/invite/:slug",
       "destination": "/api/invite-page?slug=:slug"
     },

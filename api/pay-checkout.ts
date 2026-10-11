@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { createCheckoutSession, MIN_CENTAVOS, paymongoConfigured } from "./_lib/paymongo.js";
+import { domainsReady, loadSettings, pesoPrice, quoteDomain, RateLimited } from "./_lib/domains.js";
 
 // Start a PayMongo checkout for the signed-in customer:
 //   { invoiceId }  pay an open invoice on one of their events
 //   { eventId }    pay to publish their DIY website (price from Studio → Templates)
+//   { eventId, domain }          buy a custom domain for their site (api/_lib/domains.ts)
+//   { eventId, renewDomain: true }  renew that domain for another year
 //   { eventId, upgrade: true }  make a free-template site Premium (the Premium price,
 //                  less anything already paid) — no credit on the site, an email per RSVP
 // The amount is always worked out here, never taken from the browser. A pending
@@ -29,9 +32,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!paymongoConfigured()) return res.status(503).json({ error: "Online payment isn’t switched on yet. Message us and we’ll help you pay another way." });
 
   const origin = `https://${req.headers["x-forwarded-host"] ?? req.headers.host}`;
-  const body = (req.body ?? {}) as { invoiceId?: string; eventId?: string; upgrade?: boolean };
+  const body = (req.body ?? {}) as { invoiceId?: string; eventId?: string; upgrade?: boolean; domain?: string; renewDomain?: boolean };
 
-  let kind: "invoice" | "site_publish";
+  let kind: "invoice" | "site_publish" | "domain" | "domain_renewal";
+  let domain: { name: string; usd: number; renewalUsd: number | null } | null = null;
   let eventId: string;
   let amountCentavos: number;
   let name: string;
@@ -53,6 +57,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     name = `${ev.name}: ${inv.description}`;
     description = `The RSVP Studio — invoice ${inv.number}`;
     back = `${origin}/account/billing/${inv.id}`;
+  } else if (body.eventId && (body.domain || body.renewDomain === true)) {
+    const ev = await canAccess(body.eventId, user.id);
+    if (!ev) return res.status(404).json({ error: "We couldn’t find that event." });
+    const settings = await loadSettings(db);
+    if (!domainsReady(settings)) return res.status(503).json({ error: "Custom domains aren’t available yet." });
+    const { data: current } = await db.from("site_domains").select("domain, status, price_usd, renewal_usd").eq("event_id", body.eventId).neq("status", "expired").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    eventId = body.eventId;
+    if (body.renewDomain) {
+      if (!current || current.status !== "active") return res.status(409).json({ error: "There’s no active web address to renew." });
+      const usd = Number(current.renewal_usd ?? current.price_usd);
+      kind = "domain_renewal";
+      domain = { name: current.domain, usd, renewalUsd: usd };
+      amountCentavos = pesoPrice(usd, settings) * 100;
+      name = `${ev.name}: renew ${current.domain} for 1 year`;
+      description = "The RSVP Studio — web address renewal";
+      back = `${origin}/account/projects/${body.eventId}`;
+      returnParam = "renewed";
+    } else {
+      if (current && current.status !== "failed") return res.status(409).json({ error: `This website already has ${current.domain}.` });
+      // Re-check: still free, same price — right now, not when they searched.
+      let quote;
+      try {
+        quote = await quoteDomain(db, settings, String(body.domain));
+      } catch (e) {
+        if (e instanceof RateLimited) return res.status(429).json({ error: "Lots of people are buying right now — try again in a minute." });
+        throw e;
+      }
+      if (!quote) return res.status(409).json({ error: `${body.domain} isn’t available anymore. Try another name.` });
+      kind = "domain";
+      domain = { name: quote.domain, usd: quote.usd, renewalUsd: quote.renewalUsd };
+      amountCentavos = quote.php * 100;
+      name = `${ev.name}: ${quote.domain} (1 year)`;
+      description = "The RSVP Studio — your own web address";
+      back = `${origin}/account/events/${body.eventId}/site-builder/edit`;
+      returnParam = "domain";
+    }
   } else if (body.eventId && body.upgrade === true) {
     const ev = await canAccess(body.eventId, user.id);
     if (!ev) return res.status(404).json({ error: "We couldn’t find that event." });
@@ -108,7 +148,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: payment, error: insErr } = await db
     .from("payments")
-    .insert({ kind, invoice_id: invoiceId, event_id: eventId, profile_id: user.id, amount_centavos: amountCentavos, description: name, template_tier: tier })
+    .insert({
+      kind,
+      invoice_id: invoiceId,
+      event_id: eventId,
+      profile_id: user.id,
+      amount_centavos: amountCentavos,
+      description: name,
+      template_tier: tier,
+      ...(domain ? { domain: domain.name, domain_price_usd: domain.usd, domain_renewal_usd: domain.renewalUsd } : {}),
+    })
     .select("id")
     .single();
   if (insErr || !payment) {
@@ -123,7 +172,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       description,
       email: user.email,
       successUrl: `${back}?${returnParam}=${payment.id}`,
-      cancelUrl: `${back}?${returnParam === "upgraded" ? "upgrade_cancelled" : "cancelled"}=1`,
+      cancelUrl: `${back}?${returnParam === "upgraded" ? "upgrade_cancelled" : returnParam === "domain" || returnParam === "renewed" ? "domain_cancelled" : "cancelled"}=1`,
       metadata: { payment_id: payment.id, kind },
     });
     await db.from("payments").update({ checkout_session_id: session.id, checkout_url: session.checkoutUrl, updated_at: new Date().toISOString() }).eq("id", payment.id);

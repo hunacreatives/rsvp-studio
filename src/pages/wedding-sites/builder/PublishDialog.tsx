@@ -2,23 +2,86 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
+import { DOMAIN_PERKS, DomainPicker, peso as pesoWhole } from "./DomainPicker";
 
 // Publishing a site from the builder:
 //   1. try to publish — studio projects and free templates just go live;
 //   2. a DIY site that needs paying for → show the price → PayMongo checkout;
 //   3. PayMongo sends them back with ?paid=… → wait for the payment → publish;
 //   4. "Your site is live": the link, Copy, and Messenger / Viber share.
+// Before the FIRST publish (when custom domains are on): choose the free link or
+// your own domain. The site goes live on the free link right away; a chosen domain
+// is paid for straight after (it's remembered across the publish payment, if any).
 
 type Publish = () => Promise<{ ok: boolean; paymentRequired?: boolean; message?: string }>;
-type Step = { kind: "closed" } | { kind: "working"; text: string } | { kind: "pay"; amount: number; tier: string } | { kind: "live" } | { kind: "error"; text: string };
+type Step =
+  | { kind: "closed" }
+  | { kind: "address" }
+  | { kind: "working"; text: string }
+  | { kind: "pay"; amount: number; tier: string }
+  | { kind: "live" }
+  | { kind: "error"; text: string };
+
+type PendingDomain = { domain: string; php: number };
+const pendingKey = (eventId: string) => `rsvp_pending_domain_${eventId}`;
+function readPending(eventId: string | undefined): PendingDomain | null {
+  if (!eventId) return null;
+  try {
+    return JSON.parse(sessionStorage.getItem(pendingKey(eventId)) ?? "null");
+  } catch {
+    return null;
+  }
+}
+function writePending(eventId: string, p: PendingDomain | null) {
+  try {
+    if (p) sessionStorage.setItem(pendingKey(eventId), JSON.stringify(p));
+    else sessionStorage.removeItem(pendingKey(eventId));
+  } catch {
+    /* private mode: they can still buy it from the Website tab */
+  }
+}
 
 const peso = (centavos: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(centavos / 100);
 
-export function usePublishFlow(eventId: string | undefined, publish: Publish, beforePublish: () => Promise<void>) {
+export function usePublishFlow(eventId: string | undefined, publish: Publish, beforePublish: () => Promise<void>, firstPublish = false) {
   const [step, setStep] = useState<Step>({ kind: "closed" });
   const [params, setParams] = useSearchParams();
+  const [pending, setPending] = useState<PendingDomain | null>(() => readPending(eventId));
 
+  // First publish, domains on, no domain yet → ask about the web address first.
   const start = async () => {
+    if (firstPublish && eventId) {
+      setStep({ kind: "working", text: "One moment…" });
+      const [on, current] = await Promise.all([api.domainsEnabled(), api.domainStatus(eventId)]);
+      if (on && current.status === "none") return setStep({ kind: "address" });
+    }
+    return go();
+  };
+  const chooseFree = () => {
+    if (eventId) writePending(eventId, null);
+    setPending(null);
+    go();
+  };
+  const chooseDomain = (domain: string, php: number) => {
+    if (eventId) writePending(eventId, { domain, php });
+    setPending({ domain, php });
+    go();
+  };
+  const buyPending = async () => {
+    if (!eventId || !pending) return;
+    setStep({ kind: "working", text: "Opening the payment page…" });
+    try {
+      const r = await api.startCheckout({ eventId, domain: pending.domain });
+      writePending(eventId, null);
+      if (r.checkoutUrl) window.location.href = r.checkoutUrl;
+    } catch (e) {
+      writePending(eventId, null);
+      setPending(null);
+      setStep({ kind: "error", text: e instanceof Error ? e.message : "Couldn’t start the payment — please try again." });
+    }
+  };
+
+  const go = async () => {
     setStep({ kind: "working", text: "Publishing your site…" });
     await beforePublish();
     const r = await publish();
@@ -36,7 +99,7 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
     try {
       const r = await api.startCheckout({ eventId });
       if (r.checkoutUrl) window.location.href = r.checkoutUrl;
-      else if (r.free) await start();
+      else if (r.free) await go();
     } catch (e) {
       setStep({ kind: "error", text: e instanceof Error ? e.message : "Couldn’t start the payment — please try again." });
     }
@@ -69,7 +132,7 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { step, start, pay, close: () => setStep({ kind: "closed" }) };
+  return { step, start, pay, pending, chooseFree, chooseDomain, buyPending, eventId, close: () => setStep({ kind: "closed" }) };
 }
 
 /** `upsell`: a free site — after it goes live, offer Premium (no credit, an email per RSVP). */
@@ -90,6 +153,22 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
       <div onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 24px 60px -24px rgba(0,7,39,0.45)", fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
         {step.kind === "working" ? (
           <p style={{ margin: 0, fontSize: 16 }}>{step.text}</p>
+        ) : step.kind === "address" ? (
+          <>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Choose your web address</h2>
+            <button onClick={flow.chooseFree} style={{ ...btn(false), width: "100%", justifyContent: "space-between", marginTop: 16, borderRadius: 14, padding: "12px 16px" }}>
+              <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>thersvpstudio.com/invite/{slug}</span>
+              <span style={{ color: "#55556a", fontWeight: 500 }}>Free</span>
+            </button>
+            <p style={{ margin: "20px 0 8px", fontSize: 15, fontWeight: 600 }}>Or get your own, like {slug.replace(/-/g, "")}.com</p>
+            <ul style={{ margin: "0 0 12px", paddingLeft: 18, fontSize: 13.5, lineHeight: 1.7, color: "#55556a" }}>
+              {DOMAIN_PERKS.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+            <DomainPicker eventId={flow.eventId!} suggestion={slug.replace(/-/g, "")} onPick={flow.chooseDomain} />
+            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#868697" }}>Your site goes live on the free link right away; your own address follows a few minutes after you pay.</p>
+          </>
         ) : step.kind === "pay" ? (
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Publish your site</h2>
@@ -117,6 +196,15 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
         ) : step.kind === "live" ? (
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Your site is live</h2>
+            {flow.pending ? (
+              <div style={{ margin: "14px 0 4px", padding: "14px 16px", borderRadius: 14, background: "#f4f6fd" }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Now let’s get {flow.pending.domain}</p>
+                <p style={{ margin: "4px 0 12px", fontSize: 13.5, color: "#55556a" }}>{pesoWhole(flow.pending.php)} for one year — set up for you in minutes.</p>
+                <button onClick={flow.buyPending} style={btn(true)}>
+                  Pay {pesoWhole(flow.pending.php)}
+                </button>
+              </div>
+            ) : null}
             <p style={{ margin: "10px 0 14px", fontSize: 15, color: "#55556a" }}>Share this link with your guests:</p>
             <div style={{ display: "flex", gap: 8, alignItems: "center", background: "#f5f5f2", borderRadius: 12, padding: "10px 12px" }}>
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 14 }}>{url}</span>

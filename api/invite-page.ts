@@ -6,7 +6,8 @@ import { esc } from "./_lib/email.js";
 // page head — so a link shared on Messenger / Viber / Facebook shows "Mia & Noah",
 // the date and the cover photo instead of the generic site preview. The page itself
 // is the normal app (same index.html); only the <head> tags differ.
-// vercel.json rewrites /invite/:slug here.
+// vercel.json rewrites /invite/:slug here — and every page of a customer's own domain
+// (?domain=1), where the site is found from the host (get_site_by_domain).
 
 const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_ANON_KEY!);
 let shell: { html: string; at: number } | null = null;
@@ -36,9 +37,15 @@ function describe(c: Content) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const slug = String(req.query.slug ?? "").toLowerCase();
-  const host = req.headers["x-forwarded-host"] ?? req.headers.host;
+  const host = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "");
   const origin = `https://${host}`;
+  let slug = String(req.query.slug ?? "").toLowerCase();
+  if (req.query.domain === "1") {
+    const { data } = await db.rpc("get_site_by_domain", { p_host: host });
+    slug = typeof data === "string" ? data : "";
+    // Event sites stay out of search engines, on their own domain too.
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  }
 
   // The app's own index.html (cached for a few minutes per instance).
   if (!shell || Date.now() - shell.at > 5 * 60_000) {
@@ -69,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `<meta property="og:description" content="${esc(description)}" />`,
         `<meta property="og:type" content="website" />`,
         `<meta property="og:site_name" content="The RSVP Studio" />`,
-        `<meta property="og:url" content="${esc(`${origin}/invite/${slug}`)}" />`,
+        `<meta property="og:url" content="${esc(req.query.domain === "1" ? origin : `${origin}/invite/${slug}`)}" />`,
         image ? `<meta property="og:image" content="${esc(image)}" />` : "",
         image ? `<meta name="twitter:card" content="summary_large_image" />` : "",
       ].join("\n    ");

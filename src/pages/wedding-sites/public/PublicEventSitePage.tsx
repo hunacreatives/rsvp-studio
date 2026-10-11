@@ -24,8 +24,10 @@ type LoadState =
   | { status: "gone"; state: "ended" | "deleted"; rawContent: unknown }
   | { status: "ready"; presentation: PresentationState; rawContent: unknown };
 
-export default function PublicEventSitePage() {
-  const { slug } = useParams<{ slug: string }>();
+/** `slugOverride`: on a custom domain (gelat30.net) the site comes from the host, not the URL. */
+export default function PublicEventSitePage({ slugOverride }: { slugOverride?: string } = {}) {
+  const params = useParams<{ slug: string }>();
+  const slug = slugOverride ?? params.slug;
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   useEffect(() => {

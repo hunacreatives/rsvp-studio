@@ -13,6 +13,7 @@ const PLANS = [
       { icon: "ri-time-line", title: "Faster Turnaround", copy: "Streamlined process for a quicker delivery" },
       { icon: "ri-sparkling-line", title: "Elegant & Refined", copy: "Timeless designs with a curated, elevated look" },
       { icon: "ri-cursor-line", title: "Curated Interactions", copy: "Carefully selected animations and interactive elements" },
+      { icon: "ri-global-line", title: "Own Domain (Add-on)", copy: "Add your own web address from ₱1,499 a year" },
     ],
   },
   {
@@ -25,6 +26,7 @@ const PLANS = [
       { icon: "ri-book-open-line", title: "Editorial Storytelling", copy: "Storytelling designed from scratch around your vision" },
       { icon: "ri-magic-line", title: "Custom Animations", copy: "Custom interactions and animations designed uniquely for your site" },
       { icon: "ri-fingerprint-line", title: "Signature Design", copy: "Thoughtfully designed with your story at the center" },
+      { icon: "ri-global-line", title: "Free Domain", copy: "A free .com or .net for the first year, subject to availability" },
     ],
   },
 ];

@@ -6,6 +6,7 @@ import { useTemplateCatalog } from "@/pages/wedding-sites/engine/catalog";
 import { usePortal } from "../PortalContext";
 import * as api from "../api";
 import ProjectDangerZone from "../components/ProjectDangerZone";
+import DomainCard from "../components/DomainCard";
 import { ActivityList, DiySiteSummary, InvoiceTable, ProjectStatusPill, TaskList, isDiy, useProjectCover, nextStepLabel } from "../components/blocks";
 import { formatDate, formatLongDate, servicesLabel } from "../format";
 import type { Project } from "../types";
@@ -20,7 +21,10 @@ export default function ProjectDetailPage() {
   const cover = useProjectCover();
   // ?tab=guests opens straight on the guest list (the daily RSVP summary email links here).
   const [tab, setTab] = useState<Tab>(() => {
-    const t = new URLSearchParams(window.location.search).get("tab");
+    const q = new URLSearchParams(window.location.search);
+    const t = q.get("tab");
+    // Back from a domain renewal payment → the Website tab, where the domain lives.
+    if (q.has("renewed") || q.has("domain_cancelled")) return "website";
     return t === "website" || t === "guests" ? t : "overview";
   });
   const project = projects.find((p) => p.id === projectId);
@@ -139,6 +143,7 @@ export default function ProjectDetailPage() {
       ) : tab === "website" ? (
         <>
           <WebsiteTab project={project} />
+          {diy && site ? <DomainCard project={project} slug={site.slug} /> : null}
           <ProjectDangerZone project={project} />
         </>
       ) : (

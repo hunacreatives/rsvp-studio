@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { methodLabel, sendInvoiceEmail } from "./_lib/billing-mail.js";
 import { verifyPaymongoSignature } from "./_lib/paymongo.js";
 import { esc } from "./_lib/email.js";
+import { domainPaid, domainRenewalPaid } from "./_lib/domains.js";
 import { FROM, layout, makeSendMail, STUDIO_INBOX } from "./_lib/support-mail.js";
 
 // PayMongo → us, on checkout events. Register once in the PayMongo dashboard:
@@ -85,6 +86,10 @@ export async function POST(request: Request) {
       if (inv) await sendInvoiceEmail(db, sendMail, { invoiceId: payment.invoice_id, kind: "payment", origin: SITE }).catch((e) => console.error("receipt email failed", e));
       else console.warn("paymongo-webhook: invoice wasn't open", payment.invoice_id);
     }
+    // A custom domain: buy it and connect it now (it finishes on the customer's screen or the daily job).
+    // Never fails the webhook — problems alert the studio instead of making PayMongo retry.
+    if (payment.kind === "domain") await domainPaid(db, sendMail, payment).catch((e) => console.error("domain purchase failed", e));
+    if (payment.kind === "domain_renewal") await domainRenewalPaid(db, sendMail, payment).catch((e) => console.error("domain renewal failed", e));
     // Heads-up for the studio, whatever was paid for.
     const { data: ev } = await db.from("events").select("name").eq("id", payment.event_id).maybeSingle();
     await sendMail({
@@ -93,7 +98,15 @@ export async function POST(request: Request) {
       subject: `💸 ${amount} paid${method ? ` by ${methodLabel(method)}` : ""} — ${ev?.name ?? "an event"}`,
       html: layout(
         `${amount} received`,
-        `${esc(payment.description ?? "")}<br>${payment.kind === "site_publish" ? "A DIY website was paid for — the customer can publish it now." : "The invoice is now marked paid and the client has their receipt."}`,
+        `${esc(payment.description ?? "")}<br>${
+          payment.kind === "site_publish"
+            ? "A DIY website was paid for — the customer can publish it now."
+            : payment.kind === "domain"
+              ? "A custom domain was paid for — it’s being bought and connected automatically."
+              : payment.kind === "domain_renewal"
+                ? "A custom domain renewal was paid for — it’s being renewed automatically."
+                : "The invoice is now marked paid and the client has their receipt."
+        }`,
         { label: "Open the Studio", url: `${SITE}/studio${payment.kind === "invoice" ? "/invoices" : ""}` },
         "From the PayMongo payment system.",
       ),

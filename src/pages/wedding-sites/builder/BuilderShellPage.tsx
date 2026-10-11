@@ -11,6 +11,7 @@ import LookAndFeel from "./LookAndFeel";
 import { loadPairingFonts } from "../presentation/loadFonts";
 import { SiteCreditProvider } from "../engine/siteCredit";
 import { PlanBadge, UpgradeDialog, peso, useSitePlan, useUpgradeFlow } from "./SitePlan";
+import { DomainReturnDialog, useDomainReturn } from "./DomainPicker";
 
 // V1 builder shell: template picker + content editing forms + a live
 // preview, all against a real Supabase-backed draft. Requires
@@ -35,7 +36,8 @@ export default function BuilderShellPage() {
   } = useEventSiteDraft(eventId);
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
   const [lookOpen, setLookOpen] = useState(false);
-  const flow = usePublishFlow(eventId, publish, save);
+  const flow = usePublishFlow(eventId, publish, save, !publishedAt);
+  const domainReturn = useDomainReturn(eventId);
   const { plan, reload: reloadPlan } = useSitePlan(eventId);
   const upgrade = useUpgradeFlow(eventId, reloadPlan);
   // Publishing a Premium template (paid, or a ₱0 promo) can make the site Premium.
@@ -156,6 +158,7 @@ export default function BuilderShellPage() {
       </header>
       <PublishDialog flow={flow} slug={slug} upsell={canUpgrade ? { price: peso(plan!.upgradeCentavos), open: upgrade.open } : null} />
       <UpgradeDialog flow={upgrade} plan={plan} />
+      <DomainReturnDialog flow={domainReturn} />
 
       <div style={{ flex: 1, display: "flex", minHeight: 0, overflow: "hidden" }}>
         <div

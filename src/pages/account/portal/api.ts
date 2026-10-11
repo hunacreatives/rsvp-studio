@@ -308,7 +308,7 @@ export async function loadGuests(project: Pick<Project, "id" | "table_name">) {
  * DIY website, or (`upgrade`) to make a free-template site Premium. Returns the
  * PayMongo page to send the customer to, or `free` when nothing is owed (e.g. a free template).
  */
-export async function startCheckout(target: { invoiceId: string } | { eventId: string; upgrade?: boolean }): Promise<{ checkoutUrl?: string; free?: boolean }> {
+export async function startCheckout(target: { invoiceId: string } | { eventId: string; upgrade?: boolean; domain?: string; renewDomain?: boolean }): Promise<{ checkoutUrl?: string; free?: boolean }> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Please sign in again to pay.");
@@ -339,6 +339,36 @@ export async function myFreeSite(): Promise<{ id: string; name: string } | null>
   const { data, error } = await supabase.rpc("my_free_site");
   if (error) return null;
   return ((Array.isArray(data) ? data[0] : data) as { id: string; name: string } | undefined) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Custom domains (api/domain-search, api/domain-status)
+
+async function authedFetch(url: string, init: RequestInit = {}) {
+  const { data } = await supabase.auth.getSession();
+  return fetch(url, { ...init, headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}`, ...(init.headers ?? {}) } });
+}
+
+let domainsOn: Promise<boolean> | null = null;
+/** Is buying a custom domain switched on (Studio → Templates → Custom domains)? */
+export function domainsEnabled() {
+  domainsOn ??= fetch("/api/domain-search").then((r) => r.json()).then((j) => !!j.enabled).catch(() => false);
+  return domainsOn;
+}
+
+export type DomainResult = { domain: string; php: number };
+export async function searchDomains(eventId: string, query: string): Promise<{ results: DomainResult[]; taken: string[] }> {
+  const res = await authedFetch("/api/domain-search", { method: "POST", body: JSON.stringify({ eventId, query }) });
+  const json = (await res.json().catch(() => ({}))) as { results?: DomainResult[]; taken?: string[]; error?: string };
+  if (!res.ok) throw new Error(json.error ?? "Domain search isn’t responding — please try again.");
+  return { results: json.results ?? [], taken: json.taken ?? [] };
+}
+
+export type DomainStatus = { status: "none" | "paid" | "buying" | "connecting" | "active" | "failed" | "expired"; domain?: string; expiresAt?: string | null; renewalPhp?: number | null };
+/** Where a site's domain is at (and nudges its setup along). */
+export async function domainStatus(eventId: string): Promise<DomainStatus> {
+  const res = await authedFetch(`/api/domain-status?eventId=${encodeURIComponent(eventId)}`);
+  return ((await res.json().catch(() => null)) as DomainStatus | null) ?? { status: "none" };
 }
 
 /** A payment's status, for the "checking your payment…" screen after PayMongo sends the customer back. */

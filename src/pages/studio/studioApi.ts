@@ -430,3 +430,47 @@ export async function loadDiySites(eventIds: string[]) {
   for (const p of pays ?? []) out[p.event_id].paid += p.amount_centavos / 100;
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Custom domains (supabase/custom-domains.sql, api/_lib/domains.ts)
+
+export type DomainContact = {
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  email: string;
+  phone: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+};
+export type DomainSettingsRow = { enabled: boolean; fx_rate: number; multiplier: number; min_price: number; contact: Partial<DomainContact> | null };
+
+export async function loadDomainSettings(): Promise<DomainSettingsRow | null> {
+  const { data, error } = await supabase.from("domain_settings").select("enabled, fx_rate, multiplier, min_price, contact").eq("id", 1).maybeSingle();
+  if (error || !data) return null; // custom-domains.sql not run yet
+  return { ...data, fx_rate: Number(data.fx_rate), multiplier: Number(data.multiplier), min_price: Number(data.min_price) };
+}
+export async function saveDomainSettings(s: DomainSettingsRow) {
+  must(await supabase.from("domain_settings").update({ ...s, updated_at: new Date().toISOString() }).eq("id", 1));
+}
+
+export type DomainRow = { id: string; domain: string; status: string; price_php: number; expires_at: string | null; last_error: string | null; created_at: string; event_id: string | null; events: { name: string } | null };
+export async function loadDomains(): Promise<DomainRow[]> {
+  const { data } = await supabase.from("site_domains").select("id, domain, status, price_php, expires_at, last_error, created_at, event_id, events(name)").order("created_at", { ascending: false }).limit(200);
+  return (data ?? []) as unknown as DomainRow[];
+}
+export async function retryDomain(id: string) {
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch("/api/domain-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    body: JSON.stringify({ id, retry: true }),
+  });
+  const json = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
+  if (!res.ok) throw new Error(json.error ?? "Retry failed.");
+  return json.status ?? "";
+}
