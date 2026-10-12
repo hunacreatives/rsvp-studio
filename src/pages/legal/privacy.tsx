@@ -5,7 +5,7 @@ export default function Privacy() {
   return (
     <LegalLayout
       title="Privacy Policy"
-      lastUpdated="October 11, 2026"
+      lastUpdated="October 12, 2026"
       intro={
         <p>
           The RSVP Studio (&ldquo;we,&rdquo; &ldquo;us&rdquo;) is a digital event design studio and a brand of
@@ -109,9 +109,10 @@ export default function Privacy() {
         <p>
           Inquiries: as long as needed to follow up, then a reasonable period for our records. Accounts: while your
           account is open. Websites you build yourself stay online until 30 days after the event (Premium: one
-          year after the event; with no event date, one year after publishing). Their guest RSVPs and photos are
-          kept 30 days after the website goes offline, so you can still download your guest list, then deleted.
-          If you delete a project, it&rsquo;s removed for good 30 days later. Studio projects follow your project
+          year after the event; with no event date, one year after publishing; a draft that&rsquo;s never published,
+          one year after it was started). Their guest RSVPs and uploaded photos are kept 30 days after the website
+          goes offline, so you can still download your guest list, then permanently deleted. If you delete a
+          project, it&rsquo;s removed for good 30 days later, with its guest RSVPs and photos. Studio projects follow your project
           agreement. You can ask us to delete anything sooner.
           Payment records: as long as Philippine tax and accounting rules require.
         </p>

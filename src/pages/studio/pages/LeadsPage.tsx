@@ -14,9 +14,9 @@ type Filter = "new" | "contacted" | "converted" | "archived" | "all";
 const FORM_LABEL: Record<string, string> = { "project-inquiry": "Project inquiry", "partner-inquiry": "Partner inquiry", "faq-question": "Question (FAQ page)" };
 const STATUS_LABEL: Record<studio.LeadStatus, string> = { new: "New", contacted: "Contacted", converted: "Project started", archived: "Archived", spam: "Spam" };
 // Shown first, in this order; anything else the form sent follows.
-const ORDER = ["interested_in", "occasion", "event_date", "event_location", "guest_count", "services", "design_type", "semi_collections", "bespoke_collections", "addons", "budget", "timeline", "vision", "message", "business_name", "role", "looking_for", "regions", "volume", "event_brief", "ig_handle", "instagram", "hear_about"];
+const ORDER = ["interested_in", "diy_project", "partner_code", "source", "source_detail", "occasion", "event_date", "event_location", "guest_count", "services", "design_type", "semi_collections", "bespoke_collections", "addons", "budget", "timeline", "vision", "message", "business_name", "role", "looking_for", "regions", "volume", "event_brief", "ig_handle", "instagram", "hear_about"];
 const HIDDEN = new Set(["your_name", "full_name", "email", "website"]);
-const LABEL: Record<string, string> = { interested_in: "Asked about", event_date: "Event date", event_location: "Where", guest_count: "Guests", design_type: "Custom or Semi-Custom", semi_collections: "Collections", bespoke_collections: "Stationery suites", addons: "Add-ons", vision: "Their vision", ig_handle: "Instagram", hear_about: "Found us via", event_brief: "Event brief", looking_for: "Looking for", website_url: "Website", files_not_attached: "Files not attached" };
+const LABEL: Record<string, string> = { interested_in: "Asked about", event_date: "Event date", event_location: "Where", guest_count: "Guests", design_type: "Custom or Semi-Custom", semi_collections: "Collections", bespoke_collections: "Stationery suites", addons: "Add-ons", vision: "Their vision", ig_handle: "Instagram", hear_about: "Found us via", event_brief: "Event brief", looking_for: "Looking for", website_url: "Website", files_not_attached: "Files not attached", diy_project: "From their DIY project", partner_code: "Referral code", source: "Came from", source_detail: "Source detail" };
 const labelize = (k: string) => LABEL[k] ?? k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
 export default function LeadsPage() {
@@ -96,7 +96,11 @@ export default function LeadsPage() {
                     </a>
                   ) : null}
                   {l.status === "new" ? <PillButton disabled={busy === l.id} onClick={() => setStatus(l, "contacted")}>Mark contacted</PillButton> : null}
-                  {l.status !== "converted" && l.form !== "faq-question" ? (
+                  {l.status !== "converted" && l.form === "partner-inquiry" ? (
+                    <PillButton tone="dark" disabled={busy === l.id} onClick={() => navigate("/studio/partners", { state: { fromLead: l } })}>
+                      Add as partner
+                    </PillButton>
+                  ) : l.status !== "converted" && l.form !== "faq-question" ? (
                     <PillButton tone="dark" disabled={busy === l.id} onClick={() => navigate(`/studio/projects?project=new&lead=${l.id}`)}>
                       Turn into project
                     </PillButton>

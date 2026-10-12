@@ -21,6 +21,11 @@ import Blog from "../pages/blog/page";
 import Privacy from "../pages/legal/privacy";
 import Terms from "../pages/legal/terms";
 const RatePage = lazy(() => import("../pages/rate/page"));
+const BlogPost = lazy(() => import("../pages/blog/post"));
+const StudioBlog = lazy(() => import("../pages/studio/pages/BlogPage"));
+const PartnerLink = lazy(() => import("../pages/partners/PartnerLink"));
+const PortalPartner = lazy(() => import("../pages/account/portal/pages/PartnerPage"));
+const StudioPartners = lazy(() => import("../pages/studio/pages/PartnersPage"));
 const AccountOnboarding = lazy(() => import("../pages/account/onboarding"));
 const PortalLayout = lazy(() => import("../pages/account/portal/PortalLayout"));
 const PortalHome = lazy(() => import("../pages/account/portal/pages/HomePage"));
@@ -65,11 +70,14 @@ const routes: RouteObject[] = [
   { path: "/portfolio/:slug", element: <PortfolioDetail /> },
   { path: "/faqs", element: <Faqs /> },
   { path: "/blog", element: <Blog /> },
+  { path: "/blog/:slug", element: <BlogPost /> },
   { path: "/enquire", element: <Enquire /> },
   { path: "/enquire/partner", element: <PartnerInquiry /> },
   { path: "/privacy", element: <Privacy /> },
   { path: "/terms", element: <Terms /> },
   { path: "/rate", element: <RatePage /> },
+  { path: "/p/:code", element: <PartnerLink /> },
+  { path: "/partners", element: <PartnerInquiry /> },
   {
     path: "/account",
     element: <PortalLayout />,
@@ -82,6 +90,7 @@ const routes: RouteObject[] = [
       { path: "settings", element: <PortalAccount /> },
       { path: "messages", element: <PortalMessages /> },
       { path: "help", element: <PortalHelp /> },
+      { path: "partner", element: <PortalPartner /> },
       { path: "help/contact", element: <PortalContactSupport /> },
       { path: "help/guides/:slug", element: <PortalGuide /> },
     ],
@@ -96,6 +105,8 @@ const routes: RouteObject[] = [
       { path: "inbox", element: <StudioInboxPage /> },
       { path: "support", element: <StudioSupport /> },
       { path: "leads", element: <StudioLeads /> },
+      { path: "partners", element: <StudioPartners /> },
+      { path: "blog", element: <StudioBlog /> },
       { path: "invoices", element: <StudioInvoices /> },
       { path: "clients", element: <StudioClients /> },
       { path: "team", element: <StudioTeam /> },

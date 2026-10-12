@@ -8,6 +8,7 @@ import type {
   Location,
   Person,
   RegistryLink,
+  CashGift,
   ScheduleItem,
   TravelInformation,
 } from "./types";
@@ -117,6 +118,17 @@ function normalizeTravelInformation(raw: unknown): TravelInformation {
   };
 }
 
+function normalizeCashGift(raw: unknown): CashGift {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    id: asString(r.id),
+    label: asString(r.label),
+    accountName: asString(r.accountName),
+    accountNumber: asString(r.accountNumber),
+    qrUrl: asOptionalString(r.qrUrl),
+  };
+}
+
 function normalizeRegistryLink(raw: unknown): RegistryLink {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   return {
@@ -195,6 +207,8 @@ export function normalizeEventContent(raw: unknown): EventContent {
     travelInformation: asArray<unknown>(r.travelInformation).map(normalizeTravelInformation),
     galleries: asArray<unknown>(r.galleries).map(normalizeGallery),
     registryLinks: asArray<unknown>(r.registryLinks).map(normalizeRegistryLink),
+    cashGifts: asArray<unknown>(r.cashGifts).map(normalizeCashGift),
+    cashGiftNote: asOptionalString(r.cashGiftNote),
     faqs,
     keyPeople: asArray<unknown>(r.keyPeople).map(normalizePerson),
     rsvpTableName: asString(r.rsvpTableName),

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { defaultAvatar, initials } from "./format";
@@ -140,10 +140,12 @@ export function Avatar({ name, url, size = 40, seed }: { name: string | null | u
 
 /** Project cover: real image if we have one, otherwise a soft branded block. */
 export function Cover({ url, name, className = "", children }: { url?: string | null; name: string; className?: string; children?: ReactNode }) {
+  // A photo that's gone (removed after a site ended) falls back to the initials.
+  const [broken, setBroken] = useState<string | null>(null);
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ background: "linear-gradient(135deg,#dfe4f2,#c9d2ea)" }}>
-      {url ? (
-        <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+      {url && broken !== url ? (
+        <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" onError={() => setBroken(url)} />
       ) : (
         <span className="absolute inset-0 grid place-items-center font-display text-[2.2rem] italic text-white/80">{initials(name)}</span>
       )}

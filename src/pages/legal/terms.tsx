@@ -5,7 +5,7 @@ export default function Terms() {
   return (
     <LegalLayout
       title="Terms of Service"
-      lastUpdated="October 11, 2026"
+      lastUpdated="October 12, 2026"
       intro={
         <p>
           These terms apply when you use <strong>thersvpstudio.com</strong> — browsing the site, creating an
@@ -52,16 +52,19 @@ export default function Terms() {
           unpublish and publish again without paying again.
         </p>
         <p>
-          Each account can have one free website at a time; to start another, make your current one Premium or
-          delete it. A free website stays online until 30 days after the event, and a Premium website until one year
-          after the event (with no event date, one year after publishing). Guest RSVPs and photos are removed 30 days
-          after a website goes offline. You can delete a project anytime: it goes offline right away and is removed
-          for good after 30 days. Premium belongs to the website it was bought for and doesn&rsquo;t move to another
+          Each account can have up to three free projects at a time, drafts included, and one of them published at a
+          time; to start or publish another, make one Premium or delete one. A free website stays online until 30 days after the event, and a Premium website until one year
+          after the event (with no event date, one year after publishing; a draft that&rsquo;s never published, one
+          year after it was started). Guest RSVPs and the photos you upload are permanently deleted 30 days after a
+          website goes offline. You can delete a project anytime: it goes offline right away and is removed for good
+          after 30 days, with its guest RSVPs and photos. We don&rsquo;t keep backups of deleted photos, so keep your
+          own copies. Premium belongs to the website it was bought for and doesn&rsquo;t move to another
           project.
         </p>
         <p>
           If you buy a custom web address, we register it on your behalf, in our name, for the year you pay for, and
-          your website stays online while it&rsquo;s active. Domain fees aren&rsquo;t refundable once the address is
+          your website stays online while the address is active; its guest RSVPs and photos are deleted 30 days
+          after it goes offline. Domain fees aren&rsquo;t refundable once the address is
           registered. Renewing is optional and offered before it expires; if you don&rsquo;t renew, the address stops
           working. We can transfer an address to you on request, for a fee.
         </p>

@@ -75,9 +75,11 @@ export function useCreateEvent() {
     if (eventError || !event) {
       console.error("useCreateEvent: failed to insert events row", eventError);
       setErrorDetail(
-        /FREE_LIMIT/.test(eventError?.message ?? "")
-          ? "You already have a free website. Make it Premium or delete it to start another."
-          : "Couldn’t create your event — please try again.",
+        /PROJECT_LIMIT/.test(eventError?.message ?? "")
+          ? "Accounts can have 10 projects at a time. Delete one to start another — or if you plan events for clients, ask us about a partner account at thersvpstudio.com/enquire/partner."
+          : /FREE_LIMIT/.test(eventError?.message ?? "")
+            ? "Free accounts can have 3 projects at a time. Make one Premium or delete one to start another."
+            : "Couldn’t create your event — please try again.",
       );
       setStatus("error");
       return null;

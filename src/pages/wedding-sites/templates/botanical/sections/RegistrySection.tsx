@@ -1,6 +1,7 @@
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { LeafDivider } from "../Ornament";
+import { CashGifts, hasCashGifts } from "../../shared/CashGifts";
 
 interface RegistrySectionProps {
   content: EventContent;
@@ -8,7 +9,7 @@ interface RegistrySectionProps {
 }
 
 export default function RegistrySection({ content, theme }: RegistrySectionProps) {
-  if (content.registryLinks.length === 0) return null;
+  if (content.registryLinks.length === 0 && !hasCashGifts(content)) return null;
 
   return (
     <section style={{ background: `${theme.ink}06`, padding: "64px 24px", textAlign: "center" }}>
@@ -37,6 +38,7 @@ export default function RegistrySection({ content, theme }: RegistrySectionProps
             </a>
           ))}
         </div>
+        <CashGifts content={content} look={{ ink: theme.ink, muted: theme.ink, surface: theme.background, line: `${theme.ink}22`, bodyFont: theme.bodyFont, displayFont: theme.displayFont }} />
       </div>
     </section>
   );

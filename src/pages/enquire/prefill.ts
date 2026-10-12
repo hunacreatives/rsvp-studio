@@ -34,6 +34,10 @@ export type InquiryContext = {
   design?: "custom" | "semi-custom";
   /** A Semi-Custom website collection ("Garden"). */
   collection?: string;
+  /** From a DIY project: its date (YYYY-MM-DD), names, and a note for the studio. */
+  date?: string;
+  names?: string;
+  from?: string;
 };
 
 export function inquiryLink(ctx: InquiryContext = {}) {
@@ -43,6 +47,9 @@ export function inquiryLink(ctx: InquiryContext = {}) {
   if (ctx.occasion) q.set("occasion", ctx.occasion);
   if (ctx.design) q.set("design", ctx.design);
   if (ctx.collection) q.set("collection", ctx.collection);
+  if (ctx.date) q.set("date", ctx.date);
+  if (ctx.names) q.set("names", ctx.names);
+  if (ctx.from) q.set("from", ctx.from);
   const qs = q.toString();
   return `/enquire${qs ? `?${qs}` : ""}#start`;
 }
@@ -83,6 +90,15 @@ export function readInquiryParams(search: string): { values: Record<string, stri
   const occRaw = clean(p.get("occasion"));
   const occ = OCCASIONS.find((o) => ci(o.key, occRaw) || ci(o.label, occRaw));
   if (occ) values.occasion = occ.key;
+
+  // From a DIY project ("Have us design it"): its date and names, and where it came from.
+  const date = (p.get("date") ?? "").slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date >= new Date().toISOString().slice(0, 10)) values.event_date = date;
+  const names = clean(p.get("names"));
+  const nameField = occ?.key === "birthday" ? "celebrant_name" : occ?.key === "baby-shower" ? "parents_names" : occ?.key === "anniversary" ? "couple_names" : null;
+  if (names && nameField) values[nameField] = names;
+  const from = clean(p.get("from"));
+  if (from) values.diy_project = from;
 
   // The one-line summary ("Monogram — Signature"), also sent to the studio.
   const first = keys.find((k) => k !== "rsvp") ?? keys[0];

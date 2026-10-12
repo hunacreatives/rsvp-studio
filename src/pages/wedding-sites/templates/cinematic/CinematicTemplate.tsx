@@ -12,6 +12,7 @@ import { formatWhen, headlineLines, venueLine } from "./content";
 import Polaroids from "./sections/Polaroids";
 import RsvpSection from "./sections/RsvpSection";
 import { Heart } from "./sections/Heart";
+import { CashGifts, hasCashGifts } from "../shared/CashGifts";
 
 /**
  * The "gel-at-30" design, rebuilt 1:1 from the real site
@@ -174,6 +175,28 @@ export default function CinematicTemplate({ content, settings, editorPreview = f
       </main>
 
       {settings.sectionVisibility.rsvp !== false ? <RsvpSection content={content} editorPreview={editorPreview} reveal={animate} /> : null}
+
+      {/* Gifts: only when the host adds registry links or cash gifts (the original design has none). */}
+      {content.registryLinks.length || hasCashGifts(content) ? (
+        <section className="cn-rsvp" style={{ textAlign: "center" }}>
+          <p className="cn-hand" style={{ fontSize: "clamp(1.8rem, 6cqw, 2.4rem)" }}>Gifts</p>
+          {content.registryLinks.length ? (
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 14 }}>
+              {content.registryLinks.map((r) => (
+                <a key={r.id} href={r.url || undefined} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--cn-sage) 45%, transparent)", color: "var(--cn-sage-strong)", fontFamily: "var(--cn-sans)", fontSize: 15, textDecoration: "none", background: "rgba(255,255,255,0.6)" }}>
+                  {r.storeName}
+                </a>
+              ))}
+            </div>
+          ) : null}
+          <div style={{ maxWidth: 560, margin: "0 auto" }}>
+            <CashGifts
+              content={content}
+              look={{ ink: "var(--cn-sage-strong)", muted: "var(--cn-sage-strong)", surface: "rgba(255,255,255,0.7)", line: "color-mix(in srgb, var(--cn-sage) 35%, transparent)", bodyFont: "var(--cn-sans)", displayFont: "var(--cn-hand)", radius: 18 }}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {credit.show ? (
         <footer className="cn-footer">

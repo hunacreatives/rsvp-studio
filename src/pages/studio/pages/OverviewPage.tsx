@@ -6,6 +6,7 @@ import { formatDate, formatMoney, inboxStamp } from "@/pages/account/portal/form
 import { Avatar } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import BannerCard from "../BannerCard";
+import SourcesCard from "../SourcesCard";
 import { isOverdue as replyOverdue } from "@/pages/account/portal/support";
 import { countNewLeads, loadFreeSiteStats, useHolidays, type FreeSiteStats } from "../studioApi";
 
@@ -184,6 +185,7 @@ export default function OverviewPage() {
         ) : null}
       </div>
 
+      <SourcesCard />
       <BannerCard />
 
       <section className="mt-8">

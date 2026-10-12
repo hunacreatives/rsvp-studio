@@ -29,6 +29,11 @@ const specSamples: Record<string, { label: string; spec: unknown }> = {
 // (the-smiths) and a 1-host birthday (mias-birthday) — proving the
 // canonical content model isn't wedding-specific.
 
+const GIFTS = [
+  { id: "gift-1", label: "GCash", accountName: "Isabella Reyes", accountNumber: "0917 123 4567", qrUrl: "/brand/monogram-dark.png" },
+  { id: "gift-2", label: "Maya", accountName: "Mateo Cruz", accountNumber: "0918 765 4321" },
+];
+
 const fixtures: Record<string, unknown> = {
   "scrapbook-demo": scrapbookDemoWedding,
   "cinematic-demo": cinematicDemoBirthday,
@@ -36,6 +41,9 @@ const fixtures: Record<string, unknown> = {
   "the-smiths": theSmiths,
   "sparse-draft": sparseDraft,
   "mias-birthday": miasBirthday,
+  // Cash gifts (GCash/Maya with a QR) on top of a full wedding and the Cinematic demo.
+  "gifts-demo": { ...isabellaAndMateo, cashGifts: GIFTS, cashGiftNote: "Your presence is the best gift. If you’d like to give, here’s how." },
+  "cinematic-gifts": { ...cinematicDemoBirthday, cashGifts: GIFTS.slice(0, 1) },
 };
 
 function buildPreviewPresentation(templateId: string): PresentationState {

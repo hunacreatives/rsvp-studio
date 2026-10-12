@@ -62,13 +62,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (/^[a-z0-9-]{1,80}$/.test(slug)) {
     const { data } = await db.rpc("get_public_site", { p_slug: slug });
-    const row = (Array.isArray(data) ? data[0] : data) as { published_content?: Content; published_presentation?: { activeTemplateId?: string; byTemplate?: Record<string, { heroImage?: { masterUrl?: string } }> } } | null;
+    const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: { activeTemplateId?: string; byTemplate?: Record<string, { heroImage?: { masterUrl?: string } }> } } | null;
     if (row?.published_content) {
       const c = row.published_content;
       const { title, description } = describe(c);
       const pres = row.published_presentation;
       const cover = pres?.byTemplate?.[pres.activeTemplateId ?? ""]?.heroImage?.masterUrl || c.galleries?.[0]?.items?.[0]?.image?.masterUrl || "";
-      const image = /^https:\/\//.test(cover) ? cover : "";
+      // Ended sites' photos are removed later, so their previews don't use them.
+      const image = row.state !== "ended" && /^https:\/\//.test(cover) ? cover : "";
       const tags = [
         `<title>${esc(title)}</title>`,
         `<meta name="description" content="${esc(description)}" />`,

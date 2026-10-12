@@ -10,6 +10,7 @@ import FooterSection from "@/pages/home/components/FooterSection";
 import { PortalProvider, usePortal } from "./PortalContext";
 import NewProjectModal from "./components/NewProjectModal";
 import { firstName } from "./format";
+import * as api from "./api";
 
 const NAV = [
   { to: "/account", label: "Home", icon: "ri-home-4-line", end: true },
@@ -18,6 +19,16 @@ const NAV = [
   { to: "/account/settings", label: "Account", icon: "ri-user-3-line" },
   { to: "/account/messages", label: "Messages", icon: "ri-inbox-2-line" },
 ];
+
+/** Partners (supabase/revenue.sql) get a "Partner" page; everyone else never sees it. */
+function useIsPartner() {
+  const { demo } = usePortal();
+  const [partner, setPartner] = useState(false);
+  useEffect(() => {
+    if (!demo) api.myPartner().then((p) => setPartner(!!p));
+  }, [demo]);
+  return partner;
+}
 
 export default function PortalLayout() {
   return (
@@ -42,6 +53,7 @@ function Shell() {
     setParams(next, { replace: true });
   }, [params, setParams]);
   const unread = threads.filter((t) => t.unread).length;
+  const isPartner = useIsPartner();
 
   // Studio team accounts use the admin console, never the client dashboard.
   if (profile.is_staff && !demo) return <Navigate to="/studio" replace />;
@@ -94,6 +106,11 @@ function Shell() {
                     ) : null}
                   </SideLink>
                 ))}
+                {isPartner ? (
+                  <SideLink to="/account/partner" icon="ri-hand-heart-line">
+                    Partner
+                  </SideLink>
+                ) : null}
                 <span className="mx-2 my-3 hidden h-px bg-[var(--line)] lg:block" />
                 <SideLink to="/account/help" icon="ri-question-line">
                   Help &amp; Support
@@ -123,7 +140,7 @@ function Shell() {
       </div>
 
       <FooterSection />
-      <MobileTabBar unread={unread} onNewProject={() => setNewProjectOpen(true)} onSignOut={signOut} />
+      <MobileTabBar unread={unread} isPartner={isPartner} onNewProject={() => setNewProjectOpen(true)} onSignOut={signOut} />
       <NewProjectModal open={newProjectOpen} onClose={() => setNewProjectOpen(false)} />
     </div>
   );
@@ -169,11 +186,11 @@ const TABS = [
  * Phones/tablets: a fixed bottom tab bar (one thumb reaches everything) with
  * "More" for Account, Help & Support, New Project and Log out.
  */
-function MobileTabBar({ unread, onNewProject, onSignOut }: { unread: number; onNewProject: () => void; onSignOut: () => void }) {
+function MobileTabBar({ unread, isPartner, onNewProject, onSignOut }: { unread: number; isPartner: boolean; onNewProject: () => void; onSignOut: () => void }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
-  const moreActive = pathname.startsWith("/account/settings") || pathname.startsWith("/account/help");
+  const moreActive = pathname.startsWith("/account/settings") || pathname.startsWith("/account/help") || pathname.startsWith("/account/partner");
 
   useEffect(() => setMoreOpen(false), [pathname]);
   useEffect(() => {
@@ -232,6 +249,7 @@ function MobileTabBar({ unread, onNewProject, onSignOut }: { unread: number; onN
                 <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-[#d6d6dc]" />
                 <ul className="divide-y divide-[var(--line)]">
                   {[
+                    ...(isPartner ? [{ label: "Partner", icon: "ri-hand-heart-line", onClick: () => navigate("/account/partner") }] : []),
                     { label: "Account", icon: "ri-user-3-line", onClick: () => navigate("/account/settings") },
                     { label: "Help & Support", icon: "ri-question-line", onClick: () => navigate("/account/help") },
                     { label: "New Project", icon: "ri-folder-add-line", onClick: () => { setMoreOpen(false); onNewProject(); } },

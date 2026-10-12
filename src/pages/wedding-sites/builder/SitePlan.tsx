@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
 import "./builder.css";
+import { ReferralCode } from "./ReferralCode";
 
 // Free vs Premium in the builder (site_plan in supabase/free-premium.sql).
 //   Free: one RSVP summary email a day.
@@ -74,7 +75,7 @@ export function useUpgradeFlow(eventId: string | undefined, reload: () => Promis
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { step, open: () => setStep({ kind: "offer" }), pay, close: () => setStep({ kind: "closed" }) };
+  return { step, eventId, reload, open: () => setStep({ kind: "offer" }), pay, close: () => setStep({ kind: "closed" }) };
 }
 
 export const PREMIUM_PERKS = [
@@ -121,6 +122,7 @@ export function UpgradeDialog({ flow, plan }: { flow: ReturnType<typeof useUpgra
             <p style={{ margin: "14px 0 0", fontSize: 15, color: "#55556a" }}>
               A one-time <strong style={{ color: "#000727" }}>{peso(price)}</strong>, paid with GCash, Maya, card or QR Ph.
             </p>
+            <ReferralCode eventId={flow.eventId} onApplied={flow.reload} />
             <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
               <button onClick={flow.pay} disabled={price <= 0} style={btn(true)}>
                 Pay {peso(price)}

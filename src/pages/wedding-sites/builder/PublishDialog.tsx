@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
 import { DOMAIN_PERKS, DomainPicker, peso as pesoWhole } from "./DomainPicker";
+import { ReferralCode } from "./ReferralCode";
 import "./builder.css";
 
 // Publishing a site from the builder:
@@ -14,12 +15,13 @@ import "./builder.css";
 // your own domain. The site goes live on the free link right away; a chosen domain
 // is paid for straight after (it's remembered across the publish payment, if any).
 
-type Publish = () => Promise<{ ok: boolean; paymentRequired?: boolean; message?: string }>;
+type Publish = () => Promise<{ ok: boolean; paymentRequired?: boolean; freeLive?: string; message?: string }>;
 type Step =
   | { kind: "closed" }
   | { kind: "address" }
   | { kind: "working"; text: string }
   | { kind: "pay"; amount: number; tier: string }
+  | { kind: "freeLive"; other: string }
   | { kind: "live" }
   | { kind: "error"; text: string };
 
@@ -53,7 +55,9 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
   const start = async () => {
     if (firstPublish && eventId) {
       setStep({ kind: "working", text: "One moment…" });
-      const [on, current] = await Promise.all([api.domainsEnabled(), api.domainStatus(eventId)]);
+      const [on, current, other] = await Promise.all([api.domainsEnabled(), api.domainStatus(eventId), api.freeLiveConflict(eventId)]);
+      // Another free site is live: say so before asking about web addresses.
+      if (other) return setStep({ kind: "freeLive", other });
       if (on && current.status === "none") return setStep({ kind: "address" });
     }
     return go();
@@ -82,11 +86,21 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
     }
   };
 
+  // The price again (after a referral code took its discount off).
+  const requote = async () => {
+    const { data } = await supabase.rpc("site_publish_quote", { p_event: eventId });
+    const q = (Array.isArray(data) ? data[0] : data) as { tier: string; due_centavos: number } | null;
+    if (!q) return;
+    if (q.due_centavos <= 0) return void go();
+    setStep({ kind: "pay", amount: q.due_centavos, tier: q.tier });
+  };
+
   const go = async () => {
     setStep({ kind: "working", text: "Publishing your site…" });
     await beforePublish();
     const r = await publish();
     if (r.ok) return setStep({ kind: "live" });
+    if (r.freeLive) return setStep({ kind: "freeLive", other: r.freeLive });
     if (!r.paymentRequired) return setStep({ kind: "error", text: r.message ?? "Couldn’t publish — please try again." });
     const { data, error } = await supabase.rpc("site_publish_quote", { p_event: eventId });
     const q = (Array.isArray(data) ? data[0] : data) as { tier: string; due_centavos: number } | null;
@@ -133,7 +147,7 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { step, start, pay, pending, chooseFree, chooseDomain, buyPending, eventId, close: () => setStep({ kind: "closed" }) };
+  return { step, start, pay, requote, pending, chooseFree, chooseDomain, buyPending, eventId, close: () => setStep({ kind: "closed" }) };
 }
 
 /** `upsell`: a free site — after it goes live, offer Premium (no credit, an email per RSVP). */
@@ -176,6 +190,30 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
               Cancel
             </button>
           </>
+        ) : step.kind === "freeLive" ? (
+          <>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>One free website live at a time</h2>
+            <p style={{ margin: "10px 0 0", fontSize: 15, lineHeight: 1.6, color: "#55556a" }}>
+              <strong style={{ color: "#000727" }}>{step.other}</strong> is already live on your free account.{" "}
+              {upsell ? `To publish this one too, make it Premium (${upsell.price}, one time), or take ${step.other} offline first.` : `Take ${step.other} offline or delete it first, then publish this one.`}
+            </p>
+            <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
+              {upsell ? (
+                <button
+                  onClick={() => {
+                    flow.close();
+                    upsell.open();
+                  }}
+                  style={btn(true)}
+                >
+                  Make this site Premium · {upsell.price}
+                </button>
+              ) : null}
+              <button onClick={flow.close} style={btn(false)}>
+                Not now
+              </button>
+            </div>
+          </>
         ) : step.kind === "pay" ? (
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Publish your site</h2>
@@ -191,6 +229,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
               )}{" "}
               Pay with GCash, Maya, card or QR Ph — your site goes live as soon as it’s paid, and you can keep editing it afterwards.
             </p>
+            <ReferralCode eventId={flow.eventId} onApplied={flow.requote} />
             <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
               <button onClick={flow.pay} style={btn(true)}>
                 Pay {peso(step.amount)} and publish

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { lenisRef } from "@/lib/lenis";
 import { readInquiryParams } from "./prefill";
+import { visitSource } from "@/lib/signupRef";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -57,7 +58,8 @@ export default function ProjectInquiry() {
   const sectionRef = useRef<HTMLElement | null>(null);
   // A CTA elsewhere can open the form already filled in (see ./prefill.ts).
   const [prefill] = useState(() => readInquiryParams(window.location.search));
-  const [v, setV] = useState<Values>(() => ({ services: [], ...prefill.values }));
+  // A planner's link (?partner=CODE) fills in their referral code.
+  const [v, setV] = useState<Values>(() => ({ services: [], ...(visitSource()?.partner ? { partner_code: visitSource()!.partner } : {}), ...prefill.values }));
   const [askingAbout, setAskingAbout] = useState(prefill.summary);
   const clearPrefill = () => {
     setV((p) => {
@@ -371,6 +373,18 @@ export default function ProjectInquiry() {
                       value={getStr("hear_about")}
                       onChange={(val) => set("hear_about", val)}
                     />
+                    <Field label="Referral code (optional)">
+                      <input
+                        type="text"
+                        value={getStr("partner_code")}
+                        onChange={(e) => set("partner_code", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))}
+                        placeholder="From your event planner"
+                        autoCapitalize="characters"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        className={INPUT}
+                      />
+                    </Field>
                   </div>
                 )}
 

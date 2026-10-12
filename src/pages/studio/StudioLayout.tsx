@@ -27,12 +27,14 @@ export const useStudio = () => useOutletContext<StudioOutlet>();
 const NAV = [
   { to: "/studio", label: "Overview", icon: "ri-dashboard-3-line", end: true },
   { to: "/studio/leads", label: "Leads", icon: "ri-user-star-line" },
+  { to: "/studio/partners", label: "Partners", icon: "ri-hand-heart-line" },
   { to: "/studio/projects", label: "Projects", icon: "ri-folder-3-line" },
   { to: "/studio/inbox", label: "Inbox", icon: "ri-inbox-2-line" },
   { to: "/studio/support", label: "Support", icon: "ri-customer-service-2-line" },
   { to: "/studio/invoices", label: "Invoices", icon: "ri-file-list-3-line" },
   { to: "/studio/clients", label: "Clients", icon: "ri-group-line" },
   { to: "/studio/templates", label: "Templates", icon: "ri-layout-masonry-line" },
+  { to: "/studio/blog", label: "Blog", icon: "ri-quill-pen-line" },
   { to: "/studio/team", label: "Team", icon: "ri-shield-user-line" },
 ];
 

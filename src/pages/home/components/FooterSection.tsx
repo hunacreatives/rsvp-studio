@@ -18,13 +18,15 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "Collections", to: "/collections" },
       { label: "Portfolio", to: "/portfolio" },
       { label: "FAQ", to: "/faqs" },
+      { label: "Blog", to: "/blog" },
     ],
   },
   {
     title: "Studio",
     links: [
       { label: "Start a Project", to: "/enquire#start" },
-      { label: "Become a Partner", to: "/enquire/partner" },
+      { label: "Build your own website", to: "/build" },
+      { label: "Partner program", to: "/partners" },
     ],
   },
 ];

@@ -1,5 +1,6 @@
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
+import { CashGifts, hasCashGifts } from "../../shared/CashGifts";
 
 interface RegistrySectionProps {
   content: EventContent;
@@ -7,7 +8,7 @@ interface RegistrySectionProps {
 }
 
 export default function RegistrySection({ content, theme }: RegistrySectionProps) {
-  if (content.registryLinks.length === 0) return null;
+  if (content.registryLinks.length === 0 && !hasCashGifts(content)) return null;
 
   return (
     <section style={{ background: `${theme.muted}0d`, padding: "56px 24px", textAlign: "center" }}>
@@ -44,6 +45,7 @@ export default function RegistrySection({ content, theme }: RegistrySectionProps
             </a>
           ))}
         </div>
+        <CashGifts content={content} look={{ ink: theme.ink, muted: theme.ink, surface: theme.background, line: `${theme.muted}55`, bodyFont: theme.bodyFont, displayFont: theme.displayFont }} />
       </div>
     </section>
   );

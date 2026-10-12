@@ -8,6 +8,7 @@ import { colorOf, useSpecTheme, type SpecTheme } from "./theme";
 import RsvpForm from "../../templates/shared/RsvpForm";
 import { calendarUrl } from "../../content/calendar";
 import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
+import { CashGifts, hasCashGifts } from "../../templates/shared/CashGifts";
 
 // The shared block library: every section an uploaded template needs that
 // the designer's file didn't draw. Built once, styled entirely from the
@@ -440,7 +441,7 @@ function GalleryBlock({ section, content, editorPreview }: BlockProps) {
 
 function RegistryBlock({ section, content, editorPreview }: BlockProps) {
   const theme = useSpecTheme();
-  if (!content.registryLinks.length) return <EmptyHint section={section} editorPreview={editorPreview} />;
+  if (!content.registryLinks.length && !hasCashGifts(content)) return <EmptyHint section={section} editorPreview={editorPreview} />;
   return (
     <Frame section={section}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: section.align === "center" ? "center" : "flex-start" }}>
@@ -450,6 +451,10 @@ function RegistryBlock({ section, content, editorPreview }: BlockProps) {
           </a>
         ))}
       </div>
+      <CashGifts
+        content={content}
+        look={{ ink: colorOf(theme, "ink"), muted: colorOf(theme, "muted"), surface: colorOf(theme, "surface"), line: `${colorOf(theme, "ink")}22`, bodyFont: theme.bodyFont, displayFont: theme.displayFont, radius: theme.radius.card, align: section.align === "center" ? "center" : "left" }}
+      />
     </Frame>
   );
 }

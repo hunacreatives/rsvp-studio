@@ -252,7 +252,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
    * Go live. A DIY site has to be paid for first: the database refuses with
    * PAYMENT_REQUIRED (supabase/payments.sql) and the builder shows the price.
    */
-  const publish = useCallback(async (): Promise<{ ok: boolean; paymentRequired?: boolean; message?: string }> => {
+  const publish = useCallback(async (): Promise<{ ok: boolean; paymentRequired?: boolean; freeLive?: string; message?: string }> => {
     if (!siteId) return { ok: false, paymentRequired: false, message: "Your site hasn’t loaded yet." };
     setSaveStatus("saving");
     const nowIso = new Date().toISOString();
@@ -274,6 +274,12 @@ export function useEventSiteDraft(eventId: string | undefined) {
       })
       .eq("id", siteId);
     if (error) {
+      // Free accounts: one live site at a time (supabase/free-limits.sql).
+      const freeLive = /FREE_LIVE_LIMIT: (.+)/.exec(error.message)?.[1]?.trim();
+      if (freeLive) {
+        setSaveStatus("saved");
+        return { ok: false, freeLive };
+      }
       const paymentRequired = /PAYMENT_REQUIRED/.test(error.message);
       setSaveStatus(paymentRequired ? "saved" : "error");
       return { ok: false, paymentRequired, message: paymentRequired ? "" : "Couldn’t publish — please try again." };

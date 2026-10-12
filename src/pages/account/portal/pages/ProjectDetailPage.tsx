@@ -6,6 +6,7 @@ import { useTemplateCatalog } from "@/pages/wedding-sites/engine/catalog";
 import { usePortal } from "../PortalContext";
 import * as api from "../api";
 import ProjectDangerZone from "../components/ProjectDangerZone";
+import DiyExtras from "../components/DiyExtras";
 import DomainCard from "../components/DomainCard";
 import { ActivityList, DiySiteSummary, InvoiceTable, ProjectStatusPill, TaskList, isDiy, useProjectCover, nextStepLabel } from "../components/blocks";
 import { formatDate, formatLongDate, servicesLabel } from "../format";
@@ -145,6 +146,7 @@ export default function ProjectDetailPage() {
         <>
           <WebsiteTab project={project} />
           {diy && site ? <DomainCard project={project} slug={site.slug} /> : null}
+          {diy ? <DiyExtras project={project} /> : null}
           <ProjectDangerZone project={project} />
         </>
       ) : (
@@ -183,13 +185,13 @@ function WebsiteTab({ project }: { project: Project }) {
               <p className="mt-1 text-[14px] text-[var(--slate)]">
                 Went offline {formatDate(site.liveUntil)}.{" "}
                 {site.guestsPurgedAt
-                  ? `Guest list removed ${formatDate(site.guestsPurgedAt)}.`
-                  : `Guest list kept until ${formatDate(new Date(Date.parse(site.liveUntil!) + 30 * 86_400_000).toISOString())}.`}
+                  ? `Guest list and photos removed ${formatDate(site.guestsPurgedAt)}.`
+                  : `Guest list and photos kept until ${formatDate(new Date(Date.parse(site.liveUntil!) + 30 * 86_400_000).toISOString())}. Save anything you want to keep before then.`}
               </p>
             ) : null}
           </div>
-          <span className={`rounded-full px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.06em] ${site.publishedAt ? "bg-[#ecfbcc] text-[#3d5a12]" : "bg-[#ececec] text-[#55556a]"}`}>
-            {site.publishedAt ? "Live" : "Draft"}
+          <span className={`rounded-full px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.06em] ${site.publishedAt && !site.ended ? "bg-[#ecfbcc] text-[#3d5a12]" : "bg-[#ececec] text-[#55556a]"}`}>
+            {site.ended ? "Ended" : site.publishedAt ? "Live" : "Draft"}
           </span>
         </div>
         {site.publishedAt ? (

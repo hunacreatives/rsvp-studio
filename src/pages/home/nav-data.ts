@@ -17,9 +17,43 @@ export type NavItem = {
   };
 };
 
+// Partner program links, shared by Services, FAQ and Inquire.
+const PARTNERS: MegaGroup = {
+  title: "Partner program",
+  links: [
+    { label: "For planners & coordinators", to: "/partners" },
+    { label: "For creators & influencers", to: "/partners?type=creator" },
+  ],
+};
+
 export const NAV_ITEMS: NavItem[] = [
   { label: "Home", to: "/" },
-  { label: "Build Your Website", to: "/build" },
+  {
+    label: "Build Your Website",
+    to: "/build",
+    mega: {
+      exploreEyebrow: "Make it yourself",
+      exploreCta: { label: "Start your free website", to: "/build" },
+      groups: [
+        {
+          title: "Build your own",
+          links: [
+            { label: "Start building", to: "/build" },
+            { label: "Free vs Premium", to: "/faqs#build" },
+            { label: "Your own web address", to: "/faqs#build" },
+            { label: "RSVPs & guest list", to: "/services/rsvp" },
+          ],
+        },
+        {
+          title: "Rather we make it?",
+          links: [
+            { label: "Have us design it", to: "/enquire?service=website&design=custom#start" },
+            { label: "See websites we’ve made", to: "/portfolio#milestone" },
+          ],
+        },
+      ],
+    },
+  },
   {
     label: "Services",
     to: "/services",
@@ -37,12 +71,7 @@ export const NAV_ITEMS: NavItem[] = [
             { label: "RSVP Management", to: "/services/rsvp" },
           ],
         },
-        {
-          title: "For Event Planners",
-          links: [
-            { label: "Partner with The RSVP Studio", to: "/enquire/partner" },
-          ],
-        },
+        PARTNERS,
       ],
     },
   },
@@ -96,17 +125,39 @@ export const NAV_ITEMS: NavItem[] = [
           links: [
             { label: "Booking & Process", to: "/faqs#booking" },
             { label: "Website Experience", to: "/faqs#website" },
-            { label: "Stationery Design", to: "/faqs#stationery" },
-            {
-              label: "Digital Invitations & Save the Dates",
-              to: "/faqs#invitations",
-            },
+            { label: "Build Your Own Website", to: "/faqs#build" },
             { label: "RSVP & Guest Management", to: "/faqs#rsvp" },
+            { label: "Digital Invitations & Save the Dates", to: "/faqs#invitations" },
+            { label: "Print Stationery", to: "/faqs#stationery" },
+          ],
+        },
+        PARTNERS,
+      ],
+    },
+  },
+  {
+    label: "Blog",
+    to: "/blog",
+    mega: {
+      exploreEyebrow: "The Journal",
+      exploreCta: { label: "Read the latest articles", to: "/blog" },
+      groups: [
+        {
+          title: "Topics",
+          links: [
+            { label: "Wedding", to: "/blog?topic=Wedding" },
+            { label: "Invitations", to: "/blog?topic=Invitations" },
+            { label: "Planning", to: "/blog?topic=Planning" },
+            { label: "Stationery", to: "/blog?topic=Stationery" },
           ],
         },
         {
-          title: "For Event Planners",
-          links: [{ label: "Partner with us", to: "/enquire/partner" }],
+          title: "More topics",
+          links: [
+            { label: "Events", to: "/blog?topic=Events" },
+            { label: "Tips & Guides", to: "/blog?topic=Tips+%26+Guides" },
+            { label: "Behind the Scenes", to: "/blog?topic=Behind+the+Scenes" },
+          ],
         },
       ],
     },
@@ -119,12 +170,16 @@ export const NAV_ITEMS: NavItem[] = [
       exploreCta: { label: "Start an inquiry", to: "/enquire#start" },
       groups: [
         {
-          title: "For Clients",
-          links: [{ label: "Start a Project", to: "/enquire#start" }],
+          title: "For clients",
+          links: [
+            { label: "Start a project", to: "/enquire#start" },
+            { label: "Ask a question", to: "/faqs" },
+            { label: "Your dashboard", to: "/account" },
+          ],
         },
         {
-          title: "For Event Planners",
-          links: [{ label: "Become a Partner", to: "/enquire/partner" }],
+          ...PARTNERS,
+          links: [...PARTNERS.links, { label: "Partner dashboard", to: "/account/partner" }],
         },
       ],
     },

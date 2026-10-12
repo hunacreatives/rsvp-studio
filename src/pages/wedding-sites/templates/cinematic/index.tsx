@@ -22,7 +22,7 @@ export const cinematicTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   defaultSettings,
   tier: "premium",
   demoContent: cinematicDemoBirthday,
-  uses: ["story", "dateVenue", "gallery"],
+  uses: ["story", "dateVenue", "gallery", "registry"],
   galleryLimit: 2,
   storyLabel: "Invitation message",
   storyHint: "Shown under the photos, e.g. “Join me for an intimate dinner as we celebrate this milestone together!” Press Enter for a new line.",

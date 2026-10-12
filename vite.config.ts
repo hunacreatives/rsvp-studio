@@ -17,14 +17,18 @@ function devApi(): Plugin {
     configureServer(server) {
       for (const [k, v] of Object.entries(loadEnv(server.config.mode, process.cwd(), ""))) process.env[k] ??= v;
       server.middlewares.use(async (req, res, next) => {
-        const name = req.url?.match(/^\/api\/([\w-]+)/)?.[1];
-        if (!name || !DEV_API.includes(name)) return next();
+        let name = req.url?.match(/^\/api\/([\w-]+)/)?.[1];
+        // Rewritten on Vercel (vercel.json); mirrored here so local uploads work.
+        const op = name === "media-upload" ? "upload-url" : null;
+        if (op) name = "pay-checkout";
+        if (!name || (!DEV_API.includes(name) && !op)) return next();
         try {
           const chunks: Buffer[] = [];
           for await (const c of req) chunks.push(c as Buffer);
           const raw = Buffer.concat(chunks).toString();
           const r = req as typeof req & { body?: unknown; query?: Record<string, string> };
           r.query = Object.fromEntries(new URL(req.url ?? "/", "http://localhost").searchParams); // as Vercel does
+          if (op) r.query.op = op;
           r.body = raw && String(req.headers["content-type"]).includes("json") ? JSON.parse(raw) : raw;
           const out = res as typeof res & { status: (c: number) => typeof out; json: (o: unknown) => typeof out };
           out.status = (c) => ((res.statusCode = c), out);

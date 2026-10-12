@@ -27,9 +27,10 @@ export default function CreateEventModal({ onClose }: CreateEventModalProps) {
   const [eventType, setEventType] = useState<EventType | null>(null);
   const { createEvent, status, errorDetail } = useCreateEvent();
   const navigate = useNavigate();
-  // One free website at a time (supabase/project-lifecycle.sql): if they already
-  // have one, offer to make it Premium (which frees the slot) or delete it.
-  const [freeSite, setFreeSite] = useState<{ id: string; name: string } | null | undefined>(undefined);
+  // Free accounts: 3 projects at a time (supabase/free-limits.sql). At the limit,
+  // offer to make one Premium (which frees its slot) or delete one.
+  const [freeProjects, setFreeProjects] = useState<api.FreeProject[] | undefined>(undefined);
+  const atLimit = !!freeProjects && freeProjects.length >= api.FREE_PROJECT_LIMIT;
   const [premiumPrice, setPremiumPrice] = useState(0);
   const [paying, setPaying] = useState<string | null>(null);
   // Freeze the page behind (as the log-in modal does) and close on Escape.
@@ -48,7 +49,7 @@ export default function CreateEventModal({ onClose }: CreateEventModalProps) {
     };
   }, []);
   useEffect(() => {
-    api.myFreeSite().then(setFreeSite);
+    api.myFreeProjects().then(setFreeProjects);
     supabase.from("site_prices").select("amount").eq("tier", "premium").maybeSingle().then(({ data }) => setPremiumPrice(Number(data?.amount ?? 0)));
   }, []);
 
@@ -57,17 +58,15 @@ export default function CreateEventModal({ onClose }: CreateEventModalProps) {
     if (eventId) {
       navigate(`/account/events/${eventId}/site-builder`);
     } else {
-      // The database said no (a free site was made in another tab): show the choice.
-      const current = await api.myFreeSite();
-      if (current) setFreeSite(current);
+      // The database said no (a project was made in another tab): show the choice.
+      setFreeProjects(await api.myFreeProjects());
     }
   }
 
-  const upgrade = async () => {
-    if (!freeSite) return;
+  const upgrade = async (eventId: string) => {
     setPaying("Opening the payment page…");
     try {
-      const r = await api.startCheckout({ eventId: freeSite.id, upgrade: true });
+      const r = await api.startCheckout({ eventId, upgrade: true });
       if (r.checkoutUrl) window.location.href = r.checkoutUrl;
       else setPaying(null);
     } catch (e) {
@@ -100,30 +99,42 @@ export default function CreateEventModal({ onClose }: CreateEventModalProps) {
           <i className="ri-close-line text-2xl" />
         </button>
 
-        {freeSite === undefined ? (
+        {freeProjects === undefined ? (
           <CharacterLoader message="One moment…" />
-        ) : freeSite ? (
+        ) : atLimit ? (
           <>
             <h2 className="font-display text-2xl font-semibold mb-3 pr-10" style={{ color: "var(--ink)" }}>
-              You already have a free website
+              You have {freeProjects.length} free projects
             </h2>
             <p style={{ color: "var(--slate)", fontSize: 15, lineHeight: 1.6, margin: 0 }}>
-              <strong style={{ color: "var(--ink)" }}>{freeSite.name}</strong> is your free website. Free accounts get one website at a time.
-              {premiumPrice > 0 ? ` Make it Premium (${peso}, one time) to start another, or delete it.` : " Delete it to start another."}
+              Free accounts can have {api.FREE_PROJECT_LIMIT} projects at a time, with one website live.
+              {premiumPrice > 0 ? ` Make one Premium (${peso}, one time) or delete one to start another.` : " Delete one to start another."}
             </p>
-            <div className="flex flex-col gap-2" style={{ marginTop: 22 }}>
-              {premiumPrice > 0 ? (
-                <button onClick={upgrade} disabled={!!paying && paying.startsWith("Opening")} className="btn btn-primary !text-[15px] !normal-case !tracking-normal" style={{ justifyContent: "center" }}>
-                  Upgrade {freeSite.name} to Premium · {peso}
-                </button>
-              ) : null}
-              <button onClick={() => navigate(`/account/projects/${freeSite.id}?tab=website`)} className="btn btn-ghost !text-[15px] !normal-case !tracking-normal" style={{ justifyContent: "center" }}>
-                Delete {freeSite.name}
-              </button>
-              <button onClick={onClose} className="btn btn-ghost !text-[15px] !normal-case !tracking-normal" style={{ justifyContent: "center", border: "none" }}>
-                Cancel
-              </button>
-            </div>
+            <ul className="divide-y" style={{ listStyle: "none", margin: "18px 0 0", padding: 0, borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)", borderColor: "var(--line)" }}>
+              {freeProjects.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3" style={{ borderColor: "var(--line)" }}>
+                  <span className="min-w-0 flex-1 break-words" style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>
+                    {p.name}
+                    <span className="ml-2 align-middle text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: p.live ? "#3d7a12" : "var(--slate)" }}>
+                      {p.live ? "Live" : "Draft"}
+                    </span>
+                  </span>
+                  <span className="flex gap-2">
+                    {premiumPrice > 0 ? (
+                      <button onClick={() => upgrade(p.id)} disabled={!!paying && paying.startsWith("Opening")} className="min-h-[44px] rounded-full px-4 text-[14px] font-medium text-white" style={{ background: "var(--acc-blue)" }}>
+                        Make Premium
+                      </button>
+                    ) : null}
+                    <button onClick={() => navigate(`/account/projects/${p.id}?tab=website`)} className="min-h-[44px] rounded-full px-4 text-[14px] font-medium" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>
+                      Delete
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <button onClick={onClose} className="btn btn-ghost !text-[15px] !normal-case !tracking-normal w-full" style={{ justifyContent: "center", border: "none", marginTop: 12 }}>
+              Cancel
+            </button>
             {paying ? <p role="status" style={{ marginTop: 12, fontSize: 14, color: paying.startsWith("Opening") ? "var(--slate)" : "var(--acc-coral)" }}>{paying}</p> : null}
           </>
         ) : eventType === null ? (

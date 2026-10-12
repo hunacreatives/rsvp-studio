@@ -216,11 +216,11 @@ export default function Navbar({
           </a>
 
           {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-9">
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-9">
             {NAV_ITEMS.map((item) => {
               const current = isCurrent(item.to, item.activePrefixes);
               // `openMega` only tracks which mega-DROPDOWN is open — for
-              // items with no dropdown (Home, Build Your Website, Blog)
+              // items with no dropdown (Home)
               // it's always set to null on hover, so it can never signal
               // "hovering this item" for them. `hoveredItem` tracks plain
               // hover for every item so the underline/color reacts to
@@ -241,7 +241,7 @@ export default function Navbar({
                   onBlur={() => setHoveredItem(null)}
                   onClick={() => go(item.to)}
                   aria-current={current ? "page" : undefined}
-                  className="relative py-2 text-[13px] tracking-wide transition-colors"
+                  className="relative whitespace-nowrap py-2 text-[13px] tracking-wide transition-colors"
                   style={{
                     color: highlighted ? "var(--acc-blue)" : "var(--indigo)",
                     fontWeight: current ? 600 : 500,
@@ -315,9 +315,10 @@ export default function Navbar({
             ) : (
               <button
                 onClick={() => setAuthOpen(true)}
-                className="hidden md:inline-flex btn btn-dark !px-6 !py-3 !text-[12px]"
+                className="hidden md:inline-flex btn btn-dark whitespace-nowrap !px-5 !py-3 !text-[12px] xl:!px-6"
               >
-                Log in / Sign up
+                <span className="xl:hidden">Log in</span>
+                <span className="hidden xl:inline">Log in / Sign up</span>
               </button>
             )}
             {/* Phones: log in (or open your account) without going through the menu. */}
@@ -399,7 +400,7 @@ export default function Navbar({
                 <>
                   <p className="eyebrow mt-6 mb-3">Quick Links</p>
                   <div className="flex flex-wrap gap-x-6 gap-y-1 md:gap-6">
-                    {[["Services", "/services"], ["Collections", "/collections"], ["Our work", "/portfolio"], ["FAQ", "/faqs"], ["Get a quote", "/enquire#start"]].map(([label, to]) => (
+                    {[["Services", "/services"], ["Collections", "/collections"], ["Our work", "/portfolio"], ["FAQ", "/faqs"], ["Blog", "/blog"], ["Get a quote", "/enquire#start"]].map(([label, to]) => (
                       <button key={to} onClick={() => go(to)} className="py-2.5 md:py-0 text-[var(--indigo)] hover:text-[var(--acc-blue)] transition-colors">
                         {label}
                       </button>

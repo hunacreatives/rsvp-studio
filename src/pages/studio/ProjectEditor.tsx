@@ -78,13 +78,14 @@ export function NewProjectForm({
 }: {
   onCreated: (id: string) => void;
   /** From a lead ("Turn into project"): what they told us on the inquiry form. */
-  prefill?: { name: string; type: string; date: string; services: string[] };
+  prefill?: { name: string; type: string; date: string; services: string[]; partnerCode?: string };
   leadId?: string;
 }) {
   const [name, setName] = useState(prefill?.name ?? "");
   const [type, setType] = useState(prefill?.type ?? "wedding");
   const [date, setDate] = useState(prefill?.date ?? "");
   const [services, setServices] = useState<string[]>(prefill?.services ?? []);
+  const [partner, setPartner] = useState(prefill?.partnerCode ?? "");
   const { busy, error, run } = useAction();
 
   return (
@@ -101,6 +102,9 @@ export function NewProjectForm({
         <Field label="Event date">
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
+        <Field label="Referred by (partner code)" hint="Their commission and the client’s discount">
+          <Input value={partner} onChange={(e) => setPartner(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder="None" />
+        </Field>
       </div>
       <div className="mt-4">
         <p className="mb-2 text-[14px] font-medium text-[var(--ink)]">Services</p>
@@ -116,6 +120,7 @@ export function NewProjectForm({
           let id = "";
           const ok = await run(async () => {
             id = await studio.createProject({ name: name.trim(), event_type: type, event_date: date || null, services });
+            if (partner) await studio.setProjectPartner(id, partner);
             if (leadId) await studio.setLeadStatus(leadId, "converted", id);
           });
           if (ok && id) onCreated(id);
@@ -195,6 +200,12 @@ function DetailsCard({ project }: { project: Project }) {
   const [cover, setCover] = useState(project.cover_image_url);
   const fileRef = useRef<HTMLInputElement>(null);
   const { busy, error, run } = useAction();
+  // undefined = revenue.sql not run yet (the field stays hidden)
+  const [partner, setPartner] = useState<string | null | undefined>(undefined);
+  const [savedPartner, setSavedPartner] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    studio.loadProjectPartner(project.id).then((c) => (setPartner(c), setSavedPartner(c)));
+  }, [project.id]);
 
   return (
     <Card title="Details">
@@ -210,6 +221,11 @@ function DetailsCard({ project }: { project: Project }) {
           <Field label="Live site URL" hint="For studio-built sites (shown on the client’s Website tab)">
             <Input value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} placeholder="https://slug.thersvpstudio.com" />
           </Field>
+          {partner !== undefined ? (
+            <Field label="Referred by (partner code)" hint="Their commission is counted on this project’s paid invoices">
+              <Input value={partner ?? ""} onChange={(e) => setPartner(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") || null)} placeholder="None" />
+            </Field>
+          ) : null}
         </div>
         <div>
           <p className="mb-1.5 text-[14px] font-medium text-[var(--ink)]">Cover</p>
@@ -241,7 +257,15 @@ function DetailsCard({ project }: { project: Project }) {
         tone="primary"
         className="mt-5"
         disabled={busy || !name.trim()}
-        onClick={() => run(() => studio.updateProject(project.id, { name: name.trim(), event_type: type, event_date: date || null, services, site_url: siteUrl.trim() || null }))}
+        onClick={() =>
+          run(async () => {
+            await studio.updateProject(project.id, { name: name.trim(), event_type: type, event_date: date || null, services, site_url: siteUrl.trim() || null });
+            if (partner !== undefined && partner !== savedPartner) {
+              await studio.setProjectPartner(project.id, partner);
+              setSavedPartner(partner);
+            }
+          })
+        }
       >
         Save details
       </PillButton>

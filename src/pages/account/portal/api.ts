@@ -334,11 +334,22 @@ export async function leaveProject(eventId: string) {
   if (error) throw new Error("Couldn’t leave the project — please try again.");
 }
 
-/** The customer's current free website, if they have one (one free site at a time). Staff: always null. */
-export async function myFreeSite(): Promise<{ id: string; name: string } | null> {
-  const { data, error } = await supabase.rpc("my_free_site");
+/** Free accounts: up to 3 free projects at once, 1 of them live (supabase/free-limits.sql). */
+export const FREE_PROJECT_LIMIT = 3;
+export type FreeProject = { id: string; name: string; live: boolean };
+
+/** The customer's free projects that count toward the limit. Staff: always empty. */
+export async function myFreeProjects(): Promise<FreeProject[]> {
+  const { data, error } = await supabase.rpc("my_free_projects");
+  if (error) return [];
+  return (data ?? []) as FreeProject[];
+}
+
+/** Publishing this site would make a second live free site: the name of the one that's live. */
+export async function freeLiveConflict(eventId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("my_free_live_conflict", { p_event: eventId });
   if (error) return null;
-  return ((Array.isArray(data) ? data[0] : data) as { id: string; name: string } | undefined) ?? null;
+  return (data as string | null) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -394,4 +405,63 @@ export async function notify(payload: Record<string, unknown>) {
   } catch {
     // ignore — email is best-effort
   }
+}
+
+// ---------------------------------------------------------------------------
+// Partner program (supabase/revenue.sql): a partner's own dashboard, matched by login email.
+
+export type MyPartner = {
+  code: string;
+  kind: "planner" | "influencer" | "other";
+  name: string;
+  rate: number;
+  discount: number;
+  active: boolean;
+  clicks: number;
+  enquiries: number;
+  signups: number;
+  paying: number;
+  revenue: number;
+  commission: number;
+  paid_out: number;
+  owed: number;
+};
+export type PartnerPerson = { kind: "enquiry" | "signup" | "project"; person: string; status: string; revenue: number; commission: number; created_at: string };
+export type PartnerPayout = { amount: number; paid_at: string; note: string | null };
+
+let myPartnerCache: Promise<MyPartner | null> | null = null;
+/** The signed-in person's partner account, if they're a partner (cached per page load). */
+export function myPartner(fresh = false): Promise<MyPartner | null> {
+  if (fresh || !myPartnerCache)
+    myPartnerCache = Promise.resolve(supabase.rpc("my_partner")).then(({ data, error }) => {
+      const row = !error && (Array.isArray(data) ? data[0] : data);
+      if (!row) return null;
+      const n = (k: string) => Number((row as Record<string, unknown>)[k] ?? 0);
+      return { ...(row as MyPartner), rate: n("rate"), discount: n("discount"), clicks: n("clicks"), enquiries: n("enquiries"), signups: n("signups"), paying: n("paying"), revenue: n("revenue"), commission: n("commission"), paid_out: n("paid_out"), owed: n("owed") };
+    });
+  return myPartnerCache;
+}
+export async function myPartnerPeople(): Promise<PartnerPerson[]> {
+  const { data } = await supabase.rpc("my_partner_people");
+  return ((data ?? []) as PartnerPerson[]).map((p) => ({ ...p, revenue: Number(p.revenue), commission: Number(p.commission) }));
+}
+export async function myPartnerPayouts(): Promise<PartnerPayout[]> {
+  const { data } = await supabase.rpc("my_partner_payouts");
+  return ((data ?? []) as PartnerPayout[]).map((p) => ({ ...p, amount: Number(p.amount) }));
+}
+
+/** A referral code typed at checkout: credits this project. Returns the partner's name. */
+export async function applyPartnerCode(eventId: string, code: string): Promise<string> {
+  const { data, error } = await supabase.rpc("apply_partner_code", { p_event: eventId, p_code: code });
+  if (error) {
+    const m = error.message;
+    throw new Error(
+      /BAD_CODE/.test(m) ? "That code isn’t valid — check the spelling."
+      : /OWN_CODE/.test(m) ? "You can’t use your own partner code."
+      : /ALREADY_CREDITED/.test(m) ? "This project already has a referral code."
+      : /ALREADY_PAID/.test(m) ? "Codes can only be added before paying."
+      : "Couldn’t add the code — please try again.",
+    );
+  }
+  return String(data ?? "");
 }

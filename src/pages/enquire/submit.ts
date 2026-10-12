@@ -1,4 +1,5 @@
 import type { PickedFile } from "./components/FileDrop";
+import { visitSource } from "@/lib/signupRef";
 
 const FORM_ENDPOINT = "/api/enquire";
 
@@ -39,6 +40,16 @@ export async function submitInquiry(
     })),
   );
   const website = meta.website ?? "";
+  // Where they came from (Studio → Leads and planner commissions). A code typed
+  // into the form wins over a planner's link.
+  const v = visitSource();
+  const typed = String(values.partner_code ?? "").trim().toUpperCase();
+  values = {
+    ...values,
+    source: typed ? "partner" : v?.source ?? "direct",
+    ...(v?.detail && !typed ? { source_detail: v.detail } : {}),
+    ...(typed || v?.partner ? { partner_code: typed || v!.partner } : {}),
+  };
 
   let { res, data } = await post({ form: meta.form, values, attachments, website });
 

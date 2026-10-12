@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 /**
  * Three of the login screen's cartoon characters, side by side, as a loading
@@ -159,6 +159,33 @@ export default function CharacterLoader({
           </span>
         ) : null}
       </p>
+    </div>
+  );
+}
+
+/** The same three characters as a still decoration (they only blink) — e.g. a page header. */
+export function CharacterTrio({ className = "", style }: { className?: string; style?: CSSProperties }) {
+  return (
+    <div className={`rs-loader rs-l-cont ${className}`} style={style} aria-hidden>
+      <style>{CSS}</style>
+      <div className="rs-l-row select-none" style={{ width: "100%" }}>
+        {TRIO.map((name) => {
+          const [w, h] = SIZE[name];
+          const c = POS[name];
+          const m = CHARACTER_MOUTH[name];
+          return (
+            <div key={name} className="rs-l-char" style={{ width: `${(w / TRIO_W) * 92}%`, aspectRatio: `${w} / ${h}` }}>
+              <img src={img(name)} alt="" width={w} height={h} draggable={false} decoding="async" />
+              <img src={img(`${name}-mouth`)} alt="" draggable={false} decoding="async" style={{ position: "absolute", ...local(name, m.x, m.y), width: `${(m.w / c.w) * 100}%` }} />
+              {CHARACTER_EYES[name].map((e, j) => (
+                <span key={j} className="rs-l-eye" style={{ ...local(name, e.x, e.y), width: `${(e.w / c.w) * 100}%`, aspectRatio: `${e.w} / ${e.h}` }}>
+                  <span style={{ animation: CHARACTER_BLINK[name] }} />
+                </span>
+              ))}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

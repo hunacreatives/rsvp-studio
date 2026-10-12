@@ -40,7 +40,7 @@ type Attachment = { filename: string; content: string; size?: number };
 
 // Friendlier names for a few keys in the studio email. (`website_url` is the partner
 // form's visible Website field — `website` itself is reserved for the honeypot.)
-const LABELS: Record<string, string> = { website_url: "Website", ig_handle: "Instagram", files_not_attached: "Files not attached" };
+const LABELS: Record<string, string> = { website_url: "Website", ig_handle: "Instagram", files_not_attached: "Files not attached", source: "Came from", source_detail: "Source detail", partner_code: "Referral code", diy_project: "From their DIY project" };
 function labelize(key: string) {
   return LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }

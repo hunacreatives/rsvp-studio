@@ -23,7 +23,7 @@ export async function updateProject(id: string, patch: ProjectPatch, announce?: 
   }
 }
 
-export async function createProject(input: { name: string; event_type: string; event_date: string | null; services: string[] }) {
+export async function createProject(input: { name: string; event_type: string; event_date: string | null; services: string[]; partner_code?: string | null }) {
   const row = must(
     await supabase
       .from("events")
@@ -404,7 +404,7 @@ export async function loadDeletedProjects(): Promise<DeletedProject[]> {
 }
 export async function restoreProject(id: string) {
   const { error } = await supabase.rpc("restore_project", { p_event: id });
-  if (error) throw new Error("Couldn’t restore the project — please try again.");
+  if (error) throw new Error(/RESTORE_WINDOW_PASSED/.test(error.message) ? "It’s been more than 30 days since this project was deleted, so it can’t be restored." : "Couldn’t restore the project — please try again.");
 }
 
 export async function setLeadStatus(id: string, status: LeadStatus, eventId?: string) {
@@ -484,4 +484,89 @@ export async function loadSiteBanner(): Promise<BannerRow | null> {
 }
 export async function saveSiteBanner(b: BannerRow) {
   must(await supabase.from("site_banner").update({ ...b, updated_at: new Date().toISOString() }).eq("id", 1));
+}
+
+// ── Partner program (supabase/revenue.sql) ─────────────────────────────────
+export type PartnerKind = "planner" | "influencer" | "other";
+export type PartnerRow = {
+  id: string;
+  code: string;
+  kind: PartnerKind;
+  name: string;
+  business: string | null;
+  email: string | null;
+  phone: string | null;
+  handle: string | null;
+  payout_details: string | null;
+  rate: number;
+  discount: number;
+  active: boolean;
+  notes: string | null;
+  created_at: string;
+  clicks: number;
+  enquiries: number;
+  signups: number;
+  paying: number;
+  revenue: number;
+  commission: number;
+  paid_out: number;
+  owed: number;
+};
+export type PartnerInput = Pick<PartnerRow, "code" | "kind" | "name" | "business" | "email" | "phone" | "handle" | "payout_details" | "rate" | "discount" | "active" | "notes">;
+export type PartnerPersonRow = { kind: "enquiry" | "signup" | "project"; person: string; email: string | null; project: string | null; status: string; revenue: number; commission: number; created_at: string };
+
+const NUM_KEYS = ["rate", "discount", "clicks", "enquiries", "signups", "paying", "revenue", "commission", "paid_out", "owed"] as const;
+
+/** null = revenue.sql not run yet. */
+export async function loadPartners(): Promise<PartnerRow[] | null> {
+  const { data, error } = await supabase.rpc("partner_report");
+  if (error) return null;
+  return ((data ?? []) as PartnerRow[]).map((r) => ({ ...r, ...Object.fromEntries(NUM_KEYS.map((k) => [k, Number(r[k] ?? 0)])) }));
+}
+export async function savePartner(id: string | null, p: PartnerInput) {
+  const row = {
+    code: p.code.trim().toUpperCase(),
+    kind: p.kind,
+    name: p.name.trim(),
+    business: p.business?.trim() || null,
+    email: p.email?.trim().toLowerCase() || null,
+    phone: p.phone?.trim() || null,
+    handle: p.handle?.trim() || null,
+    payout_details: p.payout_details?.trim() || null,
+    rate: p.rate,
+    discount: p.discount,
+    active: p.active,
+    notes: p.notes?.trim() || null,
+  };
+  const { error } = id ? await supabase.from("partners").update(row).eq("id", id) : await supabase.from("partners").insert(row);
+  if (error) throw new Error(/duplicate|unique/i.test(error.message) ? "That code is taken — pick another." : /code/i.test(error.message) ? "Codes are 3–20 letters or numbers." : "Couldn’t save the partner.");
+}
+export async function loadPartnerPeople(partnerId: string): Promise<PartnerPersonRow[]> {
+  const { data } = await supabase.rpc("partner_referrals", { p_partner: partnerId });
+  return ((data ?? []) as PartnerPersonRow[]).map((p) => ({ ...p, revenue: Number(p.revenue), commission: Number(p.commission) }));
+}
+export async function addPartnerPayout(partnerId: string, amount: number, note: string) {
+  must(await supabase.from("partner_payouts").insert({ partner_id: partnerId, amount, note: note.trim() || null }));
+}
+
+export type SourceRow = { source: string; signups: number; enquiries: number; paying_customers: number; revenue: number };
+/** null = revenue.sql not run yet. */
+export async function loadSourceReport(days = 90): Promise<SourceRow[] | null> {
+  const { data, error } = await supabase.rpc("source_report", { p_days: days });
+  if (error) return null;
+  return ((data ?? []) as SourceRow[]).map((r) => ({ ...r, signups: Number(r.signups), enquiries: Number(r.enquiries), paying_customers: Number(r.paying_customers), revenue: Number(r.revenue) }));
+}
+
+/** Which partner a project is credited to (their commission; supabase/revenue.sql). undefined = not set up yet. */
+export async function loadProjectPartner(id: string): Promise<string | null | undefined> {
+  const { data, error } = await supabase.from("events").select("partner_code").eq("id", id).maybeSingle();
+  if (error) return undefined;
+  return (data?.partner_code as string | null) ?? null;
+}
+export async function setProjectPartner(id: string, code: string | null) {
+  if (code) {
+    const { data } = await supabase.rpc("partner_code_valid", { p_code: code });
+    if (!(Array.isArray(data) ? data[0] : data)) throw new Error("No active partner has that code.");
+  }
+  must(await supabase.from("events").update({ partner_code: code ? code.toUpperCase() : null }).eq("id", id));
 }

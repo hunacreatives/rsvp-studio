@@ -53,7 +53,7 @@ export default function ContentEditor({ content, onChange, eventId, template }: 
       render: () => <GalleryFields content={content} onChange={onChange} eventId={eventId} limit={template?.galleryLimit} />,
     },
     { title: "Special People", section: "keyPeople", render: () => <KeyPeopleFields content={content} onChange={onChange} /> },
-    { title: "Gifts", section: "registry", render: () => <RegistryFields content={content} onChange={onChange} /> },
+    { title: "Gifts", section: "registry", render: () => <RegistryFields content={content} onChange={onChange} eventId={eventId} /> },
     { title: "FAQs", section: "faqs", render: () => <FaqFields content={content} onChange={onChange} /> },
   ];
   const groups = all.filter((g) => !g.section || shows(g.section));

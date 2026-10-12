@@ -106,37 +106,32 @@ export default function Hero() {
       style={{ background: "var(--warm-white)" }}
     >
       <div className="container-x relative z-10 text-center">
+        {/* The greeting sits above the headline as a quiet label, changing language. */}
+        <p className="mb-4 flex justify-center text-[15px] text-[var(--slate)] md:text-[17px]" aria-label="Greetings in any language">
+          <span className="relative inline-flex h-[1.5em] items-center overflow-hidden font-display italic">
+            <span key={greetIdx} className="greet-swap block leading-none whitespace-nowrap">
+              {GREETINGS[greetIdx]}
+            </span>
+          </span>
+        </p>
         <h1
           className="font-display font-semibold tracking-[-0.02em] leading-[1.12] mx-auto max-w-3xl text-[var(--ink)] text-balance"
           style={{ fontSize: "clamp(2rem, 5vw, 2.9rem)" }}
         >
           Event websites, invitations and stationery for every celebration
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-[15px] text-[var(--slate)] md:text-[17px]">
-          Weddings, birthdays, christenings and more — with RSVPs built in. Websites from ₱3,000.
+        <p className="mx-auto mt-4 max-w-[34rem] text-[15px] leading-relaxed text-[var(--slate)] text-balance md:text-[17px]">
+          Weddings, birthdays, christenings and more, with RSVPs built in. Websites from ₱3,000.
         </p>
-        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
+        {/* One button; doing it yourself is the quieter option beside it. */}
+        <div className="mt-7 flex flex-col items-center justify-center gap-x-7 gap-y-3 sm:flex-row">
           <button className="btn btn-primary w-full max-w-[280px] sm:w-auto sm:max-w-none" onClick={() => navigate("/enquire#start")}>
             Get a quote
           </button>
-          <button className="btn btn-ghost w-full max-w-[280px] sm:w-auto sm:max-w-none" onClick={() => navigate("/build")}>
-            Make it yourself
+          <button className="group inline-flex min-h-11 items-center gap-1.5 text-[15px] font-medium text-[var(--ink)]" onClick={() => navigate("/build")}>
+            <span className="underline-offset-[5px] group-hover:underline">Make it yourself, free</span>
+            <i className="ri-arrow-right-line transition-transform group-hover:translate-x-0.5" aria-hidden />
           </button>
-        </div>
-
-        <div className="mt-5 md:mt-7 flex flex-col items-center gap-2">
-          <span className="inline-flex items-center gap-2 md:gap-2.5 rounded-full border border-[var(--line)] bg-white px-4 py-1.5 md:px-6 md:py-2.5 text-[13px] md:text-[16px] leading-none text-[var(--indigo)] overflow-hidden">
-            <i className="ri-global-line shrink-0 text-sm md:text-[17px] leading-none" />
-            <span className="relative flex h-[1.4em] items-center overflow-hidden">
-              <span
-                key={greetIdx}
-                className="greet-swap block leading-none whitespace-nowrap"
-              >
-                {GREETINGS[greetIdx]}
-              </span>
-            </span>
-          </span>
-          <p className="text-[var(--slate)] text-sm md:text-lg">In Any Language in the World</p>
         </div>
       </div>
 

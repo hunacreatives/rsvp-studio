@@ -1,5 +1,6 @@
 import { Suspense, useEffect } from "react";
 import { applyPageMeta } from "@/lib/pageMeta";
+import { rememberVisit } from "@/lib/signupRef";
 import { BrowserRouter, useLocation } from "react-router-dom";
 import { AppRoutes } from "./router";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -12,6 +13,10 @@ import CustomDomainSite, { isCustomDomain } from "@/pages/wedding-sites/public/C
 function Routes() {
   const { pathname } = useLocation();
   useEffect(() => applyPageMeta(pathname), [pathname]);
+  // Where this visitor came from (once per visit; guests opening an invite aren't counted).
+  useEffect(() => {
+    if (!/^\/(invite|internal)\//.test(window.location.pathname.slice(__BASE_PATH__.replace(/\/$/, "").length))) rememberVisit();
+  }, []);
   return (
     <ErrorBoundary resetKey={pathname}>
       {/* Guests opening an invite never see our studio cartoons — just a blank page. */}

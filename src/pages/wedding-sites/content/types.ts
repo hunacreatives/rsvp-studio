@@ -79,6 +79,16 @@ export interface RegistryLink {
   logoUrl?: string;
 }
 
+/** A way to send a cash gift — GCash, Maya or a bank — with an optional QR code. */
+export interface CashGift {
+  id: string;
+  /** "GCash", "Maya", "BDO"… */
+  label: string;
+  accountName: string;
+  accountNumber: string;
+  qrUrl?: string;
+}
+
 export interface FAQ {
   id: string;
   question: string;
@@ -149,6 +159,10 @@ export interface EventContent {
    *  a "Getting Ready" gallery and a separate "The Big Day" gallery later. */
   galleries: Gallery[];
   registryLinks: RegistryLink[];
+  /** Cash gifts (GCash/Maya/bank, with QR codes), shown with the registry. */
+  cashGifts?: CashGift[];
+  /** Optional line above them, e.g. "Your presence is the best gift…". */
+  cashGiftNote?: string;
   /** Ordered by `order`. */
   faqs: FAQ[];
   /** Other notable people tied to the event (e.g. a wedding party, a

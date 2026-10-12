@@ -14,6 +14,7 @@ import { PlanBadge, UpgradeDialog, peso, useSitePlan, useUpgradeFlow } from "./S
 import { DomainReturnDialog, useDomainReturn } from "./DomainPicker";
 import { isPhoneNow, useIsPhone } from "./useIsPhone";
 import CharacterLoader from "@/components/CharacterLoader";
+import { inquiryLink } from "@/pages/enquire/prefill";
 import "./builder.css";
 
 // V1 builder shell: template picker + content editing forms + a live
@@ -62,6 +63,16 @@ export default function BuilderShellPage() {
   const catalog = useTemplateCatalog();
   const resolved = resolveTemplate(presentation);
   const activeDefinition = getTemplateDefinition(presentation.activeTemplateId);
+  // "Have us design it": the enquiry form, filled in from this site.
+  const hostNames = content.hosts.map((h) => h.name).filter(Boolean).join(" & ");
+  const designForMe = inquiryLink({
+    service: "website",
+    design: "custom",
+    date: content.eventDate || undefined,
+    names: hostNames || undefined,
+    from: `${hostNames || "DIY site"}${activeDefinition ? ` (${activeDefinition.label} template)` : ""}`,
+  });
+  const offerDesign = !!plan && !plan.managed;
   const [editorCollapsed, setEditorCollapsed] = useState(false);
   loadPairingFonts(resolved?.settings.fontPairingId);
 
@@ -213,6 +224,11 @@ export default function BuilderShellPage() {
                 <button type="button" role="menuitem" onClick={() => { closeMenu(); void save(); }} style={menuItem}>
                   Save now
                 </button>
+                {offerDesign ? (
+                  <Link role="menuitem" to={designForMe} onClick={closeMenu} style={{ ...menuItem, textDecoration: "none" }}>
+                    Have us design it &rarr;
+                  </Link>
+                ) : null}
                 {publishedAt && slug ? (
                   <>
                     <a role="menuitem" href={`/invite/${slug}`} target="_blank" rel="noopener noreferrer" onClick={closeMenu} style={{ ...menuItem, textDecoration: "none" }}>
@@ -312,6 +328,12 @@ export default function BuilderShellPage() {
         <PlanBadge plan={plan} onUpgrade={upgrade.open} />
 
         <div style={{ flex: 1 }} />
+
+        {offerDesign ? (
+          <Link to={designForMe} style={{ fontSize: 13, color: "var(--acc-blue)", whiteSpace: "nowrap" }}>
+            Have us design it
+          </Link>
+        ) : null}
 
         <span style={{ fontSize: 12, color: "var(--slate)" }}>{saveText}</span>
         <button

@@ -18,5 +18,5 @@ export function projectFromLead(l: Pick<Lead, "values" | "name">) {
     "RSVP Management": "RSVP Management",
   };
   const services = [...new Set(wanted.map((w) => map[w]).filter(Boolean))];
-  return { name, type, date, services };
+  return { name, type, date, services, partnerCode: s("partner_code").toUpperCase() };
 }

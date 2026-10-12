@@ -50,7 +50,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!secret) return res.status(500).json({ error: "CRON_SECRET is not set" });
   if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
 
-  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, rsvpDigests: 0, rsvpDigestsSkipped: 0, endNotices: 0, guestPurges: 0, purges: 0, domainsAdvanced: 0, domainRenewNotices: 0, domainsExpired: 0, errors: [] as string[] };
+  const started = Date.now();
+  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, rsvpDigests: 0, rsvpDigestsSkipped: 0, endNotices: 0, photoPurges: 0, photoMode: "", guestPurges: 0, purges: 0, domainsAdvanced: 0, domainRenewNotices: 0, domainsExpired: 0, errors: [] as string[] };
+
+  // ?only=photos: just the photo step (e.g. to check a dry run), no emails.
+  if (req.query.only === "photos") {
+    const life = await runLifecycle(supabaseAdmin, sendMail, SITE, { only: "photos", deadline: started + 45_000 });
+    return res.status(life.errors.length ? 207 : 200).json(life);
+  }
   const today = new Date();
   const dayKey = today.toISOString().slice(0, 10);
   const { data: hol } = await supabaseAdmin.from("support_holidays").select("day").gte("day", new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10));
@@ -216,14 +223,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   report.rsvpDigestsSkipped = rsvp.skipped;
   report.errors.push(...rsvp.errors);
 
-  // 5. Project lifecycle
-  const life = await runLifecycle(supabaseAdmin, sendMail, SITE);
-  report.endNotices = life.notices;
-  report.guestPurges = life.guestPurges;
-  report.purges = life.purges;
-  report.errors.push(...life.errors);
-
-  // 6. Custom domains
+  // 5. Custom domains (first, so a domain that just lapsed counts in the end dates below)
   try {
     const dom = await domainsDaily(supabaseAdmin, sendMail);
     report.domainsAdvanced = dom.advanced;
@@ -233,6 +233,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (e) {
     report.errors.push(`domains: ${e instanceof Error ? e.message : e}`);
   }
+
+  // 6. Project lifecycle (deleting stops ~45s in; the rest carries over to tomorrow)
+  const life = await runLifecycle(supabaseAdmin, sendMail, SITE, { deadline: started + 45_000 });
+  report.endNotices = life.notices;
+  report.photoPurges = life.photoPurges;
+  report.photoMode = life.photoMode;
+  report.guestPurges = life.guestPurges;
+  report.purges = life.purges;
+  report.errors.push(...life.errors);
 
   // 7. Heartbeat
   await supabaseAdmin.from("support_job_runs").upsert({ job: "support-daily", last_run_at: new Date().toISOString(), details: report });
