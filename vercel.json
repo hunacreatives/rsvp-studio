@@ -16,6 +16,10 @@
       "destination": "/api/pay-checkout?op=domain-search"
     },
     {
+      "source": "/api/site-health",
+      "destination": "/api/pay-checkout?op=site-health"
+    },
+    {
       "source": "/api/media-upload",
       "destination": "/api/pay-checkout?op=upload-url"
     },

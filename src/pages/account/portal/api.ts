@@ -41,7 +41,7 @@ export type Guest = {
 };
 
 const PROFILE_COLS =
-  "id, full_name, email, created_at, is_staff, phone, location, avatar_url, billing_name, billing_email, billing_address, notify_project_updates, notify_billing_updates, password_changed_at";
+  "id, full_name, email, created_at, is_staff, phone, location, avatar_url, billing_name, billing_email, billing_address, notify_project_updates, notify_billing_updates, notify_tips, password_changed_at";
 
 const PROJECT_COLS =
   "id, name, event_date, event_type, table_name, status, project_status, services, progress, next_step, next_step_due, cover_image_url, site_url, completed_at, updated_at, created_at, owner_id, next_step_owner, managed_by_studio, deleted_at";

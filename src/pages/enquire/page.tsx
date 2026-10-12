@@ -12,6 +12,8 @@ import FileDrop, { type PickedFile } from "./components/FileDrop";
 import { DATE_INPUT, Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
 import { todayISO } from "./today";
 import { submitInquiry } from "./submit";
+import ChatLinks from "@/components/ChatLinks";
+import { BOOKING_URL } from "@/lib/social";
 import {
   ADDONS,
   BESPOKE_COLLECTIONS,
@@ -252,6 +254,7 @@ export default function ProjectInquiry() {
             <p className="mt-5 text-[var(--slate)]">
               Tell us about your event — as much or as little as you know so far.
             </p>
+            <ChatLinks className="mt-5" align="center" />
           </div>
         </section>
 
@@ -273,7 +276,16 @@ export default function ProjectInquiry() {
                     </>
                   ) : undefined
                 }
-              />
+              >
+                {BOOKING_URL ? (
+                  <div className="mt-7">
+                    <p className="text-[14px] text-[var(--ink)]">Rather talk it through? Pick a time that suits you.</p>
+                    <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-4 inline-flex">
+                      Book a call
+                    </a>
+                  </div>
+                ) : null}
+              </SuccessCard>
             ) : (
               <form
                 ref={formRef}

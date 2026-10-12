@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { goTo } from "@/lib/goTo";
+import { FACEBOOK_URL, INSTAGRAM_URL, MESSENGER_URL } from "@/lib/social";
 
 const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   {
@@ -54,11 +55,14 @@ export default function FooterSection() {
               hello@thersvpstudio.com
             </a>
             <div className="mt-3 -ml-2.5 flex gap-1 text-xl md:mt-4">
-              <a href="https://www.instagram.com/rsvpstudioo/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid h-11 w-11 place-items-center hover:text-white">
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid h-11 w-11 place-items-center hover:text-white">
                 <i className="ri-instagram-line" />
               </a>
-              <a href="https://www.facebook.com/share/19fvSStpSZ/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="grid h-11 w-11 place-items-center hover:text-white">
+              <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="grid h-11 w-11 place-items-center hover:text-white">
                 <i className="ri-facebook-circle-line" />
+              </a>
+              <a href={MESSENGER_URL} target="_blank" rel="noopener noreferrer" aria-label="Message us on Messenger" className="grid h-11 w-11 place-items-center hover:text-white">
+                <i className="ri-messenger-line" />
               </a>
             </div>
           </div>

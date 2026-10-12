@@ -77,14 +77,14 @@ export default function DomainsCard() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="w-full sm:w-auto sm:min-w-[220px] sm:flex-1">
           <p className="text-[15px] font-semibold text-[var(--ink)]">Custom domains</p>
-          <p className="max-w-[70ch] text-[13px] text-[var(--slate)]">
-            Customers search and buy their own web address when they publish, or from their project’s Website tab. It’s bought through Vercel, registered to Huna for a year, and connected automatically. They see one all-in price.
-          </p>
           <p className="mt-1 text-[13px]">
             {live ? (
-              <span className="font-medium text-[#3d5a12]">On — customers can buy domains.</span>
+              <span className="font-medium text-[#3d5a12]">On</span>
+            ) : s.enabled && /^(localhost|127\.)/.test(window.location.hostname) ? (
+              // The status check runs on the live site only (localhost has no API for it).
+              <span className="text-[var(--slate)]">On (check it on the live site)</span>
             ) : s.enabled && !missing.length ? (
-              <span className="font-medium text-[#8a5a00]">Saved as on, but not live yet: add VERCEL_API_TOKEN in Vercel → Settings → Environment Variables, then redeploy.</span>
+              <span className="font-medium text-[#8a5a00]">Not live: VERCEL_API_TOKEN is missing in Vercel</span>
             ) : (
               <span className="text-[var(--slate)]">Off.</span>
             )}
@@ -113,7 +113,11 @@ export default function DomainsCard() {
         </p>
       </div>
 
-      <p className="mt-5 text-[13px] font-semibold text-[var(--ink)]">Registrant (who every domain is registered to)</p>
+      {/* Rarely changes: folded away. */}
+      <details className="mt-5" open={!!missing.length}>
+        <summary className="min-h-[44px] cursor-pointer py-2 text-[13px] font-semibold text-[var(--ink)] md:min-h-0">
+          Registered to {String(c.companyName || [c.firstName, c.lastName].filter(Boolean).join(" ") || "—")}
+        </summary>
       <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {CONTACT_FIELDS.map((f) => (
           <label key={f.key} className="text-[14px] text-[var(--ink)] md:text-[13px]">
@@ -123,6 +127,7 @@ export default function DomainsCard() {
           </label>
         ))}
       </div>
+      </details>
       <div className="mt-4 flex items-center gap-3">
         <PillButton tone="dark" onClick={save} disabled={state === "saving"}>
           {state === "saving" ? "Saving…" : state === "saved" ? "Saved" : "Save"}

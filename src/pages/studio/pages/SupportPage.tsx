@@ -39,7 +39,8 @@ export default function SupportPage() {
     reloadSaved();
   }, []);
   const [params, setParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>("needs_reply");
+  // ?tab=report opens the report (the Overview's daily-job alert links here).
+  const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get("tab") === "report" ? "report" : "needs_reply"));
   const [query, setQuery] = useState("");
   const [textHits, setTextHits] = useState<Set<string> | null>(null);
   const { days: holidays } = studio.useHolidays();

@@ -94,7 +94,7 @@ function renderEmail(firstName: string) {
                 <p class="force-slate" style="margin:20px 0 14px;font-size:12px;color:#868697 !important;">
                   <a href="https://www.instagram.com/rsvpstudioo/" class="force-slate" style="color:#868697 !important;text-decoration:none;">Instagram</a>
                   &nbsp;&middot;&nbsp;
-                  <a href="https://www.facebook.com/share/19fvSStpSZ/?mibextid=wwXIfr" class="force-slate" style="color:#868697 !important;text-decoration:none;">Facebook</a>
+                  <a href="https://www.facebook.com/p/The-RSVP-Studio-61590604769707/" class="force-slate" style="color:#868697 !important;text-decoration:none;">Facebook</a>
                 </p>
                 <p class="force-slate" style="margin:0 0 14px;font-size:12px;color:#868697 !important;">
                   <a href="${SITE}" class="force-slate" style="color:#868697 !important;text-decoration:none;">The RSVP Studio</a>

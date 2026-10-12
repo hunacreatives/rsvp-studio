@@ -2,9 +2,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { esc, isEmail } from "./_lib/email.js";
-import { customerReplyTo, reqCode, FROM, firstName, layout, partnerLayout, makeSendMail, ratingButtons, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
+import { customerReplyTo, reqCode, FROM, firstName, layout, partnerLayout, makeSendMail, ratingButtons, readTipsToken, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
 import { customerMessageEmails } from "./_lib/support-notify.js";
 import { sendInvoiceEmail } from "./_lib/billing-mail.js";
+import { captureError } from "./_lib/sentry.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -45,7 +46,43 @@ async function recipientsFor(eventId: string | null, extraProfileId: string | nu
   return ((data ?? []) as Person[]).filter((p) => !p.is_staff && p[pref] && (p.email || p.billing_email));
 }
 
+// The follow-up emails' unsubscribe link (no sign-in; the link is signed per person).
+// GET shows a confirm button, so link scanners that open every URL can't unsubscribe
+// anyone; POST (that button, or the mail app's one-click unsubscribe) turns them off.
+async function unsubscribe(req: VercelRequest, res: VercelResponse) {
+  const t = String(req.query.t ?? "");
+  const profileId = readTipsToken(t);
+  const page = (heading: string, body: string) =>
+    res
+      .status(profileId ? 200 : 400)
+      .setHeader("Content-Type", "text/html; charset=utf-8")
+      .setHeader("Cache-Control", "no-store")
+      .send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${heading} · The RSVP Studio</title></head>
+<body style="margin:0;background:#f3f3f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#000727;">
+<main style="max-width:440px;margin:12vh auto 0;padding:36px 28px;background:#fff;border-radius:22px;text-align:center;">
+<img src="https://thersvpstudio.com/brand/logotype-dark.png" alt="The RSVP Studio" width="120" style="display:block;margin:0 auto 22px;height:auto;">
+<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:26px;line-height:1.25;">${heading}</h1>
+${body}
+</main></body></html>`);
+  if (!profileId) return page("That link didn’t work", `<p style="color:#4a4b63;line-height:1.6;">Turn these emails off under Account → Notifications instead.</p>`);
+  if (req.method === "POST") {
+    const { error } = await supabaseAdmin.from("profiles").update({ notify_tips: false }).eq("id", profileId);
+    if (error) return res.status(500).send("Couldn’t update your settings. Please try again.");
+    return page(
+      "You’re unsubscribed",
+      `<p style="color:#4a4b63;line-height:1.6;margin:0 0 22px;">No more tips and reminders about your projects. You’ll still get emails you need, like RSVPs, receipts and replies from our team.</p>
+<a href="https://thersvpstudio.com/account/settings" style="color:#2f61d5;font-size:14px;">Change this in your notification settings</a>`,
+    );
+  }
+  return page(
+    "Unsubscribe from tips and reminders?",
+    `<p style="color:#4a4b63;line-height:1.6;margin:0 0 24px;">Reminders about unfinished drafts, your headcount before the event, and a thank-you after. You’ll still get RSVPs, receipts and replies from our team.</p>
+<form method="post" action="/api/notify?op=unsubscribe&amp;t=${encodeURIComponent(t)}"><button type="submit" style="border:0;border-radius:999px;background:#000727;color:#fff;font-size:15px;padding:14px 28px;cursor:pointer;">Unsubscribe</button></form>`,
+  );
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.query.op === "unsubscribe") return unsubscribe(req, res);
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
@@ -275,6 +312,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ sent: results.length - failed, failed });
   } catch (err) {
     console.error("notify error", err);
+    await captureError(err, "notify", { kind: (req.body as { kind?: string } | undefined)?.kind });
     return res.status(500).json({ error: "Notification failed" });
   }
 }

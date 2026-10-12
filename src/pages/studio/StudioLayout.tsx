@@ -24,7 +24,7 @@ export type StudioOutlet = {
 
 export const useStudio = () => useOutletContext<StudioOutlet>();
 
-const NAV = [
+const NAV: { to: string; label: string; icon: string; end?: boolean; ownerOnly?: boolean }[] = [
   { to: "/studio", label: "Overview", icon: "ri-dashboard-3-line", end: true },
   { to: "/studio/leads", label: "Leads", icon: "ri-user-star-line" },
   { to: "/studio/partners", label: "Partners", icon: "ri-hand-heart-line" },
@@ -32,6 +32,7 @@ const NAV = [
   { to: "/studio/inbox", label: "Inbox", icon: "ri-inbox-2-line" },
   { to: "/studio/support", label: "Support", icon: "ri-customer-service-2-line" },
   { to: "/studio/invoices", label: "Invoices", icon: "ri-file-list-3-line" },
+  { to: "/studio/revenue", label: "Revenue", icon: "ri-line-chart-line", ownerOnly: true },
   { to: "/studio/clients", label: "Clients", icon: "ri-group-line" },
   { to: "/studio/templates", label: "Templates", icon: "ri-layout-masonry-line" },
   { to: "/studio/blog", label: "Blog", icon: "ri-quill-pen-line" },
@@ -89,6 +90,13 @@ function Shell() {
     studio.countNewLeads().then(setNewLeads);
   }, [demo, profile.is_staff, projects]);
 
+  // Revenue is for the owner only.
+  const [owner, setOwner] = useState(false);
+  useEffect(() => {
+    if (demo) setOwner(true);
+    else studio.isOwner().then(setOwner);
+  }, [demo]);
+
   // Clients who wander here get their own dashboard instead.
   if (!profile.is_staff && !demo) return <Navigate to="/account" replace />;
 
@@ -100,6 +108,7 @@ function Shell() {
     navigate("/");
   };
 
+  const nav = NAV.filter((n) => !n.ownerOnly || owner);
   const badgeFor = (to: string) => (to === "/studio/leads" ? newLeads : to === "/studio/inbox" ? unread : to === "/studio/support" ? needsReply : 0);
 
   return (
@@ -113,7 +122,7 @@ function Shell() {
           </Link>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-4">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -185,7 +194,7 @@ function Shell() {
         </main>
       </div>
 
-      <MobileTabBar badgeFor={badgeFor} />
+      <MobileTabBar badgeFor={badgeFor} nav={nav} />
     </div>
   );
 }
@@ -193,12 +202,12 @@ function Shell() {
 /** Phones and tablets: the four busiest sections, plus "More" for the rest. */
 const TAB_MAIN = ["/studio", "/studio/projects", "/studio/inbox", "/studio/support"];
 
-function MobileTabBar({ badgeFor }: { badgeFor: (to: string) => number }) {
+function MobileTabBar({ badgeFor, nav }: { badgeFor: (to: string) => number; nav: typeof NAV }) {
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => setMoreOpen(false), [pathname]);
-  const main = NAV.filter((n) => TAB_MAIN.includes(n.to));
-  const more = NAV.filter((n) => !TAB_MAIN.includes(n.to));
+  const main = nav.filter((n) => TAB_MAIN.includes(n.to));
+  const more = nav.filter((n) => !TAB_MAIN.includes(n.to));
   const inMore = more.some((n) => pathname.startsWith(n.to));
   const moreBadge = more.reduce((s, n) => s + badgeFor(n.to), 0);
   const Badge = ({ n }: { n: number }) =>

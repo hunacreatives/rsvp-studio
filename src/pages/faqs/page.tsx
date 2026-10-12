@@ -7,6 +7,7 @@ import { Reveal } from "@/lib/Reveal";
 import { FAQ_CATEGORIES } from "./faq-data";
 import { submitInquiry } from "@/pages/enquire/submit";
 import { Honeypot, INPUT, LABEL } from "@/pages/enquire/components/form-ui";
+import ChatLinks from "@/components/ChatLinks";
 
 /** Scroll to a category, clearing the sticky header (and the phone category bar). */
 function jumpTo(slug: string) {
@@ -280,6 +281,7 @@ export default function FaqsPage() {
                   We&apos;d love to hear about your event and help bring your vision
                   to life. Send us a message and we&apos;ll reply within 1 business day.
                 </p>
+                <ChatLinks className="mt-6" />
               </Reveal>
               <Reveal delay={0.08}>
                 <ContactForm />

@@ -126,6 +126,18 @@ export default function AccountPage() {
               />
             }
           />
+          <Row
+            border
+            title="Tips and reminders"
+            sub="A nudge if a website draft is unfinished, your headcount a week before the event, and a thank-you after."
+            action={
+              <Toggle
+                label="Tips and reminders"
+                checked={profile.notify_tips !== false}
+                onChange={(v) => saveProfile({ notify_tips: v })}
+              />
+            }
+          />
         </OutlineCard>
       </section>
 

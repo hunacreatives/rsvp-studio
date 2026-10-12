@@ -275,7 +275,7 @@ function JobCard() {
     studio.loadJobRun().then(setRun);
   }, []);
   const hours = run ? (Date.now() - new Date(run.last_run_at).getTime()) / 3_600_000 : null;
-  const stale = hours !== null && hours > 36;
+  const stale = hours !== null && hours > 26;
   const d = run?.details;
   return (
     <Card title="Daily support job">
@@ -285,12 +285,12 @@ function JobCard() {
           : run === null
             ? "Hasn’t run yet. It runs every morning at about 9 AM Manila once deployed."
             : `Last ran ${new Date(run.last_run_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}${
-                stale ? " — that’s over a day and a half ago. Check Vercel → Cron Jobs." : ""
+                stale ? " — that’s over a day ago. Check Vercel → Cron Jobs." : ""
               }`}
       </p>
       {d ? (
         <p className="mt-1.5 text-[12px] text-[var(--slate)]">
-          {d.reminders ?? 0} {d.reminders === 1 ? "reminder" : "reminders"} · {d.closed ?? 0} auto-closed · digest {d.digest ? "sent" : "not needed"}
+          {d.reminders ?? 0} {d.reminders === 1 ? "reminder" : "reminders"} · {d.closed ?? 0} auto-closed · digest {d.digest ? "sent" : "not needed"} · {d.followups ?? 0} follow-up {d.followups === 1 ? "email" : "emails"}
           {d.errors?.length ? <span className="block text-[#c2412d]">Problems: {d.errors.join("; ")}</span> : null}
         </p>
       ) : null}

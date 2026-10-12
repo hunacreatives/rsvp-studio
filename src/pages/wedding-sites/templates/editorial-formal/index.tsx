@@ -4,6 +4,7 @@ import { defaultSectionVisibility } from "../../presentation/types";
 import { defaultPaletteId } from "../../presentation/palettes";
 import { defaultFontPairingId } from "../../presentation/fontPairings";
 import EditorialFormalTemplate from "./EditorialFormalTemplate";
+import { isabellaAndMateo } from "../../content/fixtures/isabella-and-mateo";
 
 // This template's own settings extension. Curated and closed on purpose —
 // see docs/template-builder-decisions.md and the customization-boundary
@@ -28,4 +29,6 @@ export const editorialFormalTemplateDefinition: TemplateDefinition<EditorialForm
   component: EditorialFormalTemplate,
   defaultSettings,
   tier: "free",
+  // Sample couple for the /build gallery and preview page.
+  demoContent: isabellaAndMateo,
 };

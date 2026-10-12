@@ -5,6 +5,7 @@ import { verifyPaymongoSignature } from "./_lib/paymongo.js";
 import { esc } from "./_lib/email.js";
 import { domainPaid, domainRenewalPaid } from "./_lib/domains.js";
 import { FROM, layout, makeSendMail, STUDIO_INBOX } from "./_lib/support-mail.js";
+import { captureError } from "./_lib/sentry.js";
 
 // PayMongo → us, on checkout events. Register once in the PayMongo dashboard:
 //   https://thersvpstudio.com/api/paymongo-webhook
@@ -114,6 +115,7 @@ export async function POST(request: Request) {
     return ok();
   } catch (e) {
     console.error("paymongo-webhook: fulfilment failed — releasing for retry", e);
+    await captureError(e, "paymongo-webhook", { payment: payment.id });
     await db.from("payments").update({ fulfilled: false, status: "pending" }).eq("id", payment.id);
     return new Response("retry", { status: 500 });
   }

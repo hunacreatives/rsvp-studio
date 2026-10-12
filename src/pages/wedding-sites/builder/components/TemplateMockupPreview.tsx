@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { resolveEventTheme } from "../../engine/theme";
 import type { TemplateDefinition } from "../../engine/registry";
-import { isPhoneNow, useIsPhone } from "../useIsPhone";
+import { isPhoneNow } from "../useIsPhone";
 
 interface TemplateMockupPreviewProps {
   template: TemplateDefinition;
@@ -204,13 +204,11 @@ export default function TemplateMockupPreview({ template }: TemplateMockupPrevie
  * Only drawn while the card is on (or near) the screen: each one is a whole
  * live page (every section and image, Cinematic's particle animation), and a
  * phone rendering all of them at once crawls.
- * Desktop keeps its fixed 0.29 scale; on phones the scale follows the card's
- * width, so the design fills the card instead of leaving a blank strip (390px)
- * or cutting off its right side (320px).
+ * The scale follows the card's width, so the design fills the card instead of
+ * leaving a blank strip on the right or cutting its right side off.
  */
 function LiveDemoPreview({ template, background }: { template: TemplateDefinition; background: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const isPhone = useIsPhone();
   const [inView, setInView] = useState(false);
   const [boxWidth, setBoxWidth] = useState(0);
 
@@ -233,7 +231,7 @@ function LiveDemoPreview({ template, background }: { template: TemplateDefinitio
     };
   }, []);
 
-  const scale = isPhone && boxWidth > 0 ? boxWidth / DEMO_WIDTH : 0.29;
+  const scale = boxWidth > 0 ? boxWidth / DEMO_WIDTH : 0.29;
   const Component = template.component;
   return (
     <div ref={boxRef} style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative", background }}>

@@ -7,8 +7,10 @@ import { Avatar } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import BannerCard from "../BannerCard";
 import SourcesCard from "../SourcesCard";
+import SiteHealthCard from "../SiteHealthCard";
 import { isOverdue as replyOverdue } from "@/pages/account/portal/support";
 import { countNewLeads, loadFreeSiteStats, useHolidays, type FreeSiteStats } from "../studioApi";
+import * as studioApi from "../studioApi";
 
 /** Today in Manila ("YYYY-MM-DD"), plus/minus days. */
 const today = (plusDays = 0) => new Date(Date.now() + 8 * 3_600_000 + plusDays * 86_400_000).toISOString().slice(0, 10);
@@ -18,6 +20,17 @@ export default function OverviewPage() {
   const name = (id: string) => all.find((p) => p.id === id)?.name ?? "";
   // Studio projects only — DIY websites have their own list under Projects.
   const projects = all.filter((p) => p.managed_by_studio !== false);
+  // The owner sees everything that came in this month (Revenue); admins, invoice payments.
+  const [monthIn, setMonthIn] = useState<number | null>(null);
+  useEffect(() => {
+    if (demo) return;
+    studioApi.isOwner().then(async (owner) => {
+      if (!owner) return;
+      const now = new Date();
+      const rows = await studioApi.loadRevenue(new Date(now.getFullYear(), now.getMonth(), 1), new Date(now.getFullYear(), now.getMonth() + 1, 1));
+      if (rows) setMonthIn(rows.reduce((s, r) => s + r.amount, 0));
+    });
+  }, [demo]);
   const diyCount = all.length - projects.length;
   const [leads, setLeads] = useState(0);
   const [freeSites, setFreeSites] = useState<FreeSiteStats | null>(null);
@@ -62,6 +75,7 @@ export default function OverviewPage() {
   return (
     <>
       <StudioHeader title={`${greeting}${profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.`} sub="Here’s what needs the studio’s attention." />
+      {demo ? null : <JobAlert />}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         <Stat label="New leads" value={String(leads)} sub="inquiries waiting for a reply" to="/studio/leads" tone={leads ? "coral" : undefined} />
@@ -74,7 +88,11 @@ export default function OverviewPage() {
           tone={supportLate.length ? "coral" : undefined}
         />
         <Stat label="Outstanding" value={formatMoney(outstanding)} sub={`${open.length} open · ${overdue.length} overdue`} to="/studio/invoices" tone={overdue.length ? "coral" : undefined} />
-        <Stat label="Paid this month" value={formatMoney(paidThisMonth)} sub="from client invoices" to="/studio/invoices" className="col-span-2 sm:col-span-1" />
+        {monthIn !== null ? (
+          <Stat label="In this month" value={formatMoney(monthIn)} sub="packages, Premium and domains" to="/studio/revenue" className="col-span-2 sm:col-span-1" />
+        ) : (
+          <Stat label="Paid this month" value={formatMoney(paidThisMonth)} sub="from client invoices" to="/studio/invoices" className="col-span-2 sm:col-span-1" />
+        )}
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
@@ -185,6 +203,7 @@ export default function OverviewPage() {
         ) : null}
       </div>
 
+      <SiteHealthCard demo={demo} />
       <SourcesCard />
       <BannerCard />
 
@@ -204,6 +223,44 @@ function Stat({ label, value, sub, to, tone, className = "" }: { label: string; 
       <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--slate)] sm:tracking-[0.08em]">{label}</p>
       <p className={`mt-1 break-words text-[22px] font-semibold sm:text-[28px] ${tone === "coral" ? "text-[#c2412d]" : "text-[var(--ink)]"}`}>{value}</p>
       <p className="text-[13px] text-[var(--slate)]">{sub}</p>
+    </Link>
+  );
+}
+
+/** Only shows when something's wrong: the daily job stopped running (reminders, RSVP
+ *  summaries, follow-ups and clean-up all wait on it), or its last run had errors. */
+function JobAlert() {
+  const [run, setRun] = useState<studioApi.JobRun | null>(null);
+  useEffect(() => {
+    studioApi.loadJobRun().then(setRun);
+  }, []);
+  if (!run) return null; // not deployed yet, or still loading
+  const hours = (Date.now() - new Date(run.last_run_at).getTime()) / 3_600_000;
+  const errors = run.details?.errors ?? [];
+  if (hours <= 26 && !errors.length) return null;
+  const stale = hours > 26;
+  const when = new Date(run.last_run_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return (
+    <Link
+      to="/studio/support?tab=report"
+      className={`mb-4 flex items-start gap-3 rounded-[18px] border px-4 py-3 text-[14px] ${stale ? "border-[#f3c2b8] bg-[#fdf0ed] text-[#8a2a17]" : "border-[#f0dca8] bg-[#fdf6e3] text-[#6b4d00]"}`}
+    >
+      <i className={`${stale ? "ri-error-warning-line" : "ri-alert-line"} mt-0.5 text-[18px]`} aria-hidden />
+      <span className="min-w-0">
+        {stale ? (
+          <>
+            <strong>The daily job hasn’t run since {when}.</strong> Reminders, RSVP summaries and follow-up emails are waiting on it. Check Vercel → Cron Jobs.
+          </>
+        ) : (
+          <>
+            <strong>
+              This morning’s daily job had {errors.length} {errors.length === 1 ? "problem" : "problems"}.
+            </strong>{" "}
+            <span className="break-words">{errors[0]}</span>
+          </>
+        )}
+        <span className="ml-1 whitespace-nowrap underline underline-offset-2">Details</span>
+      </span>
     </Link>
   );
 }

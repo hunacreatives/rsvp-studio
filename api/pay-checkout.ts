@@ -4,6 +4,8 @@ import { createCheckoutSession, MIN_CENTAVOS, paymongoConfigured } from "./_lib/
 import { domainsReady, loadSettings, pesoPrice, quoteDomain, RateLimited } from "./_lib/domains.js";
 import { domainSearchHandler, domainStatusHandler } from "./_lib/domain-handlers.js";
 import { uploadUrlHandler } from "./_lib/media-handlers.js";
+import { captureError } from "./_lib/sentry.js";
+import { siteHealthHandler } from "./_lib/health-handler.js";
 
 // Start a PayMongo checkout for the signed-in customer:
 //   { invoiceId }  pay an open invoice on one of their events
@@ -26,11 +28,12 @@ async function canAccess(eventId: string, userId: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // /api/domain-search, /api/domain-status and /api/media-upload are rewritten here
+  // /api/domain-search, /api/domain-status, /api/media-upload and /api/site-health are rewritten here
   // (vercel.json): the Hobby plan allows 12 functions per deploy, so they share this one.
   if (req.query.op === "upload-url") return uploadUrlHandler(req, res);
   if (req.query.op === "domain-search") return domainSearchHandler(req, res);
   if (req.query.op === "domain-status") return domainStatusHandler(req, res);
+  if (req.query.op === "site-health") return siteHealthHandler(req, res);
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
   const { data: auth } = await db.auth.getUser(token);
@@ -169,6 +172,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .single();
   if (insErr || !payment) {
     console.error("payment insert failed", insErr);
+    await captureError(new Error(insErr?.message ?? "payment insert failed"), "pay-checkout:insert");
     return res.status(500).json({ error: "Couldn’t start the payment — please try again." });
   }
 
@@ -186,6 +190,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ checkout_url: session.checkoutUrl });
   } catch (e) {
     console.error("checkout session failed", e);
+    await captureError(e, "pay-checkout:session", { payment: payment.id });
     await db.from("payments").update({ status: "failed", raw: { error: String(e) }, updated_at: new Date().toISOString() }).eq("id", payment.id);
     return res.status(502).json({ error: "Online payment isn’t available right now. Please try again in a few minutes, or message us." });
   }

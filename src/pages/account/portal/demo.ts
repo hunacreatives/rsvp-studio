@@ -75,6 +75,7 @@ function clientSnapshot(): PortalSnapshot {
       billing_address: null,
       notify_project_updates: true,
       notify_billing_updates: true,
+      notify_tips: true,
       password_changed_at: ago(92 * day),
     },
     projects: [

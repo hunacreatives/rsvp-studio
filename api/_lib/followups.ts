@@ -1,0 +1,120 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatHostNames } from "./hosts.js";
+import { followupEmail, type FollowupData, type FollowupKind } from "./followup-mail.js";
+import { FROM, STUDIO_INBOX, tipsToken } from "./support-mail.js";
+
+// The daily follow-up emails (supabase/followups.sql → followups_due()): unfinished
+// drafts, 10 RSVPs on a free site, the headcount a week before, and a thank-you after.
+// Each is claimed in followup_log BEFORE sending (one per project, ever) and released
+// if the send fails, so it's retried tomorrow. At most one per project per day.
+// Stops near the time limit; anything left waits for tomorrow's run.
+
+type SendMail = (payload: Parameters<typeof import("./email.js").sendChecked>[1], idempotencyKey?: string) => Promise<unknown>;
+type Due = { event_id: string; kind: FollowupKind; rsvps: number; guests: number; declined: number };
+
+const PRIORITY: Record<FollowupKind, number> = { headcount: 0, after: 1, rsvp_10: 2, draft_10: 3, draft_4: 4, draft_1: 5 };
+const MAX_PER_RUN = 60;
+
+type Content = {
+  hosts?: { name?: string }[];
+  eventDate?: string;
+  primaryLocation?: { name?: string; addressLine?: string };
+  galleries?: { items?: unknown[] }[];
+};
+
+export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site: string, opts: { deadline: number }) {
+  const report = { sent: 0, skipped: 0, errors: [] as string[] };
+  const { data, error } = await db.rpc("followups_due");
+  if (error) {
+    // followups.sql not run yet: nothing to do, not an error worth alerting on.
+    if (/followups_due/.test(error.message)) return report;
+    report.errors.push(`followups: ${error.message}`);
+    return report;
+  }
+  // One per project per day, the most time-sensitive first.
+  const byEvent = new Map<string, Due>();
+  for (const row of (data ?? []) as Due[]) {
+    const had = byEvent.get(row.event_id);
+    if (!had || PRIORITY[row.kind] < PRIORITY[had.kind]) byEvent.set(row.event_id, row);
+  }
+  const rows = [...byEvent.values()].sort((a, b) => PRIORITY[a.kind] - PRIORITY[b.kind]).slice(0, MAX_PER_RUN);
+  const bookingUrl = process.env.BOOKING_URL || null;
+
+  for (const row of rows) {
+    if (Date.now() > opts.deadline) break;
+    try {
+      const { data: ev } = await db.from("events").select("id, name, owner_id, event_date").eq("id", row.event_id).maybeSingle();
+      const { data: owner } = ev?.owner_id ? await db.from("profiles").select("id, email, full_name").eq("id", ev.owner_id).maybeSingle() : { data: null };
+      if (!ev || !owner?.email || owner.email === STUDIO_INBOX) {
+        report.skipped++;
+        continue;
+      }
+      // Claim it first: a second run (or a failure after sending) can't send it twice.
+      const { error: claimErr } = await db.from("followup_log").insert({ event_id: row.event_id, kind: row.kind });
+      if (claimErr) {
+        if (claimErr.code !== "23505") report.errors.push(`followup claim ${row.kind} ${row.event_id}: ${claimErr.message}`);
+        continue;
+      }
+
+      const { data: ws } = await db.from("wedding_sites").select("draft_content, published_content").eq("event_id", row.event_id).maybeSingle();
+      const content = ((ws?.published_content ?? ws?.draft_content) ?? {}) as Content;
+      const named = (content.hosts ?? []).some((h) => h.name?.trim());
+      const d: FollowupData = {
+        first: (owner.full_name ?? "").trim().split(/\s+/)[0] || "there",
+        eventId: row.event_id,
+        eventName: ev.name || "your event",
+        hosts: named ? formatHostNames(content) : ev.name || "your event",
+        eventDate: (ev.event_date as string | null) ?? (content.eventDate ? content.eventDate.slice(0, 10) : null),
+        rsvps: row.rsvps,
+        guests: row.guests,
+        declined: row.declined,
+        unsubscribeUrl: `${site}/api/notify?op=unsubscribe&t=${tipsToken(owner.id)}`,
+        bookingUrl,
+      };
+      if (row.kind.startsWith("draft_")) {
+        d.draft = {
+          names: named,
+          date: !!content.eventDate,
+          venue: !!content.primaryLocation?.name?.trim(),
+          photos: (content.galleries ?? []).some((g) => (g.items ?? []).length > 0),
+        };
+      }
+      if (row.kind === "rsvp_10") {
+        const { data: due } = await db.rpc("site_upgrade_due", { p_event: row.event_id });
+        const r = (Array.isArray(due) ? due[0] : due) as { premium?: boolean; due_centavos?: number } | null;
+        if (r?.premium) {
+          report.skipped++; // upgraded since the list was made
+          continue;
+        }
+        d.upgradePesos = r?.due_centavos ? r.due_centavos / 100 : null;
+      }
+      if (row.kind === "after") {
+        const { data: until } = await db.rpc("site_live_until", { p_event: row.event_id });
+        d.liveUntil = typeof until === "string" ? until : null;
+      }
+
+      const mail = followupEmail(row.kind, d);
+      try {
+        await sendMail(
+          {
+            from: FROM,
+            to: owner.email,
+            subject: mail.subject,
+            html: mail.html,
+            replyTo: STUDIO_INBOX,
+            // One-click unsubscribe (Gmail / Apple Mail show it next to the sender).
+            headers: { "List-Unsubscribe": `<${d.unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+          },
+          `followup-${row.kind}-${row.event_id}`,
+        );
+        report.sent++;
+      } catch (e) {
+        await db.from("followup_log").delete().eq("event_id", row.event_id).eq("kind", row.kind); // try again tomorrow
+        throw e;
+      }
+    } catch (e) {
+      report.errors.push(`followup ${row.kind} ${row.event_id}: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  return report;
+}

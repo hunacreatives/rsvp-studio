@@ -186,3 +186,26 @@ export function ratingButtons(origin: string, threadId: string) {
     `<a href="${origin}/rate?t=${t}&amp;r=${r}" style="display:inline-block;margin:0 6px 8px 0;border:1px solid #d9d9e3;border-radius:999px;padding:10px 16px;font-size:14px;color:#000727 !important;text-decoration:none;">${emoji} ${RATING_LABEL[r]}</a>`;
   return `<br><br><strong>How did we do?</strong><br><div style="padding-top:10px;">${btn("great", "😊")}${btn("okay", "😐")}${btn("not_good", "🙁")}</div>`;
 }
+
+// ---------------------------------------------------------------------------
+// Follow-up email unsubscribe links (api/notify.ts?op=unsubscribe). Signed per
+// person, no expiry: an old email's link still works.
+
+const tipsKey = () => createHash("sha256").update(`rsvp-tips:${process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""}`).digest();
+
+export function tipsToken(profileId: string) {
+  const payload = b64(Buffer.from(profileId));
+  const sig = b64(createHmac("sha256", tipsKey()).update(payload).digest().subarray(0, 18));
+  return `${payload}.${sig}`;
+}
+
+/** The person an unsubscribe link is for, if the link is genuine. */
+export function readTipsToken(token: string): string | null {
+  const [payload, sig] = (token || "").split(".");
+  if (!payload || !sig) return null;
+  const want = createHmac("sha256", tipsKey()).update(payload).digest().subarray(0, 18);
+  const got = Buffer.from(sig, "base64url");
+  if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
+  const id = Buffer.from(payload, "base64url").toString();
+  return /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+}

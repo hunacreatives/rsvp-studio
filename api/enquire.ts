@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, esc, isEmail, sendChecked } from "./_lib/email.js";
+import { enquiryReceipt } from "./_lib/enquiry-mail.js";
+import { captureError } from "./_lib/sentry.js";
 
 // The site's contact forms: the project inquiry, the partner inquiry, and the FAQ
 // page's "Ask a question". Every submission is saved (`enquiries`, see
@@ -114,7 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     budget -= bytes;
   }
 
-  const { heading, icon, receipt } = FORMS[form];
+  const { heading, icon } = FORMS[form];
   const { error: saveError } = await supabaseAdmin.from("enquiries").insert({
     form,
     name,
@@ -152,21 +154,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       send({
         from: FROM,
         to: email,
-        subject: `We’ve received your ${receipt} — The RSVP Studio`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #4a4a4a;">
-            <p style="font-size: 40px; text-align: center; margin: 0 0 8px;">${icon}</p>
-            <h2 style="text-align: center; color: #333333; font-size: 22px; margin: 0 0 4px;">Thank you, ${esc(name.split(" ")[0])}.</h2>
-            <p style="text-align: center; color: #8a8478; font-size: 14px; margin: 0 0 28px;">
-              We’ve received your ${receipt} and will reply within 1 business day (Monday to Friday, Philippine time).
-            </p>
-            <div style="border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
-              <p style="font-size: 12px; color: #9a9a9a; line-height: 1.7; margin: 0;">
-                The RSVP Studio — digital invitations, event websites and stationery for weddings, birthdays and every celebration.
-              </p>
-            </div>
-          </div>
-        `,
+        // Branded receipt (api/_lib/enquiry-mail.ts): an RSVP reply card + things to browse while they wait.
+        ...enquiryReceipt(form, values, name),
+        replyTo: TO,
       }),
     ]);
 
@@ -175,6 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ ok: true, omitted });
   } catch (err) {
     console.error("Resend error:", err);
+    await captureError(err, "enquire");
     return res.status(500).json({ error: "Failed to send inquiry" });
   }
 }

@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { clean, esc, isEmail, normalizePhone, safeMapUrl, sendChecked } from "./_lib/email.js";
 import { formatHostNames, hostRecipients } from "./_lib/hosts.js";
 import { claimRsvpEmails, isPremium } from "./_lib/rsvp-budget.js";
+import { captureError } from "./_lib/sentry.js";
 
 // One RSVP endpoint for every event site. Which table to write to and the
 // email copy are resolved server-side from `slug` — never trusted from the
@@ -189,6 +190,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : await supabaseAdmin.from(table).insert(legacy ? { ...row, email } : { ...row, event_id: site.event_id });
   if (write.error) {
     console.error("RSVP write error:", write.error);
+    await captureError(new Error(write.error.message), "wedding-rsvp:write", { table });
     res.status(500).json({ error: "Failed to save RSVP" });
     return;
   }

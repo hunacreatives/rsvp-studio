@@ -60,6 +60,7 @@ export default [
         JSX: 'readonly',
         IdleRequestCallback: 'readonly',
         __BASE_PATH__: 'readonly',
+        __RELEASE__: 'readonly',
         __IS_PREVIEW__: 'readonly',
         __READDY_PROJECT_ID__: 'readonly',
         __READDY_VERSION_ID__: 'readonly',

@@ -158,9 +158,12 @@ export function SuccessCard({
   title,
   message,
   note,
+  children,
 }: {
   title: string;
   message: string;
+  /** Actions under it (e.g. "Book a call"). */
+  children?: ReactNode;
   /** An extra line under the message (e.g. files that couldn't be attached). */
   note?: ReactNode;
 }) {
@@ -174,6 +177,7 @@ export function SuccessCard({
       </h2>
       <p className="mt-2 text-sm text-[var(--slate)]">{message}</p>
       {note ? <p className="mx-auto mt-4 max-w-md text-sm text-[var(--ink)]">{note}</p> : null}
+      {children}
     </div>
   );
 }

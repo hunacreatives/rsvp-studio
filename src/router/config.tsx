@@ -23,6 +23,7 @@ import Terms from "../pages/legal/terms";
 const RatePage = lazy(() => import("../pages/rate/page"));
 const BlogPost = lazy(() => import("../pages/blog/post"));
 const StudioBlog = lazy(() => import("../pages/studio/pages/BlogPage"));
+const StudioRevenue = lazy(() => import("../pages/studio/pages/RevenuePage"));
 const PartnerLink = lazy(() => import("../pages/partners/PartnerLink"));
 const PortalPartner = lazy(() => import("../pages/account/portal/pages/PartnerPage"));
 const StudioPartners = lazy(() => import("../pages/studio/pages/PartnersPage"));
@@ -56,6 +57,7 @@ const PublicEventSitePage = lazy(() => import("../pages/wedding-sites/public/Pub
 const BuilderShellPage = lazy(() => import("../pages/wedding-sites/builder/BuilderShellPage"));
 const TemplateGalleryPage = lazy(() => import("../pages/wedding-sites/builder/TemplateGalleryPage"));
 const BuildLandingPage = lazy(() => import("../pages/wedding-sites/builder/BuildLandingPage"));
+const TemplatePreviewPage = lazy(() => import("../pages/wedding-sites/public/TemplatePreviewPage"));
 
 const routes: RouteObject[] = [
   { path: "/", element: <Home /> },
@@ -107,6 +109,7 @@ const routes: RouteObject[] = [
       { path: "leads", element: <StudioLeads /> },
       { path: "partners", element: <StudioPartners /> },
       { path: "blog", element: <StudioBlog /> },
+      { path: "revenue", element: <StudioRevenue /> },
       { path: "invoices", element: <StudioInvoices /> },
       { path: "clients", element: <StudioClients /> },
       { path: "team", element: <StudioTeam /> },
@@ -118,6 +121,7 @@ const routes: RouteObject[] = [
   },
   { path: "/invite/:slug", element: <PublicEventSitePage /> },
   { path: "/build", element: <BuildLandingPage /> },
+  { path: "/build/preview/:templateId", element: <TemplatePreviewPage /> },
   { path: "/account/events/:eventId/site-builder", element: <TemplateGalleryPage /> },
   { path: "/account/events/:eventId/site-builder/edit", element: <BuilderShellPage /> },
   // Dev-only harness for building/QA-ing event-site templates against

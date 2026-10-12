@@ -14,6 +14,8 @@ export type Profile = {
   billing_address: string | null;
   notify_project_updates: boolean;
   notify_billing_updates: boolean;
+  /** Follow-up emails: draft reminders, headcount, after the event (supabase/followups.sql). */
+  notify_tips?: boolean;
   password_changed_at: string | null;
 };
 

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/pages/home/components/Navbar";
 import { type TemplateArchetype, type TemplateDefinition } from "../engine/registry";
@@ -137,6 +137,17 @@ export default function TemplateGalleryPage() {
   const subtitle = `${EVENT_TYPE_LABEL[eventType ?? ""] ?? "Event"} Website`;
   const archetypes = Array.from(new Set(templates.map((t) => t.archetype)));
   const visibleTemplates = templates.filter((t) => archetypeFilter === "all" || t.archetype === archetypeFilter);
+
+  // Picked on /build before the event existed (?template=…): choose it straight away.
+  const [params] = useSearchParams();
+  const preselect = params.get("template");
+  const preselected = useRef(false);
+  useEffect(() => {
+    if (preselected.current || !preselect || status !== "ready" || !templates.some((t) => t.id === preselect)) return;
+    preselected.current = true;
+    void chooseTemplate(preselect);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselect, status, templates]);
 
   async function chooseTemplate(templateId: string) {
     // Saving can take a moment on mobile data: show "Opening…" and ignore repeat taps.

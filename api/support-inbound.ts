@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { emailRepliesOn, makeSendMail } from "./_lib/support-mail.js";
 import { processInbound } from "./_lib/support-inbound.js";
+import { captureError } from "./_lib/sentry.js";
 
 // Resend webhook: "email.received" for replies to sup-<n>.<key>@reply.thersvpstudio.com.
 // Web-standard handler so the raw body is available — the signature check needs it byte for byte.
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
     return Response.json(result);
   } catch (e) {
     console.error("support-inbound failed", event.data.email_id, e);
+    await captureError(e, "support-inbound", { email: event.data.email_id });
     return Response.json({ error: "Processing failed — will retry" }, { status: 500 });
   }
 }

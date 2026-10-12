@@ -290,7 +290,7 @@ export async function deleteHoliday(day: string) {
   await loadHolidays(true);
 }
 
-export type JobRun = { job: string; last_run_at: string; details: { reminders?: number; closed?: number; digest?: boolean; errors?: string[] } | null };
+export type JobRun = { job: string; last_run_at: string; details: { reminders?: number; closed?: number; digest?: boolean; followups?: number; errors?: string[] } | null };
 
 export async function loadJobRun(job = "support-daily") {
   const { data } = await supabase.from("support_job_runs").select("job, last_run_at, details").eq("job", job).maybeSingle();
@@ -596,4 +596,44 @@ export async function loadBookingDiscount(eventId: string): Promise<{ pct: numbe
   if (error) return null;
   const row = Array.isArray(data) ? data[0] : data;
   return row ? { pct: Number(row.pct ?? 0), reason: row.reason ?? null, partnerCode: row.partner_code ?? null } : { pct: 0, reason: null, partnerCode: null };
+}
+
+// ── Revenue (owner only, supabase/revenue-report.sql) ───────────────────────
+export type RevenueItem = { paid_at: string; source: "package" | "premium" | "domain" | "renewal"; amount: number; cost: number; commission: number; event_id: string | null; label: string | null; method: string | null };
+/** null = not allowed (not the owner) or the report isn't set up yet. */
+export async function loadRevenue(from: Date, to: Date): Promise<RevenueItem[] | null> {
+  const { data, error } = await supabase.rpc("revenue_items", { p_from: from.toISOString(), p_to: to.toISOString() });
+  if (error) return null;
+  return ((data ?? []) as RevenueItem[]).map((r) => ({ ...r, amount: Number(r.amount), cost: Number(r.cost), commission: Number(r.commission) }));
+}
+export async function loadPayouts(from: Date, to: Date): Promise<{ paid_at: string; amount: number; partner: string; note: string | null }[]> {
+  const d = (x: Date) => x.toISOString().slice(0, 10);
+  const { data } = await supabase.rpc("revenue_payouts", { p_from: d(from), p_to: d(to) });
+  return ((data ?? []) as { paid_at: string; amount: number; partner: string; note: string | null }[]).map((r) => ({ ...r, amount: Number(r.amount) }));
+}
+
+let ownerCheck: Promise<boolean> | null = null;
+/** Is the signed-in staff member the owner? (Revenue is owner-only.) Cached per page load. */
+export function isOwner(): Promise<boolean> {
+  ownerCheck ??= Promise.resolve(supabase.rpc("is_owner")).then(({ data }) => data === true);
+  return ownerCheck;
+}
+
+// ── Site health (Sentry errors + UptimeRobot; api/_lib/health-handler.ts) ──────
+export type HealthIssue = { id: string; shortId: string; title: string; culprit: string; count: number; users: number; firstSeen: string; lastSeen: string; level: string; url: string };
+export type HealthMonitor = { name: string; url: string; status: "up" | "down" | "paused" | "pending"; uptime30: number | null };
+export type SiteHealth = {
+  sentry: { configured: false } | { configured: true; issues: HealthIssue[]; allUrl?: string; error?: string };
+  uptime: { configured: false } | { configured: true; monitors: HealthMonitor[]; dashboardUrl?: string; error?: string };
+};
+/** null = couldn't load (offline, or the API isn't deployed yet). */
+export async function loadSiteHealth(): Promise<SiteHealth | null> {
+  const { data } = await supabase.auth.getSession();
+  try {
+    const res = await fetch("/api/site-health", { headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` } });
+    if (!res.ok) return null;
+    return (await res.json()) as SiteHealth;
+  } catch {
+    return null;
+  }
 }

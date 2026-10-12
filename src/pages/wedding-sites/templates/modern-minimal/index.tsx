@@ -4,6 +4,7 @@ import { defaultSectionVisibility } from "../../presentation/types";
 import { defaultPaletteId } from "../../presentation/palettes";
 import { defaultFontPairingId } from "../../presentation/fontPairings";
 import ModernMinimalTemplate from "./ModernMinimalTemplate";
+import { isabellaAndMateo } from "../../content/fixtures/isabella-and-mateo";
 
 // No template-specific settings extension needed — Modern Minimal's
 // entire identity is "no extra knobs," so BaseTemplateSettings alone is
@@ -22,4 +23,6 @@ export const modernMinimalTemplateDefinition: TemplateDefinition<BaseTemplateSet
   component: ModernMinimalTemplate,
   defaultSettings,
   tier: "free",
+  // Sample couple for the /build gallery and preview page.
+  demoContent: isabellaAndMateo,
 };

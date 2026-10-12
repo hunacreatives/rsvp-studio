@@ -28,7 +28,6 @@ export default function TemplatesPage() {
     <>
       <StudioHeader
         title="Templates"
-        sub="Everything in the Build Your Website gallery. Upload a design to add one — no developer needed."
         action={
           <div className="flex flex-wrap gap-2">
             <PillButton className="!px-5 !py-2.5" onClick={() => navigate("/studio/templates/new")} disabled={demo || !!error}>
@@ -155,7 +154,7 @@ function SitePricesCard() {
       <div className="flex flex-wrap items-end gap-4">
         <div className="w-full sm:w-auto sm:min-w-[220px] sm:flex-1">
           <p className="text-[15px] font-semibold text-[var(--ink)]">Price to publish a DIY website</p>
-          <p className="text-[13px] text-[var(--slate)]">Customers pay once, by GCash, Maya, card or QR Ph, before their site goes live. ₱0 = free. Every site shows “Made with love by The RSVP Studio”. Free sites get one RSVP summary email a day; Premium emails the hosts for every RSVP, and its price is also what a free site pays to upgrade. Studio projects never pay.</p>
+          <p className="text-[13px] text-[var(--slate)]">Paid once, before going live. ₱0 = free.</p>
           {unset ? <p className="mt-1 text-[13px] font-medium text-[#8a5a00]">Both are ₱0 — anyone can publish for free until you set a price.</p> : null}
         </div>
         <label className="min-w-0 flex-1 text-[14px] text-[var(--ink)] sm:flex-none md:text-[13px]">

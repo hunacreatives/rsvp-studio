@@ -9,6 +9,8 @@ import { useCreateEvent, type CreateEventInput, type EventType } from "../useCre
 
 interface CreateEventModalProps {
   onClose: () => void;
+  /** Picked on /build: the builder opens with this design already chosen. */
+  templateId?: string;
 }
 
 const EVENT_TYPES: { type: EventType; label: string; icon: string }[] = [
@@ -23,7 +25,7 @@ const EVENT_TYPES: { type: EventType; label: string; icon: string }[] = [
 // site draft immediately (see useCreateEvent) and lands on the template
 // gallery — never publishes anything, matching the non-destructive
 // selection rule used everywhere else in the builder.
-export default function CreateEventModal({ onClose }: CreateEventModalProps) {
+export default function CreateEventModal({ onClose, templateId }: CreateEventModalProps) {
   const [eventType, setEventType] = useState<EventType | null>(null);
   const { createEvent, status, errorDetail } = useCreateEvent();
   const navigate = useNavigate();
@@ -56,7 +58,7 @@ export default function CreateEventModal({ onClose }: CreateEventModalProps) {
   async function handleSubmit(input: CreateEventInput) {
     const eventId = await createEvent(input);
     if (eventId) {
-      navigate(`/account/events/${eventId}/site-builder`);
+      navigate(`/account/events/${eventId}/site-builder${templateId ? `?template=${encodeURIComponent(templateId)}` : ""}`);
     } else {
       // The database said no (a project was made in another tab): show the choice.
       setFreeProjects(await api.myFreeProjects());

@@ -18,8 +18,9 @@ function devApi(): Plugin {
       for (const [k, v] of Object.entries(loadEnv(server.config.mode, process.cwd(), ""))) process.env[k] ??= v;
       server.middlewares.use(async (req, res, next) => {
         let name = req.url?.match(/^\/api\/([\w-]+)/)?.[1];
-        // Rewritten on Vercel (vercel.json); mirrored here so local uploads work.
-        const op = name === "media-upload" ? "upload-url" : null;
+        // Rewritten on Vercel (vercel.json); mirrored here so local uploads and the
+        // Studio's site-health card work.
+        const op = name === "media-upload" ? "upload-url" : name === "site-health" ? "site-health" : null;
         if (op) name = "pay-checkout";
         if (!name || (!DEV_API.includes(name) && !op)) return next();
         try {
@@ -49,6 +50,7 @@ function devApi(): Plugin {
 export default defineConfig({
   define: {
     __BASE_PATH__: JSON.stringify(base),
+    __RELEASE__: JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 12)),
   },
   plugins: [
     devApi(),

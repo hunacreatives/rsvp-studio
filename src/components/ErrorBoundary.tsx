@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { reportError } from "@/lib/errorReport";
 
 // A crash in one page shows a calm message instead of a blank screen. Going to
 // another page (a new resetKey) clears it — without rebuilding the pages that
@@ -15,6 +16,7 @@ export default class ErrorBoundary extends Component<Props, { failed: boolean }>
 
   componentDidCatch(error: unknown) {
     console.error("Page crashed:", error);
+    reportError(error, { via: "page crash" });
     // After a new deploy, an open tab can ask for a page file that no longer exists.
     // Reload once to pick up the new version instead of showing an error.
     const msg = error instanceof Error ? error.message : String(error);
