@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { esc, isEmail } from "./_lib/email.js";
-import { customerReplyTo, reqCode, FROM, layout, makeSendMail, ratingButtons, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
+import { customerReplyTo, reqCode, FROM, firstName, layout, partnerLayout, makeSendMail, ratingButtons, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
 import { customerMessageEmails } from "./_lib/support-notify.js";
 import { sendInvoiceEmail } from "./_lib/billing-mail.js";
 
@@ -28,6 +28,8 @@ type Person = {
 const PERSON_COLS = "id, full_name, email, is_staff, billing_email, notify_project_updates, notify_billing_updates";
 
 const sendMail = makeSendMail(resendClient);
+// Partner links always point at the live site, even when sent from a preview or localhost.
+const SITE_ORIGIN = (origin: string) => (/localhost|vercel\.app/.test(origin) ? "https://thersvpstudio.com" : origin);
 
 async function recipientsFor(eventId: string | null, extraProfileId: string | null, pref: "notify_project_updates" | "notify_billing_updates") {
   const ids = new Set<string>();
@@ -53,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!caller) return res.status(401).json({ error: "No profile" });
 
   const origin = `https://${req.headers["x-forwarded-host"] ?? req.headers.host}`;
-  const body = req.body as { kind: string; note?: string | null; code?: string; email?: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string };
+  const body = req.body as { kind: string; partnerId?: string; note?: string | null; code?: string; email?: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string };
   const sends: Promise<unknown>[] = [];
 
   try {
@@ -186,6 +188,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           replyTo: STUDIO_INBOX,
         }),
       );
+    } else if (body.kind === "partner_welcome" && body.partnerId && caller.is_staff) {
+      // Studio → Partners: "You're an RSVP Studio partner" — code, link, tiers, how to log in.
+      const { data: pa } = await supabaseAdmin.from("partners").select("id, code, kind, name, email, discount, rate_mode, rate, active").eq("id", body.partnerId).maybeSingle();
+      if (!pa?.email || !isEmail(pa.email)) return res.status(400).json({ error: "Add their email first." });
+      if (!pa.active) return res.status(400).json({ error: "This partner is paused." });
+      const { data: tierRows } = await supabaseAdmin.rpc("partner_tier", { p_code: pa.code });
+      const tier = (Array.isArray(tierRows) ? tierRows[0] : tierRows) as { tier: string; rate: number } | null;
+      const { data: existing } = await supabaseAdmin.from("profiles").select("id").ilike("email", pa.email).maybeSingle();
+      const link = `${SITE_ORIGIN(origin)}/p/${pa.code}`;
+      const dash = `${origin}/?auth=${existing ? "signin" : "signup"}&email=${encodeURIComponent(pa.email)}&next=${encodeURIComponent("/account/partner")}`;
+      const tiers = pa.rate_mode === "custom"
+        ? `<p style="margin:0">You earn <strong>${Number(pa.rate)}%</strong> of what each client you send pays us.</p>`
+        : `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:6px 0;margin:4px -6px 0;"><tr>${[
+            ["Starter", 10, "From your first client", "#e4f4fb", "#0d5a75"],
+            ["Silver", 15, "After 5 paying clients", "#eceff4", "#4a5568"],
+            ["Gold", 20, "After 15 paying clients", "#fdf1cf", "#7a5a00"],
+          ]
+            .map(([n, r, w, bg, ink]) => `<td width="33%" valign="top" style="background:${bg};border-radius:14px;padding:12px 12px;color:${ink} !important;font-family:Inter,Arial,sans-serif;"><div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;">${n}</div><div style="font-family:Georgia,serif;font-size:26px;line-height:1.2;">${r}%</div><div style="font-size:12px;">${w}</div></td>`)
+            .join("")}</tr></table>`;
+      sends.push(
+        sendMail({
+          from: FROM,
+          to: pa.email,
+          subject: "You’re on the list — welcome to The RSVP Studio partners",
+          html: partnerLayout(
+            SITE_ORIGIN(origin),
+            `You’re on the list, ${firstName(pa.name)}.`,
+            `Consider this your invitation to our partner program. Share your code with ${pa.kind === "influencer" ? "your followers" : "the couples and celebrants you work with"}: they get <strong>${Number(pa.discount)}% off</strong> their event website or package, and you earn a share of every booking.<br><br>
+            <strong>Your code</strong><br>
+            <span style="display:inline-block;margin:8px 0 4px;padding:10px 18px;border-radius:12px;background:#f5f5f2;font-family:Georgia,serif;font-size:22px;letter-spacing:.1em;color:#000727;">${esc(pa.code)}</span><br>
+            <strong>Your link:</strong> <a href="${link}" style="color:#2f61d5;">${esc(link.replace(/^https:\/\//, ""))}</a><br><br>
+            ${pa.rate_mode === "custom" ? "" : `The more people you send, the more you earn${tier && tier.tier !== "custom" ? ` (you’re on <strong>${esc(tier.tier[0].toUpperCase() + tier.tier.slice(1))}</strong>)` : ""}:<br><br>`}${tiers}<br>
+            <strong>Your partner dashboard</strong> keeps the guest list: link visits, sign-ups, bookings and what you’ve earned. ${existing ? "Log in" : "Create your account"} with <strong>${esc(pa.email)}</strong>, or “Sign in with Google” using that address, then open <strong>Partner</strong>.`,
+            { label: "Open your partner dashboard", url: dash },
+            "You’re receiving this because you joined The RSVP Studio partner program. Questions? Just reply to this email.",
+          ),
+          replyTo: STUDIO_INBOX,
+        }),
+      );
+      await supabaseAdmin.from("partners").update({ welcomed_at: new Date().toISOString() }).eq("id", pa.id);
     } else if ((body.kind === "staff_invite" && body.inviteId) || (body.kind === "staff_added" && body.profileId)) {
       // Team emails: only the owner can trigger them (supabase/team-roles.sql).
       const { data: me } = await supabaseAdmin.from("profiles").select("staff_role").eq("id", caller.id).maybeSingle();

@@ -21,7 +21,7 @@ const META: [RegExp, string, string?][] = [
   [/^\/enquire/, `Get a Quote — ${SITE}`, "Tell us about your celebration and we’ll reply within 1 business day."],
   [/^\/build/, `Make Your Own Event Website — ${SITE}`, "Pick a design, add your details and photos, and share one link with your guests."],
   [/^\/blog$/, `The Journal — ${SITE}`, "Ideas, guides and stories on invitations, events, and everything in between."],
-  [/^\/partners$/, `Partner Program — ${SITE}`, "Planners, coordinators and creators: send us your people, they get 20% off and you earn 20%."],
+  [/^\/partners$/, `Partner Program — ${SITE}`, "Planners, coordinators and creators: send us your people, they get 10% off and you earn up to 20%."],
   [/^\/privacy/, `Privacy Policy — ${SITE}`],
   [/^\/terms/, `Terms of Service — ${SITE}`],
   [/^\/account/, `Your Dashboard — ${SITE}`],

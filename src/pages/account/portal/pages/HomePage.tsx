@@ -6,6 +6,7 @@ import { ActivityList, isOverdue, PlanningBanner, ProjectCard, TaskList } from "
 import { formatDate, formatMoney } from "../format";
 import NewProjectModal from "../components/NewProjectModal";
 import { EmptyState, PrimaryButton, SectionTitle } from "../ui";
+import PartnerStrip from "../components/PartnerStrip";
 
 export default function HomePage() {
   const { projects, tasks, activity } = usePortal();
@@ -26,6 +27,7 @@ export default function HomePage() {
   return (
     <>
       <PageHeader title="Your Projects" />
+      <PartnerStrip />
       <NeedsAttention />
 
       {projects.length === 0 ? (

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { lenisRef } from "@/lib/lenis";
 import { setRememberLogin, supabase } from "@/lib/supabase";
 import { rememberAuthNext } from "@/lib/authNext";
+import { GoogleButton } from "@/lib/googleSignIn";
 import { BLUE_LAYOUT, BUBBLE_LAYOUT, CHARACTER_BLINK as BLINK, CHARACTER_EYES as EYES, CHARACTER_LAYOUT, CHARACTER_MOUTH as MOUTH } from "@/components/CharacterLoader";
 
 /**
@@ -253,12 +254,56 @@ const MOVE: Record<string, string> = {
   green: "rs-sway 2.6s ease-in-out -0.3s infinite",
 };
 const CHARACTERS = CHARACTER_LAYOUT.map((c) => ({ ...c, move: MOVE[c.name] }));
+/** Where each character's speech bubble points up to (% across the illustration). */
+// …in the speaker's own colour, so it's clear who's talking.
+const SAY_AT: Record<string, { x: number; y: number; bg: string; ink: string }> = {
+  purple: { x: 11, y: 66, bg: "#A371C6", ink: "#FFFFFF" },
+  pink: { x: 26, y: 51, bg: "#F7ADD1", ink: "#0E0E2C" },
+  hexagon: { x: 67, y: 46, bg: "#F66112", ink: "#FFFFFF" },
+  orange: { x: 47, y: 69, bg: "#F4A230", ink: "#0E0E2C" },
+  green: { x: 84, y: 74, bg: "#42A363", ink: "#FFFFFF" },
+};
 
-/** Said (shown) when someone presses Log in / Create account or switches forms. */
+/** "Do it!": shown when someone hovers the Log in / Create account button. */
 export const CHEER_EVENT = "rs-auth-cheer";
 /** "Do it!": on hover just the shout; on click the whole group hops too. */
 const cheer = (hop = true) => window.dispatchEvent(new CustomEvent(CHEER_EVENT, { detail: { hop } }));
 const hoverCheer = () => cheer(false);
+
+/**
+ * A wrong password: one of the characters says something about it — a different
+ * character and line each time; from the third try on, they suggest Forgot password.
+ * (Phones don't show the characters, so the line becomes the error message there.)
+ */
+export const OOPS_EVENT = "rs-auth-oops";
+type Speaker = "pink" | "hexagon" | "purple" | "orange" | "green";
+const OOPS: { who: Speaker; text: string }[] = [
+  { who: "hexagon", text: "Hmm, that password didn’t work." },
+  { who: "pink", text: "So close. Try that password again?" },
+  { who: "purple", text: "Typos happen. Give the password another go." },
+  { who: "green", text: "Oops, not quite the right password." },
+  { who: "orange", text: "Wrong password. Is Caps Lock on, maybe?" },
+  { who: "pink", text: "Not that one. Take your time, we’ll wait." },
+  { who: "hexagon", text: "That password and email don’t match." },
+];
+const OOPS_FORGOT: { who: Speaker; text: string }[] = [
+  { who: "orange", text: "Maybe it’s time for “Forgot password?”" },
+  { who: "green", text: "No worries. “Forgot password?” will sort it out." },
+  { who: "purple", text: "Let’s reset it. Tap “Forgot password?” below." },
+];
+let oopsSeen: number[] = [];
+function oopsLine(tries: number, lastWho: Speaker | null) {
+  if (tries >= 3) return OOPS_FORGOT[(tries - 3) % OOPS_FORGOT.length];
+  // A line not used yet, from a different character than last time.
+  let pool = OOPS.map((_, i) => i).filter((i) => !oopsSeen.includes(i) && OOPS[i].who !== lastWho);
+  if (!pool.length) {
+    oopsSeen = [];
+    pool = OOPS.map((_, i) => i).filter((i) => OOPS[i].who !== lastWho);
+  }
+  const i = pool[Math.floor(Math.random() * pool.length)];
+  oopsSeen.push(i);
+  return OOPS[i];
+}
 
 const CHARACTER_CSS = `
 @keyframes rs-bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-2.2%) } }
@@ -273,6 +318,10 @@ const CHARACTER_CSS = `
 @keyframes rs-blink2 { 0%, 90%, 94%, 100% { transform: scaleY(1) } 92%, 96% { transform: scaleY(0.08) } }
 @keyframes rs-hooray { 0%, 100% { transform: translateY(0) } 30% { transform: translateY(-4%) } 55% { transform: translateY(0) } 75% { transform: translateY(-1.5%) } }
 .rs-hooray { animation: rs-hooray .7s ease-out; }
+@keyframes rs-say { 0% { opacity: 0; transform: translate(-50%, -6%) scale(.5) } 8% { opacity: 1; transform: translate(-50%, 0) scale(1.06) } 13% { transform: translate(-50%, 0) scale(1) } 90% { opacity: 1; transform: translate(-50%, 0) } 100% { opacity: 0; transform: translate(-50%, 4%) } }
+.rs-say { animation: rs-say 4.2s ease-out forwards; }
+@keyframes rs-wince { 0%, 100% { transform: translateY(0) rotate(0) } 25% { transform: translateY(-1.5%) rotate(-4deg) } 50% { transform: translateY(0) rotate(3deg) } 75% { transform: rotate(-2deg) } }
+.rs-wince { animation: rs-wince .6s ease-in-out !important; }
 @keyframes rs-pop { 0% { opacity: 0; transform: translate(0, 10%) scale(.4) rotate(-8deg) } 18% { opacity: 1; transform: translate(0, 0) scale(1.08) rotate(3deg) } 28% { transform: scale(1) rotate(0) } 82% { opacity: 1 } 100% { opacity: 0; transform: translate(0, -12%) scale(.96) } }
 .rs-shout { animation: rs-pop 1.6s ease-out forwards; }
 @media (prefers-reduced-motion: reduce) { .rs-char, .rs-hooray, .rs-eye > span > span { animation: none !important; } .rs-eye > span, .rs-mouth { transition: none; } }
@@ -287,6 +336,18 @@ function Characters({ mode }: { mode: Mode }) {
   const root = useRef<HTMLDivElement>(null);
   const [shout, setShout] = useState(0);
   const [hop, setHop] = useState(0);
+  const [say, setSay] = useState<{ n: number; who: Speaker; text: string } | null>(null);
+  const sayingUntil = useRef(0);
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ who: Speaker; text: string }>).detail;
+      sayingUntil.current = Date.now() + 4200; // the bubble's on screen this long
+      setShout(0);
+      setSay((prev) => ({ n: (prev?.n ?? 0) + 1, who: d.who, text: d.text }));
+    };
+    window.addEventListener(OOPS_EVENT, on);
+    return () => window.removeEventListener(OOPS_EVENT, on);
+  }, []);
   const lastShout = useRef(0);
 
   // Eyes follow the pointer: each moves up to ~a third of its size toward it.
@@ -340,6 +401,8 @@ function Characters({ mode }: { mode: Mode }) {
   useEffect(() => {
     const on = (e: Event) => {
       const clicked = (e as CustomEvent<{ hop?: boolean }>).detail?.hop !== false;
+      // One voice at a time: no "Do it!" over a wrong-password line.
+      if (Date.now() < sayingUntil.current) return;
       // A hover doesn't restart a shout that's still on screen.
       if (!clicked && Date.now() - lastShout.current < 1500) return;
       lastShout.current = Date.now();
@@ -376,7 +439,7 @@ function Characters({ mode }: { mode: Mode }) {
       <style>{CHARACTER_CSS}</style>
       <div key={`hop-${hop}`} className={`absolute inset-0 ${hop ? "rs-hooray" : ""}`}>
         {CHARACTERS.map((c) => (
-          <div key={c.name} className="rs-char" data-face={c.name} style={{ animation: c.move, transformOrigin: c.origin }}>
+          <div key={c.name + (say?.who === c.name ? `-${say.n}` : "")} className={`rs-char ${say?.who === c.name ? "rs-wince" : ""}`} data-face={c.name} style={{ animation: c.move, transformOrigin: c.origin }}>
             {layer(c.name, c.x, c.y, c.w)}
             {face(c.name)}
           </div>
@@ -397,6 +460,31 @@ function Characters({ mode }: { mode: Mode }) {
           </div>
         </div>
       </div>
+      {say ? (
+        // Under the group (never over a face), its point aimed up at whoever's speaking.
+        <div
+          key={`say-${say.n}`}
+          className="rs-say absolute rounded-[14px] px-[3.6cqw] py-[2cqw] text-center"
+          style={{
+            left: `${Math.min(70, Math.max(30, SAY_AT[say.who].x))}%`,
+            top: "99%",
+            width: "56cqw",
+            background: SAY_AT[say.who].bg,
+            color: SAY_AT[say.who].ink,
+            fontWeight: 700,
+            fontSize: "4.6cqw",
+            lineHeight: 1.25,
+            boxShadow: "0 10px 24px -12px rgba(0,7,39,.45)",
+            zIndex: 5,
+          }}
+        >
+          {say.text}
+          <span
+            className="absolute"
+            style={{ left: `calc(50% + ${SAY_AT[say.who].x - Math.min(70, Math.max(30, SAY_AT[say.who].x))}cqw)`, top: "-1.5cqw", width: "3.4cqw", height: "3.4cqw", background: SAY_AT[say.who].bg, transform: "translateX(-50%) rotate(45deg)" }}
+          />
+        </div>
+      ) : null}
       {shout ? (
         <div
           key={`shout-${shout}`}
@@ -449,6 +537,10 @@ function AuthForm({
   // Known to be switched off in Supabase (staging): say so instead of failing at Google.
   const googleOff = providers !== null && providers.google !== true;
   const [unconfirmed, setUnconfirmed] = useState(false);
+  // Wrong-password tries in a row (the characters react; the third suggests Forgot password).
+  const [wrongTries, setWrongTries] = useState(0);
+  const lastSpeaker = useRef<Speaker | null>(null);
+  const showsCharacters = useIsDesktop();
   const [resent, setResent] = useState<"idle" | "sending" | "sent">("idle");
 
   // Re-send the "confirm your email" message (Supabase rate-limits this).
@@ -515,7 +607,8 @@ function AuthForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    cheer();
+    // No "Do it!" here: the answer (in, or a wrong-password line) is the reaction,
+    // so the two never collide.
     setError(null);
     setLoading(true);
 
@@ -527,6 +620,15 @@ function AuthForm({
         if (/email not confirmed/i.test(error.message)) {
           setUnconfirmed(true);
           return setError("Please confirm your email first — check your inbox for the link we sent.");
+        }
+        if (/invalid login credentials/i.test(error.message)) {
+          const tries = wrongTries + 1;
+          setWrongTries(tries);
+          const line = oopsLine(tries, lastSpeaker.current);
+          lastSpeaker.current = line.who;
+          window.dispatchEvent(new CustomEvent(OOPS_EVENT, { detail: line }));
+          // Phones don't show the characters: the line is the message there.
+          return setError(showsCharacters ? friendlyAuthError(error.message) : line.text);
         }
         return setError(friendlyAuthError(error.message));
       }
@@ -696,7 +798,12 @@ function AuthForm({
                 Remember me
               </label>
               {resetSent ? null : (
-                <button type="button" onClick={handleForgot} className="-mr-1 inline-flex min-h-[44px] items-center px-1 text-[14px] underline underline-offset-2 md:min-h-0 md:py-1 md:text-[12.5px]" style={{ color: "#0835FF" }}>
+                <button
+                  type="button"
+                  onClick={handleForgot}
+                  className={`-mr-1 inline-flex min-h-[44px] items-center rounded-full px-1 text-[14px] underline underline-offset-2 transition-colors md:min-h-0 md:py-1 md:text-[12.5px] ${wrongTries >= 3 ? "bg-[#fff3c4] px-2 font-semibold" : ""}`}
+                  style={{ color: "#0835FF" }}
+                >
                   Forgot password?
                 </button>
               )}
@@ -741,16 +848,29 @@ function AuthForm({
             {signin ? "Or sign in with" : "Or sign up with"}
             <span className="h-px flex-1" style={{ background: "rgba(0,0,0,0.15)" }} />
           </div>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => continueWith("google")}
-            className="mt-3 flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-[14px] py-2.5 text-[16px] font-medium transition-colors md:min-h-0 md:text-[14px] hover:bg-[#e2e3e6] disabled:opacity-60"
-            style={{ background: "#ECEDEF", border: `1px solid ${FIELD_BORDER}`, color: "var(--ink)" }}
-          >
-            <img src="/account/google-g.png" alt="" width={18} height={18} className="h-[18px] w-[18px]" />
-            {signin ? "Sign in with Google" : "Sign up with Google"}
-          </button>
+          {/* Google's own button, opened from our site (src/lib/googleSignIn.tsx); the
+              redirect version below is the fallback until the client id is set. */}
+          <GoogleButton
+            mode={signin ? "signin" : "signup"}
+            onStart={() => {
+              setError(null);
+              setRememberLogin(true);
+            }}
+            onSignedIn={onAuthed}
+            onError={setError}
+            fallback={
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => continueWith("google")}
+                className="mt-3 flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-[14px] py-2.5 text-[16px] font-medium transition-colors md:min-h-0 md:text-[14px] hover:bg-[#e2e3e6] disabled:opacity-60"
+                style={{ background: "#ECEDEF", border: `1px solid ${FIELD_BORDER}`, color: "var(--ink)" }}
+              >
+                <img src="/account/google-g.png" alt="" width={18} height={18} className="h-[18px] w-[18px]" />
+                {signin ? "Sign in with Google" : "Sign up with Google"}
+              </button>
+            }
+          />
       </>
 
       <p className="mt-3 text-center text-[14px] md:mt-5 md:text-[13px]" style={{ color: "var(--slate)" }}>

@@ -508,6 +508,21 @@ function InvoicesCard({ project }: { project: Project }) {
   const [due, setDue] = useState("");
   const [notes, setNotes] = useState("");
   const { busy, error, run } = useAction();
+  // 10% off a client's first booking, or for a partner referral (supabase/discounts.sql) — never both.
+  const [deal, setDeal] = useState<Awaited<ReturnType<typeof studio.loadBookingDiscount>>>(null);
+  const [dealApplied, setDealApplied] = useState(false);
+  useEffect(() => {
+    studio.loadBookingDiscount(project.id).then(setDeal);
+  }, [project.id, mine.length]);
+  const dealLine = deal?.reason === "partner" ? `${deal.pct}% referral discount (${deal.partnerCode})` : `${deal?.pct ?? 0}% first-booking discount`;
+  const takeDeal = () => {
+    const n = Number(amount);
+    if (!deal || !(n > 0)) return;
+    const off = Math.round(n * deal.pct) / 100;
+    setAmount(String(Math.round((n - off) * 100) / 100));
+    setNotes((t) => `${t.trim() ? `${t.trim()}\n` : ""}Includes ${dealLine}: ${formatMoney(off)} off ${formatMoney(n)}.`);
+    setDealApplied(true);
+  };
 
   return (
     <Card title="Invoices">
@@ -534,6 +549,16 @@ function InvoicesCard({ project }: { project: Project }) {
           <Field label="Amount (₱)"><Input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
           <Field label="Due date"><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
         </div>
+        {deal && deal.pct > 0 && deal.reason && !mine.some((i) => i.status === "paid") ? (
+          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-white px-4 py-3 text-[14px]">
+            <p className="min-w-0 flex-1 text-[var(--ink)]">
+              {deal.reason === "partner" ? `Referred by partner ${deal.partnerCode}: ` : "First booking: "}this client gets <strong>{deal.pct}% off</strong>. Take it off the package total once (e.g. on the first invoice).
+            </p>
+            <PillButton onClick={takeDeal} disabled={dealApplied || !(Number(amount) > 0)}>
+              {dealApplied ? "Applied" : `Take ${deal.pct}% off`}
+            </PillButton>
+          </div>
+        ) : null}
         <div className="mt-3">
           <Field label="Notes (optional, shown on the invoice)"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="!min-h-[60px]" /></Field>
         </div>
@@ -552,6 +577,7 @@ function InvoicesCard({ project }: { project: Project }) {
               setAmount("");
               setDue("");
               setNotes("");
+              setDealApplied(false);
             }
           }}
         >

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as api from "@/pages/account/portal/api";
 
 // "Have a referral code?" in the pay dialogs: a planner's or creator's code takes
@@ -55,5 +55,19 @@ export function ReferralCode({ eventId, onApplied }: { eventId: string | undefin
       </div>
       {state.kind === "error" ? <p style={{ margin: "8px 0 0", fontSize: 13, color: "#c2412d" }}>{state.text}</p> : null}
     </div>
+  );
+}
+
+/** Under a price: which discount is already in it (supabase/discounts.sql). */
+export function DiscountNote({ eventId, refreshKey }: { eventId: string | undefined; refreshKey?: unknown }) {
+  const [d, setD] = useState<{ pct: number; reason: "first" | "partner" | null } | null>(null);
+  useEffect(() => {
+    if (eventId) api.myEventDiscount(eventId).then(setD);
+  }, [eventId, refreshKey]);
+  if (!d || d.pct <= 0 || !d.reason) return null;
+  return (
+    <p style={{ margin: "8px 0 0", fontSize: 14, color: "#3d7a12" }}>
+      Includes {d.pct}% off {d.reason === "first" ? "your first payment" : "from your referral code"}.
+    </p>
   );
 }

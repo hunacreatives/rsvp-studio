@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
 import { Reveal } from "@/lib/Reveal";
 import { CharacterTrio } from "@/components/CharacterLoader";
+import { PARTNER_TIERS } from "@/pages/partners/tiers";
 import { DATE_INPUT, Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCard } from "./components/form-ui";
 import { todayISO } from "./today";
 import { HEAR_ABOUT } from "./occasions";
@@ -17,8 +19,8 @@ const PLATFORMS = ["Instagram", "TikTok", "Facebook", "YouTube", "Blog / website
 const FOLLOWERS = ["Under 5K", "5K – 20K", "20K – 100K", "100K+"];
 const PERKS = [
   { icon: "ri-coupon-3-line", title: "Your own code", desc: "A code and a short link, like thersvpstudio.com/p/YOURNAME." },
-  { icon: "ri-gift-2-line", title: "20% off for them", desc: "Everyone who uses your code gets 20% off their website or package." },
-  { icon: "ri-hand-coin-line", title: "20% for you", desc: "You earn 20% of what each person you send pays us, paid to your GCash or bank." },
+  { icon: "ri-gift-2-line", title: "10% off for them", desc: "Everyone who uses your code gets 10% off their website or package." },
+  { icon: "ri-hand-coin-line", title: "10–20% for you", desc: "You earn 10% of what each person you send pays us, rising to 15% and 20% as you send more." },
   { icon: "ri-line-chart-line", title: "Your own dashboard", desc: "See your link visits, sign-ups, bookings and earnings as they happen." },
 ];
 const LOOKING_FOR = [
@@ -32,7 +34,7 @@ const LOOKING_FOR = [
 const HOW_IT_WORKS = [
   { num: "01", title: "Apply", desc: "Tell us about your studio and your clients below. We’ll set up a short call to get to know each other." },
   { num: "02", title: "Get your code", desc: "You get your own referral code and link. Clients use it when they enquire or sign up, and it’s credited to you automatically." },
-  { num: "03", title: "Earn 20%", desc: "You earn 20% of what each client you send pays us for their project, paid to your GCash or bank once they’ve paid." },
+  { num: "03", title: "Earn up to 20%", desc: "You start at 10% of what each client you send pays us, and move up to 15% and 20% as more of them book. Paid to your GCash or bank once they’ve paid." },
 ];
 
 type Values = Record<string, string | string[]>;
@@ -53,6 +55,13 @@ export default function PartnerInquiry() {
 
   const specificEvent = getArr("looking_for").includes("Collaboration on a specific event");
   const creator = getStr("partner_type") === "Creator or influencer";
+  // The menu's two links (/partners and /partners?type=creator) switch the page's
+  // wording and the form, also when you're already here.
+  const { search } = useLocation();
+  const forCreators = new URLSearchParams(search).get("type") === "creator";
+  useEffect(() => {
+    setV((p) => ({ ...p, partner_type: forCreators ? "Creator or influencer" : "Planner or coordinator" }));
+  }, [forCreators]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,11 +90,19 @@ export default function PartnerInquiry() {
               className="mt-4 font-display font-semibold tracking-[-0.02em] text-[var(--ink)] text-balance"
               style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
             >
-              Send us your people. Earn 20%.
+              {forCreators ? "Share your code. Earn up to 20%." : "Send us your clients. Earn up to 20%."}
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-[var(--slate)] md:text-[17px]">
-              For event planners, coordinators and creators. The people you send get 20% off, and you
-              earn 20% of what they pay us.
+              {forCreators
+                ? "For creators and influencers who post about weddings, birthdays and celebrations. Your followers get 10% off their event website or package, and you earn 10% to 20% of what they pay us."
+                : "For event planners, coordinators and venues. The clients you send get 10% off, and you earn 10% to 20% of what they pay us."}
+            </p>
+            <p className="mt-4 text-[14px] text-[var(--slate)]">
+              {forCreators ? (
+                <Link to="/partners" className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-[var(--ink)]">Planner or coordinator? See the planner program</Link>
+              ) : (
+                <Link to="/partners?type=creator" className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-[var(--ink)]">Creator or influencer? See the creator program</Link>
+              )}
             </p>
             <CharacterTrio className="mx-auto mt-8 w-[200px] md:w-[240px]" />
           </div>
@@ -101,6 +118,29 @@ export default function PartnerInquiry() {
               </li>
             ))}
           </ul>
+        </section>
+
+        {/* The tiers */}
+        <section className="pb-4 pt-12" style={{ background: "var(--warm-white)" }}>
+          <div className="container-x mx-auto max-w-5xl">
+            <h2 className="text-center font-display text-[1.6rem] font-semibold text-[var(--ink)] md:text-[1.9rem]">Earn more as you go</h2>
+            <p className="mx-auto mt-2 max-w-xl text-center text-[15px] text-[var(--slate)] md:text-[16px]">
+              Your clients always get 10% off. Your share grows with every paying client you send, and once you reach a tier, it’s yours to keep.
+            </p>
+            <ol className="mt-8 grid gap-3 sm:grid-cols-3">
+              {PARTNER_TIERS.map((t) => (
+                <li key={t.id} className="rounded-[22px] px-6 py-6" style={{ background: t.bg, color: t.ink }}>
+                  <p className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.12em]">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.accent }} aria-hidden />
+                    {t.name}
+                  </p>
+                  <p className="mt-2 font-display text-[2.6rem] font-semibold leading-none">{t.rate}%</p>
+                  <p className="mt-3 text-[15px]">{t.at ? `After ${t.at} paying clients` : "From your first client"}</p>
+                  <p className="mt-1 text-[14px] opacity-80">₱{((20000 * 0.9 * t.rate) / 100).toLocaleString("en-PH")} on a ₱20,000 booking</p>
+                </li>
+              ))}
+            </ol>
+          </div>
         </section>
 
         <section className="scroll-mt-24 pb-24 pt-12" style={{ background: "var(--warm-white)" }}>

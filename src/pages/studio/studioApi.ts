@@ -503,6 +503,12 @@ export type PartnerRow = {
   active: boolean;
   notes: string | null;
   created_at: string;
+  rate_mode: "tiered" | "custom";
+  welcomed_at: string | null;
+  tier: "starter" | "silver" | "gold" | "custom";
+  tier_rate: number;
+  next_tier: string | null;
+  next_at: number | null;
   clicks: number;
   enquiries: number;
   signups: number;
@@ -512,10 +518,10 @@ export type PartnerRow = {
   paid_out: number;
   owed: number;
 };
-export type PartnerInput = Pick<PartnerRow, "code" | "kind" | "name" | "business" | "email" | "phone" | "handle" | "payout_details" | "rate" | "discount" | "active" | "notes">;
+export type PartnerInput = Pick<PartnerRow, "code" | "kind" | "name" | "business" | "email" | "phone" | "handle" | "payout_details" | "rate" | "discount" | "active" | "notes" | "rate_mode">;
 export type PartnerPersonRow = { kind: "enquiry" | "signup" | "project"; person: string; email: string | null; project: string | null; status: string; revenue: number; commission: number; created_at: string };
 
-const NUM_KEYS = ["rate", "discount", "clicks", "enquiries", "signups", "paying", "revenue", "commission", "paid_out", "owed"] as const;
+const NUM_KEYS = ["rate", "discount", "tier_rate", "clicks", "enquiries", "signups", "paying", "revenue", "commission", "paid_out", "owed"] as const;
 
 /** null = revenue.sql not run yet. */
 export async function loadPartners(): Promise<PartnerRow[] | null> {
@@ -523,7 +529,7 @@ export async function loadPartners(): Promise<PartnerRow[] | null> {
   if (error) return null;
   return ((data ?? []) as PartnerRow[]).map((r) => ({ ...r, ...Object.fromEntries(NUM_KEYS.map((k) => [k, Number(r[k] ?? 0)])) }));
 }
-export async function savePartner(id: string | null, p: PartnerInput) {
+export async function savePartner(id: string | null, p: PartnerInput): Promise<string> {
   const row = {
     code: p.code.trim().toUpperCase(),
     kind: p.kind,
@@ -534,12 +540,25 @@ export async function savePartner(id: string | null, p: PartnerInput) {
     handle: p.handle?.trim() || null,
     payout_details: p.payout_details?.trim() || null,
     rate: p.rate,
+    rate_mode: p.rate_mode ?? "tiered",
     discount: p.discount,
     active: p.active,
     notes: p.notes?.trim() || null,
   };
-  const { error } = id ? await supabase.from("partners").update(row).eq("id", id) : await supabase.from("partners").insert(row);
+  const { data, error } = id ? await supabase.from("partners").update(row).eq("id", id).select("id").single() : await supabase.from("partners").insert(row).select("id").single();
   if (error) throw new Error(/duplicate|unique/i.test(error.message) ? "That code is taken — pick another." : /code/i.test(error.message) ? "Codes are 3–20 letters or numbers." : "Couldn’t save the partner.");
+  return (data as { id: string }).id;
+}
+/** The branded welcome email (api/notify.ts → partner_welcome): code, link, tiers, how to log in. */
+export async function sendPartnerWelcome(partnerId: string) {
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch("/api/notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    body: JSON.stringify({ kind: "partner_welcome", partnerId }),
+  }).catch(() => null);
+  const out = (await res?.json().catch(() => ({}))) as { sent?: number; error?: string } | undefined;
+  if (!res?.ok || !out?.sent) throw new Error(out?.error ?? "Couldn’t send the welcome email — please try again.");
 }
 export async function loadPartnerPeople(partnerId: string): Promise<PartnerPersonRow[]> {
   const { data } = await supabase.rpc("partner_referrals", { p_partner: partnerId });
@@ -569,4 +588,12 @@ export async function setProjectPartner(id: string, code: string | null) {
     if (!(Array.isArray(data) ? data[0] : data)) throw new Error("No active partner has that code.");
   }
   must(await supabase.from("events").update({ partner_code: code ? code.toUpperCase() : null }).eq("id", id));
+}
+
+/** For the invoice form: does this project's client get 10% off, and why? null = not set up yet. */
+export async function loadBookingDiscount(eventId: string): Promise<{ pct: number; reason: "first" | "partner" | null; partnerCode: string | null } | null> {
+  const { data, error } = await supabase.rpc("booking_discount", { p_event: eventId });
+  if (error) return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  return row ? { pct: Number(row.pct ?? 0), reason: row.reason ?? null, partnerCode: row.partner_code ?? null } : { pct: 0, reason: null, partnerCode: null };
 }

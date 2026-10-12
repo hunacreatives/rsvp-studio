@@ -5,6 +5,7 @@ import CharacterLoader from "@/components/CharacterLoader";
 import * as api from "../api";
 import { usePortal } from "../PortalContext";
 import { formatDate, formatMoney } from "../format";
+import { PARTNER_TIERS } from "@/pages/partners/tiers";
 
 // /account/partner — a partner's own dashboard (supabase/revenue.sql → my_partner):
 // their code and link, what they've earned, and everyone they've brought in
@@ -53,16 +54,65 @@ function useCopy() {
 }
 
 // ?demo (dev): sample numbers, to see the page without a partner account.
-const DEMO: api.MyPartner = { code: "GELREYES", kind: "influencer", name: "Gel Reyes", rate: 20, discount: 20, active: true, clicks: 412, enquiries: 6, signups: 23, paying: 5, revenue: 21495, commission: 4299, paid_out: 2500, owed: 1799 };
+const DEMO: api.MyPartner = { code: "GELREYES", kind: "influencer", name: "Gel Reyes", rate: 10, discount: 10, active: true, tier: "starter", next_tier: "silver", next_at: 5, next_rate: 15, clicks: 412, enquiries: 6, signups: 23, paying: 3, revenue: 24175, commission: 2418, paid_out: 1500, owed: 918 };
 const DEMO_PEOPLE: api.PartnerPerson[] = [
-  { kind: "signup", person: "Trixia M.", status: "paid", revenue: 399, commission: 79.8, created_at: "2026-10-09T10:00:00Z" },
-  { kind: "enquiry", person: "Carlo D.", status: "converted", revenue: 6400, commission: 1280, created_at: "2026-10-04T10:00:00Z" },
+  { kind: "signup", person: "Trixia M.", status: "paid", revenue: 449, commission: 44.9, created_at: "2026-10-09T10:00:00Z" },
+  { kind: "enquiry", person: "Carlo D.", status: "converted", revenue: 7200, commission: 720, created_at: "2026-10-04T10:00:00Z" },
   { kind: "signup", person: "Nikki A.", status: "signed up", revenue: 0, commission: 0, created_at: "2026-10-02T10:00:00Z" },
   { kind: "enquiry", person: "Sophia R.", status: "contacted", revenue: 0, commission: 0, created_at: "2026-09-28T10:00:00Z" },
 ];
 
+
+function TierCard({ p }: { p: api.MyPartner }) {
+  if (p.tier === "custom")
+    return (
+      <section className="mt-6 rounded-[22px] border border-[var(--line)] bg-white px-5 py-4">
+        <p className="text-[15px] text-[var(--ink)]">
+          You’re on a custom rate: <strong>{p.rate}%</strong> of what each client pays.
+        </p>
+      </section>
+    );
+  const next = PARTNER_TIERS.find((t) => t.id === p.next_tier);
+  const cur = PARTNER_TIERS.find((t) => t.id === p.tier) ?? PARTNER_TIERS[0];
+  const prevAt = PARTNER_TIERS.find((t) => t.id === p.tier)?.at ?? 0;
+  const pct = next ? Math.min(100, Math.round(((p.paying - prevAt) / (next.at - prevAt)) * 100)) : 100;
+  return (
+    <section className="mt-6 rounded-[22px] px-5 py-5" style={{ background: cur.bg, color: cur.ink }}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-[15px]">
+          <span className="font-display text-[1.4rem] font-semibold">{cur.name}</span>
+          <span className="ml-2 opacity-80">· you earn {p.rate}%</span>
+        </p>
+        <p className="text-[14px] opacity-80">
+          {next ? `${Math.max(0, next.at - p.paying)} more paying ${next.at - p.paying === 1 ? "client" : "clients"} to ${next.name} (${next.rate}%)` : "Top tier — thank you"}
+        </p>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Progress to the next tier">
+        <div className="h-full rounded-full transition-[width]" style={{ width: `${pct}%`, background: (next ?? cur).accent }} />
+      </div>
+      <ol className="mt-4 grid grid-cols-3 gap-2 text-center">
+        {PARTNER_TIERS.map((t) => {
+          const reached = p.paying >= t.at;
+          return (
+            <li key={t.id} className="rounded-xl px-2 py-2.5" style={{ background: t.id === p.tier ? "#ffffff" : "transparent", opacity: reached ? 1 : 0.6 }}>
+              <p className="flex items-center justify-center gap-1.5 text-[14px] font-semibold" style={{ color: t.ink }}>
+                <span className="h-2 w-2 rounded-full" style={{ background: t.accent }} aria-hidden />
+                {t.name}
+              </p>
+              <p className="text-[13px]" style={{ color: t.ink }}>
+                {t.rate}% · {t.at ? `${t.at} paying` : "from the start"}
+              </p>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-3 text-[13px] opacity-80">A higher tier applies to clients who pay after you reach it. Once reached, a tier is yours to keep.</p>
+    </section>
+  );
+}
+
 export default function PartnerPage() {
-  const { demo } = usePortal();
+  const { demo, profile } = usePortal();
   const [partner, setPartner] = useState<api.MyPartner | null | undefined>(undefined);
   const [people, setPeople] = useState<api.PartnerPerson[] | null>(null);
   const [payouts, setPayouts] = useState<api.PartnerPayout[]>([]);
@@ -89,13 +139,18 @@ export default function PartnerPage() {
     return (
       <div className="mx-auto max-w-xl py-16 text-center">
         <CharacterTrio className="mx-auto w-[220px]" />
-        <h1 className="mt-8 font-display text-[1.9rem] font-semibold text-[var(--ink)]">Partner program</h1>
+        <h1 className="mt-8 font-display text-[1.9rem] font-semibold text-[var(--ink)]">This account isn’t a partner account</h1>
         <p className="mt-3 text-[16px] leading-relaxed text-[var(--slate)]">
-          Planners, coordinators and creators earn 20% of every booking they send us, and the people they send get 20% off. Already a partner? Log in with the email you gave us.
+          You’re logged in as <strong className="text-[var(--ink)]">{profile.email}</strong>. If you’re already a partner, log out and log back in with the email you gave us, or message us and we’ll update it.
         </p>
-        <Link to="/partners" className="btn btn-primary mt-7 inline-flex">
-          Become a partner
-        </Link>
+        <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link to="/account/help/contact" className="btn btn-primary inline-flex">
+            Message us
+          </Link>
+          <Link to="/partners" className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-medium text-[var(--ink)]">
+            Not a partner yet? Join the program <i className="ri-arrow-right-line" aria-hidden />
+          </Link>
+        </div>
       </div>
     );
 
@@ -117,7 +172,7 @@ export default function PartnerPage() {
             Your partner dashboard
           </h1>
           <p className="mt-2 max-w-[52ch] text-[16px] leading-relaxed text-[var(--slate)]">
-            Everyone who uses your code gets {partner.discount}% off, and you earn {partner.rate}% of what they pay us.
+            Everyone who uses your code gets {partner.discount}% off, and you earn {partner.rate}% of what they pay us{partner.tier === "custom" ? "" : ", more as you go up a tier"}.
           </p>
         </div>
         <CharacterTrio className="w-[200px] shrink-0 md:w-[240px]" />
@@ -143,10 +198,12 @@ export default function PartnerPage() {
         </div>
       </section>
 
+      <TierCard p={partner} />
+
       {/* Earnings */}
       <section className="mt-6 grid gap-3 sm:grid-cols-3">
         {[
-          { label: "You’ve earned", value: partner.commission, note: `${partner.rate}% of ${formatMoney(partner.revenue)}` },
+          { label: "You’ve earned", value: partner.commission, note: `From ${formatMoney(partner.revenue)} your clients paid` },
           { label: "Paid to you", value: partner.paid_out, note: payouts[0] ? `Last paid ${formatDate(payouts[0].paid_at)}` : "No payouts yet" },
           { label: "Coming to you", value: partner.owed, note: partner.owed > 0 ? "Paid to your GCash or bank" : "All settled" },
         ].map((s) => (

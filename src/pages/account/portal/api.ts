@@ -417,6 +417,11 @@ export type MyPartner = {
   rate: number;
   discount: number;
   active: boolean;
+  /** starter 10% · silver 15% (5 paying clients) · gold 20% (15) · custom (set by the studio) */
+  tier: "starter" | "silver" | "gold" | "custom";
+  next_tier: "silver" | "gold" | null;
+  next_at: number | null;
+  next_rate: number | null;
   clicks: number;
   enquiries: number;
   signups: number;
@@ -437,7 +442,8 @@ export function myPartner(fresh = false): Promise<MyPartner | null> {
       const row = !error && (Array.isArray(data) ? data[0] : data);
       if (!row) return null;
       const n = (k: string) => Number((row as Record<string, unknown>)[k] ?? 0);
-      return { ...(row as MyPartner), rate: n("rate"), discount: n("discount"), clicks: n("clicks"), enquiries: n("enquiries"), signups: n("signups"), paying: n("paying"), revenue: n("revenue"), commission: n("commission"), paid_out: n("paid_out"), owed: n("owed") };
+      const r = row as Record<string, unknown>;
+      return { ...(row as MyPartner), next_at: r.next_at == null ? null : n("next_at"), next_rate: r.next_rate == null ? null : n("next_rate"), rate: n("rate"), discount: n("discount"), clicks: n("clicks"), enquiries: n("enquiries"), signups: n("signups"), paying: n("paying"), revenue: n("revenue"), commission: n("commission"), paid_out: n("paid_out"), owed: n("owed") };
     });
   return myPartnerCache;
 }
@@ -464,4 +470,11 @@ export async function applyPartnerCode(eventId: string, code: string): Promise<s
     );
   }
   return String(data ?? "");
+}
+
+/** The % off this project gets at checkout and why: 'first' (first payment) or 'partner' (referred). */
+export async function myEventDiscount(eventId: string): Promise<{ pct: number; reason: "first" | "partner" | null }> {
+  const { data, error } = await supabase.rpc("my_event_discount", { p_event: eventId });
+  const row = !error && (Array.isArray(data) ? data[0] : data);
+  return row ? { pct: Number(row.pct ?? 0), reason: (row.reason ?? null) as "first" | "partner" | null } : { pct: 0, reason: null };
 }

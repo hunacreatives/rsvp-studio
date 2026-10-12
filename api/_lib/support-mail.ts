@@ -35,7 +35,7 @@ export function makeSendMail(resend: Resend | null) {
 }
 
 export function layout(heading: string, body: string, cta: { label: string; url: string } | null, footer = SETTINGS_FOOTER) {
-  return `<!doctype html><html><head><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head>
 <body style="margin:0;background:#f5f5f2;" bgcolor="#f5f5f2">
 <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#f5f5f2" style="background:#f5f5f2;padding:32px 12px;"><tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:540px;background:#ffffff;border-radius:20px;padding:36px 32px;font-family:Inter,Arial,sans-serif;color:#000727 !important;">
@@ -43,6 +43,25 @@ export function layout(heading: string, body: string, cta: { label: string; url:
 <tr><td style="padding-top:14px;font-family:Georgia,serif;font-size:26px;line-height:1.25;color:#000727 !important;">${heading}</td></tr>
 <tr><td style="padding-top:14px;font-size:15px;line-height:1.6;color:#25265e !important;">${body}</td></tr>
 ${cta ? `<tr><td style="padding-top:26px;"><a href="${cta.url}" style="display:inline-block;background:#2f61d5;color:#ffffff !important;text-decoration:none;border-radius:999px;padding:13px 26px;font-size:14px;">${cta.label}</a></td></tr>` : ""}
+<tr><td style="padding-top:30px;font-size:12px;color:#868697 !important;">${footer}</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+
+// The partner welcome has its own look (same brand, set apart from service emails):
+// a soft blue page, the three characters on top, a "Partner program" label, navy button.
+export function partnerLayout(site: string, heading: string, body: string, cta: { label: string; url: string }, footer: string) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head>
+<body style="margin:0;background:#eef3ff;" bgcolor="#eef3ff">
+<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#eef3ff" style="background:#eef3ff;padding:32px 12px;"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;"><tr><td align="center" style="padding:0 0 18px;">
+<img src="${site}/email/partner-characters.png" width="220" alt="" style="display:block;width:220px;max-width:70%;height:auto;border:0;" />
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;background:#ffffff;border-radius:24px;padding:36px 32px;font-family:Inter,Arial,sans-serif;color:#000727 !important;">
+<tr><td style="font-family:Inter,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#2f61d5 !important;">The RSVP Studio</td></tr>
+<tr><td style="padding-top:12px;font-family:Georgia,serif;font-size:28px;line-height:1.25;color:#000727 !important;">${heading}</td></tr>
+<tr><td style="padding-top:14px;font-size:15px;line-height:1.65;color:#25265e !important;">${body}</td></tr>
+<tr><td style="padding-top:28px;"><a href="${cta.url}" style="display:inline-block;background:#000727;color:#ffffff !important;text-decoration:none;border-radius:999px;padding:14px 28px;font-size:14px;font-weight:600;">${cta.label}</a></td></tr>
 <tr><td style="padding-top:30px;font-size:12px;color:#868697 !important;">${footer}</td></tr>
 </table></td></tr></table></body></html>`;
 }

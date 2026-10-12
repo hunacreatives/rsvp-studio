@@ -13,9 +13,10 @@ import * as studio from "../studioApi";
 
 type Filter = "all" | "planner" | "influencer" | "paused";
 const KIND: Record<studio.PartnerKind, string> = { planner: "Planner", influencer: "Creator", other: "Other" };
+const TIER: Record<string, string> = { starter: "Starter", silver: "Silver", gold: "Gold", custom: "Custom" };
 const HOW: Record<string, string> = { enquiry: "Enquired", signup: "Signed up", project: "Project" };
 
-const blank = (): studio.PartnerInput => ({ code: "", kind: "planner", name: "", business: "", email: "", phone: "", handle: "", payout_details: "", rate: 20, discount: 20, active: true, notes: "" });
+const blank = (): studio.PartnerInput => ({ code: "", kind: "planner", name: "", business: "", email: "", phone: "", handle: "", payout_details: "", rate: 10, discount: 10, active: true, notes: "", rate_mode: "tiered" });
 const suggestCode = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
 
 export default function PartnersPage() {
@@ -119,7 +120,9 @@ export default function PartnersPage() {
                     {r.business ? <span className="font-normal text-[var(--slate)]"> · {r.business}</span> : null}
                   </p>
                   <p className="text-[13px] text-[var(--slate)]">
-                    {KIND[r.kind]} · code <span className="font-semibold tracking-[0.04em] text-[var(--ink)]">{r.code}</span> · {r.rate}% to them, {r.discount}% off for clients
+                    {KIND[r.kind]} · code <span className="font-semibold tracking-[0.04em] text-[var(--ink)]">{r.code}</span> ·{" "}
+                    {r.rate_mode === "custom" ? `custom ${r.tier_rate}%` : `${TIER[r.tier] ?? r.tier} ${r.tier_rate}%`}
+                    {r.next_tier && r.next_at != null ? ` (${Math.max(0, r.next_at - r.paying)} to ${TIER[r.next_tier]})` : ""} · {r.discount}% off for clients
                   </p>
                 </div>
                 <dl className="grid grid-cols-3 gap-x-5 gap-y-1 text-[13px] sm:grid-cols-6 [font-variant-numeric:tabular-nums]">
@@ -155,6 +158,7 @@ function PartnerDetail({ r, onEdit, onChanged }: { r: studio.PartnerRow; onEdit:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [welcome, setWelcome] = useState<string | null>(null);
   useEffect(() => {
     studio.loadPartnerPeople(r.id).then(setPeople);
   }, [r.id]);
@@ -189,7 +193,33 @@ function PartnerDetail({ r, onEdit, onChanged }: { r: studio.PartnerRow; onEdit:
           {copied ? "Copied" : "Copy link"}
         </PillButton>
         <PillButton onClick={onEdit}>Edit</PillButton>
+        {r.email ? (
+          <PillButton
+            onClick={async () => {
+              setWelcome("sending");
+              try {
+                await studio.sendPartnerWelcome(r.id);
+                setWelcome("sent");
+                onChanged();
+              } catch (e) {
+                setWelcome(e instanceof Error ? e.message : "Couldn’t send.");
+              }
+            }}
+            disabled={welcome === "sending"}
+          >
+            {welcome === "sending" ? "Sending…" : welcome === "sent" ? "Sent" : r.welcomed_at ? "Resend welcome email" : "Send welcome email"}
+          </PillButton>
+        ) : null}
       </div>
+      <p className="mt-2 text-[13px] text-[var(--slate)]">
+        {welcome && welcome !== "sending" && welcome !== "sent"
+          ? welcome
+          : r.welcomed_at
+            ? `Welcome email sent ${formatDate(r.welcomed_at)} — their code, link, tiers and how to open their dashboard.`
+            : r.email
+              ? "They haven’t been sent the welcome email yet."
+              : ""}
+      </p>
       <p className="mt-3 text-[14px] text-[var(--slate)]">
         {[r.email, r.phone, r.handle].filter(Boolean).join(" · ") || "No contact details"}
         {r.payout_details ? ` · Pays to: ${r.payout_details}` : ""}
@@ -259,7 +289,9 @@ function PartnerEditor({ initial, onCancel, onSaved }: { initial: { id: string |
     if (!/^[A-Z0-9]{3,20}$/.test(p.code.trim().toUpperCase())) return setError("Codes are 3–20 letters or numbers, no spaces.");
     setBusy(true);
     try {
-      await studio.savePartner(initial.id, p);
+      const id = await studio.savePartner(initial.id, p);
+      // A new partner with an email gets the welcome email straight away.
+      if (!initial.id && p.email?.trim()) await studio.sendPartnerWelcome(id).catch(() => undefined);
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t save.");
@@ -322,10 +354,23 @@ function PartnerEditor({ initial, onCancel, onSaved }: { initial: { id: string |
         {field("Phone (optional)", "phone", { type: "tel" })}
         {field(p.kind === "influencer" ? "Instagram / TikTok" : "Instagram (optional)", "handle", { autoCapitalize: "none", spellCheck: false })}
         {field("Pays to (GCash / bank)", "payout_details")}
-        <label className="text-[14px] text-[var(--ink)] md:text-[13px]">
-          Their commission (%)
-          <Input type="number" min={0} max={100} value={p.rate} onChange={(e) => set({ rate: Number(e.target.value) })} className="mt-1 w-full" />
-        </label>
+        <div className="text-[14px] text-[var(--ink)] md:text-[13px]">
+          Their commission
+          <div className="mt-1 flex gap-2">
+            <select
+              value={p.rate_mode ?? "tiered"}
+              onChange={(e) => set({ rate_mode: e.target.value as "tiered" | "custom" })}
+              aria-label="Commission type"
+              className="min-h-[44px] flex-1 rounded-xl border border-[var(--line)] bg-white px-3 text-[16px] md:text-[14px]"
+            >
+              <option value="tiered">Tiers: 10% → 15% → 20%</option>
+              <option value="custom">Custom rate</option>
+            </select>
+            {p.rate_mode === "custom" ? (
+              <Input type="number" min={0} max={100} value={p.rate} onChange={(e) => set({ rate: Number(e.target.value) })} className="w-[90px]" aria-label="Custom %" />
+            ) : null}
+          </div>
+        </div>
         <label className="text-[14px] text-[var(--ink)] md:text-[13px]">
           Discount for their clients (%)
           <Input type="number" min={0} max={90} value={p.discount} onChange={(e) => set({ discount: Number(e.target.value) })} className="mt-1 w-full" />

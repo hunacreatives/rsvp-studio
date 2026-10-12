@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
 import { DOMAIN_PERKS, DomainPicker, peso as pesoWhole } from "./DomainPicker";
-import { ReferralCode } from "./ReferralCode";
+import { DiscountNote, ReferralCode } from "./ReferralCode";
 import "./builder.css";
 
 // Publishing a site from the builder:
@@ -229,6 +229,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
               )}{" "}
               Pay with GCash, Maya, card or QR Ph — your site goes live as soon as it’s paid, and you can keep editing it afterwards.
             </p>
+            <DiscountNote eventId={flow.eventId} refreshKey={step.amount} />
             <ReferralCode eventId={flow.eventId} onApplied={flow.requote} />
             <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
               <button onClick={flow.pay} style={btn(true)}>
