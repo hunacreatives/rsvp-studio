@@ -5,7 +5,7 @@ export default function Privacy() {
   return (
     <LegalLayout
       title="Privacy Policy"
-      lastUpdated="October 12, 2026"
+      lastUpdated="October 13, 2026"
       intro={
         <p>
           The RSVP Studio (&ldquo;we,&rdquo; &ldquo;us&rdquo;) is a digital event design studio and a brand of
@@ -49,8 +49,10 @@ export default function Privacy() {
         </p>
         <p>
           <strong>Technical data.</strong> Our hosting and security services log standard data such as IP
-          address, browser type and pages requested, to keep the service secure and working. We don&rsquo;t run
-          analytics, advertising or tracking scripts.
+          address, browser type and pages requested, to keep the service secure and working. If something
+          breaks on a page, an error report (the page, the error and your browser type) is sent to our
+          error-monitoring service so we can fix it. With your permission only, Google Analytics measures how
+          visitors use our own pages (never guests&rsquo; event websites). We don&rsquo;t run advertising scripts.
         </p>
       </div>
 
@@ -84,8 +86,10 @@ export default function Privacy() {
           <li><strong>Supabase</strong> — database, login and file storage.</li>
           <li><strong>Vercel</strong> — website hosting.</li>
           <li><strong>Resend</strong> — sending and receiving our emails.</li>
+          <li><strong>Cloudflare</strong> — storing and serving photos uploaded to event websites.</li>
+          <li><strong>Sentry</strong> — error reports, so we can fix problems on the site.</li>
           <li><strong>PayMongo</strong> — online payments (GCash, Maya, cards, QR Ph).</li>
-          <li><strong>Google</strong> — &ldquo;Sign in with Google&rdquo;, if you use it, and the fonts our pages load.</li>
+          <li><strong>Google</strong> — &ldquo;Sign in with Google&rdquo;, if you use it, the fonts our pages load, and Google Analytics if you allow it.</li>
           <li><strong>Authorities or advisors</strong> — only where the law requires it, or to establish or defend legal claims.</li>
         </ul>
         <p>
@@ -99,8 +103,10 @@ export default function Privacy() {
         <p>
           We use only what&rsquo;s needed for the site to work: your login session and your &ldquo;remember me&rdquo;
           choice are kept in your browser&rsquo;s storage, and a few small settings (like a dismissed notice) may be
-          remembered too. There are no advertising or tracking cookies, so there&rsquo;s no consent banner. You can
-          clear this storage anytime in your browser; you&rsquo;ll just need to log in again.
+          remembered too. Google Analytics cookies are set only if you tap &ldquo;Accept&rdquo; on our cookie notice,
+          and never on guests&rsquo; event websites. To change your choice, clear this site&rsquo;s storage in your
+          browser and the notice will ask again. There are no advertising cookies. Clearing storage also logs you
+          out, so you&rsquo;ll need to log in again.
         </p>
       </div>
 

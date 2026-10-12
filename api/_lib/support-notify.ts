@@ -48,6 +48,7 @@ export function customerMessageEmails(
         snippet,
         { label: "Open in Studio Console", url: `${origin}/studio/support?thread=${thread.id}` },
         emailRepliesOn() ? "Reply from the Studio Console so it’s saved to the request — replies from this inbox don’t reach it." : undefined,
+        { ad: false },
       ),
     }),
   );

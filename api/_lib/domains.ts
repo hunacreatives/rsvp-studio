@@ -135,7 +135,7 @@ const contactInfo = (c: Record<string, string>) => {
 };
 
 async function alertStudio(sendMail: SendMail, subject: string, body: string) {
-  await sendMail({ from: FROM, to: STUDIO_INBOX, subject, html: layout(subject, body, { label: "Open Studio", url: `${SITE}/studio/templates` }, "From the custom domain system.") }).catch(
+  await sendMail({ from: FROM, to: STUDIO_INBOX, subject, html: layout(subject, body, { label: "Open Studio", url: `${SITE}/studio/templates` }, "From the custom domain system.", { ad: false }) }).catch(
     (e) => console.error("domain alert failed", e),
   );
 }

@@ -6,7 +6,8 @@ import { createContext, useContext, type CSSProperties } from "react";
 // slug so Studio can count the signups it brings. `show` stays as a switch
 // in case a future plan ever turns it off.
 
-export type SiteCredit = { show: boolean; slug?: string };
+/** `photosUrl`: Premium guest photo sharing is on — the footer links to the photo page. */
+export type SiteCredit = { show: boolean; slug?: string; photosUrl?: string };
 
 const SiteCreditContext = createContext<SiteCredit>({ show: true });
 export const SiteCreditProvider = SiteCreditContext.Provider;
@@ -18,13 +19,21 @@ export function creditHref(slug?: string) {
 
 /** The credit's words and links; the template supplies the footer around it. */
 export function CreditLine({ linkStyle }: { linkStyle?: CSSProperties }) {
-  const { slug } = useSiteCredit();
+  const { slug, photosUrl } = useSiteCredit();
   const href = creditHref(slug);
   // A 44px-tall tap area on phones without changing the footer's layout:
   // the padding is cancelled by an equal negative margin.
   const style: CSSProperties = { display: "inline-block", padding: "12px 2px", margin: "-12px 0", ...linkStyle };
   return (
     <>
+      {photosUrl ? (
+        <>
+          <a href={photosUrl} style={{ ...style, fontWeight: 600 }}>
+            Share your photos
+          </a>
+          {" · "}
+        </>
+      ) : null}
       Made with love by{" "}
       <a href={href} target="_blank" rel="noopener" style={style}>
         The RSVP Studio

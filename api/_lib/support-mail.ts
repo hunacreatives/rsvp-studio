@@ -34,16 +34,43 @@ export function makeSendMail(resend: Resend | null) {
   };
 }
 
-export function layout(heading: string, body: string, cta: { label: string; url: string } | null, footer = SETTINGS_FOOTER) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head>
-<body style="margin:0;background:#f5f5f2;" bgcolor="#f5f5f2">
-<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#f5f5f2" style="background:#f5f5f2;padding:32px 12px;"><tr><td align="center">
-<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:540px;background:#ffffff;border-radius:20px;padding:36px 32px;font-family:Inter,Arial,sans-serif;color:#000727 !important;">
-<tr><td style="font-family:Georgia,serif;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#868697 !important;">The RSVP Studio</td></tr>
-<tr><td style="padding-top:14px;font-family:Georgia,serif;font-size:26px;line-height:1.25;color:#000727 !important;">${heading}</td></tr>
-<tr><td style="padding-top:14px;font-size:15px;line-height:1.6;color:#25265e !important;">${body}</td></tr>
-${cta ? `<tr><td style="padding-top:26px;"><a href="${cta.url}" style="display:inline-block;background:#2f61d5;color:#ffffff !important;text-decoration:none;border-radius:999px;padding:13px 26px;font-size:14px;">${cta.label}</a></td></tr>` : ""}
-<tr><td style="padding-top:30px;font-size:12px;color:#868697 !important;">${footer}</td></tr>
+// Every service email (support, billing, website notices, domains, project updates, the
+// RSVP summary) in the brand: logo, serif heading, blue button, and our footer links.
+// Customer emails also carry a small "more from The RSVP Studio" card (an ad for what
+// else we make); emails only the team receives pass { ad: false }.
+const SITE_URL = "https://thersvpstudio.com";
+function moreFromUs() {
+  const link = (label: string, path: string) => `<a href="${SITE_URL}${path}" style="color:#2f61d5 !important;text-decoration:none;">${label}</a>`;
+  return `<tr><td style="padding-top:30px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" bgcolor="#eef3ff" style="background:#eef3ff;border-radius:18px;padding:22px 20px;text-align:center;">
+<img src="${SITE_URL}/email/partner-characters.png" alt="" width="120" style="display:block;margin:0 auto 12px;width:120px;height:auto;border:0;" />
+<p style="margin:0;color:#2f61d5 !important;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;">More from The RSVP Studio</p>
+<p style="margin:8px 0 6px;color:#000727 !important;font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:1.3;">Make it extra special</p>
+<p style="margin:0 0 12px;color:#4a4b63 !important;font-size:14px;line-height:1.6;">Monograms, printed invitations and thank-you cards, designed to match your&nbsp;event.</p>
+<p style="margin:0;font-size:13px;line-height:1.8;">${link("Monograms", "/services/monogram")}&nbsp;&middot;&nbsp;${link("Invitations", "/services/stationery")}&nbsp;&middot;&nbsp;${link("Thank-you cards", "/enquire?service=stationery&amp;package=Thank-you%20cards#start")}&nbsp;&middot;&nbsp;${link("Partner program", "/partners")}</p>
+</td></tr></table></td></tr>`;
+}
+
+export function layout(heading: string, body: string, cta: { label: string; url: string } | null, footer = SETTINGS_FOOTER, opts: { ad?: boolean } = {}) {
+  const muted = "color:#8a8a99 !important;text-decoration:none;";
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
+<style>@media only screen and (max-width:520px){.lpad{padding-left:24px !important;padding-right:24px !important}}</style></head>
+<body style="margin:0;background:#f3f3f5;" bgcolor="#f3f3f5">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f3f3f5" style="background:#f3f3f5;padding:24px 12px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#000727 !important;">
+<tr><td align="center" style="padding:34px 32px 6px;"><a href="${SITE_URL}"><img src="${SITE_URL}/brand/logotype-dark.png" alt="The RSVP Studio" width="118" style="display:block;height:auto;border:0;" /></a></td></tr>
+<tr><td class="lpad" style="padding:22px 48px 34px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;color:#000727 !important;">${heading}</td></tr>
+<tr><td style="padding-top:14px;font-size:15px;line-height:1.65;color:#3c3d57 !important;">${body}</td></tr>
+${cta ? `<tr><td style="padding-top:26px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="#2f61d5" style="background:#2f61d5;border-radius:999px;"><a href="${cta.url}" style="display:inline-block;padding:13px 26px;color:#ffffff !important;font-size:15px;font-weight:600;text-decoration:none;">${cta.label}</a></td></tr></table></td></tr>` : ""}
+${opts.ad === false ? "" : moreFromUs()}
+</table></td></tr>
+<tr><td align="center" style="padding:0 32px 32px;">
+<table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+<p style="margin:18px 0 12px;font-size:12px;"><a href="https://www.instagram.com/rsvpstudioo/" style="${muted}">Instagram</a>&nbsp;&middot;&nbsp;<a href="https://www.facebook.com/p/The-RSVP-Studio-61590604769707/" style="${muted}">Facebook</a></p>
+<p style="margin:0 0 12px;font-size:12px;"><a href="${SITE_URL}" style="${muted}">The RSVP Studio</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/services" style="${muted}">Services</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/portfolio" style="${muted}">Our work</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/faqs" style="${muted}">FAQs</a></p>
+<p style="margin:0;font-size:11px;line-height:1.6;color:#a0a0ad !important;">${footer}<br />The RSVP Studio, a Huna Creatives brand &middot; Philippines</p>
+</td></tr>
 </table></td></tr></table></body></html>`;
 }
 

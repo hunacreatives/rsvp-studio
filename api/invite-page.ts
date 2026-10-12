@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { esc } from "./_lib/email.js";
+import { sitemap } from "./_lib/sitemap.js";
 
 // /invite/:slug, served with the event's own title, description and photo in the
 // page head — so a link shared on Messenger / Viber / Facebook shows "Mia & Noah",
@@ -37,6 +38,8 @@ function describe(c: Content) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // /sitemap.xml shares this function (vercel.json): the Hobby plan allows 12.
+  if (req.query.op === "sitemap") return sitemap(db, res);
   const host = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "");
   const origin = `https://${host}`;
   let slug = String(req.query.slug ?? "").toLowerCase();

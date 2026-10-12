@@ -4,6 +4,7 @@ import { getTemplateDefinition } from "../engine/registry";
 import { useTemplateCatalog } from "../engine/catalog";
 import { resolveTemplate } from "../engine/render";
 import ContentEditor from "./ContentEditor";
+import GuestSettings from "./GuestSettings";
 import PreviewCanvas from "./components/PreviewCanvas";
 import { useEventSiteDraft } from "./useEventSiteDraft";
 import { PublishDialog, usePublishFlow } from "./PublishDialog";
@@ -97,6 +98,7 @@ export default function BuilderShellPage() {
         </div>
       </details>
       <ContentEditor content={content} onChange={setContent} eventId={eventId} template={activeDefinition} />
+      <GuestSettings eventId={eventId} slug={slug} premium={!!plan?.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} />
     </>
   );
   const dialogs = (

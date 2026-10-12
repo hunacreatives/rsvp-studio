@@ -151,7 +151,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             to: STUDIO_INBOX,
             replyTo: caller.email ?? undefined,
             subject: `${thread.kind === "support" ? "🛟 Support" : "💬 Message"} from ${caller.full_name || caller.email}: ${thread.subject}`,
-            html: layout(esc(thread.subject), snippet, { label: "Open in Studio Console", url: `${origin}/studio/inbox?thread=${thread.id}` }),
+            html: layout(esc(thread.subject), snippet, { label: "Open in Studio Console", url: `${origin}/studio/inbox?thread=${thread.id}` }, undefined, { ad: false }),
           }),
         );
       }
@@ -283,6 +283,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               "You’re invited to the team",
               `${who} added you as an <strong>admin</strong> of The RSVP Studio. Admins can open the Studio console to manage projects, clients, invoices, support and templates.<br><br>Create your account with <strong>${esc(inv.email)}</strong> (or sign in with Google using that address) and you’ll have access straight away.`,
               { label: "Create your account", url: signUp },
+              undefined,
+              { ad: false },
             ),
           }),
         );
@@ -298,6 +300,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               "You’re now an admin",
               `${who} added you as an <strong>admin</strong> of The RSVP Studio. Next time you sign in you’ll go straight to the Studio console.`,
               { label: "Open the Studio", url: `${origin}/studio` },
+              undefined,
+              { ad: false },
             ),
           }),
         );

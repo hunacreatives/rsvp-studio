@@ -29,7 +29,7 @@ export type RsvpSkin = {
 const MAX_PARTY = 10;
 
 export default function RsvpForm({ content, editorPreview, skin }: { content: EventContent; editorPreview?: boolean; skin: RsvpSkin }) {
-  const { values, set, state, error, website, setWebsite, attending, submit, emailed } = useRsvpForm(content, editorPreview, { asksAttending: true });
+  const { values, set, state, error, website, setWebsite, attending, submit, emailed, closed, replyBy, closedText } = useRsvpForm(content, editorPreview, { asksAttending: true });
   const id = useId();
   const first = (values.name ?? "").trim().split(" ")[0];
 
@@ -37,6 +37,14 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
   const label: CSSProperties = { ...text, display: "block", fontSize: 14, fontWeight: 600, margin: "0 0 6px", textAlign: "left" };
   // 16px stops iPhones zooming in when a field is tapped.
   const field = (p: Part = skin.field): Part => ({ className: p.className, style: { width: "100%", boxSizing: "border-box", fontSize: 16, ...p.style } });
+
+  if (closed) {
+    return (
+      <div className={skin.success?.className} style={{ ...text, fontSize: 17, lineHeight: 1.6, ...skin.success?.style }} role="status">
+        <p style={{ margin: 0 }}>{closedText}</p>
+      </div>
+    );
+  }
 
   if (state === "success") {
     return (
@@ -64,6 +72,7 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
       <div aria-hidden="true" style={{ position: "absolute", left: -10000, width: 1, height: 1, overflow: "hidden" }}>
         <input tabIndex={-1} autoComplete="off" name="website" value={website} onChange={(e) => setWebsite(e.target.value)} />
       </div>
+      {replyBy ? <p style={{ ...text, margin: 0, fontSize: 15, fontWeight: 600, color: skin.muted }}>{replyBy}</p> : null}
 
       <div>
         <label htmlFor={`${id}-name`} style={label}>

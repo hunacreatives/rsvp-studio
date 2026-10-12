@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { clean, esc, isEmail, normalizePhone, safeMapUrl, sendChecked } from "./_lib/email.js";
+import { clean, esc, isEmail, normalizePhone, sendChecked } from "./_lib/email.js";
 import { formatHostNames, hostRecipients } from "./_lib/hosts.js";
 import { claimRsvpEmails, isPremium } from "./_lib/rsvp-budget.js";
 import { captureError } from "./_lib/sentry.js";
+import { guestPhotoHandler } from "./_lib/guest-photos.js";
+import { guestConfirmation, hostSender, type GuestContent, type GuestPresentation } from "./_lib/guest-mail.js";
+import { layout } from "./_lib/support-mail.js";
 
 // One RSVP endpoint for every event site. Which table to write to and the
 // email copy are resolved server-side from `slug` — never trusted from the
@@ -37,7 +40,6 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const sendEmail = (payload: Parameters<typeof sendChecked>[1]) =>
   resend ? sendChecked(resend, payload) : Promise.resolve(console.warn(`RESEND_API_KEY not set — skipped email "${payload.subject}"`));
 const FROM = "The RSVP Studio <hello@thersvpstudio.com>";
-const SITE = "https://thersvpstudio.com";
 
 const BURST_WINDOW_MIN = 10;
 const BURST_MAX = 40; // RSVPs (new or updated) per event per window
@@ -50,14 +52,9 @@ interface PublishedContentForEmail {
   primaryLocation?: { name?: string; addressLine?: string; mapUrl?: string };
 }
 
-/** Premium guest emails come from the hosts: "Carlo & Trixia via The RSVP Studio". */
-function hostSender(content: PublishedContentForEmail): string {
-  const names = (content.hosts ?? []).map((h) => h.name).filter(Boolean).join(" & ");
-  const safe = names.replace(/["<>\\\r\n,;:]/g, "").replace(/\s+/g, " ").trim().slice(0, 60);
-  return safe ? `"${safe} via The RSVP Studio" <hello@thersvpstudio.com>` : FROM;
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Premium guest photo sharing (/invite/<slug>/photos) shares this function.
+  if (req.query.op === "photo-url" || req.query.op === "photo-done") return guestPhotoHandler(supabaseAdmin, req, res);
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
@@ -95,17 +92,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { data: site } = await supabaseAdmin
-    .from("wedding_sites")
-    .select("event_id, published_content, published_at")
-    .eq("slug", slug)
-    .maybeSingle();
+  // "*" so this keeps working whichever optional columns (site_password) exist.
+  const { data: site } = await supabaseAdmin.from("wedding_sites").select("*").eq("slug", slug).maybeSingle();
   if (!site || !site.published_at || !site.published_content) {
     res.status(404).json({ error: "That event site isn't published yet" });
     return;
   }
+  // A password-protected site (supabase/guest-features.sql): only guests who unlocked it.
+  const sitePassword = typeof site.site_password === "string" ? site.site_password : "";
+  if (sitePassword && clean(body.password, 40).trim().toLowerCase() !== sitePassword.trim().toLowerCase()) {
+    res.status(403).json({ error: "This invitation is private. Please open it again with the password from the hosts." });
+    return;
+  }
+  // Past the hosts' "reply by" date (content.rsvpDeadline, YYYY-MM-DD, Manila).
+  const deadline = (site.published_content as { rsvpDeadline?: unknown }).rsvpDeadline;
+  const manilaToday = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
+  if (typeof deadline === "string" && /^\d{4}-\d{2}-\d{2}$/.test(deadline) && deadline < manilaToday) {
+    res.status(410).json({ error: "RSVPs for this event have closed. If you still need to reply, please contact the hosts." });
+    return;
+  }
 
-  const { data: event } = await supabaseAdmin.from("events").select("table_name, deleted_at").eq("id", site.event_id).maybeSingle();
+  const { data: event } = await supabaseAdmin.from("events").select("name, event_date, table_name, deleted_at").eq("id", site.event_id).maybeSingle();
   if (!event || event.deleted_at) {
     res.status(404).json({ error: "This invitation is no longer available." });
     return;
@@ -197,14 +204,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const content = site.published_content as PublishedContentForEmail;
   const hostNames = esc(formatHostNames(content));
-  const venueName = esc(content.primaryLocation?.name ?? "");
-  const venueAddress = esc(content.primaryLocation?.addressLine ?? "");
-  const mapsUrl = safeMapUrl(content.primaryLocation?.mapUrl);
   const safeName = esc(name);
   const safeContact = [email, phone].filter(Boolean).map((c) => esc(c!)).join(" · ");
   const safeMessage = esc(message);
   const safeDietary = esc(dietary);
-  const declined = attending === false;
 
   const premium = legacy || (await isPremium(supabaseAdmin, site.event_id));
   const sends: Promise<unknown>[] = [];
@@ -217,19 +220,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       to: recipients,
       replyTo: email || undefined,
       subject: `${prior ? "Updated RSVP" : "New RSVP"} from ${name} — ${formatHostNames(content)}`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
-          <h2 style="color: #3a3a3a;">${prior ? "Updated RSVP" : "New RSVP"} — ${hostNames}</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
-            <tr><td style="padding: 8px 0; color: #666; width: 140px;">Name</td><td style="padding: 8px 0; font-weight: 600;">${safeName}</td></tr>
-            <tr><td style="padding: 8px 0; color: #666;">Contact</td><td style="padding: 8px 0;">${safeContact}</td></tr>
-            ${attending === null ? "" : `<tr><td style="padding: 8px 0; color: #666;">Coming?</td><td style="padding: 8px 0; font-weight: 600;">${attending ? `Yes${guestCount ? ` — ${guestCount} ${guestCount === 1 ? "guest" : "guests"}` : ""}` : "No, can’t make it"}</td></tr>`}
-            ${safeDietary ? `<tr><td style="padding: 8px 0; color: #666; vertical-align: top;">Dietary</td><td style="padding: 8px 0;">${safeDietary}</td></tr>` : ""}
-            ${safeMessage ? `<tr><td style="padding: 8px 0; color: #666; vertical-align: top;">Message</td><td style="padding: 8px 0; font-style: italic;">"${safeMessage}"</td></tr>` : ""}
-          </table>
-          <p style="margin-top: 24px; color: #868697; font-size: 12px;">See every response in your RSVP Studio dashboard → Projects → Guests.</p>
-        </div>
-      `,
+      // Branded (support-mail.ts layout); the reply as a small card.
+      html: layout(
+        `${prior ? "Updated RSVP" : "New RSVP"} from ${safeName}`,
+        `${prior ? `${safeName} changed their reply` : `${safeName} just replied`} to <strong>${hostNames}</strong>.
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 0;"><tr><td bgcolor="#fbfaf6" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:16px;padding:18px 20px;">
+${[
+  attending === null ? "" : `<p style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:${attending ? "#3d7a12" : "#6b6658"} !important;">${attending ? `Coming${guestCount ? ` · ${guestCount} ${guestCount === 1 ? "guest" : "guests"}` : ""}` : "Can’t make it"}</p>`,
+  `<p style="margin:0;font-size:14px;color:#3c3d57 !important;"><strong>${safeName}</strong>${safeContact ? ` · ${safeContact}` : ""}</p>`,
+  safeDietary ? `<p style="margin:8px 0 0;font-size:14px;color:#3c3d57 !important;">Dietary: ${safeDietary}</p>` : "",
+  safeMessage ? `<p style="margin:12px 0 0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:16px;line-height:1.55;color:#000727 !important;">“${safeMessage}”</p>` : "",
+].join("")}
+</td></tr></table>`,
+        { label: "See your guest list", url: `https://thersvpstudio.com/account/projects/${site.event_id}?tab=guests` },
+        "You’re receiving this because your website has RSVP emails on. Change it under Account → Notifications.",
+      ),
     }),
   );
 
@@ -247,45 +252,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   let guestSend: Promise<unknown> | null = null;
   if (!prior && email && underDailyCap && (await claimRsvpEmails(supabaseAdmin, "guest", premium, site.event_id, 1))) {
-    const makeYourOwn = `${SITE}/build?ref=${encodeURIComponent(slug)}&via=email`;
+    // The branded "You're on the list" (api/_lib/guest-mail.ts), in the hosts' voice.
+    const mail = guestConfirmation({
+      content: site.published_content as GuestContent,
+      presentation: site.published_presentation as GuestPresentation | null,
+      eventName: (event.name as string | null) ?? formatHostNames(content),
+      eventDate: event.event_date as string | null,
+      slug,
+      guestName: name,
+      attending,
+      guestCount,
+      dietary,
+      message,
+      premium,
+      // Premium sites remind guests 2 days before, unless the hosts switched it off.
+      remindsLater: premium && !legacy && site.guest_reminders !== false,
+    });
     guestSend = sendEmail({
       from: premium ? hostSender(content) : FROM,
       to: email,
-      subject: declined ? `Thanks for letting us know — ${formatHostNames(content)}` : `You're on the list — ${formatHostNames(content)}!`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; color: #4a4a4a;">
-          <p style="font-size: 40px; text-align: center; margin: 0 0 8px;">🥂</p>
-          <h2 style="text-align: center; color: #333333; font-size: 24px; margin: 0 0 4px;">${declined ? `Thanks for letting us know, ${safeName}` : `You're on the list, ${safeName}!`}</h2>
-          <p style="text-align: center; color: #8a8478; font-size: 14px; margin: 0 0 28px;">${declined ? "We’ll miss you — thank you for replying." : "Thank you for RSVPing — we can't wait to celebrate with you."}</p>
-          <div style="background: #faf9f6; border: 1px solid #e5ded0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
-            <p style="text-align: center; text-transform: uppercase; letter-spacing: 0.1em; font-size: 12px; font-weight: 700; color: #9a9a9a; margin: 0 0 12px;">You&#39;re Invited</p>
-            <p style="text-align: center; font-size: 20px; font-weight: 700; color: #333333; margin: 0 0 20px;">${hostNames}</p>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              ${venueName ? `<tr><td style="padding: 6px 0; color: #8a8478; width: 90px;">Venue</td><td style="padding: 6px 0; font-weight: 600;">${venueName}${venueAddress ? `, ${venueAddress}` : ""}</td></tr>` : ""}
-            </table>
-          </div>
-          ${
-            mapsUrl
-              ? `<table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;"><tr><td style="text-align:center;"><a href="${esc(mapsUrl)}" target="_blank" style="display: inline-block; background: #333333; color: #ffffff; text-decoration: none; border-radius: 999px; padding: 12px 24px; font-size: 13px; font-weight: 700;">📍 View Map</a></td></tr></table>`
-              : ""
-          }
-          <p style="text-align: center; font-size: 13px; color: #9a9a9a; margin: 0 0 32px;">${declined ? "You can update your reply anytime from the invitation." : "See you there!"}</p>
-          ${
-            premium
-              ? ""
-              : `<div style="background: #f4f6fd; border-radius: 16px; padding: 20px 24px; margin-bottom: 24px; text-align: center;">
-            <p style="font-size: 15px; font-weight: 700; color: #000727; margin: 0 0 6px;">Planning a celebration of your own?</p>
-            <p style="font-size: 13px; color: #55556a; margin: 0 0 14px;">Make a free event website with RSVPs, just like this one.</p>
-            <a href="${esc(makeYourOwn)}" target="_blank" style="display: inline-block; background: #2f61d5; color: #ffffff; text-decoration: none; border-radius: 999px; padding: 10px 22px; font-size: 13px; font-weight: 700;">Make your own</a>
-          </div>`
-          }
-          <div style="border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
-            <p style="font-size: 12px; color: #9a9a9a; line-height: 1.7; margin: 0 0 12px;">
-              This invite was crafted by <a href="${premium ? SITE : esc(makeYourOwn)}" target="_blank" style="color: #666; font-weight: 700; text-decoration: none;">The RSVP Studio</a> — digital invitations &amp; RSVP sites for weddings and celebrations.
-            </p>
-          </div>
-        </div>
-      `,
+      subject: mail.subject,
+      html: mail.html,
     });
     sends.push(guestSend);
   }

@@ -161,7 +161,8 @@ ${p(`Your guests are replying to <strong>${hosts}</strong>. So far ${d.guests} $
 ${label("What Premium adds")}
 ${steps([
   "An email the moment each RSVP comes in, instead of one summary a day.",
-  "A confirmation email to each guest, sent in your names.",
+  "A confirmation email to each guest, sent in your names, and a reminder 2 days before.",
+  "Guests share their photos on your website. Print the QR code for your tables.",
   "Your website stays online for a year after your event, not 30 days.",
 ])}
 ${button(d.upgradePesos ? `Upgrade for ${peso(d.upgradePesos)}` : "Upgrade to Premium", finish)}
@@ -190,7 +191,7 @@ ${tally([
 ${label("This week")}
 ${steps([
   "Send your caterer and venue the final count.",
-  "Haven’t heard from someone? Share your website link with them again.",
+  "Haven’t heard from someone? Your invite list (Guests tab) shows who hasn’t replied, with a reminder message to copy.",
   "Download your guest list for the welcome table.",
 ])}
 ${button("See your guest list", guestList)}

@@ -14,6 +14,8 @@ import { definitionFromSpec } from "../spec/definitionFromSpec";
 import { SiteCreditProvider } from "../engine/siteCredit";
 import SiteEndedPage from "./SiteEndedPage";
 import SiteLoading from "./SiteLoading";
+import PasswordGate from "./PasswordGate";
+import { getSitePassword, setSitePassword } from "./sitePassword";
 
 // The live, public event site: /invite/:slug. Reads ONLY the published_*
 // columns (never draft_*) — see the RLS note in
@@ -23,13 +25,16 @@ type LoadState =
   | { status: "loading" }
   | { status: "not-found" }
   | { status: "gone"; state: "ended" | "deleted"; rawContent: unknown }
-  | { status: "ready"; presentation: PresentationState; rawContent: unknown };
+  | { status: "locked"; wrong: boolean }
+  | { status: "ready"; presentation: PresentationState; rawContent: unknown; photosOn: boolean };
 
 /** `slugOverride`: on a custom domain (gelat30.net) the site comes from the host, not the URL. */
 export default function PublicEventSitePage({ slugOverride }: { slugOverride?: string } = {}) {
   const params = useParams<{ slug: string }>();
   const slug = slugOverride ?? params.slug;
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  // Bumped when a guest enters a password, to load again with it.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,10 +47,11 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
       // get_public_site() returns only the published columns for one slug
       // (supabase/site-security-fixes.sql). Until that SQL is applied, fall
       // back to the direct table read so live sites never go dark.
-      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown; state?: "live" | "ended" | "deleted" };
+      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown; state?: "live" | "ended" | "deleted"; locked?: boolean; photos_on?: boolean };
       let data: Row | null = null;
       let error: { code?: string } | null = null;
-      const rpc = await supabase.rpc("get_public_site", { p_slug: slug });
+      const password = getSitePassword(slug);
+      const rpc = await supabase.rpc("get_public_site", password ? { p_slug: slug, p_password: password } : { p_slug: slug });
       if (rpc.error?.code === "PGRST202") {
         const direct = await supabase
           .from("wedding_sites")
@@ -64,6 +70,11 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
       // Past its event, or deleted by the host: a branded page instead of the site.
       if (!error && data && (data.state === "ended" || data.state === "deleted")) {
         setState({ status: "gone", state: data.state, rawContent: data.published_content });
+        return;
+      }
+      // Password-protected (supabase/guest-features.sql): ask for it.
+      if (!error && data?.locked) {
+        setState({ status: "locked", wrong: !!password });
         return;
       }
       if (error || !data || !data.published_content) {
@@ -93,6 +104,7 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
           activeTemplateId: "",
           byTemplate: {},
         },
+        photosOn: data.photos_on === true,
       });
     }
 
@@ -100,10 +112,21 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, attempt]);
 
   if (state.status === "loading") {
     return <SiteLoading />;
+  }
+  if (state.status === "locked") {
+    return (
+      <PasswordGate
+        wrong={state.wrong}
+        onSubmit={async (password) => {
+          setSitePassword(slug ?? "", password);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
   }
   if (state.status === "not-found") {
     return <NotFound />;
@@ -135,8 +158,9 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
         </div>
       )}
     >
-      {/* Every site carries the credit, Premium included. */}
-      <SiteCreditProvider value={{ show: true, slug }}>
+      {/* Every site carries the credit, Premium included. The photo page always lives on
+          thersvpstudio.com (photo uploads are only allowed from there), custom domains too. */}
+      <SiteCreditProvider value={{ show: true, slug, photosUrl: state.photosOn ? `${slugOverride ? "https://thersvpstudio.com" : ""}/invite/${slug}/photos` : undefined }}>
         <resolved.definition.component content={content} settings={resolved.settings} live />
       </SiteCreditProvider>
     </ErrorBoundary>

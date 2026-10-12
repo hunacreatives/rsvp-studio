@@ -280,7 +280,10 @@ export default function BuildLandingPage() {
                 ["Looks great on phones", true, true],
                 ["Cash gifts with your GCash or bank QR", true, true],
                 ["Your RSVPs by email", "Daily summary", "Every reply, instantly"],
+                ["Password protection, RSVP deadline and invite list", true, true],
                 ["Guest confirmations sent in your names", false, true],
+                ["A reminder to guests 2 days before", false, true],
+                ["Guests share their photos", false, true],
                 ["Premium designs", false, true],
                 ["Online after your event", "30 days", "1 year"],
               ].map(([label, free, prem]) => (

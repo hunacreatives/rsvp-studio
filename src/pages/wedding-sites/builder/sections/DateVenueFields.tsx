@@ -28,6 +28,15 @@ export default function DateVenueFields({ content, onChange }: DateVenueFieldsPr
           />
         </FormField>
       </div>
+      <FormField label="RSVP by (optional)" hint="Guests see “Please reply by …”, and the RSVP form closes after this day.">
+        <input
+          type="date"
+          style={inputStyle}
+          value={content.rsvpDeadline ?? ""}
+          max={content.eventDate ? content.eventDate.slice(0, 10) : undefined}
+          onChange={(e) => onChange({ ...content, rsvpDeadline: e.target.value || undefined })}
+        />
+      </FormField>
       <FormField label="Venue name">
         <input
           style={inputStyle}

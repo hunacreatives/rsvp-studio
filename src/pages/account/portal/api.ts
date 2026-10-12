@@ -456,25 +456,30 @@ export async function myPartnerPayouts(): Promise<PartnerPayout[]> {
   return ((data ?? []) as PartnerPayout[]).map((p) => ({ ...p, amount: Number(p.amount) }));
 }
 
-/** A referral code typed at checkout: credits this project. Returns the partner's name. */
-export async function applyPartnerCode(eventId: string, code: string): Promise<string> {
-  const { data, error } = await supabase.rpc("apply_partner_code", { p_event: eventId, p_code: code });
+/** A code typed at checkout: a partner's referral code or a promo code (supabase/guest-features.sql). */
+export async function applyDiscountCode(eventId: string, code: string): Promise<{ kind: "partner"; name: string } | { kind: "promo"; pct: number }> {
+  const { data, error } = await supabase.rpc("apply_discount_code", { p_event: eventId, p_code: code });
   if (error) {
     const m = error.message;
     throw new Error(
-      /BAD_CODE/.test(m) ? "That code isn’t valid — check the spelling."
+      /BAD_CODE/.test(m) ? "That code isn’t valid. Check the spelling."
+      : /EXPIRED_CODE/.test(m) ? "That code has expired or been used up."
       : /OWN_CODE/.test(m) ? "You can’t use your own partner code."
       : /ALREADY_CREDITED/.test(m) ? "This project already has a referral code."
       : /ALREADY_PAID/.test(m) ? "Codes can only be added before paying."
-      : "Couldn’t add the code — please try again.",
+      : "Couldn’t add the code. Please try again.",
     );
   }
-  return String(data ?? "");
+  const [kind, value] = String(data ?? "").split(/:(.*)/s);
+  return kind === "promo" ? { kind: "promo", pct: Number(value) } : { kind: "partner", name: value ?? "" };
 }
 
-/** The % off this project gets at checkout and why: 'first' (first payment) or 'partner' (referred). */
-export async function myEventDiscount(eventId: string): Promise<{ pct: number; reason: "first" | "partner" | null }> {
+export type DiscountReason = "first" | "partner" | "promo";
+/** The % off this project gets at checkout and why (the biggest one wins; they never add up). */
+export async function myEventDiscount(eventId: string): Promise<{ pct: number; reason: DiscountReason | null; code: string | null }> {
   const { data, error } = await supabase.rpc("my_event_discount", { p_event: eventId });
   const row = !error && (Array.isArray(data) ? data[0] : data);
-  return row ? { pct: Number(row.pct ?? 0), reason: (row.reason ?? null) as "first" | "partner" | null } : { pct: 0, reason: null };
+  return row
+    ? { pct: Number(row.pct ?? 0), reason: (row.reason ?? null) as DiscountReason | null, code: (row.code as string | null) ?? null }
+    : { pct: 0, reason: null, code: null };
 }

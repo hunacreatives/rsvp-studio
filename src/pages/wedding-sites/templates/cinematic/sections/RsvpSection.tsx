@@ -78,19 +78,23 @@ export default function RsvpSection({ content, editorPreview, reveal }: { conten
           </div>
         ) : null}
 
-        {!done && !open ? (
+        {!done && form.closed ? (
+          <p className="cn-card__sub" role="status" style={{ textAlign: "center" }}>{form.closedText}</p>
+        ) : !done && !open ? (
           <div style={{ textAlign: "center" }}>
             <button type="button" className="cn-btn" onClick={openForm}>
               <span>Click here to RSVP</span>
               <Heart size={18} fill="currentColor" />
             </button>
+            {form.replyBy ? <p className="cn-card__sub" style={{ marginTop: 14 }}>{form.replyBy}</p> : null}
           </div>
         ) : null}
 
-        {!done && open ? (
+        {!done && open && !form.closed ? (
           <div ref={cardRef} className="cn-card cn-card--form">
             <h3>{title}</h3>
             <p className="cn-card__sub">{note}</p>
+            {form.replyBy ? <p className="cn-card__sub" style={{ marginTop: -6 }}>{form.replyBy}</p> : null}
             <form className="cn-form" onSubmit={form.submit} noValidate>
               {/* Spam trap: real guests never see or fill this. */}
               <input type="text" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(e) => form.setWebsite(e.target.value)} style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} aria-hidden />

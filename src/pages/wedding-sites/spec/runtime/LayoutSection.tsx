@@ -249,7 +249,7 @@ function pairFields(fields: LayoutFormNode["fields"]) {
 /** The design's own RSVP form, made real: same fields, labels and styling, posting to /api/wedding-rsvp. */
 function FormNode({ node, vars, ctx }: { node: LayoutFormNode; vars: CSSProperties; ctx: Ctx }) {
   const { theme, content, editorPreview } = ctx;
-  const { values, set, state, error, website, setWebsite, attending, submit, emailed } = useRsvpForm(content, editorPreview, { asksAttending: node.fields.some((f) => f.key === "attending") });
+  const { values, set, state, error, website, setWebsite, attending, submit, emailed, closed, replyBy, closedText } = useRsvpForm(content, editorPreview, { asksAttending: node.fields.some((f) => f.key === "attending") });
 
   const u = (px: number) => `calc(${px} * var(--u))`;
   const label = { fontFamily: theme.fonts[node.labelStyle.font] ?? theme.bodyFont, fontSize: u(node.labelStyle.size), lineHeight: 1, color: colorOf(theme, node.labelStyle.color), fontWeight: node.labelStyle.weight, marginBottom: u(6) };
@@ -332,6 +332,7 @@ function FormNode({ node, vars, ctx }: { node: LayoutFormNode; vars: CSSProperti
       </button>
       {editorPreview ? <p className="rs-msg" style={{ ...label, marginTop: u(8), textAlign: "center" }}>Guests can RSVP once your site is published.</p> : null}
       {error ? <p className="rs-msg" role="alert" style={{ ...label, marginTop: u(8), color: "#c2412d", textAlign: "center" }}>{error}</p> : null}
+      {replyBy ? <p className="rs-note" style={{ ...label, fontSize: `max(14px, ${u(node.labelStyle.size * 0.8)})`, marginTop: u(8), marginBottom: 0, textAlign: "center" }}>{replyBy}</p> : null}
       {node.note ? <p className="rs-note" style={{ ...label, fontSize: u(node.labelStyle.size * 0.75), lineHeight: 1.2, marginTop: u(node.noteGap ?? 8), marginBottom: 0, textAlign: "center", opacity: 0.8 }}>{node.note}</p> : null}
     </>
   );
@@ -348,7 +349,9 @@ function FormNode({ node, vars, ctx }: { node: LayoutFormNode; vars: CSSProperti
         padding: panel ? u(panel.pad) : undefined,
       }}
     >
-      {state === "success" ? (
+      {closed ? (
+        <p role="status" style={{ ...label, fontSize: `max(16px, ${u(node.labelStyle.size * 1.2)})` }}>{closedText}</p>
+      ) : state === "success" ? (
         <p style={{ ...label, fontSize: `max(16px, ${u(node.labelStyle.size * 1.2)})` }}>
           {attending === "no" ? "Thank you — we’ll miss you. Your reply has been sent." : `Thank you — your RSVP is in.${emailed ? " A confirmation is on its way to your inbox." : ""}`}
         </p>

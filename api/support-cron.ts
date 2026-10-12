@@ -6,6 +6,7 @@ import { processInbound } from "./_lib/support-inbound.js";
 import { sendRsvpDigests } from "./_lib/rsvp-digest.js";
 import { runLifecycle } from "./_lib/lifecycle.js";
 import { sendFollowups } from "./_lib/followups.js";
+import { sendGuestReminders } from "./_lib/guest-reminders.js";
 import { domainsDaily } from "./_lib/domains.js";
 import { code, customerReplyTo, reqCode, emailRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
 import { captureError } from "./_lib/sentry.js";
@@ -22,6 +23,7 @@ import { captureError } from "./_lib/sentry.js";
 //   6. Custom domains: finish any stuck setup, 30-day renewal emails, mark expired ones.
 //   7. Follow-ups: unfinished drafts, 10 RSVPs on a free site, the headcount a week
 //      before, a thank-you after (_lib/followups.ts).
+//      Premium guest reminders, 2 days before (_lib/guest-reminders.ts).
 //   8. Heartbeat, shown in the Studio, so a job that stops running gets noticed.
 // The database claims each reminder / close in one UPDATE, and Resend drops repeat
 // sends with the same idempotency key — a double run can't double-email.
@@ -55,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
 
   const started = Date.now();
-  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, rsvpDigests: 0, rsvpDigestsSkipped: 0, endNotices: 0, photoPurges: 0, photoMode: "", guestPurges: 0, purges: 0, domainsAdvanced: 0, domainRenewNotices: 0, domainsExpired: 0, followups: 0, followupsSkipped: 0, errors: [] as string[] };
+  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, rsvpDigests: 0, rsvpDigestsSkipped: 0, endNotices: 0, photoPurges: 0, photoMode: "", guestPurges: 0, purges: 0, domainsAdvanced: 0, domainRenewNotices: 0, domainsExpired: 0, followups: 0, followupsSkipped: 0, guestReminders: 0, errors: [] as string[] };
 
   // ?only=photos: just the photo step (e.g. to check a dry run), no emails.
   if (req.query.only === "photos") {
@@ -210,7 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             from: FROM,
             to: STUDIO_INBOX,
             subject: `Support today: ${late.length} overdue · ${urgent.length} urgent`,
-            html: layout("Support today", parts, { label: "Open Support", url: `${SITE}/studio/support` }, "The daily support digest from the Studio Console."),
+            html: layout("Support today", parts, { label: "Open Support", url: `${SITE}/studio/support` }, "The daily support digest from the Studio Console.", { ad: false }),
           },
           `support-digest-${dayKey}`,
         );
@@ -243,6 +245,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   report.followups = fu.sent;
   report.followupsSkipped = fu.skipped;
   report.errors.push(...fu.errors);
+  // Premium: "See you on Saturday" to guests who said yes, 2 days before.
+  const gr = await sendGuestReminders(supabaseAdmin, sendMail, SITE, { deadline: started + 40_000 });
+  report.guestReminders = gr.sent;
+  report.errors.push(...gr.errors);
 
   // 6. Project lifecycle (deleting stops ~45s in; the rest carries over to tomorrow)
   const life = await runLifecycle(supabaseAdmin, sendMail, SITE, { deadline: started + 45_000 });

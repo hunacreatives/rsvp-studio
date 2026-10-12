@@ -139,7 +139,7 @@ function DrawnForm({ section, content, editorPreview, style, children }: { secti
       <style>{".rs-drawn-field::placeholder{color:var(--ph);opacity:1}"}</style>
       <FormCtx.Provider value={form}>{children}</FormCtx.Provider>
       <input tabIndex={-1} autoComplete="off" aria-hidden value={form.website} onChange={(e) => form.setWebsite(e.target.value)} style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
-      {form.state === "success" ? (
+      {form.state === "success" || form.closed ? (
         <div
           role="status"
           style={{
@@ -161,10 +161,10 @@ function DrawnForm({ section, content, editorPreview, style, children }: { secti
             color: colorOf(theme, "ink"),
           }}
         >
-          Thank you — your RSVP is in.{form.emailed ? " A confirmation is on its way to your inbox." : ""}
+          {form.closed ? form.closedText : `Thank you — your RSVP is in.${form.emailed ? " A confirmation is on its way to your inbox." : ""}`}
         </div>
       ) : null}
-      {form.error ? note(form.error, "#c2412d") : null}
+      {form.error && !form.closed ? note(form.error, "#c2412d") : !form.closed && !editorPreview && form.replyBy && form.state !== "success" ? note(form.replyBy, colorOf(theme, "muted")) : null}
       {editorPreview ? note("Guests can RSVP once your site is published.", colorOf(theme, "muted")) : null}
     </form>
   );

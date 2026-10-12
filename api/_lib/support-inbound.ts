@@ -209,6 +209,7 @@ async function handle(emailId: string, deps: InboundDeps, finish: Finish): Promi
         `An email about <strong>${code(thread.ticket_number)}</strong> (${esc(topicOf(thread.category))}) wasn’t added to the conversation because ${esc(why)}. It’s saved as an internal note on the request.`,
         { label: "Open in Studio Console", url: `${origin}/studio/support?thread=${thread.id}` },
         "From the support email-reply system.",
+        { ad: false },
       ),
     }).catch((e) => console.error("inbound alert failed", e));
     return finish({ outcome: "note", reason: why, threadId: thread.id, matched_by: matchedBy, extra });
@@ -236,6 +237,7 @@ async function handle(emailId: string, deps: InboundDeps, finish: Finish): Promi
       `<strong>From:</strong> ${esc(email.from)}<br><strong>Subject:</strong> ${esc(subject)}<br><br>It wasn’t a reply to a request we could find, and the sender isn’t a customer we could verify, so nothing was added to the Studio.<br><br><span style="color:#868697">What they wrote:</span><br>${esc(text.slice(0, 2000)).replace(/\n/g, "<br>")}`,
       null,
       "From the support email-reply system.",
+      { ad: false },
     ),
   }).catch((e) => console.error("unmatched alert failed", e));
   return finish({ outcome: "unmatched", reason: !thread && matchedBy === "subject" ? "subject mentions a request but the sender couldn’t be verified" : "no matching request", extra });

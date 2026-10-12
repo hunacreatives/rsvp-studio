@@ -6,6 +6,9 @@ import { useTemplateCatalog } from "@/pages/wedding-sites/engine/catalog";
 import { usePortal } from "../PortalContext";
 import * as api from "../api";
 import ProjectDangerZone from "../components/ProjectDangerZone";
+import InviteList from "../components/InviteList";
+import GuestPhotosAdmin from "../components/GuestPhotosAdmin";
+import { supabase } from "@/lib/supabase";
 import DiyExtras from "../components/DiyExtras";
 import DomainCard from "../components/DomainCard";
 import { ActivityList, DiySiteSummary, InvoiceTable, ProjectStatusPill, TaskList, isDiy, useProjectCover, nextStepLabel } from "../components/blocks";
@@ -253,27 +256,66 @@ const DEMO_GUESTS: api.Guest[] = [
 ];
 
 function GuestsTab({ project }: { project: Project }) {
-  const { demo } = usePortal();
+  const { demo, sites } = usePortal();
   const [guests, setGuests] = useState<api.Guest[] | null>(null);
+  const [view, setView] = useState<"replies" | "invites">("replies");
+  const [deadline, setDeadline] = useState<string | null>(null);
+  const site = sites[project.id];
+  // Studio-built events keep their RSVPs in their own table: no invite list or photos there.
+  const diy = !project.table_name;
 
   useEffect(() => {
     let live = true;
     if (demo) setGuests(DEMO_GUESTS);
     else api.loadGuests(project).then((g) => live && setGuests(g));
+    if (!demo && diy)
+      supabase
+        .from("wedding_sites")
+        .select("deadline:published_content->>rsvpDeadline")
+        .eq("event_id", project.id)
+        .maybeSingle()
+        .then(({ data }) => live && setDeadline(((data as { deadline?: string | null } | null)?.deadline as string | null) ?? null));
     return () => {
       live = false;
     };
-  }, [project, demo]);
+  }, [project, demo, diy]);
 
   if (!guests) return <p className="text-[var(--slate)]">Loading RSVPs…</p>;
-  if (!guests.length) {
-    return (
-      <Panel className="px-6 py-12 text-center">
-        <i className="ri-group-line text-3xl text-[var(--slate)]" />
-        <p className="mt-3 font-display text-xl font-semibold text-[var(--ink)]">No RSVPs yet</p>
-        <p className="mx-auto mt-1 max-w-md text-[14px] text-[var(--slate)]">Responses will appear here as soon as guests reply on your event website.</p>
-      </Panel>
-    );
-  }
-  return <GuestTable guests={guests} />;
+  const replies = !guests.length ? (
+    <Panel className="px-6 py-12 text-center">
+      <i className="ri-group-line text-3xl text-[var(--slate)]" />
+      <p className="mt-3 font-display text-xl font-semibold text-[var(--ink)]">No RSVPs yet</p>
+      <p className="mx-auto mt-1 max-w-md text-[14px] text-[var(--slate)]">Responses will appear here as soon as guests reply on your event website.</p>
+    </Panel>
+  ) : (
+    <GuestTable guests={guests} />
+  );
+  if (!diy) return replies;
+  return (
+    <>
+      <div className="mb-6">
+        <FilterTabs<"replies" | "invites">
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "replies", label: `Replies${guests.length ? ` (${guests.length})` : ""}` },
+            { value: "invites", label: "Invite list" },
+          ]}
+        />
+      </div>
+      {view === "replies" ? (
+        replies
+      ) : (
+        <InviteList
+          eventId={project.id}
+          guests={guests}
+          eventName={project.name}
+          siteUrl={site?.slug && site.publishedAt ? `${window.location.origin}/invite/${site.slug}` : null}
+          deadline={deadline}
+          demo={demo}
+        />
+      )}
+      {!demo ? <GuestPhotosAdmin eventId={project.id} slug={site?.slug ?? null} /> : null}
+    </>
+  );
 }

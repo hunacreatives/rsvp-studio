@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import type { EventContent } from "../../content/types";
+import { rsvpWindow } from "../../content/rsvpDeadline";
+import { getSitePassword } from "../../public/sitePassword";
 
 export type SubmitState = "idle" | "submitting" | "success" | "error";
 
@@ -7,6 +9,8 @@ export type SubmitState = "idle" | "submitting" | "success" | "error";
  * A design's own RSVP form (website section or traced canvas): the values
  * guests type, and the POST to /api/wedding-rsvp. `website` is the hidden
  * spam trap — real guests never fill it.
+ * `closed` / `closedText`: past the hosts' "reply by" date (forms show closedText
+ * instead of their fields); `replyBy`: the line to show above an open form.
  */
 export function useRsvpForm(content: EventContent, editorPreview: boolean | undefined, opts: { asksAttending: boolean }) {
   const [values, setValues] = useState<Record<string, string>>({});
@@ -17,10 +21,16 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   const [emailed, setEmailed] = useState(false);
   const set = (k: string, v: string) => setValues((cur) => ({ ...cur, [k]: v }));
   const attending = values.attending === "yes" ? "yes" : values.attending === "no" ? "no" : null;
+  const { closed, replyBy, closedText } = rsvpWindow(content);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (editorPreview) return;
+    if (closed) {
+      setError(closedText);
+      setState("error");
+      return;
+    }
     if (!(values.name ?? "").trim()) {
       setError("Please enter your name.");
       return;
@@ -37,6 +47,8 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: content.slug,
+          // A password-protected site: the password the guest unlocked it with.
+          password: getSitePassword(content.slug),
           name: values.name ?? "",
           // One "Email or mobile number" field (built-in templates), or a design's own email field.
           contact: values.contact ?? "",
@@ -59,5 +71,5 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
     }
   }
 
-  return { values, set, state, error, website, setWebsite, attending, submit, emailed };
+  return { values, set, state, error, website, setWebsite, attending, submit, emailed, closed: closed && !editorPreview, replyBy, closedText };
 }

@@ -163,6 +163,8 @@ export interface EventContent {
   cashGifts?: CashGift[];
   /** Optional line above them, e.g. "Your presence is the best gift…". */
   cashGiftNote?: string;
+  /** "Please reply by" (YYYY-MM-DD). After this day the RSVP form closes (api/wedding-rsvp.ts checks it too). */
+  rsvpDeadline?: string;
   /** Ordered by `order`. */
   faqs: FAQ[];
   /** Other notable people tied to the event (e.g. a wedding party, a

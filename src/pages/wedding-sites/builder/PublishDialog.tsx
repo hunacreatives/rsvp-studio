@@ -220,7 +220,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
             <p style={{ margin: "10px 0 0", fontSize: 15, lineHeight: 1.6, color: "#55556a" }}>
               {step.tier === "premium" ? (
                 <>
-                  Premium templates are a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>, and include Premium: an email for every RSVP, and guest confirmations sent in your names.
+                  Premium templates are a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>, and include Premium: an email for every RSVP, guest confirmations and reminders sent in your names, and guest photo sharing.
                 </>
               ) : (
                 <>

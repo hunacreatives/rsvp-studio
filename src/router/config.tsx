@@ -54,6 +54,7 @@ const StudioTemplateDetail = lazy(() => import("../pages/studio/templates/Templa
 const StudioTemplateImport = lazy(() => import("../pages/studio/templates/TemplateImportPage"));
 const PreviewHarnessPage = lazy(() => import("../pages/wedding-sites/preview/PreviewHarnessPage"));
 const PublicEventSitePage = lazy(() => import("../pages/wedding-sites/public/PublicEventSitePage"));
+const GuestPhotosPage = lazy(() => import("../pages/wedding-sites/public/GuestPhotosPage"));
 const BuilderShellPage = lazy(() => import("../pages/wedding-sites/builder/BuilderShellPage"));
 const TemplateGalleryPage = lazy(() => import("../pages/wedding-sites/builder/TemplateGalleryPage"));
 const BuildLandingPage = lazy(() => import("../pages/wedding-sites/builder/BuildLandingPage"));
@@ -120,6 +121,7 @@ const routes: RouteObject[] = [
     ],
   },
   { path: "/invite/:slug", element: <PublicEventSitePage /> },
+  { path: "/invite/:slug/photos", element: <GuestPhotosPage /> },
   { path: "/build", element: <BuildLandingPage /> },
   { path: "/build/preview/:templateId", element: <TemplatePreviewPage /> },
   { path: "/account/events/:eventId/site-builder", element: <TemplateGalleryPage /> },

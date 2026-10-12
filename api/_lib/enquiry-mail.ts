@@ -26,7 +26,7 @@ export const CORAL = "#ff7052";
 
 /** The branded email: logo, an illustration, the content rows, links and a footer line.
  *  Also used by the follow-up emails (followup-mail.ts), which pass their own footer. */
-export function frame({ preheader, spot, spotAlt, content, footer = "You received this email because you sent us a message on thersvpstudio.com." }: { preheader: string; spot: string; spotAlt: string; content: string; footer?: string }) {
+export function frame({ preheader, spot, spotAlt, content, footer = "You received this email because you sent us a message on thersvpstudio.com.", cover }: { preheader: string; spot: string; spotAlt: string; content: string; footer?: string; cover?: string }) {
   return `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light" /><meta name="supported-color-schemes" content="light" />
 <style>:root{color-scheme:light only;supported-color-schemes:light only}
@@ -37,7 +37,9 @@ export function frame({ preheader, spot, spotAlt, content, footer = "You receive
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f3f3f5" class="fpage" style="background:#f3f3f5;"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="#ffffff" class="fcard" style="max-width:560px;width:100%;background:#ffffff;">
 <tr><td align="center" style="padding:36px 32px 8px;"><img src="${SITE}/brand/logotype-dark.png" alt="The RSVP Studio" width="128" style="display:block;height:auto;border:0;" /></td></tr>
-<tr><td align="center" style="padding:22px 32px 4px;"><img src="${SITE}/email/${spot}" alt="${spotAlt}" width="200" style="display:block;width:200px;height:auto;border:0;" /></td></tr>
+${cover
+  ? `<tr><td align="center" style="padding:22px 32px 4px;"><table role="presentation" align="center" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ffffff" style="background:#ffffff;padding:8px 8px 22px;border:1px solid #ece8e1;border-radius:4px;box-shadow:0 8px 20px -12px rgba(0,7,39,0.35);"><img src="${cover}" alt="${spotAlt}" width="150" style="display:block;width:150px;max-width:100%;height:auto;border:0;" /></td></tr></table></td></tr>`
+  : `<tr><td align="center" style="padding:22px 32px 4px;"><img src="${SITE}/email/${spot}" alt="${spotAlt}" width="200" style="display:block;width:200px;height:auto;border:0;" /></td></tr>`}
 ${content}
 <tr><td align="center" style="padding:0 32px 36px;">
 <table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>

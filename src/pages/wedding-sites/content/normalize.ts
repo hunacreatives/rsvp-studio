@@ -209,6 +209,7 @@ export function normalizeEventContent(raw: unknown): EventContent {
     registryLinks: asArray<unknown>(r.registryLinks).map(normalizeRegistryLink),
     cashGifts: asArray<unknown>(r.cashGifts).map(normalizeCashGift),
     cashGiftNote: asOptionalString(r.cashGiftNote),
+    rsvpDeadline: /^\d{4}-\d{2}-\d{2}$/.test(asString(r.rsvpDeadline)) ? asString(r.rsvpDeadline) : undefined,
     faqs,
     keyPeople: asArray<unknown>(r.keyPeople).map(normalizePerson),
     rsvpTableName: asString(r.rsvpTableName),

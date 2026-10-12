@@ -59,6 +59,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           comment ? `<br><br><span style="color:#868697">Their comment:</span><br>${esc(comment).replace(/\n/g, "<br>")}` : ""
         }<br><br>Worth a personal follow-up.`,
         { label: "Open in Studio Console", url: `${origin}/studio/support?thread=${thread.id}` },
+        undefined,
+        { ad: false },
       ),
     }).catch((e) => console.error("rating alert failed", e));
   }

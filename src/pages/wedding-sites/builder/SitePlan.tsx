@@ -7,7 +7,8 @@ import { DiscountNote, ReferralCode } from "./ReferralCode";
 
 // Free vs Premium in the builder (site_plan in supabase/free-premium.sql).
 //   Free: one RSVP summary email a day.
-//   Premium: an email per RSVP, guest emails sent in the hosts' names, Premium templates.
+//   Premium: an email per RSVP, guest emails sent in the hosts' names, a reminder to
+//   guests 2 days before, guest photo sharing, Premium templates.
 //   (Every site shows "Made with love by The RSVP Studio" either way.)
 // A free-template site can upgrade (PayMongo, back here with ?upgraded=…).
 
@@ -81,6 +82,8 @@ export function useUpgradeFlow(eventId: string | undefined, reload: () => Promis
 export const PREMIUM_PERKS = [
   "An email the moment each guest RSVPs, instead of one summary a day",
   "Guest confirmation emails sent in your names",
+  "A reminder email to guests 2 days before your event",
+  "Guests share their photos on your website",
   "Any Premium template, at no extra cost",
 ];
 

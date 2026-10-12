@@ -637,3 +637,20 @@ export async function loadSiteHealth(): Promise<SiteHealth | null> {
     return null;
   }
 }
+
+// ── Promo codes (supabase/guest-features.sql) ─────────────────────────────────
+export type PromoCode = { code: string; percent_off: number; note: string | null; active: boolean; starts_on: string | null; ends_on: string | null; max_uses: number | null; uses: number; created_at: string };
+/** null = guest-features.sql not run yet. */
+export async function loadPromoCodes(): Promise<PromoCode[] | null> {
+  const { data, error } = await supabase.rpc("promo_code_stats");
+  if (error) return null;
+  return ((data ?? []) as PromoCode[]).map((r) => ({ ...r, percent_off: Number(r.percent_off), uses: Number(r.uses), max_uses: r.max_uses === null ? null : Number(r.max_uses) }));
+}
+export async function savePromoCode(p: { code: string; percent_off: number; note: string | null; starts_on: string | null; ends_on: string | null; max_uses: number | null }) {
+  const { error } = await supabase.from("promo_codes").insert({ ...p, code: p.code.toUpperCase() });
+  if (error) throw new Error(/duplicate|unique/i.test(error.message) ? "That code already exists." : /check/i.test(error.message) ? "Codes are 3–20 letters or numbers, 1–90% off." : error.message);
+}
+export async function setPromoActive(code: string, active: boolean) {
+  const { error } = await supabase.from("promo_codes").update({ active }).eq("code", code);
+  if (error) throw new Error(error.message);
+}

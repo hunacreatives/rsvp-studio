@@ -110,6 +110,7 @@ export async function POST(request: Request) {
         }`,
         { label: "Open the Studio", url: `${SITE}/studio${payment.kind === "invoice" ? "/invoices" : ""}` },
         "From the PayMongo payment system.",
+        { ad: false },
       ),
     }).catch((e) => console.error("studio payment alert failed", e));
     return ok();
