@@ -38,6 +38,10 @@ export type Guest = {
   guest_count?: number | null;
   attending?: boolean | null;
   dietary?: string | null;
+  /** Answers to the hosts' own questions, by question (supabase/guest-links.sql). */
+  answers?: Record<string, string> | null;
+  /** Replied from their personal invite link. */
+  invitee_id?: string | null;
 };
 
 const PROFILE_COLS =

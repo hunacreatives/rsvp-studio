@@ -8,6 +8,7 @@ import { FAQ_CATEGORIES } from "./faq-data";
 import { submitInquiry } from "@/pages/enquire/submit";
 import { Honeypot, INPUT, LABEL } from "@/pages/enquire/components/form-ui";
 import ChatLinks from "@/components/ChatLinks";
+import { trackEvent } from "@/lib/analytics";
 
 /** Scroll to a category, clearing the sticky header (and the phone category bar). */
 function jumpTo(slug: string) {
@@ -83,6 +84,7 @@ function ContactForm() {
         { form: "faq-question", website },
       );
       setSubmitted(true);
+      trackEvent("generate_lead", { form: "question" });
     } catch (err) {
       setError(err instanceof Error && err.message !== "Failed to submit inquiry" ? err.message : "That didn’t send. Please try again, or email hello@thersvpstudio.com.");
     } finally {

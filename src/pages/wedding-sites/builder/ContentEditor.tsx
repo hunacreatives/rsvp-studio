@@ -11,6 +11,8 @@ import GalleryFields from "./sections/GalleryFields";
 import KeyPeopleFields from "./sections/KeyPeopleFields";
 import RegistryFields from "./sections/RegistryFields";
 import FaqFields from "./sections/FaqFields";
+import RsvpQuestionsFields from "./sections/RsvpQuestionsFields";
+import EntourageFields from "./sections/EntourageFields";
 
 interface ContentEditorProps {
   content: EventContent;
@@ -18,6 +20,9 @@ interface ContentEditorProps {
   eventId: string | undefined;
   /** The selected template: decides which sections show, and adds its own fields. */
   template?: TemplateDefinition;
+  /** Premium site (more RSVP questions), and the upgrade dialog. */
+  premium?: boolean;
+  onUpgrade?: () => void;
 }
 
 interface Group {
@@ -30,7 +35,7 @@ interface Group {
 // Plain, native <details>-based groups — no editor framework, no
 // drag-and-drop. Starts with the high-value fields called out in the
 // product brief; rich-text/inline editing is an explicit non-goal for V1.
-export default function ContentEditor({ content, onChange, eventId, template }: ContentEditorProps) {
+export default function ContentEditor({ content, onChange, eventId, template, premium = false, onUpgrade }: ContentEditorProps) {
   const uses = template?.uses;
   const shows = (s: StandardSection) => !uses || uses.includes(s);
   const all: Group[] = [
@@ -55,6 +60,9 @@ export default function ContentEditor({ content, onChange, eventId, template }: 
     { title: "Special People", section: "keyPeople", render: () => <KeyPeopleFields content={content} onChange={onChange} /> },
     { title: "Gifts", section: "registry", render: () => <RegistryFields content={content} onChange={onChange} eventId={eventId} /> },
     { title: "FAQs", section: "faqs", render: () => <FaqFields content={content} onChange={onChange} /> },
+    // Built-in designs only: uploaded designs draw their own RSVP form and sections.
+    ...(template?.archetype !== "uploaded" ? [{ title: "Entourage & motif", render: () => <EntourageFields content={content} onChange={onChange} /> }] : []),
+    ...(template?.archetype !== "uploaded" ? [{ title: "RSVP questions", render: () => <RsvpQuestionsFields content={content} onChange={onChange} premium={premium} onUpgrade={onUpgrade} /> }] : []),
   ];
   const groups = all.filter((g) => !g.section || shows(g.section));
 

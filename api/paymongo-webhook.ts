@@ -23,7 +23,11 @@ const ok = () => Response.json({ ok: true });
 
 export async function POST(request: Request) {
   const raw = await request.text();
-  if (!verifyPaymongoSignature(raw, request.headers.get("paymongo-signature"), process.env.PAYMONGO_WEBHOOK_SECRET ?? "")) {
+  // The secret was saved in Vercel as PAYMONGO_WEBOOK_SECRET (missing "H"): accept either name.
+  const secret = process.env.PAYMONGO_WEBHOOK_SECRET || process.env.PAYMONGO_WEBOOK_SECRET || "";
+  if (!secret) await captureError(new Error("PAYMONGO_WEBHOOK_SECRET is not set: payments can't be confirmed"), "paymongo-webhook");
+  if (!verifyPaymongoSignature(raw, request.headers.get("paymongo-signature"), secret)) {
+    await captureError(new Error("PayMongo webhook signature rejected"), "paymongo-webhook");
     return new Response("bad signature", { status: 401 });
   }
   let evt: { data?: { attributes?: { type?: string; data?: { id?: string; attributes?: Record<string, any> } } } };

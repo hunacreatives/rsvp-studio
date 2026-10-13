@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { bannerTextColor, setBannerCache } from "@/pages/home/components/AnnouncementBar";
+import { bannerTextColor, setBannerCache, bannerContrast } from "@/pages/home/components/AnnouncementBar";
 import { ErrorText, Input, PillButton, Toggle } from "@/pages/account/portal/ui";
 import * as studio from "./studioApi";
 
@@ -149,6 +149,14 @@ export default function BannerCard() {
         </div>
       </div>
 
+      {/^#[0-9a-f]{6}$/i.test(b.color) && /^#[0-9a-f]{6}$/i.test(b.text_color) && bannerContrast(b.text_color, b.color) < 4.5 ? (
+        <p className="mt-3 text-[13px] text-[#8a5a00]">
+          This text is hard to read on this colour.{" "}
+          <button onClick={() => set({ text_color: bannerTextColor(b.color) })} className="font-medium underline underline-offset-2">
+            Use {bannerTextColor(b.color) === "#ffffff" ? "white" : "navy"} text
+          </button>
+        </p>
+      ) : null}
       <div className="mt-4">
         <PillButton tone="dark" onClick={save} disabled={state === "saving"}>
           {state === "saving" ? "Saving…" : state === "saved" ? "Saved" : "Save"}

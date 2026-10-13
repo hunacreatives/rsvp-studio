@@ -1,4 +1,5 @@
 import { BOOKING_URL, INSTAGRAM_DM_URL, MESSENGER_URL } from "@/lib/social";
+import { trackEvent } from "@/lib/analytics";
 
 /** "Prefer to chat?" — Messenger and Instagram DM buttons (they open the apps), and
  *  "Book a call" when a booking page is set (VITE_BOOKING_URL). */
@@ -9,6 +10,7 @@ export default function ChatLinks({ className = "", align = "left" }: { classNam
       <span className={`w-full text-[14px] text-[var(--slate)] sm:mr-1 sm:w-auto ${align === "center" ? "text-center" : ""}`}>Prefer to chat?</span>
       <a
         href={MESSENGER_URL}
+        onClick={() => trackEvent("contact", { channel: "messenger" })}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[var(--line)] bg-white px-4 text-[14px] font-medium text-[var(--ink)] transition-colors hover:border-[var(--ink)]"
@@ -17,6 +19,7 @@ export default function ChatLinks({ className = "", align = "left" }: { classNam
       </a>
       <a
         href={INSTAGRAM_DM_URL}
+        onClick={() => trackEvent("contact", { channel: "instagram" })}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[var(--line)] bg-white px-4 text-[14px] font-medium text-[var(--ink)] transition-colors hover:border-[var(--ink)]"
@@ -26,6 +29,7 @@ export default function ChatLinks({ className = "", align = "left" }: { classNam
       {BOOKING_URL ? (
         <a
           href={BOOKING_URL}
+          onClick={() => trackEvent("contact", { channel: "booking" })}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[var(--line)] bg-white px-4 text-[14px] font-medium text-[var(--ink)] transition-colors hover:border-[var(--ink)]"

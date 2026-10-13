@@ -12,6 +12,7 @@ import { useTemplateCatalog } from "../engine/catalog";
 import { getTemplateDefinition, type TemplateDefinition } from "../engine/registry";
 import TemplateMockupPreview from "./components/TemplateMockupPreview";
 import { CharacterTrio } from "@/components/CharacterLoader";
+import { trackEvent } from "@/lib/analytics";
 
 // /build — "Build your website", the DIY front door. Designs first: a short hero,
 // then every template (live previews, Free/Premium), how it works, Free vs Premium,
@@ -129,6 +130,7 @@ export default function BuildLandingPage() {
   // "Use this design" / "Start free": sign up first if needed, then make the event
   // (the builder opens with the chosen design).
   const start = (templateId?: string) => {
+    trackEvent("start_building", { template: templateId ?? "none" });
     if (signedIn === false) {
       pendingStart.current = templateId ?? "";
       setAuthOpen(true);

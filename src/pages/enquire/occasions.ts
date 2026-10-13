@@ -93,4 +93,5 @@ export const SEMI_COLLECTIONS = [
 // RSVP management is built into every website, so it isn’t an add-on.
 export const ADDONS = ["Digital Save the Date", "Monogram", "Printed stationery", "Just the website for now"];
 export const TIMELINES = ["3 – 4 weeks", "1 – 2 months", "2 – 3 months", "3+ months", "Not sure yet"];
-export const BUDGETS = ["Under ₱15k", "₱15 – 40k", "₱40 – 80k", "₱80k+", "Not sure yet"];
+// In step with the packages (₱2,500 – ₱22,000).
+export const BUDGETS = ["Under ₱5k", "₱5 – 10k", "₱10 – 20k", "₱20k+", "Not sure yet"];

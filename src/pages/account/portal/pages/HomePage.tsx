@@ -9,7 +9,7 @@ import { EmptyState, PrimaryButton, SectionTitle } from "../ui";
 import PartnerStrip from "../components/PartnerStrip";
 
 export default function HomePage() {
-  const { projects, tasks, activity } = usePortal();
+  const { projects, tasks, activity, profile } = usePortal();
   const navigate = useNavigate();
   const [newOpen, setNewOpen] = useState(false);
 
@@ -26,7 +26,8 @@ export default function HomePage() {
 
   return (
     <>
-      <PageHeader title="Your Projects" />
+      {/* Home is the overview; the full list lives under Projects (same title twice confused people). */}
+      <PageHeader title={`Welcome back${profile.full_name ? `, ${profile.full_name.trim().split(/\s+/)[0]}` : ""}`} />
       <PartnerStrip />
       <NeedsAttention />
 

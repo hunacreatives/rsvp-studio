@@ -159,13 +159,29 @@ export async function uploadCover(eventId: string, file: File) {
   return supabase.storage.from("project-covers").getPublicUrl(path).data.publicUrl;
 }
 
+/** Every row of a query, 1,000 at a time (Supabase returns at most 1,000 per request,
+ *  which would otherwise cut lists off silently once there are more). */
+async function allRows<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>, max = 20_000): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; from < max; from += 1000) {
+    const { data, error } = await page(from, from + 999);
+    if (error || !data) break;
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+
 /** Every client account (non-staff), newest first. */
 export async function loadClientDirectory() {
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, phone, location, avatar_url, created_at")
-    .eq("is_staff", false)
-    .order("created_at", { ascending: false });
+  const data = await allRows((from, to) =>
+    supabase
+      .from("profiles")
+      .select("id, full_name, email, phone, location, avatar_url, created_at")
+      .eq("is_staff", false)
+      .order("created_at", { ascending: false })
+      .range(from, to),
+  );
   return (data ?? []) as {
     id: string;
     full_name: string | null;
@@ -419,9 +435,14 @@ export type DiySite = { slug: string | null; template: string | null; published_
 export async function loadDiySites(eventIds: string[]) {
   const out: Record<string, DiySite> = {};
   if (!eventIds.length) return out;
+  // Long id lists are split: one request with hundreds of ids is too long a URL.
+  if (eventIds.length > 150) {
+    for (let i = 0; i < eventIds.length; i += 150) Object.assign(out, await loadDiySites(eventIds.slice(i, i + 150)));
+    return out;
+  }
   const [{ data: sites }, { data: rsvps }, { data: pays }] = await Promise.all([
     supabase.from("wedding_sites").select("event_id, slug, published_at, draft_presentation").in("event_id", eventIds),
-    supabase.from("rsvps").select("event_id").in("event_id", eventIds),
+    allRows<{ event_id: string }>((from, to) => supabase.from("rsvps").select("event_id").in("event_id", eventIds).order("id").range(from, to)).then((data) => ({ data })),
     supabase.from("payments").select("event_id, amount_centavos").eq("kind", "site_publish").eq("status", "paid").in("event_id", eventIds),
   ]);
   for (const id of eventIds) out[id] = { slug: null, template: null, published_at: null, rsvps: 0, paid: 0 };

@@ -11,10 +11,8 @@ const PAGES = [
   "/", "/build", "/services", "/services/milestone", "/services/monogram", "/services/save-the-date", "/services/stationery",
   "/services/rsvp", "/collections", "/portfolio", "/blog", "/faqs", "/enquire", "/enquire/partner", "/partners", "/privacy", "/terms",
 ];
-const PORTFOLIO = [
-  "claudy-at-30", "tercel-at-41", "gel-at-30", "frances-jash", "carlo-and-trixia", "t-and-h", "monogram-m", "r-and-a-crest",
-  "camille-and-rafael", "arianne-and-marco", "the-bautistas",
-];
+// Only works with a case-study page (a live site); the others redirect to the inquiry form.
+const PORTFOLIO = ["claudy-at-30", "tercel-at-41", "gel-at-30", "frances-jash", "carlo-and-trixia"];
 
 const url = (path: string, lastmod?: string | null) =>
   `  <url><loc>${SITE}${path}</loc>${lastmod ? `<lastmod>${lastmod.slice(0, 10)}</lastmod>` : ""}</url>`;

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import GuestTable from "../../components/GuestTable";
+import GuestEditor from "../../components/GuestEditor";
+import InviteShareButtons from "@/components/InviteShare";
 import { getTemplateDefinition } from "@/pages/wedding-sites/engine/registry";
 import { useTemplateCatalog } from "@/pages/wedding-sites/engine/catalog";
 import { usePortal } from "../PortalContext";
@@ -208,6 +210,7 @@ function WebsiteTab({ project }: { project: Project }) {
             </PillButton>
           </div>
         ) : null}
+        {site.publishedAt && !site.ended ? <InviteShareButtons url={publicUrl} slug={site.slug} title={project.name} className="mt-3" /> : null}
         <div className="mt-6 flex flex-wrap gap-3">
           <PillButton tone="primary" onClick={() => navigate(`${builder}/edit`)}>
             <i className="ri-edit-2-line" /> Edit website
@@ -260,6 +263,9 @@ function GuestsTab({ project }: { project: Project }) {
   const [guests, setGuests] = useState<api.Guest[] | null>(null);
   const [view, setView] = useState<"replies" | "invites">("replies");
   const [deadline, setDeadline] = useState<string | null>(null);
+  // Adding or fixing a reply by hand (null = closed; "new" = add).
+  const [editing, setEditing] = useState<api.Guest | "new" | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const site = sites[project.id];
   // Studio-built events keep their RSVPs in their own table: no invite list or photos there.
   const diy = !project.table_name;
@@ -278,18 +284,47 @@ function GuestsTab({ project }: { project: Project }) {
     return () => {
       live = false;
     };
-  }, [project, demo, diy]);
+  }, [project, demo, diy, reloadKey]);
 
   if (!guests) return <p className="text-[var(--slate)]">Loading RSVPs…</p>;
+  const canManage = diy && !demo;
+  const manage = canManage
+    ? {
+        onAdd: () => setEditing("new"),
+        onEdit: (g: api.Guest) => setEditing(g),
+        onDelete: async (g: api.Guest) => {
+          if (!window.confirm(`Remove ${g.name || "this reply"}? This can’t be undone.`)) return;
+          const { error } = await supabase.from("rsvps").delete().eq("id", g.id);
+          if (error) return window.alert("Couldn’t remove it. Please try again.");
+          setGuests((cur) => cur?.filter((x) => x.id !== g.id) ?? cur);
+        },
+      }
+    : undefined;
   const replies = !guests.length ? (
     <Panel className="px-6 py-12 text-center">
       <i className="ri-group-line text-3xl text-[var(--slate)]" />
       <p className="mt-3 font-display text-xl font-semibold text-[var(--ink)]">No RSVPs yet</p>
       <p className="mx-auto mt-1 max-w-md text-[14px] text-[var(--slate)]">Responses will appear here as soon as guests reply on your event website.</p>
+      {canManage ? (
+        <button onClick={() => setEditing("new")} className="btn btn-ghost mt-5">
+          Add a reply by hand
+        </button>
+      ) : null}
     </Panel>
   ) : (
-    <GuestTable guests={guests} />
+    <GuestTable guests={guests} manage={manage} />
   );
+  const editor = editing ? (
+    <GuestEditor
+      eventId={project.id}
+      guest={editing === "new" ? null : editing}
+      onClose={() => setEditing(null)}
+      onSaved={() => {
+        setEditing(null);
+        setReloadKey((k) => k + 1);
+      }}
+    />
+  ) : null;
   if (!diy) return replies;
   return (
     <>
@@ -316,6 +351,7 @@ function GuestsTab({ project }: { project: Project }) {
         />
       )}
       {!demo ? <GuestPhotosAdmin eventId={project.id} slug={site?.slug ?? null} /> : null}
+      {editor}
     </>
   );
 }

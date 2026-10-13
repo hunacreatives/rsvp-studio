@@ -97,7 +97,7 @@ export default function BuilderShellPage() {
           <LookAndFeel presentation={presentation} onChange={setPresentation} eventId={eventId} loadFontPreviews={lookOpen} />
         </div>
       </details>
-      <ContentEditor content={content} onChange={setContent} eventId={eventId} template={activeDefinition} />
+      <ContentEditor content={content} onChange={setContent} eventId={eventId} template={activeDefinition} premium={!!plan?.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} />
       <GuestSettings eventId={eventId} slug={slug} premium={!!plan?.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} />
     </>
   );

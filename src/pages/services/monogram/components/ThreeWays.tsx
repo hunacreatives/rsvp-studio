@@ -66,6 +66,7 @@ export default function ThreeWays() {
                   {t.name}
                 </h3>
                 <p className="mt-1 text-[15px] text-[var(--ink)]">Starts at {t.price}</p>
+                <p className="text-[13px] text-[var(--slate)]">Ready in 7–10 business days</p>
                 <p className="mt-2 text-lg font-bold text-[var(--slate)]">
                   {t.forWho}
                 </p>

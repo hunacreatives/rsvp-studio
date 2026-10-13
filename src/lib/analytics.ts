@@ -60,6 +60,14 @@ function load() {
   document.head.appendChild(s);
 }
 
+/** A key action, for Google Analytics conversions: generate_lead (inquiry sent),
+ *  sign_up / begin_signup, contact (Messenger, Instagram, Book a call). */
+export function trackEvent(name: string, params: Record<string, string | number> = {}) {
+  if (!analyticsConfigured() || optedOut() || untrackedPath(window.location.pathname)) return;
+  load();
+  window.gtag?.("event", name, params);
+}
+
 /** One page view (the app changes pages without reloading). */
 export function trackPage(pathname: string) {
   if (!analyticsConfigured() || untrackedPath(pathname) || optedOut()) return;

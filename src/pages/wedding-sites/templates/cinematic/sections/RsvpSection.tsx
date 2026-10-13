@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { EventContent } from "../../../content/types";
 import { customValue } from "../../../content/custom";
 import { useRsvpForm } from "../../../spec/runtime/useRsvpForm";
+import RsvpQuestions from "../../shared/RsvpQuestions";
 import { hostNames, isPlural } from "../content";
 import { Heart } from "./Heart";
 
@@ -103,32 +104,33 @@ export default function RsvpSection({ content, editorPreview, reveal }: { conten
                 <input id={`${id}-name`} className="cn-field" type="text" autoComplete="name" autoCapitalize="words" enterKeyHint="next" placeholder="Enter your name" value={form.values.name ?? ""} onChange={(e) => form.set("name", e.target.value)} />
               </div>
               <div>
-                <label htmlFor={`${id}-contact`}>Email Address or Mobile Number</label>
+                <label htmlFor={`${id}-contact`}>{form.contactMode === "mobile" ? "Mobile Number" : "Email Address"}</label>
                 <input
                   id={`${id}-contact`}
                   className="cn-field"
-                  type="text"
-                  inputMode="email"
-                  autoComplete="email"
+                  {...form.contactProps}
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
                   enterKeyHint="next"
-                  placeholder="your@email.com or 0917 123 4567"
                   value={form.values.contact ?? ""}
                   onChange={(e) => form.set("contact", e.target.value)}
                 />
+                <button type="button" onClick={() => form.toggleContact(`${id}-contact`)} style={{ display: "inline-flex", alignItems: "center", minHeight: 40, padding: 0, marginTop: 4, border: "none", background: "none", font: "inherit", fontSize: 14, opacity: 0.75, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", color: "inherit" }}>
+                  {form.contactToggleLabel}
+                </button>
               </div>
               <div>
                 <label htmlFor={`${id}-guests`}>Will you be bringing anyone?</label>
                 <select id={`${id}-guests`} className="cn-field" value={choice} onChange={(e) => pick(e.target.value)}>
-                  {GUEST_CHOICES.map((c) => (
+                  {GUEST_CHOICES.filter((c) => c.value === "no" || Number(c.value) <= form.maxGuests).map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
                     </option>
                   ))}
                 </select>
               </div>
+              <RsvpQuestions form={form} idPrefix={id} askPartyNames={content.askPartyNames} fieldClassName="cn-field" />
               <div>
                 <label htmlFor={`${id}-note`}>A Sweet Note (Optional)</label>
                 <textarea

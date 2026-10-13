@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { formatDate, formatMoney as money } from "@/pages/account/portal/format";
 const formatMoney = (n: number) => money(Math.round(n));
-import { FilterTabs } from "@/pages/account/portal/ui";
+import { FilterTabs, PillButton } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import * as studio from "../studioApi";
+import { downloadCsv } from "@/lib/csv";
 
 // Studio → Revenue (owner only, supabase/revenue-report.sql): what came in, what it
 // cost (partner commissions, Vercel's domain price) and what the studio keeps — for a
@@ -162,7 +163,24 @@ export default function RevenuePage() {
 
   return (
     <>
-      <StudioHeader title="Revenue" />
+      <StudioHeader
+        title="Revenue"
+        action={
+          list.length ? (
+            <PillButton
+              onClick={() =>
+                downloadCsv(
+                  `revenue-${period}-${new Date().toISOString().slice(0, 10)}.csv`,
+                  ["Paid on", "Type", "For", "Amount (PHP)", "Partner commission", "Domain cost", "Paid by"],
+                  list.map((i) => [i.paid_at.slice(0, 10), i.source, i.label ?? "", i.amount, i.commission, i.cost, i.method ?? ""]),
+                )
+              }
+            >
+              <i className="ri-download-2-line" /> Export CSV
+            </PillButton>
+          ) : null
+        }
+      />
 
       <div className="mb-5">
         <FilterTabs<Period>

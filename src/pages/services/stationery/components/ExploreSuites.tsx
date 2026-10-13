@@ -200,6 +200,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
             <p className="mt-6 text-[15px] text-[var(--slate)]">
               Starts at{" "}
               <span className="font-semibold text-[var(--ink)]">{suite.price}</span>
+              <span className="block text-[13px]">Ready in 4–6 weeks, including printing and delivery</span>
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

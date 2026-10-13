@@ -42,7 +42,7 @@ const sendEmail = (payload: Parameters<typeof sendChecked>[1]) =>
 const FROM = "The RSVP Studio <hello@thersvpstudio.com>";
 
 const BURST_WINDOW_MIN = 10;
-const BURST_MAX = 40; // RSVPs (new or updated) per event per window
+const BURST_MAX = 200; // RSVPs (new or updated) per event per window (a link posted to a big group chat)
 const UPDATE_MAX = 5; // changes per guest per hour
 const GUEST_EMAILS_PER_DAY = 60; // confirmation emails per event per day
 const LEGACY_TABLE = /^[a-z0-9_]+_rsvps$/;
@@ -80,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const attending: boolean | null =
     attendingRaw === true || attendingRaw === "yes" ? true : attendingRaw === false || attendingRaw === "no" ? false : null;
   const guestsNum = Number(body.guests);
-  const guestCount = attending === false ? 0 : Number.isInteger(guestsNum) && guestsNum >= 1 && guestsNum <= 20 ? guestsNum : attending ? 1 : null;
+  let guestCount = attending === false ? 0 : Number.isInteger(guestsNum) && guestsNum >= 1 && guestsNum <= 20 ? guestsNum : attending ? 1 : null;
   const dietary = attending === false ? "" : clean(body.dietary, 300);
 
   if (!slug || !/^[a-z0-9-]+$/.test(slug) || !name) {
@@ -140,6 +140,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: "Please enter your email so we can send your confirmation." });
     return;
   }
+  const premium = legacy || (await isPremium(supabaseAdmin, site.event_id));
+
+  // A personal link (?g=…, supabase/guest-links.sql): the reply belongs to that guest.
+  // Premium: their party size is a seat limit, and an invite-only site needs the link.
+  const token = clean(body.g, 40);
+  type Invitee = { id: string; party_size: number | null };
+  let invitee: Invitee | null = null;
+  if (token && !legacy) {
+    const { data } = await supabaseAdmin.from("invitees").select("id, party_size").eq("event_id", eventId!).eq("token", token).maybeSingle();
+    invitee = (data as Invitee | null) ?? null;
+  }
+  if (premium && !legacy && site.invite_only === true && !invitee) {
+    res.status(403).json({ error: "RSVPs for this event are by personal invitation. Please use the link the hosts sent you." });
+    return;
+  }
+  if (invitee && premium && invitee.party_size && guestCount) guestCount = Math.min(guestCount, invitee.party_size);
+
+  // Answers to the hosts' own questions (content.rsvpQuestions; just the first on free
+  // sites), kept by question label so they read back even if a question is edited later.
+  const qs = (((site.published_content as { rsvpQuestions?: unknown }).rsvpQuestions ?? []) as { id?: string; label?: string; type?: string; options?: string[] }[])
+    .filter((q) => q && typeof q.label === "string" && q.label.trim())
+    .slice(0, premium ? 5 : 1);
+  const rawAnswers = (body.answers && typeof body.answers === "object" ? body.answers : {}) as Record<string, unknown>;
+  const answers: Record<string, string> = {};
+  if (attending !== false) {
+    for (const q of qs) {
+      const v = clean(rawAnswers[String(q.id)], 200);
+      if (!v) continue;
+      if (q.type === "yesno" && v !== "Yes" && v !== "No") continue;
+      if (q.type === "choice" && !(q.options ?? []).includes(v)) continue;
+      answers[String(q.label).slice(0, 120)] = v;
+    }
+    const party = clean(rawAnswers._party, 400);
+    if (party && (site.published_content as { askPartyNames?: boolean }).askPartyNames) answers["Party"] = party;
+  }
+  const hasAnswers = Object.keys(answers).length > 0;
 
   // Burst cap per event (new replies, and changed ones on the shared table).
   const since = new Date(Date.now() - BURST_WINDOW_MIN * 60_000).toISOString();
@@ -147,22 +183,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (eventId) countQuery = countQuery.eq("event_id", eventId);
   const { count } = await countQuery;
   if ((count ?? 0) >= BURST_MAX) {
-    res.status(429).json({ error: "Lots of RSVPs are coming in right now — please try again in a few minutes." });
+    // `retry`: the form waits a few seconds and tries again by itself.
+    res.status(429).json({ error: "Lots of RSVPs are coming in right now — please try again in a few minutes.", retry: true });
     return;
   }
 
   // One response per guest per event: a repeat (same email, or same mobile) updates the existing row.
-  type Prior = { id: string; update_count?: number; updated_at?: string };
-  const cols = legacy ? "id" : "id, update_count, updated_at";
+  type Prior = { id: string; name?: string | null; update_count?: number; updated_at?: string };
+  const cols = legacy ? "id, name" : "id, name, update_count, updated_at";
+  // Families share a phone or an email: a reply only replaces an earlier one from the same
+  // person (same first name, or one name contains the other). Anyone else is a new reply.
+  const nameKey = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const samePerson = (other: string | null | undefined) => {
+    const a = nameKey(name);
+    const b = nameKey(other);
+    if (!a || !b) return false;
+    return a === b || a.split(" ")[0] === b.split(" ")[0] || a.includes(b) || b.includes(a);
+  };
   let prior: Prior | undefined;
-  if (email) {
-    let q = supabaseAdmin.from(table).select(cols).ilike("email", email.replace(/[%_\\]/g, "\\$&")).limit(1);
+  // A personal link updates that guest's own reply.
+  if (invitee) {
+    const { data } = await supabaseAdmin.from(table).select(cols).eq("event_id", eventId!).eq("invitee_id", invitee.id).limit(1);
+    prior = ((data ?? []) as unknown as Prior[])[0];
+  }
+  if (!prior && email) {
+    let q = supabaseAdmin.from(table).select(cols).ilike("email", email.replace(/[%_\\]/g, "\\$&")).limit(20);
     if (eventId) q = q.eq("event_id", eventId);
-    prior = ((await q).data?.[0] ?? undefined) as Prior | undefined;
+    prior = (((await q).data ?? []) as unknown as Prior[]).find((r) => samePerson(r.name));
   }
   if (!prior && phone && !legacy) {
-    const { data } = await supabaseAdmin.from(table).select(cols).eq("event_id", eventId!).eq("phone", phone).limit(1);
-    prior = (data?.[0] ?? undefined) as Prior | undefined;
+    const { data } = await supabaseAdmin.from(table).select(cols).eq("event_id", eventId!).eq("phone", phone).limit(20);
+    prior = ((data ?? []) as unknown as Prior[]).find((r) => samePerson(r.name));
   }
   // Changing an answer is fine; changing it over and over isn't.
   const recentChange = prior?.updated_at && Date.now() - Date.parse(prior.updated_at) < 3_600_000;
@@ -189,6 +240,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...(phone ? { phone } : {}),
         updated_at: new Date().toISOString(),
         ...(prior ? { update_count: recentChange ? (prior.update_count ?? 0) + 1 : 1 } : {}),
+        ...(invitee ? { invitee_id: invitee.id } : {}),
+        ...(hasAnswers ? { answers } : {}),
       };
   const legacyMessage = [details, message].filter(Boolean).join(" — ") || null;
   const row = legacy ? { name, message: legacyMessage } : { name, message: message || null, ...extra };
@@ -209,7 +262,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const safeMessage = esc(message);
   const safeDietary = esc(dietary);
 
-  const premium = legacy || (await isPremium(supabaseAdmin, site.event_id));
   const sends: Promise<unknown>[] = [];
   // Free sites: the hosts hear about this in tomorrow's summary instead.
   const recipients = premium ? await hostRecipients(supabaseAdmin, site.event_id) : [];
@@ -229,6 +281,7 @@ ${[
   attending === null ? "" : `<p style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:${attending ? "#3d7a12" : "#6b6658"} !important;">${attending ? `Coming${guestCount ? ` · ${guestCount} ${guestCount === 1 ? "guest" : "guests"}` : ""}` : "Can’t make it"}</p>`,
   `<p style="margin:0;font-size:14px;color:#3c3d57 !important;"><strong>${safeName}</strong>${safeContact ? ` · ${safeContact}` : ""}</p>`,
   safeDietary ? `<p style="margin:8px 0 0;font-size:14px;color:#3c3d57 !important;">Dietary: ${safeDietary}</p>` : "",
+  ...Object.entries(answers).map(([q, a]) => `<p style="margin:8px 0 0;font-size:14px;color:#3c3d57 !important;">${esc(q)}: <strong>${esc(a)}</strong></p>`),
   safeMessage ? `<p style="margin:12px 0 0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:16px;line-height:1.55;color:#000727 !important;">“${safeMessage}”</p>` : "",
 ].join("")}
 </td></tr></table>`,

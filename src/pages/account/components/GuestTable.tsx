@@ -12,23 +12,30 @@ export type Guest = {
   guest_count?: number | null;
   attending?: boolean | null;
   dietary?: string | null;
+  answers?: Record<string, string> | null;
+  invitee_id?: string | null;
 };
 
 /** Save a guest list as a CSV (opens in Excel/Sheets). Also used before deleting a project. */
 export function downloadGuestCsv(rows: Guest[], hasDetails = rows.some((g) => g.attending !== undefined && g.attending !== null), fileName = "rsvps.csv") {
-  const header = ["Name", "Email", "Mobile", ...(hasDetails ? ["Coming", "Party size", "Dietary"] : []), "Bringing", "Message", "Submitted"];
+  const questions = [...new Set(rows.flatMap((g) => Object.keys(g.answers ?? {})))];
+  const header = ["Name", "Email", "Mobile", ...(hasDetails ? ["Coming", "Party size", "Dietary"] : []), ...questions, "Bringing", "Message", "Submitted"];
+  // Every cell quoted with its quotes doubled; a leading = + - @ is neutralised so a
+  // name can't run as a spreadsheet formula.
+  const cell = (v: string) => `"${(/^[=+\-@]/.test(v) ? `'${v}` : v).replace(/"/g, '""')}"`;
   const lines = rows.map((g) => [
     g.name ?? "",
     g.email ?? "",
     g.phone ?? "",
     ...(hasDetails
-      ? [g.attending === true ? "Yes" : g.attending === false ? "No" : "", g.attending ? String(g.guest_count ?? 1) : "", (g.dietary ?? "").replace(/"/g, '""')]
+      ? [g.attending === true ? "Yes" : g.attending === false ? "No" : "", g.attending ? String(g.guest_count ?? 1) : "", g.dietary ?? ""]
       : []),
+    ...questions.map((q) => g.answers?.[q] ?? ""),
     g.bringing ?? "",
-    (g.message ?? "").replace(/"/g, '""'),
+    g.message ?? "",
     g.created_at ? new Date(g.created_at).toLocaleDateString("en-PH") : "",
   ]);
-  const csv = [header, ...lines].map((r) => r.map((cell) => `"${cell}"`).join(",")).join("\n");
+  const csv = [header, ...lines].map((r) => r.map(cell).join(",")).join("\n");
   // The BOM tells Excel it's UTF-8, so names like "Ñ" come through intact.
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -39,7 +46,10 @@ export function downloadGuestCsv(rows: Guest[], hasDetails = rows.some((g) => g.
   URL.revokeObjectURL(url);
 }
 
-export default function GuestTable({ guests }: { guests: Guest[] }) {
+/** `manage`: DIY projects — add a reply by hand, edit or remove one (supabase/host-rsvps.sql). */
+export type GuestManage = { onAdd: () => void; onEdit: (g: Guest) => void; onDelete: (g: Guest) => void };
+
+export default function GuestTable({ guests, manage }: { guests: Guest[]; manage?: GuestManage }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "with" | "without" | "coming" | "declined">("all");
   // Only newer RSVP forms ask whether guests are coming; older event
@@ -65,6 +75,18 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
   const dietaryNotes = coming.filter((g) => g.dietary).length;
 
   const exportCsv = () => downloadGuestCsv(filtered, hasDetails);
+  // Totals for the hosts' questions with a few set answers (e.g. 42 Beef · 18 Fish).
+  const tallies = useMemo(() => {
+    const by: Record<string, Record<string, number>> = {};
+    for (const g of guests) {
+      if (g.attending === false) continue;
+      for (const [q, a] of Object.entries(g.answers ?? {})) {
+        if (q === "Party") continue;
+        (by[q] ??= {})[a] = (by[q][a] ?? 0) + 1;
+      }
+    }
+    return Object.entries(by).filter(([, counts]) => Object.keys(counts).length <= 8);
+  }, [guests]);
 
   return (
     <div>
@@ -102,7 +124,28 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
         <button onClick={exportCsv} className="btn btn-ghost !py-3 !px-5 !text-[12px]">
           Export CSV
         </button>
+        {manage ? (
+          <button onClick={manage.onAdd} className="btn btn-dark !py-3 !px-5 !text-[12px]">
+            Add a reply
+          </button>
+        ) : null}
       </div>
+
+      {tallies.length ? (
+        <div className="mb-5 grid gap-3 sm:grid-cols-2">
+          {tallies.map(([q, counts]) => (
+            <div key={q} className="rounded-2xl bg-white px-4 py-3" style={{ border: "1px solid var(--line)" }}>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>{q}</p>
+              <p className="mt-1 text-[14px]" style={{ color: "var(--slate)" }}>
+                {Object.entries(counts)
+                  .sort((x, y) => y[1] - x[1])
+                  .map(([a, n]) => `${n} ${a}`)
+                  .join(" · ")}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {/* Phones: one card per guest instead of a 7-column table. */}
       <ul className="space-y-3 md:hidden">
@@ -129,6 +172,12 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
                 {g.dietary}
               </p>
             ) : null}
+            {Object.entries(g.answers ?? {}).map(([q, ans]) => (
+              <p key={q} className="mt-2 text-[14px]" style={{ color: "var(--ink)" }}>
+                <span style={{ color: "var(--slate)" }}>{q}: </span>
+                {ans}
+              </p>
+            ))}
             {g.bringing ? (
               <p className="mt-2 text-[14px]" style={{ color: "var(--ink)" }}>
                 <span style={{ color: "var(--slate)" }}>Bringing: </span>
@@ -142,6 +191,12 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
               <p className="mt-2 text-[12px]" style={{ color: "var(--slate)" }}>
                 {new Date(g.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
               </p>
+            ) : null}
+            {manage ? (
+              <div className="mt-2 flex gap-4">
+                <button onClick={() => manage.onEdit(g)} className="min-h-[40px] text-[14px] font-medium text-[var(--acc-blue)]">Edit</button>
+                <button onClick={() => manage.onDelete(g)} className="min-h-[40px] text-[14px] font-medium text-[#c2412d]">Remove</button>
+              </div>
             ) : null}
           </li>
         ))}
@@ -165,8 +220,9 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
                   <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Dietary</th>
                 </>
               ) : null}
-              <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Message</th>
+              <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">{tallies.length || guests.some((g) => g.answers && Object.keys(g.answers).length) ? "Answers & message" : "Message"}</th>
               <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Submitted</th>
+              {manage ? <th className="px-5 py-3" /> : null}
             </tr>
           </thead>
           <tbody>
@@ -193,15 +249,28 @@ export default function GuestTable({ guests }: { guests: Guest[] }) {
                     <td className="px-5 py-3" style={{ color: "var(--slate)" }}>{g.dietary || "—"}</td>
                   </>
                 ) : null}
-                <td className="px-5 py-3 italic" style={{ color: "var(--slate)" }}>{g.message || "—"}</td>
+                <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
+                  {Object.entries(g.answers ?? {}).map(([q, ans]) => (
+                    <span key={q} className="block not-italic">
+                      {q}: <span style={{ color: "var(--ink)" }}>{ans}</span>
+                    </span>
+                  ))}
+                  <span className="italic">{g.message || (g.answers && Object.keys(g.answers).length ? "" : "—")}</span>
+                </td>
                 <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
                   {g.created_at ? new Date(g.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                 </td>
+                {manage ? (
+                  <td className="whitespace-nowrap px-5 py-3 text-right">
+                    <button onClick={() => manage.onEdit(g)} className="mr-3 text-[13px] font-medium text-[var(--acc-blue)] hover:underline">Edit</button>
+                    <button onClick={() => manage.onDelete(g)} className="text-[13px] font-medium text-[#c2412d] hover:underline">Remove</button>
+                  </td>
+                ) : null}
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={hasDetails ? 7 : 4} className="px-5 py-8 text-center" style={{ color: "var(--slate)" }}>
+                <td colSpan={(hasDetails ? 7 : 4) + (manage ? 1 : 0)} className="px-5 py-8 text-center" style={{ color: "var(--slate)" }}>
                   No RSVPs match.
                 </td>
               </tr>

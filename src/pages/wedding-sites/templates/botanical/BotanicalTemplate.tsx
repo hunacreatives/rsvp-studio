@@ -9,6 +9,7 @@ import GallerySection from "./sections/GallerySection";
 import RegistrySection from "./sections/RegistrySection";
 import FaqSection from "./sections/FaqSection";
 import RsvpSection from "./sections/RsvpSection";
+import EntourageBlock, { hasEntourage } from "../shared/Entourage";
 import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
 
 // "Template C" — the ornamental/narrative archetype: centered layouts,
@@ -29,6 +30,11 @@ export default function BotanicalTemplate({ content, settings, editorPreview = f
       {visibility.schedule ? <ScheduleSection content={content} theme={theme} /> : null}
       {visibility.venue || visibility.accommodations || visibility.travelInformation ? (
         <VenueSection content={content} theme={theme} />
+      ) : null}
+      {hasEntourage(content) ? (
+        <section style={{ padding: "clamp(56px, 9vw, 104px) 24px", background: theme.background }}>
+          <EntourageBlock content={content} ink={theme.ink} muted={theme.muted} displayFont={theme.displayFont} bodyFont={theme.bodyFont} />
+        </section>
       ) : null}
       {visibility.gallery ? <GallerySection content={content} theme={theme} /> : null}
       {visibility.registry ? <RegistrySection content={content} theme={theme} /> : null}

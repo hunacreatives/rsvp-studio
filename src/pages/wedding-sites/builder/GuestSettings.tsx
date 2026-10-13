@@ -8,7 +8,8 @@ import { FormField, inputStyle } from "./components/FormField";
 //   Guest reminders — Premium: guests who said yes get a reminder 2 days before.
 //   Photo sharing — Premium: a page where guests add their photos (+ a QR code for tables).
 
-type Row = { site_password: string | null; guest_reminders: boolean; photo_sharing: boolean };
+// invite_only / table_finder: supabase/guest-links.sql (missing until it runs: those switches hide).
+type Row = { site_password: string | null; guest_reminders: boolean; photo_sharing: boolean; invite_only?: boolean; table_finder?: boolean };
 
 export default function GuestSettings({ eventId, slug, premium, onUpgrade }: { eventId: string | undefined; slug: string; premium: boolean; onUpgrade?: () => void }) {
   const [row, setRow] = useState<Row | null | undefined>(undefined);
@@ -21,7 +22,7 @@ export default function GuestSettings({ eventId, slug, premium, onUpgrade }: { e
     if (!eventId) return;
     supabase
       .from("wedding_sites")
-      .select("site_password, guest_reminders, photo_sharing")
+      .select("*")
       .eq("event_id", eventId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -139,6 +140,32 @@ export default function GuestSettings({ eventId, slug, premium, onUpgrade }: { e
             <p style={{ margin: "2px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>A page where guests add the photos they took. You can remove any of them.</p>
           )}
         </div>
+
+        {row.invite_only !== undefined ? (
+          <div>
+            {toggle("Only guests with a personal link can RSVP", premium && !!row.invite_only, (v) => save({ invite_only: v }), !premium)}
+            {premium ? (
+              <p style={{ margin: "2px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>
+                Anyone can still see your website. Send links from your invite list (Guests tab): each guest’s seats are the most they can bring.
+              </p>
+            ) : (
+              premiumNote
+            )}
+          </div>
+        ) : null}
+
+        {row.table_finder !== undefined ? (
+          <div>
+            {toggle("Let guests find their table", premium && !!row.table_finder, (v) => save({ table_finder: v }), !premium)}
+            {premium ? (
+              <p style={{ margin: "2px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>
+                Guests type their name and see their table. Assign tables in your invite list. It’s linked at the bottom of your website.
+              </p>
+            ) : (
+              premiumNote
+            )}
+          </div>
+        ) : null}
 
         {state === "saving" ? <p style={{ margin: 0, fontSize: 13, color: "var(--slate)" }}>Saving…</p> : null}
         {state === "saved" ? <p style={{ margin: 0, fontSize: 13, color: "#3d7a12" }}>Saved.</p> : null}

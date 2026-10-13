@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Guest } from "../../components/GuestTable";
 import { PillButton } from "../ui";
+import { downloadCsv } from "@/lib/csv";
 
 // Guests → Invite list (supabase/guest-features.sql → invitees): the hosts' own list,
 // matched against the RSVPs that came in, so they can see who hasn't replied yet and
 // copy a friendly nudge to send by Messenger or Viber.
 // A reply matches an invitee by email, by mobile number, or by the same name.
 
-export type Invitee = { id: string; name: string; contact: string | null; party_size: number | null; created_at: string };
+export type Invitee = { id: string; name: string; contact: string | null; party_size: number | null; created_at: string; token?: string; table_label?: string | null };
 
 const nameKey = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const phoneKey = (s: string | null | undefined) => {
@@ -17,7 +18,8 @@ const phoneKey = (s: string | null | undefined) => {
 };
 const emailKey = (s: string | null | undefined) => (s && s.includes("@") ? s.trim().toLowerCase() : "");
 
-/** "Maria Santos, maria@email.com, 2" — name, then an optional email or mobile, then an optional party size. */
+/** "Maria Santos, maria@email.com, 2, Table 5" — name, then (optional, any order) an email
+ *  or mobile, a party size, and a table. */
 export function parseInviteLines(text: string) {
   return text
     .split(/\r?\n/)
@@ -27,7 +29,8 @@ export function parseInviteLines(text: string) {
       const [name, ...rest] = parts;
       const contact = rest.find((p) => p.includes("@") || phoneKey(p)) ?? null;
       const size = rest.map(Number).find((n) => Number.isInteger(n) && n >= 1 && n <= 20) ?? null;
-      return { name, contact: contact ? contact.slice(0, 254) : null, party_size: size };
+      const table = rest.find((p) => /^(table|t)\s*[\w-]+$/i.test(p))?.replace(/^(table|t)\s*/i, "") ?? null;
+      return { name, contact: contact ? contact.slice(0, 254) : null, party_size: size, ...(table ? { table_label: table.slice(0, 40) } : {}) };
     });
 }
 
@@ -41,6 +44,8 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "waiting" | "replied">("all");
   const [copied, setCopied] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Invitee | null>(null);
 
   useEffect(() => {
     if (demo) {
@@ -54,7 +59,7 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
     }
     supabase
       .from("invitees")
-      .select("id, name, contact, party_size, created_at")
+      .select("*")
       .eq("event_id", eventId)
       .order("name")
       .then(({ data, error: e }) => setList(e ? null : ((data ?? []) as Invitee[])));
@@ -69,6 +74,8 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
       const p = phoneKey(inv.contact);
       const n = nameKey(inv.name);
       return (
+        // Replied from their own personal link: certain.
+        guests.find((g) => !used.has(g.id) && g.invitee_id === inv.id) ??
         guests.find((g) => !used.has(g.id) && ((e && emailKey(g.email) === e) || (p && phoneKey(g.phone) === p))) ??
         guests.find((g) => !used.has(g.id) && n && nameKey(g.name) === n) ??
         null
@@ -97,17 +104,22 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
     const { data, error: e } = await supabase
       .from("invitees")
       .insert(parsed.map((p) => ({ ...p, event_id: eventId })))
-      .select("id, name, contact, party_size, created_at");
+      .select("*");
     setBusy(false);
     if (e) return setError(/INVITE_LIMIT/.test(e.message) ? "You can have up to 1,000 guests on your list." : "Couldn’t add them. Please try again.");
     setList([...(list ?? []), ...((data ?? []) as Invitee[])].sort((a, b) => a.name.localeCompare(b.name)));
     setText("");
     setAdding(false);
   };
-  const remove = async (id: string) => {
-    if (demo) return;
-    setList(list.filter((i) => i.id !== id));
-    await supabase.from("invitees").delete().eq("id", id);
+  const remove = async (inv: Invitee) => {
+    if (demo || !window.confirm(`Remove ${inv.name} from your invite list?`)) return;
+    const before = list;
+    setList(list.filter((i) => i.id !== inv.id));
+    const { error: e } = await supabase.from("invitees").delete().eq("id", inv.id);
+    if (e) {
+      setList(before);
+      setError("Couldn’t remove them. Please try again.");
+    }
   };
   const nudge = () => {
     const by = deadline
@@ -121,6 +133,35 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
       },
       () => window.prompt("Copy this message:", msg),
     );
+  };
+
+  // Each guest's own link: their name and seats are ready when they open it.
+  const linkFor = (inv: Invitee) => (siteUrl && inv.token ? `${siteUrl}?g=${inv.token}` : null);
+  const copyLink = (inv: Invitee) => {
+    const link = linkFor(inv);
+    if (!link) return;
+    const first = inv.name.trim().split(/\s+/)[0];
+    navigator.clipboard?.writeText(`Hi ${first}, you’re invited to ${eventName}. Here’s your personal link to RSVP: ${link}`).then(
+      () => {
+        setCopiedId(inv.id);
+        setTimeout(() => setCopiedId(null), 2000);
+      },
+      () => window.prompt("Copy this message:", link),
+    );
+  };
+  const downloadLinks = () =>
+    downloadCsv(
+      `${eventName.replace(/[^\w]+/g, "-").toLowerCase()}-invite-links.csv`,
+      ["Name", "Email or mobile", "Seats", "Table", "Personal link", "Replied"],
+      rows.map(({ inv, reply }) => [inv.name, inv.contact ?? "", inv.party_size ?? "", inv.table_label ?? "", linkFor(inv) ?? "", reply ? (reply.attending === false ? "Can't make it" : "Coming") : "Not yet"]),
+    );
+  const saveEdit = async (next: Invitee) => {
+    if (demo) return setEditing(null);
+    const patch = { name: next.name.trim().slice(0, 120), contact: next.contact?.trim() || null, party_size: next.party_size || null, table_label: next.table_label?.trim() || null };
+    const { error: e } = await supabase.from("invitees").update(patch).eq("id", next.id);
+    if (e) return setError(/table_label/.test(e.message) ? "Tables need a quick update on our side." : "Couldn’t save. Please try again.");
+    setList((list ?? []).map((i) => (i.id === next.id ? { ...i, ...patch } : i)));
+    setEditing(null);
   };
 
   return (
@@ -138,6 +179,7 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
         {waiting.length && siteUrl ? (
           <PillButton onClick={nudge}>{copied ? "Copied" : "Copy a reminder message"}</PillButton>
         ) : null}
+        {rows.length && siteUrl ? <PillButton onClick={downloadLinks}>Download personal links</PillButton> : null}
         <PillButton tone="dark" onClick={() => setAdding((v) => !v)}>
           {adding ? "Cancel" : "Add guests"}
         </PillButton>
@@ -148,7 +190,7 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
           <label htmlFor="invite-lines" className="text-[14px] font-semibold text-[var(--ink)]">
             One guest per line
           </label>
-          <p className="mt-1 text-[13px] text-[var(--slate)]">Add an email or mobile number after a comma if you have it, and how many are in their party. You can paste straight from Excel or Google Sheets.</p>
+          <p className="mt-1 text-[13px] text-[var(--slate)]">After a comma, add an email or mobile if you have it, how many seats they get, and a table (e.g. Table 5). You can paste straight from Excel or Google Sheets.</p>
           <textarea
             id="invite-lines"
             value={text}
@@ -184,9 +226,9 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
               <li key={inv.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-medium text-[var(--ink)]">{inv.name}</p>
-                  {inv.contact || (inv.party_size && inv.party_size > 1) ? (
+                  {inv.contact || inv.party_size || inv.table_label ? (
                     <p className="truncate text-[13px] text-[var(--slate)]">
-                      {[inv.contact, inv.party_size && inv.party_size > 1 ? `party of ${inv.party_size}` : ""].filter(Boolean).join(" · ")}
+                      {[inv.contact, inv.party_size ? `${inv.party_size} ${inv.party_size === 1 ? "seat" : "seats"}` : "", inv.table_label ? `Table ${inv.table_label}` : ""].filter(Boolean).join(" · ")}
                     </p>
                   ) : null}
                 </div>
@@ -201,15 +243,73 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
                 ) : (
                   <span className="shrink-0 rounded-full bg-[#fdf1cf] px-2.5 py-1 text-[12px] font-semibold text-[#7a5a00]">Not yet</span>
                 )}
-                <button onClick={() => remove(inv.id)} aria-label={`Remove ${inv.name}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
+                {linkFor(inv) ? (
+                  <button onClick={() => copyLink(inv)} title="Copy their personal invite (name and seats filled in)" className="hidden min-h-[36px] shrink-0 items-center gap-1 rounded-full border border-[var(--line)] px-3 text-[13px] font-medium text-[var(--ink)] hover:border-[var(--ink)] sm:inline-flex">
+                    <i className="ri-link" aria-hidden /> {copiedId === inv.id ? "Copied" : "Copy invite"}
+                  </button>
+                ) : null}
+                <button onClick={() => setEditing(inv)} aria-label={`Edit ${inv.name}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
+                  <i className="ri-pencil-line text-[18px]" aria-hidden />
+                </button>
+                <button onClick={() => remove(inv)} aria-label={`Remove ${inv.name}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
                   <i className="ri-close-line text-[18px]" aria-hidden />
                 </button>
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[13px] text-[var(--slate)]">Replies are matched by email, mobile number or the same name. Someone who replied under a different name shows as “Not yet”.</p>
+          {error && !adding ? <p className="mt-3 text-[13px] text-[#c2412d]">{error}</p> : null}
+          <p className="mt-3 text-[13px] text-[var(--slate)]">
+            Send each guest their own link (Copy invite, or Download personal links): their reply is matched for sure, and on Premium their seats are the most they can bring. Replies from the general link are matched by email, mobile or name.
+          </p>
         </>
       ) : null}
+      {editing ? <InviteeEditor inv={editing} onCancel={() => setEditing(null)} onSave={saveEdit} onCopy={linkFor(editing) ? () => copyLink(editing) : undefined} copied={copiedId === editing.id} /> : null}
+    </div>
+  );
+}
+
+/** Edit one guest: name, contact, seats and table (and copy their link on phones). */
+function InviteeEditor({ inv, onCancel, onSave, onCopy, copied }: { inv: Invitee; onCancel: () => void; onSave: (next: Invitee) => void; onCopy?: () => void; copied: boolean }) {
+  const [v, setV] = useState(inv);
+  const input = "mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[16px] outline-none md:text-[15px]";
+  return (
+    <div role="dialog" aria-modal="true" onClick={onCancel} className="fixed inset-0 z-[80] grid place-items-center overflow-y-auto bg-[rgba(0,7,39,0.45)] p-4">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[420px] rounded-[20px] bg-white p-6">
+        <h2 className="font-display text-[1.4rem] font-semibold text-[var(--ink)]">{inv.name}</h2>
+        <div className="mt-4 grid gap-4">
+          <label className="text-[14px] font-medium text-[var(--ink)]">
+            Name
+            <input value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} className={input} />
+          </label>
+          <label className="text-[14px] font-medium text-[var(--ink)]">
+            Email or mobile (optional)
+            <input value={v.contact ?? ""} onChange={(e) => setV({ ...v, contact: e.target.value })} autoCapitalize="none" className={input} />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-[14px] font-medium text-[var(--ink)]">
+              Seats
+              <input type="number" min={1} max={20} inputMode="numeric" value={v.party_size ?? ""} onChange={(e) => setV({ ...v, party_size: e.target.value ? Math.min(20, Math.max(1, Number(e.target.value))) : null })} className={input} />
+            </label>
+            <label className="text-[14px] font-medium text-[var(--ink)]">
+              Table (optional)
+              <input value={v.table_label ?? ""} onChange={(e) => setV({ ...v, table_label: e.target.value.slice(0, 40) })} placeholder="e.g. 5" className={input} />
+            </label>
+          </div>
+        </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button onClick={() => v.name.trim() && onSave(v)} className="btn btn-primary">
+            Save
+          </button>
+          {onCopy ? (
+            <button onClick={onCopy} className="btn btn-ghost">
+              {copied ? "Copied" : "Copy invite"}
+            </button>
+          ) : null}
+          <button onClick={onCancel} className="btn btn-ghost">
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { DiscountNote, ReferralCode } from "./ReferralCode";
 import "./builder.css";
 import { CharacterTrio } from "@/components/CharacterLoader";
 import Fireworks from "@/pages/enquire/components/Fireworks";
+import { canNativeShare, downloadInviteQr, nativeShare } from "@/components/InviteShare";
 
 // Publishing a site from the builder:
 //   1. try to publish — studio projects and free templates just go live;
@@ -301,6 +302,12 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
               </div>
             </div>
 
+            {/* Phones: one Share button opens Messenger, Viber, SMS… (the grid stays as a fallback). */}
+            {canNativeShare() ? (
+              <button onClick={() => nativeShare(url, slug)} style={{ ...btn(true), width: "100%", justifyContent: "center", gap: 8, marginTop: 10, minHeight: 48, borderRadius: 14, background: "#000727" }}>
+                <i className="ri-share-line" aria-hidden style={{ fontSize: 18 }} /> Share your website
+              </button>
+            ) : null}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
               {[
                 { href: `fb-messenger://share/?link=${encodeURIComponent(url)}`, icon: "ri-messenger-fill", color: "#0866ff", label: "Messenger" },
@@ -319,6 +326,10 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
                 </a>
               ))}
             </div>
+
+            <button onClick={() => downloadInviteQr(url, `${slug}-invitation-qr.png`)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", minHeight: 44, marginTop: 8, border: "none", background: "none", color: "#2f61d5", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              <i className="ri-qr-code-line" aria-hidden style={{ fontSize: 18 }} /> Download a QR code for printed invites
+            </button>
 
             {/* The domain they picked: the next step, featured like the address offer. */}
             {flow.pending ? (

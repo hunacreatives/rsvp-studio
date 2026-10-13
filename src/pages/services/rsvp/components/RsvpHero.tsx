@@ -21,6 +21,9 @@ export default function RsvpHero() {
           <p className="mt-3 text-lg md:text-xl text-[var(--slate)]">
             Seamlessly integrated into your event website.
           </p>
+          <p className="mt-3 text-[15px] text-[var(--ink)]">
+            <strong>₱2,500</strong> per event, up to 150 guests · Included free with a Custom website
+          </p>
           <button
             onClick={scrollToHow}
             className="mt-6 inline-flex min-h-[44px] items-center gap-2 font-medium text-[var(--acc-blue)] hover:underline underline-offset-4"

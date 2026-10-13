@@ -130,7 +130,6 @@ function Shell() {
           <main className="min-w-0 flex-1 lg:pl-3">
             <div className="mb-6 hidden gap-6 lg:flex">
               <QuickAction icon="ri-folder-3-line" label="New Project" onClick={() => setNewProjectOpen(true)} />
-              <QuickAction icon="ri-chat-3-line" label="Messages" onClick={() => navigate("/account/messages")} badge={unread} />
             </div>
             <Suspense fallback={<PageLoading />}>
               <Outlet />

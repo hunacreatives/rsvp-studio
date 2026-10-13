@@ -1,6 +1,7 @@
 import { useId, type CSSProperties } from "react";
 import type { EventContent } from "../../content/types";
 import { useRsvpForm } from "../../spec/runtime/useRsvpForm";
+import RsvpQuestions from "./RsvpQuestions";
 import { calendarUrl } from "../../content/calendar";
 
 // The RSVP form for every built-in template. Each template passes a "skin"
@@ -29,7 +30,8 @@ export type RsvpSkin = {
 const MAX_PARTY = 10;
 
 export default function RsvpForm({ content, editorPreview, skin }: { content: EventContent; editorPreview?: boolean; skin: RsvpSkin }) {
-  const { values, set, state, error, website, setWebsite, attending, submit, emailed, closed, replyBy, closedText } = useRsvpForm(content, editorPreview, { asksAttending: true });
+  const form = useRsvpForm(content, editorPreview, { asksAttending: true });
+  const { values, set, state, error, website, setWebsite, attending, submit, emailed, closed, replyBy, closedText, contactMode, contactProps, toggleContact, contactToggleLabel, invitee, maxGuests } = form;
   const id = useId();
   const first = (values.name ?? "").trim().split(" ")[0];
 
@@ -83,22 +85,27 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
 
       <div>
         <label htmlFor={`${id}-contact`} style={label}>
-          Email or mobile number
+          {contactMode === "mobile" ? "Mobile number" : "Email"}
         </label>
         <input
           id={`${id}-contact`}
           required
-          inputMode="email"
-          autoComplete="email"
+          {...contactProps}
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
           enterKeyHint="next"
-          placeholder="you@email.com or 0917 123 4567"
           value={values.contact ?? ""}
           onChange={(e) => set("contact", e.target.value)}
           {...field()}
         />
+        <button
+          type="button"
+          onClick={() => toggleContact(`${id}-contact`)}
+          style={{ ...text, display: "inline-flex", alignItems: "center", minHeight: 40, padding: 0, marginTop: 4, border: "none", background: "none", fontSize: 14, color: skin.muted, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}
+        >
+          {contactToggleLabel}
+        </button>
       </div>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
@@ -134,7 +141,7 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
               How many of you are coming, including you?
             </label>
             <select id={`${id}-guests`} value={values.guests ?? "1"} onChange={(e) => set("guests", e.target.value)} {...field()}>
-              {Array.from({ length: MAX_PARTY }, (_, i) => i + 1).map((n) => (
+              {Array.from({ length: Math.min(MAX_PARTY, maxGuests) }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>
                   {n === 1 ? "Just me" : `${n} people`}
                 </option>
@@ -149,6 +156,11 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
           </div>
         </>
       ) : null}
+      {/* Seats saved for this guest (personal link, Premium). */}
+      {attending === "yes" && invitee?.seatLimit && invitee.seats ? (
+        <p style={{ ...text, margin: "-6px 0 0", fontSize: 14, color: skin.muted }}>{invitee.seats === 1 ? "We’ve saved a seat for you." : `We’ve saved ${invitee.seats} seats for you.`}</p>
+      ) : null}
+      <RsvpQuestions form={form} idPrefix={id} askPartyNames={content.askPartyNames} labelStyle={label} fieldClassName={field().className} fieldStyle={field().style} />
 
       <div>
         <label htmlFor={`${id}-message`} style={label}>

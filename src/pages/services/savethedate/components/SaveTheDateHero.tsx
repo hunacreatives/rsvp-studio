@@ -59,6 +59,9 @@ export default function SaveTheDateHero() {
         <p className="mt-3 text-lg md:text-xl text-[var(--slate)]">
           Animated or still — the first glimpse of your celebration.
         </p>
+        <p className="mt-3 text-[15px] text-[var(--ink)]">
+          Still from <strong>₱1,500</strong> · Animated from <strong>₱2,500</strong> · Ready in 3–5 business days
+        </p>
       </div>
 
       <div className="relative mx-auto mt-6 flex w-full max-w-[1140px] items-center justify-center px-4 md:mt-10">

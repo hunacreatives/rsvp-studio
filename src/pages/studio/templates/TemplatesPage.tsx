@@ -16,6 +16,10 @@ export default function TemplatesPage() {
   const { demo } = usePortal();
   const navigate = useNavigate();
   const [rows, setRows] = useState<TemplateRow[] | null>(null);
+  const [owner, setOwner] = useState(false);
+  useEffect(() => {
+    studio.isOwner().then(setOwner);
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,8 +45,9 @@ export default function TemplatesPage() {
         }
       />
       {error ? <p className="mb-4 rounded-2xl bg-[#fff3f0] px-5 py-4 text-[14px] text-[#c2412d]">{error}</p> : null}
-      {!demo ? <SitePricesCard /> : null}
-      {!demo ? <PromoCodesCard /> : null}
+      {/* Prices and promo codes are the owner's (supabase/money-owner-only.sql). */}
+      {!demo && owner ? <SitePricesCard /> : null}
+      {!demo && owner ? <PromoCodesCard /> : null}
       {!demo ? <DomainsCard /> : null}
       {demo ? <p className="mb-4 text-[14px] text-[var(--slate)]">Templates aren’t part of demo data.</p> : null}
 

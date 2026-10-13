@@ -13,6 +13,7 @@ import Polaroids from "./sections/Polaroids";
 import RsvpSection from "./sections/RsvpSection";
 import { Heart } from "./sections/Heart";
 import { CashGifts, hasCashGifts } from "../shared/CashGifts";
+import EntourageBlock, { entourageTitle, hasEntourage } from "../shared/Entourage";
 
 /**
  * The "gel-at-30" design, rebuilt 1:1 from the real site
@@ -176,6 +177,15 @@ export default function CinematicTemplate({ content, settings, editorPreview = f
 
       {settings.sectionVisibility.rsvp !== false ? <RsvpSection content={content} editorPreview={editorPreview} reveal={animate} /> : null}
 
+      {/* Entourage after the RSVP card: the dress code above the card tucks up into whatever comes before it. */}
+      {hasEntourage(content) ? (
+        <section className="cn-rsvp" style={{ textAlign: "center" }}>
+          <p className="cn-hand" style={{ fontSize: "clamp(1.8rem, 6cqw, 2.4rem)", marginBottom: "1.2rem" }}>
+            {entourageTitle(content)}
+          </p>
+          <EntourageBlock content={content} heading={false} ink="currentColor" muted="#8a8580" displayFont="inherit" bodyFont="inherit" />
+        </section>
+      ) : null}
       {/* Gifts: only when the host adds registry links or cash gifts (the original design has none). */}
       {content.registryLinks.length || hasCashGifts(content) ? (
         <section className="cn-rsvp" style={{ textAlign: "center" }}>

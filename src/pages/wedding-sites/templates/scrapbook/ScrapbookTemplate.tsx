@@ -15,6 +15,8 @@ import FaqSection from "./sections/FaqSection";
 import GallerySection from "./sections/GallerySection";
 import FinalCollage from "./sections/FinalCollage";
 import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
+import EntourageSection from "./sections/EntourageSection";
+import { hasEntourage } from "../shared/Entourage";
 
 /**
  * "Scrapbook" archetype — a full-bleed, art-directed long-form page
@@ -82,6 +84,11 @@ export default function ScrapbookTemplate({ content, settings, editorPreview = f
         show(content.travelInformation.length > 0 || content.accommodations.length > 0),
       tone: "red",
       render: (tone) => <TravelSection content={content} tone={tone} slots={slots} editorPreview={editorPreview} />,
+    },
+    {
+      show: hasEntourage(content),
+      tone: "red",
+      render: (tone) => <EntourageSection content={content} tone={tone} />,
     },
     {
       show: visibility.registry && show(content.registryLinks.length > 0),

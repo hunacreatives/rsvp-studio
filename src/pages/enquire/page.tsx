@@ -25,6 +25,7 @@ import {
   TIMELINES,
   type FieldSpec,
 } from "./occasions";
+import { trackEvent } from "@/lib/analytics";
 
 const processSteps = [
   { num: "01", title: "Inquiry", desc: "Once we receive your form, we'll reply within 1 business day to talk through your ideas, plans, and creative direction." },
@@ -183,6 +184,7 @@ export default function ProjectInquiry() {
       const result = await submitInquiry(v, files, { form: "project-inquiry" });
       setOmitted(result.omitted ?? []);
       setSubmitted(true);
+      trackEvent("generate_lead", { form: "project", services: getArr("services").length || 1 });
       // The thank-you card is much shorter than the form: bring it into view.
       requestAnimationFrame(() => sectionRef.current && scrollToEl(sectionRef.current));
     } catch {
@@ -376,27 +378,15 @@ export default function ProjectInquiry() {
                         <input type="email" value={getStr("email")} onChange={(e) => set("email", e.target.value)} placeholder="your@email.com" autoComplete="email" autoCapitalize="none" spellCheck={false} className={INPUT} />
                       </Field>
                     </div>
-                    <Field label="Instagram handle (optional)">
-                      <input type="text" value={getStr("ig_handle")} onChange={(e) => set("ig_handle", e.target.value)} placeholder="@yourhandle" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={INPUT} />
-                    </Field>
-                    <PillGroup
-                      label="How did you hear about us?"
-                      options={HEAR_ABOUT}
-                      value={getStr("hear_about")}
-                      onChange={(val) => set("hear_about", val)}
-                    />
-                    <Field label="Referral code (optional)">
-                      <input
-                        type="text"
-                        value={getStr("partner_code")}
-                        onChange={(e) => set("partner_code", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))}
-                        placeholder="From your event planner"
-                        autoCapitalize="characters"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        className={INPUT}
-                      />
-                    </Field>
+                    {/* Filipino clients answer Messenger/Viber/SMS faster than email. */}
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                      <Field label="Mobile / Viber (optional)">
+                        <input type="tel" inputMode="tel" value={getStr("mobile")} onChange={(e) => set("mobile", e.target.value.slice(0, 30))} placeholder="0917 123 4567" autoComplete="tel" className={INPUT} />
+                      </Field>
+                      <Field label="Instagram handle (optional)">
+                        <input type="text" value={getStr("ig_handle")} onChange={(e) => set("ig_handle", e.target.value)} placeholder="@yourhandle" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={INPUT} />
+                      </Field>
+                    </div>
                   </div>
                 )}
 
@@ -429,7 +419,17 @@ export default function ProjectInquiry() {
                   <div className="space-y-8">
                     <SectionTitle>Services &amp; direction</SectionTitle>
 
-                    <Field label="Custom or Semi-Custom?">
+                    <PillGroup
+                      label="Which services are you interested in?"
+                      options={SERVICES}
+                      multi
+                      value={getArr("services")}
+                      onChange={(val) => set("services", val)}
+                    />
+
+                    {/* Custom vs Semi-Custom is a website question: only asked when a website is in. */}
+                    {getArr("services").some((x) => x === "Milestone Events Website" || x === "RSVP Management") || getStr("design_type") ? (
+                    <Field label="Website: Custom or Semi-Custom?">
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {[
                           { val: "bespoke", title: "Custom", desc: "Designed from scratch, just for your celebration." },
@@ -456,15 +456,9 @@ export default function ProjectInquiry() {
                       </div>
                     </Field>
 
-                    <PillGroup
-                      label="Which services are you interested in?"
-                      options={SERVICES}
-                      multi
-                      value={getArr("services")}
-                      onChange={(val) => set("services", val)}
-                    />
+                    ) : null}
 
-                    {getStr("design_type") === "bespoke" && (
+                    {getArr("services").includes("Stationery Design") || getStr("design_type") === "bespoke" ? (
                       <PillGroup
                         label={getArr("services").includes("Stationery Design") ? "Which stationery suite?" : "Want a printed stationery suite too? (optional)"}
                         options={BESPOKE_COLLECTIONS}
@@ -472,7 +466,7 @@ export default function ProjectInquiry() {
                         value={getArr("bespoke_collections")}
                         onChange={(val) => set("bespoke_collections", val)}
                       />
-                    )}
+                    ) : null}
                     {getStr("design_type") === "semi-custom" && (
                       <>
                         <PillGroup
@@ -519,6 +513,24 @@ export default function ProjectInquiry() {
                       value={getStr("budget")}
                       onChange={(val) => set("budget", val)}
                     />
+                    <PillGroup
+                      label="How did you hear about us?"
+                      options={HEAR_ABOUT}
+                      value={getStr("hear_about")}
+                      onChange={(val) => set("hear_about", val)}
+                    />
+                    <Field label="Referral code (optional)">
+                      <input
+                        type="text"
+                        value={getStr("partner_code")}
+                        onChange={(e) => set("partner_code", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))}
+                        placeholder="From your event planner"
+                        autoCapitalize="characters"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        className={INPUT}
+                      />
+                    </Field>
                   </div>
                 )}
 

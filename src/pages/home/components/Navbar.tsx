@@ -313,14 +313,14 @@ export default function Navbar({
                 )}
               </div>
             ) : (
-              <button
-                onClick={() => setAuthOpen(true)}
-                className="hidden md:inline-flex btn btn-dark whitespace-nowrap !px-5 !py-3 !text-[12px] xl:!px-6"
-              >
-                <span className="xl:hidden">Log in</span>
-                <span className="hidden xl:inline">Log in / Sign up</span>
+              <button onClick={() => setAuthOpen(true)} className="hidden md:inline-flex min-h-11 items-center whitespace-nowrap px-2 text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Log in
               </button>
             )}
+            {/* The main action for a visitor: ask for a quote (logging in is secondary). */}
+            <button onClick={() => go("/enquire#start")} className="hidden md:inline-flex btn btn-primary whitespace-nowrap !px-5 !py-3 !text-[12px] xl:!px-6">
+              Get a quote
+            </button>
             {/* Phones: log in (or open your account) without going through the menu. */}
             {accountName ? (
               <button
@@ -334,12 +334,12 @@ export default function Navbar({
               <button
                 onClick={() => {
                   setMobileOpen(false);
-                  setAuthOpen(true);
+                  go("/enquire#start");
                 }}
-                className="md:hidden inline-flex items-center h-11 px-4 rounded-full text-[14px] font-medium text-white"
-                style={{ background: "var(--ink)" }}
+                className="md:hidden inline-flex items-center h-11 px-4 rounded-full text-[14px] font-medium text-white whitespace-nowrap"
+                style={{ background: "var(--acc-blue)" }}
               >
-                Log in
+                Get a quote
               </button>
             )}
             <button

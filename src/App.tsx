@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { applyPageMeta } from "@/lib/pageMeta";
 import { rememberVisit } from "@/lib/signupRef";
 import { BrowserRouter, useLocation } from "react-router-dom";
@@ -8,7 +8,9 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { trackPage } from "@/lib/analytics";
 import CharacterLoader from "@/components/CharacterLoader";
 import { useSmoothScroll } from "@/lib/useSmoothScroll";
-import CustomDomainSite, { isCustomDomain } from "@/pages/wedding-sites/public/CustomDomainSite";
+import { isCustomDomain } from "@/pages/wedding-sites/public/customDomain";
+// Only customers' own domains need the event-site code at startup: everyone else loads it on demand.
+const CustomDomainSite = lazy(() => import("@/pages/wedding-sites/public/CustomDomainSite"));
 
 /** One page crashing never blanks the whole site; moving to another page clears it. */
 function Routes() {
@@ -43,7 +45,9 @@ function App() {
   if (isCustomDomain())
     return (
       <BrowserRouter>
-        <CustomDomainSite />
+        <Suspense fallback={<div style={{ minHeight: "100dvh", background: "var(--warm-white)" }} />}>
+          <CustomDomainSite />
+        </Suspense>
       </BrowserRouter>
     );
   return (

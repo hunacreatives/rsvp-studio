@@ -4,6 +4,7 @@ import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
 import { ProjectRow } from "../components/blocks";
 import { FilterTabs, Panel, PrimaryButton } from "../ui";
+import NewProjectModal from "../components/NewProjectModal";
 
 type Filter = "all" | "in_progress" | "completed";
 
@@ -11,6 +12,8 @@ export default function ProjectsPage() {
   const { projects } = usePortal();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>("all");
+  // The same "New project" choice as Home (inquiry, build it yourself, or an invite code).
+  const [newOpen, setNewOpen] = useState(false);
 
   const visible = projects
     .filter((p) => filter === "all" || p.project_status === filter)
@@ -47,13 +50,14 @@ export default function ProjectsPage() {
           <i className="ri-add-line text-2xl text-[var(--ink)]" />
           <p className="mt-6 text-[20px] font-semibold text-[var(--ink)]">Planning another event?</p>
           <p className="mx-auto mt-2 max-w-xs text-[15px] text-[var(--ink)]">
-            Start an inquiry and create another RSVP Studio experience.
+            Have us make it, or build it yourself.
           </p>
-          <PrimaryButton className="mt-8" onClick={() => navigate("/enquire#start")}>
-            Start an Inquiry
+          <PrimaryButton className="mt-8" onClick={() => setNewOpen(true)}>
+            Start a Project
           </PrimaryButton>
         </Panel>
       </div>
+      <NewProjectModal open={newOpen} onClose={() => setNewOpen(false)} />
     </>
   );
 }

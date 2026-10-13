@@ -10,7 +10,7 @@ const PLANS = [
     features: [
       { icon: "ri-layout-2-line", title: "Signature Layouts", copy: "Thoughtfully designed templates from our signature collection" },
       { icon: "ri-user-heart-line", title: "Personalized Content", copy: "We tailor the content to your story and celebration" },
-      { icon: "ri-time-line", title: "Faster Turnaround", copy: "Streamlined process for a quicker delivery" },
+      { icon: "ri-time-line", title: "Ready in 5–7 Business Days", copy: "From when we have your details and photos" },
       { icon: "ri-sparkling-line", title: "Elegant & Refined", copy: "Timeless designs with a curated, elevated look" },
       { icon: "ri-cursor-line", title: "Curated Interactions", copy: "Carefully selected animations and interactive elements" },
       { icon: "ri-global-line", title: "Own Domain (Add-on)", copy: "Add your own web address from ₱1,499 a year" },
@@ -23,9 +23,9 @@ const PLANS = [
     features: [
       { icon: "ri-quill-pen-line", title: "Designed from Scratch", copy: "Everything is designed exclusively for you" },
       { icon: "ri-team-line", title: "Collaborative Design", copy: "A hands-on experience from start to finish" },
-      { icon: "ri-book-open-line", title: "Editorial Storytelling", copy: "Storytelling designed from scratch around your vision" },
+      { icon: "ri-time-line", title: "Ready in 3–4 Weeks", copy: "Two rounds of changes included" },
       { icon: "ri-magic-line", title: "Custom Animations", copy: "Custom interactions and animations designed uniquely for your site" },
-      { icon: "ri-fingerprint-line", title: "Signature Design", copy: "Thoughtfully designed with your story at the center" },
+      { icon: "ri-mail-check-line", title: "RSVP Management Included", copy: "We follow up with guests and send you the headcount" },
       { icon: "ri-global-line", title: "Free Domain", copy: "A free .com or .net for the first year, subject to availability" },
     ],
   },

@@ -159,8 +159,11 @@ function PartnerDetail({ r, onEdit, onChanged }: { r: studio.PartnerRow; onEdit:
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [welcome, setWelcome] = useState<string | null>(null);
+  // Payouts are money: only the owner records them (supabase/money-owner-only.sql).
+  const [owner, setOwner] = useState(false);
   useEffect(() => {
     studio.loadPartnerPeople(r.id).then(setPeople);
+    studio.isOwner().then(setOwner);
   }, [r.id]);
   const link = `https://thersvpstudio.com/p/${r.code}`;
 
@@ -254,6 +257,8 @@ function PartnerDetail({ r, onEdit, onChanged }: { r: studio.PartnerRow; onEdit:
         </ul>
       )}
 
+      {owner ? (
+        <>
       <h3 className="mt-6 text-[14px] font-semibold text-[var(--ink)]">Record a payout</h3>
       <p className="text-[13px] text-[var(--slate)]">
         Earned {formatMoney(r.commission)} · paid {formatMoney(r.paid_out)} · still to pay {formatMoney(r.owed)}
@@ -272,6 +277,8 @@ function PartnerDetail({ r, onEdit, onChanged }: { r: studio.PartnerRow; onEdit:
         </PillButton>
       </div>
       <ErrorText>{error}</ErrorText>
+        </>
+      ) : null}
     </div>
   );
 }

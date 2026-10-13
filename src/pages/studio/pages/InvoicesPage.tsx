@@ -6,6 +6,7 @@ import { formatDate, formatMoney } from "@/pages/account/portal/format";
 import { FilterTabs, PillButton } from "@/pages/account/portal/ui";
 import InvoiceActions, { invoiceSummary } from "../InvoiceActions";
 import { StudioHeader, useStudio } from "../StudioLayout";
+import { downloadCsv } from "@/lib/csv";
 
 type Filter = "all" | "open" | "overdue" | "paid" | "void";
 
@@ -47,7 +48,28 @@ export default function InvoicesPage() {
 
   return (
     <>
-      <StudioHeader title="Invoices" sub="Every invoice across all projects. Issue new ones from a project." />
+      <StudioHeader
+        title="Invoices"
+        sub="Every invoice across all projects. Issue new ones from a project."
+        action={
+          shown.length ? (
+            <PillButton
+              onClick={() =>
+                downloadCsv(
+                  `invoices-${new Date().toISOString().slice(0, 10)}.csv`,
+                  ["Number", "Client", "Email", "Project", "Description", "Amount (PHP)", "Status", "Issued", "Due", "Paid on", "Paid by", "Reference"],
+                  shown.map((i) => {
+                    const who = owners[i.event_id];
+                    return [i.number, who?.full_name ?? "", who?.email ?? "", project(i.event_id)?.name ?? "", i.description, i.amount, i.status, i.issued_at?.slice(0, 10), i.due_date ?? "", i.paid_at?.slice(0, 10) ?? "", i.paid_method ?? "", i.paid_reference ?? ""];
+                  }),
+                )
+              }
+            >
+              <i className="ri-download-2-line" /> Export CSV
+            </PillButton>
+          ) : null
+        }
+      />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           value={query}

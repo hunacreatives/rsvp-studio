@@ -125,6 +125,23 @@ export interface Gallery {
 
 export type Occasion = "wedding" | "birthday" | "anniversary" | "other";
 
+/** A host's own RSVP question. */
+export interface RsvpQuestion {
+  id: string;
+  label: string;
+  type: "choice" | "yesno" | "text";
+  /** For "choice". */
+  options?: string[];
+  required?: boolean;
+}
+
+/** One group of the entourage ("Principal Sponsors", "18 Roses"…), names in order. */
+export interface EntourageGroup {
+  id: string;
+  title: string;
+  people: string[];
+}
+
 export interface EventContent {
   id: string;
   /** Used to build the public URL: /invite/:slug */
@@ -165,6 +182,14 @@ export interface EventContent {
   cashGiftNote?: string;
   /** "Please reply by" (YYYY-MM-DD). After this day the RSVP form closes (api/wedding-rsvp.ts checks it too). */
   rsvpDeadline?: string;
+  /** The hosts' own RSVP questions (Premium; 1 on free sites). Answers: rsvps.answers. */
+  rsvpQuestions?: RsvpQuestion[];
+  /** Ask guests bringing others for everyone's names. */
+  askPartyNames?: boolean;
+  /** Sponsors, entourage, 18 roses… in groups, shown on the site. */
+  entourage?: EntourageGroup[];
+  /** Motif colours (hex), shown with the dress code. */
+  motifColors?: string[];
   /** Ordered by `order`. */
   faqs: FAQ[];
   /** Other notable people tied to the event (e.g. a wedding party, a

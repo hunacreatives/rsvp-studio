@@ -10,6 +10,7 @@ import { DATE_INPUT, Field, Honeypot, INPUT, PillGroup, SectionTitle, SuccessCar
 import { todayISO } from "./today";
 import { HEAR_ABOUT } from "./occasions";
 import { submitInquiry } from "./submit";
+import { trackEvent } from "@/lib/analytics";
 
 const ROLES = [
   "Wedding Planner", "Event Coordinator", "Venue", "Photographer", "Stylist / Designer", "Other Studio", "Other",
@@ -70,6 +71,7 @@ export default function PartnerInquiry() {
     try {
       await submitInquiry(v, [], { form: "partner-inquiry" });
       setSubmitted(true);
+      trackEvent("generate_lead", { form: "partner" });
     } catch {
       setError(true);
     } finally {

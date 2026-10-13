@@ -210,6 +210,23 @@ export function normalizeEventContent(raw: unknown): EventContent {
     cashGifts: asArray<unknown>(r.cashGifts).map(normalizeCashGift),
     cashGiftNote: asOptionalString(r.cashGiftNote),
     rsvpDeadline: /^\d{4}-\d{2}-\d{2}$/.test(asString(r.rsvpDeadline)) ? asString(r.rsvpDeadline) : undefined,
+    rsvpQuestions: (asArray(r.rsvpQuestions) as Record<string, unknown>[])
+      .filter((q) => q && typeof q === "object" && asString(q.label).trim())
+      .slice(0, 5)
+      .map((q) => ({
+        id: asString(q.id) || asString(q.label).toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30),
+        label: asString(q.label).slice(0, 120),
+        type: (["choice", "yesno", "text"] as const).find((t) => t === q.type) ?? "text",
+        options: asArray<unknown>(q.options).map((x) => asString(x)).filter(Boolean).slice(0, 8),
+        required: q.required === true,
+      })),
+    askPartyNames: r.askPartyNames === true || undefined,
+    entourage: (asArray(r.entourage) as Record<string, unknown>[])
+      .filter((g) => g && typeof g === "object")
+      .slice(0, 20)
+      .map((g, i) => ({ id: asString(g.id) || `group-${i}`, title: asString(g.title).slice(0, 60), people: asArray<unknown>(g.people).map((x) => asString(x)).filter(Boolean).slice(0, 60) }))
+      .filter((g) => g.title || g.people.length),
+    motifColors: asArray(r.motifColors).map((x) => asString(x)).filter((c) => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 6),
     faqs,
     keyPeople: asArray<unknown>(r.keyPeople).map(normalizePerson),
     rsvpTableName: asString(r.rsvpTableName),

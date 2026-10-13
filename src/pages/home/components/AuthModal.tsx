@@ -5,6 +5,7 @@ import { setRememberLogin, supabase } from "@/lib/supabase";
 import { rememberAuthNext } from "@/lib/authNext";
 import { GoogleButton } from "@/lib/googleSignIn";
 import { BLUE_LAYOUT, BUBBLE_LAYOUT, CHARACTER_BLINK as BLINK, CHARACTER_EYES as EYES, CHARACTER_LAYOUT, CHARACTER_MOUTH as MOUTH } from "@/components/CharacterLoader";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Where to go after logging in when a signed-out visitor was sent here from a
@@ -659,6 +660,7 @@ function AuthForm({
       });
       setLoading(false);
       if (error) return setError(friendlyAuthError(error.message));
+      if (data.user && (data.user.identities?.length ?? 0) > 0) trackEvent("sign_up", { method: "email" });
       if (data.session) {
         fetch("/api/send-welcome-email", {
           method: "POST",
