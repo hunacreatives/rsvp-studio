@@ -511,7 +511,7 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
             <dl className="mesa-specs mx-auto mt-10 max-w-[1000px]">
               {[
                 ["No guest limit", "300, 500, more.", "ri-team-line", "sky"],
-                ["No sign-up", "Start straight away.", "ri-door-open-line", "sun"],
+                ["No sign-up to start", "Seat everyone first;\na free account to download.", "ri-door-open-line", "sun"],
                 ["Saves as you go", "In this browser,\nor your free account.", "ri-cloud-line", "green"],
                 ["Works on your phone", "Tap a group, then a table.", "ri-smartphone-line", "coral"],
                 ["Seating rules", "Who sits together,\nwho doesn’t.", "ri-links-line", "lilac"],

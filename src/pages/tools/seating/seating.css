@@ -623,30 +623,6 @@
   .spx-names input { font-size: 19px; }
 }
 
-/* print (PDF) */
-.sp-print { display: none; }
-@media print {
-  body > *:not(.sp-print-root) { display: none !important; }
-  .sp-print-root { display: block !important; }
-  .sp-print { display: block; color: #000727; font-family: Georgia, "Times New Roman", serif; }
-  .sp-print section { page-break-after: always; break-after: page; }
-  .sp-print section:last-child { page-break-after: auto; break-after: auto; }
-}
-.sp-print-root { display: none; }
-.sp-print h1 { font-size: 22pt; font-weight: 600; margin: 0 0 4pt; text-align: center; }
-.sp-print .sub { text-align: center; font: 9pt Helvetica, Arial, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: #6b6b7c; margin: 0 0 14pt; }
-.sp-print svg { width: 100%; height: auto; max-height: 82vh; display: block; }
-.sp-print .board svg { max-height: none; height: 100vh; width: auto; margin: 0 auto; }
-.sp-print .az { columns: 3; column-gap: 18pt; font: 10pt/1.5 Helvetica, Arial, sans-serif; }
-.sp-print .az div { display: flex; justify-content: space-between; gap: 8pt; break-inside: avoid; border-bottom: 0.5pt dotted #c9c4b8; padding: 2pt 0; }
-.sp-print .az b { font-weight: 600; white-space: nowrap; }
-.sp-print .az h4 { font: 600 12pt Georgia, serif; margin: 8pt 0 2pt; break-after: avoid; color: #b8913a; }
-.sp-print .tables { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10pt; font: 9.5pt/1.45 Helvetica, Arial, sans-serif; }
-.sp-print .tables div { border: 0.6pt solid #d8d2c4; border-radius: 6pt; padding: 8pt 10pt; break-inside: avoid; }
-.sp-print .tables h3 { font: 600 13pt Georgia, serif; margin: 0 0 4pt; display: flex; justify-content: space-between; }
-.sp-print .tables h3 small { font: 8.5pt Helvetica, Arial, sans-serif; color: #6b6b7c; }
-.sp-print .tables ol { margin: 0; padding-left: 14pt; }
-.sp-print .credit { text-align: center; font: 8pt Helvetica, Arial, sans-serif; color: #8a8478; margin-top: 10pt; letter-spacing: 0.06em; }
 
 /* ---- phones ---- */
 @media (max-width: 820px) {
@@ -831,3 +807,8 @@
 .mesa-line { display: block; }
 .mesa-page p, .mesa-page dd, .mesa-sheet p { text-wrap: pretty; }
 @media (max-width: 640px) { .mesa-line { display: inline; } }
+
+/* the free-account ask before downloads and sharing */
+.sp-gate ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; color: var(--panel-fg); }
+.sp-gate li { display: flex; gap: 8px; }
+.sp-gate li::before { content: "✓"; color: var(--ok); font-weight: 700; }

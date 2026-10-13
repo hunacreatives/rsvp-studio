@@ -103,7 +103,21 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
   const [authOpen, setAuthOpen] = useState(false);
   const [share, setShare] = useState<null | { url: string | null; busy: boolean }>(null);
   const [plans, setPlans] = useState<CloudRow[] | null>(null);
-  const { userId } = useSignedIn();
+  const { userId, ready: authReady } = useSignedIn();
+  // Downloads and share links need a free account. Asked once, at that moment; what they
+  // wanted carries on by itself after signing up (also after a Google sign-in round trip).
+  const [gate, setGate] = useState<null | "export" | "share">(null);
+  const AFTER = "seating:after-auth";
+  const needAccount = (what: "export" | "share") => {
+    try {
+      sessionStorage.setItem(AFTER, what);
+    } catch {
+      /* fine: they'll just click again */
+    }
+    setGate(what);
+    trackEvent("seating_gate", { action: what });
+  };
+  const openExport = () => (userId ? setDialog("export") : needAccount("export"));
   const [cloud, setCloud] = useState<CloudState>("off");
 
   // ---- saving to the account ------------------------------------------------------
@@ -157,6 +171,34 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
     }
   };
   const touch = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
+  const makeShare = async () => {
+    setShare({ url: null, busy: true });
+    const url = await shareLink(chart);
+    setShare({ url, busy: false });
+    if (url) trackEvent("seating_share");
+  };
+  // Signed in now, with something waiting: do it.
+  useEffect(() => {
+    if (!authReady || !userId) return;
+    let what: string | null = null;
+    try {
+      what = sessionStorage.getItem(AFTER);
+      sessionStorage.removeItem(AFTER);
+    } catch {
+      /* nothing waiting */
+    }
+    setGate(null);
+    setAuthOpen(false);
+    if (what === "export") {
+      setDialog("export");
+      trackEvent("seating_gate_done", { action: "export" });
+    } else if (what === "share") {
+      trackEvent("seating_gate_done", { action: "share" });
+      void makeShare();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReady, userId]);
 
   const doUndo = () => {
     undo();
@@ -527,7 +569,7 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
       { id: "a-add", label: "Add guests", hint: "Action", run: () => setDialog("add") },
       { id: "a-round", label: "Add a round table", hint: "Action", run: () => addTable("round", 10) },
       { id: "a-long", label: "Add a long table", hint: "Action", run: () => addTable("rect", 10) },
-      { id: "a-dl", label: "Download or print", hint: "Action", run: () => setDialog("export") },
+      { id: "a-dl", label: "Download or print", hint: "Action", run: () => openExport() },
       { id: "a-fit", label: "Fit to screen", hint: "Action", run: () => canvas.current?.fit() },
       { id: "a-undo", label: "Undo", hint: "⌘Z", run: undo },
     ];
@@ -721,7 +763,7 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
           title="Share a view-only link"
           aria-label="Share"
           onClick={async () => {
-            if (!userId) return setShare({ url: null, busy: false });
+            if (!userId) return needAccount("share");
             setShare({ url: null, busy: true });
             const url = await shareLink(chart);
             setShare({ url, busy: false });
@@ -731,7 +773,7 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
           <Icon d={I.share} size={15} />
           <span className="sp-lbl">Share</span>
         </button>
-        <button className="sp-btn tool" onClick={() => setDialog("export")} aria-label="Download" title="Download or print">
+        <button className="sp-btn tool" onClick={openExport} aria-label="Download" title="Download or print">
           <Icon d={I.dl} size={15} />
           <span className="sp-hide-sm sp-lbl">Download</span>
         </button>
@@ -779,7 +821,7 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
                 className="sp-hide-lg"
                 onClick={async () => {
                   setMenu(null);
-                  if (!userId) return setShare({ url: null, busy: false });
+                  if (!userId) return needAccount("share");
                   setShare({ url: null, busy: true });
                   setShare({ url: await shareLink(chart), busy: false });
                 }}
@@ -1045,6 +1087,32 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
           }}
         />
       ) : null}
+      {gate && !userId ? (
+        <div className="sp-scrim" onClick={() => setGate(null)}>
+          <div className="sp-dialog sp-gate" role="dialog" aria-modal="true" aria-labelledby="sp-gate-h" onClick={(e) => e.stopPropagation()}>
+            <h2 id="sp-gate-h">{gate === "export" ? "Download with a free account" : "Share with a free account"}</h2>
+            <p>
+              {gate === "export"
+                ? "Your plan is ready. Make a free account to download the floor plan, the entrance board and the lists."
+                : "Make a free account to send your coordinator a view-only link."}{" "}
+              It also keeps your plan safe and opens it on any device.
+            </p>
+            <ul>
+              <li>Free, no card</li>
+              <li>Takes a few seconds with Google</li>
+              <li>Your plan stays exactly as it is</li>
+            </ul>
+            <div className="row">
+              <button className="sp-btn soft" onClick={() => setGate(null)}>
+                Not now
+              </button>
+              <button className="sp-btn primary" onClick={() => setAuthOpen(true)}>
+                Create a free account
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {authOpen ? (
         <Suspense fallback={null}>
           <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode="signup" next="/tools/seating-chart-maker" />
@@ -1057,7 +1125,7 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
           signedIn={!!userId}
           onSignIn={() => {
             setShare(null);
-            setAuthOpen(true);
+            needAccount("share");
           }}
           onStop={async () => {
             await stopSharing(chart);

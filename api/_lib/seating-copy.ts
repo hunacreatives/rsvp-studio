@@ -4,13 +4,13 @@
 
 export const SEATING_PATH = "/tools/seating-chart-maker";
 export const SEATING_TITLE = "Mesa: Free Seating Chart Maker for Weddings, Debuts & Events — The RSVP Studio";
-export const SEATING_DESCRIPTION = "Mesa is a free seating chart maker for weddings, debuts, birthdays and every kind of event. Paste your guest list, seat everyone, then print the plan. No sign-up.";
+export const SEATING_DESCRIPTION = "Mesa is a free seating chart maker for weddings, debuts, birthdays and every kind of event. Paste your guest list and seat everyone, no sign-up needed; download and share with a free account.";
 
 export const SEATING_NAME = "Mesa";
 export const SEATING_H1 = "Everyone, seated.";
 // "\n" marks where a line should break on wide screens (never a word left alone).
 export const SEATING_SUB = "The free seating chart maker for weddings,\ndebuts, birthdays and every celebration in between.";
-export const SEATING_FACTS = "No sign-up · No guest limit · Works on your phone";
+export const SEATING_FACTS = "No sign-up to start · No guest limit · Works on your phone";
 
 export const SEATING_STEPS: [string, string][] = [
   ["Paste your list", "Copy it from Viber, Notes or Excel. “Tito Ben & Tita Marie + 2 kids” stays together as one family. If your list already says “Table 5”, they go to Table 5."],
@@ -32,5 +32,5 @@ export const SEATING_FAQ: [string, string][] = [
   ["How many tables do I need?", "Your guest count divided by 10, plus the presidential, sponsors’ and entourage tables, plus one spare for late RSVPs."],
   ["When should we finish the seating plan?", "Two to three weeks before the day, after your RSVP deadline, so your coordinator and caterer have the final lists."],
   ["Can guests find their own table?", "Print the A–Z list for the entrance, or add a Find your table page to your RSVP Studio website so guests can check on their phones."],
-  ["Is Mesa free? Where does my list go?", "Yes, with no guest limit. Your list stays in your browser unless you save the plan to an account or make a share link."],
+  ["Is Mesa free? Where does my list go?", "Yes, with no guest limit. You can start and seat everyone without an account; downloads and share links need a free one. Your list stays in your browser until you sign up, then it’s saved to your account."],
 ];

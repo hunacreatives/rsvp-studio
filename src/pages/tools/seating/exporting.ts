@@ -1,13 +1,13 @@
 import { CHAIR, contentBounds, dims, initials, isHonorific, isRound, seatOffsets, tablePath, topRadius, type Chart, type Guest } from "./model";
 import { downloadCsv } from "@/lib/csv";
+import { PAPER, drawFit, savePdf, svgImage, type Page, type Paper } from "./pdf";
 
 // Downloads: a print-ready floor plan (SVG → PNG, or the print dialog for PDF), an A–Z
 // "find your table" list, table-by-table lists, and a spreadsheet. Printed pages use the
-// paper look whatever the editor looks like, and carry a small credit line.
+// paper look whatever the editor looks like, and carry our logo bottom right.
 
 const INK = "#000727";
 const MUTED = "#8a8478";
-const GOLD = "#b8913a";
 const LINE = "#cfc8b8";
 const CAT_FILL: Record<string, string> = {
   vip: "#e6cf98",
@@ -22,6 +22,15 @@ const CAT_FILL: Record<string, string> = {
   other: "#e6e5ea",
 };
 
+// Our logo, bottom right of every PDF and image (public/tools/mesa/watermark.png, 520 × 241).
+const WATERMARK = "/tools/mesa/watermark.png";
+const WM_RATIO = 241 / 520;
+/** The logo in the bottom-right corner of a W × H page, `w` wide, `inset` from the edges. */
+function watermark(W: number, H: number, w: number, inset: number) {
+  const h = w * WM_RATIO;
+  return `<image href="${WATERMARK}" x="${W - inset - w}" y="${H - inset - h}" width="${w}" height="${h}" opacity="0.9" preserveAspectRatio="xMidYMid meet"/>`;
+}
+
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export const tableName = (label: string) => (/^\d+$/.test(label) ? `Table ${label}` : label);
@@ -31,7 +40,7 @@ export function planSvg(chart: Chart, opts: { title?: boolean; credit?: boolean;
   const b = contentBounds(chart);
   const pad = 80;
   const head = opts.title ? 170 : 0;
-  const foot = opts.credit ? 70 : 0;
+  const foot = opts.credit ? Math.max(90, b.w * 0.05) : 0;
   const W = b.w + pad * 2;
   const H = b.h + pad * 2 + head + foot;
   const ox = pad - b.x;
@@ -76,7 +85,7 @@ export function planSvg(chart: Chart, opts: { title?: boolean; credit?: boolean;
     s += `</g></g>`;
   }
   s += `</g>`;
-  if (opts.credit) s += `<text x="${W / 2}" y="${H - 34}" text-anchor="middle" font-family="${sans}" font-size="18" letter-spacing="2" fill="${GOLD}">Made with Mesa by The RSVP Studio · thersvpstudio.com</text>`;
+  if (opts.credit) s += watermark(W, H, Math.max(150, W * 0.09), Math.max(24, W * 0.015));
   return s + `</svg>`;
 }
 
@@ -88,12 +97,31 @@ export async function downloadBoardPng(chart: Chart) {
   await svgToPng(boardSvg(chart), `${slug(chart.title)}-find-your-table.png`, 1);
 }
 
+/** An SVG drawn as an image can't fetch files, so the logo goes in as data. */
+async function withLogo(svg: string) {
+  return svg.includes(WATERMARK) ? svg.split(`href="${WATERMARK}"`).join(`href="${await logoData()}"`) : svg;
+}
+
+let logoCache: Promise<string> | null = null;
+function logoData(): Promise<string> {
+  logoCache ??= fetch(WATERMARK)
+    .then((r) => r.blob())
+    .then((b) => new Promise<string>((res) => {
+      const fr = new FileReader();
+      fr.onload = () => res(String(fr.result));
+      fr.readAsDataURL(b);
+    }))
+    .catch(() => "");
+  return logoCache;
+}
+
 async function svgToPng(svg: string, fileName: string, maxScale = 2.4) {
   const vb = svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/)!;
   const w = Number(vb[1]);
   const h = Number(vb[2]);
   // Up to 4096 px wide: sharp when printed, still small enough for phones to share.
   const scale = Math.min(4096 / w, 4096 / h, maxScale);
+  svg = await withLogo(svg);
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const img = new Image();
@@ -233,6 +261,136 @@ export function boardSvg(chart: Chart) {
       s += `<text x="${x + colW}" y="${yy}" text-anchor="end" font-family="${serif}" font-size="${font}" font-weight="600" fill="#000727">${esc(it.table.replace(/^Table /, ""))}</text>`;
     }
   });
-  s += `<text x="${W / 2}" y="${H - 150}" text-anchor="middle" font-family="${sans}" font-size="30" letter-spacing="4" fill="#b8913a">Made with Mesa by The RSVP Studio · thersvpstudio.com</text>`;
+  s += watermark(W - 96, H - 96, 300, 40);
   return s + `</svg>`;
+}
+
+// ---- PDF pages ------------------------------------------------------------------------
+const SANS = "Helvetica, Arial, sans-serif";
+const SERIF = "Georgia, 'Times New Roman', serif";
+const fit = (t: string, size: number, width: number) => {
+  const max = Math.floor(width / (size * 0.52));
+  return t.length > max ? t.slice(0, Math.max(1, max - 1)) + "…" : t;
+};
+const svgPage = (W: number, H: number, body: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#ffffff"/>${body}${watermark(W, H, 74, 22)}</svg>`;
+
+function header(W: number, title: string, sub: string, first: boolean) {
+  return first
+    ? `<text x="${W / 2}" y="62" text-anchor="middle" font-family="${SERIF}" font-size="24" font-weight="600" fill="${INK}">${esc(title)}</text>` +
+        `<text x="${W / 2}" y="82" text-anchor="middle" font-family="${SANS}" font-size="8" letter-spacing="2" fill="${MUTED}">${esc(sub.toUpperCase())}</text>`
+    : `<text x="40" y="34" font-family="${SANS}" font-size="8" letter-spacing="1.5" fill="${MUTED}">${esc(`${title} · ${sub}`.toUpperCase())}</text>`;
+}
+
+/** "Find your table": everyone A–Z with their table, in columns, as many pages as it takes. */
+export function azPages(chart: Chart, paper: Paper): string[] {
+  const [W, H] = PAPER[paper];
+  const cols = paper === "A3" ? 4 : 3;
+  const m = 40;
+  const gap = 18;
+  const colW = (W - m * 2 - gap * (cols - 1)) / cols;
+  const line = 14.5;
+  type Item = { letter?: string; name?: string; table?: string };
+  const items: Item[] = [];
+  let letter = "";
+  for (const r of azList(chart)) {
+    const l = r.key.charAt(0).toUpperCase();
+    if (l !== letter) items.push({ letter: l });
+    letter = l;
+    items.push({ name: r.name, table: r.table.replace(/^Table /, "") });
+  }
+  const pages: string[] = [];
+  let i = 0;
+  while (i < items.length || !pages.length) {
+    const first = !pages.length;
+    const top = first ? 112 : 58;
+    const rows = Math.floor((H - 64 - top) / line);
+    let body = header(W, "Find your table", chart.names || chart.title, first);
+    for (let c = 0; c < cols && i < items.length; c++) {
+      const x = m + c * (colW + gap);
+      for (let r = 0; r < rows && i < items.length; r++, i++) {
+        const it = items[i];
+        const y = top + r * line;
+        if (it.letter) {
+          if (r === rows - 1) break; // never a letter alone at the foot of a column
+          body += `<text x="${x}" y="${y}" font-family="${SERIF}" font-size="11.5" font-weight="600" fill="${GOLD_INK}">${it.letter}</text>`;
+        } else {
+          body += `<text x="${x}" y="${y}" font-family="${SANS}" font-size="9" fill="${INK}">${esc(fit(it.name!, 9, colW - 26))}</text>`;
+          body += `<text x="${x + colW}" y="${y}" text-anchor="end" font-family="${SERIF}" font-size="9" font-weight="600" fill="${INK}">${esc(it.table!)}</text>`;
+          body += `<line x1="${x}" x2="${x + colW}" y1="${y + 4}" y2="${y + 4}" stroke="#ddd6c6" stroke-width="0.5" stroke-dasharray="1 2"/>`;
+        }
+      }
+    }
+    pages.push(svgPage(W, H, body));
+    if (!items.length) break;
+  }
+  return pages;
+}
+
+/** Table by table, for the coordinator and caterer: cards in columns, new pages as needed. */
+export function tablePages(chart: Chart, paper: Paper): string[] {
+  const [W, H] = PAPER[paper];
+  const cols = paper === "A3" ? 4 : 3;
+  const m = 40;
+  const gap = 12;
+  const colW = (W - m * 2 - gap * (cols - 1)) / cols;
+  const row = 12;
+  const pages: string[] = [];
+  let body = "";
+  let heights: number[] = [];
+  const start = (first: boolean) => {
+    body = header(W, "Table lists", chart.names || chart.title, first);
+    heights = Array(cols).fill(first ? 104 : 52);
+  };
+  start(true);
+  for (const { t, people } of tableLists(chart)) {
+    const h = 30 + Math.max(1, people.length) * row + 8;
+    let c = heights.indexOf(Math.min(...heights));
+    if (heights[c] + h > H - 64) {
+      pages.push(svgPage(W, H, body));
+      start(false);
+      c = 0;
+    }
+    const x = m + c * (colW + gap);
+    const y = heights[c];
+    body += `<rect x="${x}" y="${y}" width="${colW}" height="${h}" rx="6" fill="#ffffff" stroke="#d8d2c4" stroke-width="0.7"/>`;
+    body += `<text x="${x + 10}" y="${y + 19}" font-family="${SERIF}" font-size="12" font-weight="600" fill="${INK}">${esc(fit(tableName(t.label), 12, colW - 70))}</text>`;
+    body += `<text x="${x + colW - 10}" y="${y + 19}" text-anchor="end" font-family="${SANS}" font-size="8" fill="${MUTED}">${people.length}/${t.seats}</text>`;
+    if (!people.length) body += `<text x="${x + 10}" y="${y + 38}" font-family="${SANS}" font-size="8.5" fill="${MUTED}">Empty</text>`;
+    people.forEach((g, k) => {
+      const txt = `${k + 1}. ${g.name}${g.meal ? ` — ${g.meal}` : ""}`;
+      body += `<text x="${x + 10}" y="${y + 38 + k * row}" font-family="${SANS}" font-size="8.5" fill="${INK}">${esc(fit(txt, 8.5, colW - 20))}</text>`;
+    });
+    heights[c] = y + h + gap;
+  }
+  pages.push(svgPage(W, H, body));
+  return pages;
+}
+
+const GOLD_INK = "#b8913a";
+
+/** The PDF: floor plan, A–Z list and table lists, on the paper chosen. */
+export async function downloadPdf(chart: Chart, parts: { plan: boolean; az: boolean; tables: boolean }, paper: Paper) {
+  const pages: Page[] = [];
+  if (parts.plan) {
+    const svg = await withLogo(planSvg(chart, { title: true, credit: true }));
+    const img = await svgImage(svg);
+    const [a, b] = PAPER[paper];
+    const [w, h] = img.width >= img.height ? [b, a] : [a, b];
+    pages.push({ w, h, draw: (ctx) => drawFit(ctx, img, 24, 24, w - 48, h - 48) });
+  }
+  const svgs = [...(parts.az ? azPages(chart, paper) : []), ...(parts.tables ? tablePages(chart, paper) : [])];
+  for (const raw of svgs) {
+    const img = await svgImage(await withLogo(raw));
+    const [w, h] = PAPER[paper];
+    pages.push({ w, h, draw: (ctx) => ctx.drawImage(img, 0, 0, w, h) });
+  }
+  await savePdf(pages, `${slug(chart.title)}.pdf`);
+}
+
+/** The entrance board as an A3 PDF, ready for a print shop. */
+export async function downloadBoardPdf(chart: Chart) {
+  const img = await svgImage(await withLogo(boardSvg(chart)));
+  const [w, h] = PAPER.A3;
+  await savePdf([{ w, h, draw: (ctx) => ctx.drawImage(img, 0, 0, w, h) }], `${slug(chart.title)}-find-your-table.pdf`, 220);
 }
