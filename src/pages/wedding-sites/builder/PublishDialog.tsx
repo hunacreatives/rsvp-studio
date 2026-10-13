@@ -50,6 +50,9 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
   const [step, setStep] = useState<Step>({ kind: "closed" });
   const [params, setParams] = useSearchParams();
   const [pending, setPending] = useState<PendingDomain | null>(() => readPending(eventId));
+  // They saw the web-address offer and chose the free link: "Your site is live" says
+  // where to get their own address later.
+  const [skippedDomain, setSkippedDomain] = useState(false);
 
   // First publish, domains on, no domain yet → ask about the web address first.
   const start = async () => {
@@ -65,6 +68,7 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
   const chooseFree = () => {
     if (eventId) writePending(eventId, null);
     setPending(null);
+    setSkippedDomain(true);
     go();
   };
   const chooseDomain = (domain: string, php: number) => {
@@ -147,7 +151,7 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { step, start, pay, requote, pending, chooseFree, chooseDomain, buyPending, eventId, close: () => setStep({ kind: "closed" }) };
+  return { step, start, pay, requote, pending, skippedDomain, chooseFree, chooseDomain, buyPending, eventId, close: () => setStep({ kind: "closed" }) };
 }
 
 /** `upsell`: a free site — after it goes live, offer Premium (no credit, an email per RSVP). */
@@ -174,20 +178,46 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
         ) : step.kind === "address" ? (
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Choose your web address</h2>
-            <button onClick={flow.chooseFree} style={{ ...btn(false), width: "100%", justifyContent: "space-between", marginTop: 16, borderRadius: 14, padding: "12px 16px" }}>
-              <span style={{ minWidth: 0, textAlign: "left", overflowWrap: "anywhere" }}>thersvpstudio.com/invite/{slug}</span>
-              <span style={{ color: "#55556a", fontWeight: 500 }}>Free</span>
+            <p style={{ margin: "6px 0 0", fontSize: 14.5, lineHeight: 1.55, color: "#55556a" }}>This is the link your guests open.</p>
+
+            {/* The offer: their own address, set apart in the brand blue. */}
+            <div style={{ marginTop: 18, padding: "18px 18px 16px", borderRadius: 18, background: "#eef3ff", border: "1.5px solid #2f61d5" }}>
+              <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 999, background: "#2f61d5", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Your own web address</span>
+              <p style={{ margin: "12px 0 0", fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 26, lineHeight: 1.15, color: "#000727", overflowWrap: "anywhere" }}>
+                {slug.replace(/-/g, "")}
+                <span style={{ color: "#2f61d5" }}>.com</span>
+              </p>
+              <ul style={{ listStyle: "none", margin: "12px 0 16px", padding: 0, fontSize: 14, lineHeight: 1.5, color: "#3c3d57", display: "grid", gap: 6 }}>
+                {DOMAIN_PERKS.map((p) => (
+                  <li key={p} style={{ display: "flex", gap: 8 }}>
+                    <span aria-hidden style={{ color: "#2dc76d", fontWeight: 700 }}>✓</span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+              <DomainPicker eventId={flow.eventId!} suggestion={slug.replace(/-/g, "")} onPick={flow.chooseDomain} />
+              <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "#55556a" }}>Your site goes live on the free link right away; your own address follows a few minutes after you pay.</p>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0 14px", color: "#868697", fontSize: 13 }}>
+              <span style={{ flex: 1, height: 1, background: "#e7e7ee" }} />
+              or
+              <span style={{ flex: 1, height: 1, background: "#e7e7ee" }} />
+            </div>
+
+            {/* The free link: clearly a button that publishes. */}
+            <button
+              onClick={flow.chooseFree}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "13px 18px", borderRadius: 14, border: "1px solid #d9d9e3", background: "#fff", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
+            >
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 15, fontWeight: 600, color: "#000727" }}>Publish on the free link →</span>
+                <span style={{ display: "block", marginTop: 2, fontSize: 13, color: "#55556a", overflowWrap: "anywhere" }}>thersvpstudio.com/invite/{slug}</span>
+              </span>
+              <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: "#3d7a12" }}>Free</span>
             </button>
-            <p style={{ margin: "20px 0 8px", fontSize: 15, fontWeight: 600 }}>Or get your own, like {slug.replace(/-/g, "")}.com</p>
-            <ul style={{ margin: "0 0 12px", paddingLeft: 18, fontSize: 13.5, lineHeight: 1.7, color: "#55556a" }}>
-              {DOMAIN_PERKS.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-            <DomainPicker eventId={flow.eventId!} suggestion={slug.replace(/-/g, "")} onPick={flow.chooseDomain} />
-            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#868697" }}>Your site goes live on the free link right away; your own address follows a few minutes after you pay.</p>
-            <button onClick={flow.close} style={{ ...btn(false), marginTop: 16 }}>
-              Cancel
+            <button onClick={flow.close} style={{ display: "block", margin: "14px auto 0", minHeight: 44, padding: "0 12px", border: "none", background: "none", color: "#55556a", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+              Not now
             </button>
           </>
         ) : step.kind === "freeLive" ? (
@@ -274,6 +304,11 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
               </a>
             </div>
             <p style={{ margin: "16px 0 0", fontSize: 13, color: "#55556a" }}>Changed something later? Tap “Update live site” to put your edits online.</p>
+            {flow.skippedDomain ? (
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: "#55556a" }}>
+                Want your own address later, like {slug.replace(/-/g, "")}.com? Get it anytime from your project’s <strong style={{ color: "#000727" }}>Website</strong> tab.
+              </p>
+            ) : null}
             {upsell ? (
               <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>
                 You’ll get one email a day with your new RSVPs.{" "}

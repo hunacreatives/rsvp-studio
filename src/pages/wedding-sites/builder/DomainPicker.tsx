@@ -46,7 +46,7 @@ export function DomainPicker({ eventId, suggestion, onPick, busy }: { eventId: s
           spellCheck={false}
           style={{ flex: 1, minWidth: 0, fontSize: 16, padding: "10px 14px", borderRadius: 999, border: "1px solid #d9d9e3", outline: "none" }}
         />
-        <button type="submit" disabled={state.kind === "searching"} style={pill(true)}>
+        <button type="submit" disabled={state.kind === "searching"} style={{ ...pill(true), background: "#2f61d5" }}>
           {state.kind === "searching" ? "Searching…" : "Search"}
         </button>
       </form>
