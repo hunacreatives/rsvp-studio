@@ -1,6 +1,7 @@
 // Shrink a phone photo in the browser before uploading: camera shots are 3–15 MB,
 // which is slow on mobile data and too big for some endpoints. Images over `maxEdge`
-// pixels on their long side are scaled down and re-encoded as JPEG (or WebP).
+// pixels on their long side are scaled down and re-encoded as JPEG (or WebP; big PNGs
+// always become WebP so a transparent background stays transparent).
 // Non-images, GIFs (animation) and files already small enough pass through unchanged.
 
 export async function compressImage(
@@ -47,8 +48,13 @@ export async function compressImage(
   }
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close();
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, quality));
+  // A PNG may have a transparent background (a monogram, a logo): JPEG would turn it
+  // black, so shrunk PNGs become WebP, which keeps transparency.
+  const outType = file.type === "image/png" ? "image/webp" : type;
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, outType, quality));
   if (!blob || (blob.size >= file.size && !camera)) return file;
-  const ext = type === "image/webp" ? "webp" : "jpg";
-  return new File([blob], file.name.replace(/\.[^.]+$/, "") + "." + ext, { type, lastModified: Date.now() });
+  // Browsers that can't make WebP hand back a PNG: keep that type and name.
+  const madeType = blob.type || outType;
+  const ext = madeType === "image/webp" ? "webp" : madeType === "image/png" ? "png" : "jpg";
+  return new File([blob], file.name.replace(/\.[^.]+$/, "") + "." + ext, { type: madeType, lastModified: Date.now() });
 }

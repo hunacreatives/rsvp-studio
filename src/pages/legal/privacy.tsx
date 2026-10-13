@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import LegalLayout from "./LegalLayout";
+import AnalyticsOptOut from "./AnalyticsOptOut";
 
 export default function Privacy() {
   return (
@@ -51,8 +52,11 @@ export default function Privacy() {
           <strong>Technical data.</strong> Our hosting and security services log standard data such as IP
           address, browser type and pages requested, to keep the service secure and working. If something
           breaks on a page, an error report (the page, the error and your browser type) is sent to our
-          error-monitoring service so we can fix it. With your permission only, Google Analytics measures how
-          visitors use our own pages (never guests&rsquo; event websites). We don&rsquo;t run advertising scripts.
+          error-monitoring service so we can fix it. Google Analytics measures how visitors use our own pages
+          (which pages are visited, roughly where visitors are and how they found us), never guests&rsquo; event
+          websites. We use it to improve the site, which is our legitimate interest; it isn&rsquo;t used for
+          advertising, and Google&rsquo;s ad features are switched off. You can turn it off for your browser in
+          section 5. We don&rsquo;t run advertising scripts.
         </p>
       </div>
 
@@ -89,7 +93,7 @@ export default function Privacy() {
           <li><strong>Cloudflare</strong> — storing and serving photos uploaded to event websites.</li>
           <li><strong>Sentry</strong> — error reports, so we can fix problems on the site.</li>
           <li><strong>PayMongo</strong> — online payments (GCash, Maya, cards, QR Ph).</li>
-          <li><strong>Google</strong> — &ldquo;Sign in with Google&rdquo;, if you use it, the fonts our pages load, and Google Analytics if you allow it.</li>
+          <li><strong>Google</strong> — &ldquo;Sign in with Google&rdquo;, if you use it, the fonts our pages load, and Google Analytics.</li>
           <li><strong>Authorities or advisors</strong> — only where the law requires it, or to establish or defend legal claims.</li>
         </ul>
         <p>
@@ -101,13 +105,13 @@ export default function Privacy() {
       <div>
         <h2>5. Cookies and browser storage</h2>
         <p>
-          We use only what&rsquo;s needed for the site to work: your login session and your &ldquo;remember me&rdquo;
+          For the site to work, your login session and your &ldquo;remember me&rdquo;
           choice are kept in your browser&rsquo;s storage, and a few small settings (like a dismissed notice) may be
-          remembered too. Google Analytics cookies are set only if you tap &ldquo;Accept&rdquo; on our cookie notice,
-          and never on guests&rsquo; event websites. To change your choice, clear this site&rsquo;s storage in your
-          browser and the notice will ask again. There are no advertising cookies. Clearing storage also logs you
-          out, so you&rsquo;ll need to log in again.
+          remembered too. Google Analytics sets its own cookies on our pages (never on guests&rsquo; event
+          websites) to count visits; analytics data is kept for two months. There are no advertising cookies.
+          You can clear this storage anytime in your browser; you&rsquo;ll just need to log in again.
         </p>
+        <AnalyticsOptOut />
       </div>
 
       <div>

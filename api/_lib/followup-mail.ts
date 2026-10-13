@@ -27,6 +27,8 @@ export type FollowupData = {
   upgradePesos?: number | null;
   /** When the published site goes offline. */
   liveUntil?: string | null;
+  /** Premium photo sharing is on: the guest photo page (and its QR code, /qr/<slug>.png). */
+  photos?: { url: string; qr: string } | null;
   unsubscribeUrl: string;
   bookingUrl?: string | null;
 };
@@ -195,6 +197,12 @@ ${steps([
   "Download your guest list for the welcome table.",
 ])}
 ${button("See your guest list", guestList)}
+${d.photos ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px;"><tr><td align="center" class="fpaper" bgcolor="#fbfaf6" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:16px;padding:22px 20px;text-align:center;">
+${label("For your tables")}
+<img src="${d.photos.qr}" alt="QR code for your guest photo page" width="150" height="150" style="display:block;margin:0 auto 12px;width:150px;height:150px;border:0;" />
+<p class="fb" style="margin:0 0 6px;color:${BODY}!important;font-size:15px;line-height:1.6;">Guests scan this to share the photos they take.<br />Print it, or <a href="${d.photos.qr}" style="color:#2f61d5!important;">download the QR code</a>.</p>
+<p class="fs" style="margin:0;color:${SLATE}!important;font-size:12px;word-break:break-all;">${d.photos.url.replace("https://", "")}</p>
+</td></tr></table>` : ""}
 ${signoff()}`),
       }),
     };
@@ -211,6 +219,7 @@ ${signoff()}`),
       footer: footer(d.unsubscribeUrl),
       content: wrap(`${h1(`We hope it was wonderful, ${first}.`)}
 ${p(`Thank you for making <strong>${name}</strong> with us.${until}`)}
+${d.photos ? p(`Guests can still add their photos. Share the <a href="${d.photos.url}" style="color:#2f61d5!important;">photo page</a> in your group chat, then see them all under your project’s Guests tab.`) : ""}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 26px;"><tr><td class="fpaper" bgcolor="#fbfaf6" style="background:#fbfaf6;border-left:3px solid ${CORAL};border-radius:4px;padding:16px 20px;">
 <p class="fi" style="margin:0 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:18px;">How did we do?</p>
 <p class="fb" style="margin:0;color:${BODY}!important;font-size:15px;line-height:1.6;">Reply with one line. What you loved, or what we should fix. We read every reply.</p>

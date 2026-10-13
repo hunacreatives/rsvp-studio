@@ -42,7 +42,10 @@ export async function sendGuestReminders(db: SupabaseClient, sendMail: SendMail,
       const { error: claimErr } = await db.from("followup_log").insert({ event_id: eventId, kind: "guest_reminder" });
       if (claimErr) continue; // another run has it
 
-      const { data: ws } = await db.from("wedding_sites").select("slug, published_content, published_presentation").eq("event_id", eventId).maybeSingle();
+      const { data: ws } = await db.from("wedding_sites").select("*").eq("event_id", eventId).maybeSingle();
+      // Guests' replies go to the hosts (the email is in their names).
+      const { data: evOwner } = await db.from("events").select("owner_id").eq("id", eventId).maybeSingle();
+      const { data: owner } = evOwner?.owner_id ? await db.from("profiles").select("email").eq("id", evOwner.owner_id).maybeSingle() : { data: null };
       const content = (ws?.published_content ?? {}) as GuestContent;
 
       let sent = 0;
@@ -59,9 +62,10 @@ export async function sendGuestReminders(db: SupabaseClient, sendMail: SendMail,
               slug: ws?.slug ?? "",
               guestName: String(g.name ?? ""),
               guestCount: g.guest_count as number | null,
+              photos: !!ws?.photo_sharing,
             });
             return sendMail(
-              { from: hostSender(content), to: g.email as string, subject: mail.subject, html: mail.html },
+              { from: hostSender(content), to: g.email as string, subject: mail.subject, html: mail.html, ...(owner?.email ? { replyTo: owner.email as string } : {}) },
               `guest-reminder-${g.id}`,
             );
           }),

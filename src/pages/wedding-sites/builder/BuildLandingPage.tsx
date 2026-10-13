@@ -11,6 +11,7 @@ import { inquiryLink } from "@/pages/enquire/prefill";
 import { useTemplateCatalog } from "../engine/catalog";
 import { getTemplateDefinition, type TemplateDefinition } from "../engine/registry";
 import TemplateMockupPreview from "./components/TemplateMockupPreview";
+import { CharacterTrio } from "@/components/CharacterLoader";
 
 // /build — "Build your website", the DIY front door. Designs first: a short hero,
 // then every template (live previews, Free/Premium), how it works, Free vs Premium,
@@ -165,8 +166,9 @@ export default function BuildLandingPage() {
     <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
       <Navbar />
 
-      {/* Hero */}
-      <section className="container-x pb-10 pt-14 text-center md:pb-14 md:pt-20">
+      {/* Hero: a soft warm wash and our three characters. */}
+      <section className="pb-12 pt-14 text-center md:pb-16 md:pt-20" style={{ background: "linear-gradient(180deg, #fff1cc 0%, #fff8e6 55%, var(--warm-white) 100%)" }}>
+        <div className="container-x">
         <p className="eyebrow">Build your website</p>
         <h1 className="mx-auto mt-4 max-w-3xl font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] text-balance" style={{ fontSize: "clamp(2.1rem, 5vw, 3.4rem)" }}>
           Your event website, ready tonight.
@@ -197,6 +199,8 @@ export default function BuildLandingPage() {
             </Link>
           </p>
         ) : null}
+        <CharacterTrio className="mx-auto mt-10 w-[180px] md:w-[220px]" />
+        </div>
       </section>
 
       {/* The designs */}
@@ -235,17 +239,17 @@ export default function BuildLandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="bg-[var(--paper)] py-16 md:py-24">
+      <section className="py-16 md:py-24" style={{ background: "#e9f6fb" }}>
         <div className="container-x">
           <h2 className="text-center font-display text-[1.6rem] font-semibold text-[var(--ink)] md:text-[1.9rem]">How it works</h2>
           <ol className="mx-auto mt-10 grid max-w-5xl gap-8 md:grid-cols-3">
             {[
-              { icon: "ri-palette-line", title: "Pick a design", text: "Preview any design with sample details, then make it yours." },
-              { icon: "ri-image-add-line", title: "Add your details", text: "Names, date, venue, schedule and photos — from your phone or laptop." },
-              { icon: "ri-share-forward-line", title: "Share one link", text: "Send it by Messenger or text. Guests RSVP on the site; you see every reply." },
+              { icon: "ri-palette-line", bg: "var(--acc-yellow)", ink: "var(--ink)", title: "Pick a design", text: "Preview any design with sample details, then make it yours." },
+              { icon: "ri-image-add-line", bg: "var(--acc-coral)", ink: "#fff", title: "Add your details", text: "Names, date, venue, schedule and photos — from your phone or laptop." },
+              { icon: "ri-share-forward-line", bg: "var(--acc-green)", ink: "#fff", title: "Share one link", text: "Send it by Messenger or text. Guests RSVP on the site; you see every reply." },
             ].map((s, i) => (
               <li key={s.title} className="text-center">
-                <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-white text-[24px] text-[var(--acc-blue)]">
+                <span className="mx-auto grid h-14 w-14 place-items-center rounded-full text-[24px]" style={{ background: s.bg, color: s.ink }}>
                   <i className={s.icon} aria-hidden />
                 </span>
                 <p className="mt-4 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--slate)]">Step {i + 1}</p>
@@ -268,8 +272,9 @@ export default function BuildLandingPage() {
               <tr className="text-left">
                 <th className="pb-3 font-normal text-[var(--slate)]" />
                 <th className="w-[26%] pb-3 text-center align-bottom font-display text-[1.05rem] font-semibold text-[var(--ink)] md:w-[24%] md:text-[1.15rem]">Free</th>
-                <th className="w-[30%] pb-3 text-center align-bottom font-display text-[1.05rem] font-semibold text-[var(--ink)] md:w-[28%] md:text-[1.15rem]">
-                  Premium
+                <th className="w-[30%] rounded-t-2xl bg-[#fff4cf] px-1 pb-3 pt-3 text-center align-bottom font-display text-[1.05rem] font-semibold text-[var(--ink)] md:w-[28%] md:text-[1.15rem]">
+                  <span className="mb-1.5 inline-block rounded-full bg-[var(--acc-yellow)] px-2.5 py-0.5 font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ink)]">Recommended</span>
+                  <span className="block">Premium</span>
                   {premiumPrice ? <span className="block font-sans text-[12px] font-normal leading-snug text-[var(--slate)] md:text-[13px]">{peso(premiumPrice)} per event <span className="block md:inline">({peso(Math.floor(premiumPrice * 0.9))} for your first)</span></span> : null}
                 </th>
               </tr>
@@ -286,11 +291,11 @@ export default function BuildLandingPage() {
                 ["Guests share their photos", false, true],
                 ["Premium designs", false, true],
                 ["Online after your event", "30 days", "1 year"],
-              ].map(([label, free, prem]) => (
+              ].map(([label, free, prem], row, all) => (
                 <tr key={String(label)}>
                   <td className="py-3 pr-3 text-[var(--ink)]">{label}</td>
                   {[free, prem].map((v, i) => (
-                    <td key={i} className="px-1 py-3 text-center leading-snug text-[var(--slate)]">
+                    <td key={i} className={`px-1 py-3 text-center leading-snug text-[var(--slate)] ${i === 1 ? `bg-[#fff4cf] ${row === all.length - 1 ? "rounded-b-2xl" : ""}` : ""}`}>
                       {v === true ? <i className="ri-check-line text-[20px] text-[#3d7a12]" aria-label="Included" /> : v === false ? <span aria-label="Not included">—</span> : String(v)}
                     </td>
                   ))}
@@ -302,8 +307,8 @@ export default function BuildLandingPage() {
         </div>
       </section>
 
-      {/* A real one */}
-      <section className="bg-[var(--paper)] py-16 md:py-24">
+      {/* A real one: a soft pink that picks up the Cinematic design. */}
+      <section className="py-16 md:py-24" style={{ background: "#fcecf2" }}>
         <div className="container-x grid items-center gap-8 md:grid-cols-2 md:gap-14">
           <PhoneDemo templateId="cinematic" />
           <div>
@@ -343,12 +348,12 @@ export default function BuildLandingPage() {
 
       {/* Rather we make it? */}
       <section className="container-x pb-20 md:pb-28">
-        <div className="rounded-[28px] bg-[var(--paper)] px-6 py-14 text-center md:py-20">
-          <h2 className="mx-auto max-w-xl font-display font-semibold leading-tight text-[var(--ink)] text-balance" style={{ fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)" }}>
+        <div className="rounded-[28px] bg-[var(--acc-blue)] px-6 py-14 text-center md:py-20">
+          <h2 className="mx-auto max-w-xl font-display font-semibold leading-tight text-white text-balance" style={{ fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)" }}>
             Rather we make it for you?
           </h2>
-          <p className="mx-auto mt-3 max-w-lg text-[16px] text-[var(--slate)] text-balance">Our designers build a website just for your event. Custom websites from ₱8,000.</p>
-          <button onClick={() => navigate(inquiryLink({ service: "website", design: "custom" }))} className="btn btn-primary mt-7">
+          <p className="mx-auto mt-3 max-w-lg text-[16px] text-white/85 text-balance">Our designers build a website just for your event. Custom websites from ₱8,000.</p>
+          <button onClick={() => navigate(inquiryLink({ service: "website", design: "custom" }))} className="btn btn-white mt-7">
             Get a quote
           </button>
         </div>

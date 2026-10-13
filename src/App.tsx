@@ -5,7 +5,6 @@ import { BrowserRouter, useLocation } from "react-router-dom";
 import { AppRoutes } from "./router";
 import ScrollToTop from "@/components/ScrollToTop";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import CookieNotice from "@/components/CookieNotice";
 import { trackPage } from "@/lib/analytics";
 import CharacterLoader from "@/components/CharacterLoader";
 import { useSmoothScroll } from "@/lib/useSmoothScroll";
@@ -15,7 +14,7 @@ import CustomDomainSite, { isCustomDomain } from "@/pages/wedding-sites/public/C
 function Routes() {
   const { pathname } = useLocation();
   useEffect(() => applyPageMeta(pathname), [pathname]);
-  // Google Analytics page views, only after the visitor said yes (src/lib/analytics.ts).
+  // Google Analytics page views on our own pages (src/lib/analytics.ts).
   useEffect(() => {
     const t = setTimeout(() => trackPage(pathname), 300); // after the page's title is set
     return () => clearTimeout(t);
@@ -25,19 +24,16 @@ function Routes() {
     if (!/^\/(invite|internal)\//.test(window.location.pathname.slice(__BASE_PATH__.replace(/\/$/, "").length))) rememberVisit();
   }, []);
   return (
-    <>
-      <ErrorBoundary resetKey={pathname}>
-        {/* Guests opening an invite never see our studio cartoons — just a blank page. */}
-        <Suspense
-          fallback={
-            /^\/(invite|internal)\//.test(pathname) ? <div style={{ minHeight: "100dvh", background: "var(--warm-white)" }} /> : <CharacterLoader fullScreen />
-          }
-        >
-          <AppRoutes />
-        </Suspense>
-      </ErrorBoundary>
-      <CookieNotice pathname={pathname} />
-    </>
+    <ErrorBoundary resetKey={pathname}>
+      {/* Guests opening an invite never see our studio cartoons — just a blank page. */}
+      <Suspense
+        fallback={
+          /^\/(invite|internal)\//.test(pathname) ? <div style={{ minHeight: "100dvh", background: "var(--warm-white)" }} /> : <CharacterLoader fullScreen />
+        }
+      >
+        <AppRoutes />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

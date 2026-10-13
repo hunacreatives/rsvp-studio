@@ -88,6 +88,13 @@ export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site
         }
         d.upgradePesos = r?.due_centavos ? r.due_centavos / 100 : null;
       }
+      // Premium photo sharing on: the QR code (headcount) and the photo page (after).
+      if (row.kind === "headcount" || row.kind === "after") {
+        const { data: sharing } = await db.from("wedding_sites").select("*").eq("event_id", row.event_id).maybeSingle();
+        const { data: premium } = await db.rpc("event_is_premium", { p_event: row.event_id });
+        if (sharing?.photo_sharing && premium === true && sharing.slug)
+          d.photos = { url: `${site}/invite/${sharing.slug}/photos`, qr: `${site}/qr/${sharing.slug}.png` };
+      }
       if (row.kind === "after") {
         const { data: until } = await db.rpc("site_live_until", { p_event: row.event_id });
         d.liveUntil = typeof until === "string" ? until : null;

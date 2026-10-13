@@ -112,7 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { data: event } = await supabaseAdmin.from("events").select("name, event_date, table_name, deleted_at").eq("id", site.event_id).maybeSingle();
+  const { data: event } = await supabaseAdmin.from("events").select("name, event_date, table_name, deleted_at, owner_id").eq("id", site.event_id).maybeSingle();
   if (!event || event.deleted_at) {
     res.status(404).json({ error: "This invitation is no longer available." });
     return;
@@ -268,8 +268,12 @@ ${[
       // Premium sites remind guests 2 days before, unless the hosts switched it off.
       remindsLater: premium && !legacy && site.guest_reminders !== false,
     });
+    // Premium emails come in the hosts' names, so a guest's reply goes to the hosts.
+    // Free sites' come from us (and don't share the host's address with every guest).
+    const { data: ownerRow } = premium && event.owner_id ? await supabaseAdmin.from("profiles").select("email").eq("id", event.owner_id).maybeSingle() : { data: null };
     guestSend = sendEmail({
       from: premium ? hostSender(content) : FROM,
+      ...(ownerRow?.email ? { replyTo: ownerRow.email as string } : {}),
       to: email,
       subject: mail.subject,
       html: mail.html,

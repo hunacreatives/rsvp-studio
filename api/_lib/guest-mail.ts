@@ -225,7 +225,7 @@ ${makeYourOwn}
 }
 
 /** "See you on Saturday", 2 days before (Premium). */
-export function guestReminder(o: Common & { guestCount: number | null }): { subject: string; html: string } {
+export function guestReminder(o: Common & { guestCount: number | null; photos?: boolean }): { subject: string; html: string } {
   const b = basics(o);
   const days = b.when?.daysLeft ?? 0;
   const countdown = days === 1 ? "Tomorrow" : days > 1 ? `${days} days to go` : "";
@@ -249,6 +249,7 @@ ${ticket({
   stub: `${admitStub(o.guestName, o.guestCount)}${detail("Where", esc(b.where))}${detail("Dress code", esc(b.dress))}`,
 })}
 ${buttons([...(b.map ? [{ label: "Get directions", url: b.map, solid: true }] : []), { label: "Open the invitation", url: b.link }])}
+${o.photos ? p(`Taking photos on the day? <a href="${b.link}/photos" style="color:${INK}!important;font-weight:600;">Share them with ${b.hosts}&nbsp;here</a>.`, 14) : ""}
 ${p("Plans changed? You can update your reply from the invitation.", 26)}
 ${signed(b.hosts)}
 ${promo(o.slug, true)}

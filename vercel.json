@@ -16,6 +16,10 @@
       "destination": "/api/pay-checkout?op=domain-search"
     },
     {
+      "source": "/qr/:slug.png",
+      "destination": "/api/invite-page?op=qr&slug=:slug"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/api/invite-page?op=sitemap"
     },
