@@ -326,6 +326,30 @@ export default function BuildLandingPage() {
         </div>
       </section>
 
+      {/* Mesa, our free seating chart maker: the next thing hosts need after the website. */}
+      <section className="py-16 md:py-24" style={{ background: "#fff6dc" }}>
+        <div className="container-x grid items-center gap-8 md:grid-cols-[0.9fr_1.1fr] md:gap-14">
+          <div>
+            <p className="eyebrow">Mesa · free seating charts</p>
+            <h2 className="mt-3 font-display text-[1.8rem] font-semibold leading-tight text-[var(--ink)] md:text-[2.2rem] text-balance">Then seat everyone with Mesa</h2>
+            <p className="mt-4 max-w-[46ch] text-[16px] leading-relaxed text-[var(--slate)]" style={{ textWrap: "pretty" }}>
+              Paste your guest list and Mesa seats every family, sponsor and barkada at the right table. Print the plan, or let guests find their table on your website.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/tools/seating-chart-maker" className="btn btn-primary">
+                Open Mesa
+              </Link>
+              <Link to="/tools/seating-chart-maker#how" className="btn btn-ghost">
+                See how it works
+              </Link>
+            </div>
+          </div>
+          <Link to="/tools/seating-chart-maker" className="block overflow-hidden rounded-[20px] border-[8px] border-[#111] bg-[#111] shadow-[0_40px_80px_-40px_rgba(0,7,39,0.45)]" aria-label="Open Mesa">
+            <img src="/tools/mesa/editor-1440.webp" alt="Mesa’s editor with every guest seated" loading="lazy" className="block aspect-[16/10] w-full rounded-[10px] object-cover object-left-top" />
+          </Link>
+        </div>
+      </section>
+
       {/* Questions */}
       {faqs.length ? (
         <section className="container-x py-16 md:py-24">

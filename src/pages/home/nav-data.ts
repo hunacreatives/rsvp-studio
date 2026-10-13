@@ -10,6 +10,8 @@ export type NavItem = {
    *  redirector (like /build) that never stays on-screen, so it can
    *  never sustain an active state on its own. */
   activePrefixes?: string[];
+  /** A small tag beside the label, e.g. "Free". */
+  badge?: string;
   mega?: {
     exploreEyebrow: string;
     exploreCta: NavLink;
@@ -17,7 +19,7 @@ export type NavItem = {
   };
 };
 
-// Partner program links, shared by Services, FAQ and Inquire.
+// Partner program links, shared by Services and Resources.
 const PARTNERS: MegaGroup = {
   title: "Partner program",
   links: [
@@ -26,8 +28,9 @@ const PARTNERS: MegaGroup = {
   ],
 };
 
+// Six items (Oct 13 2026): the logo already goes home and "Get a quote" covers Inquire, so
+// those two are gone; FAQ, the Journal and the partner program share one Resources menu.
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Home", to: "/" },
   {
     label: "Build Your Website",
     to: "/build",
@@ -55,6 +58,7 @@ export const NAV_ITEMS: NavItem[] = [
       ],
     },
   },
+  { label: "Mesa", to: "/tools/seating-chart-maker", badge: "Free" },
   {
     label: "Services",
     to: "/services",
@@ -115,67 +119,28 @@ export const NAV_ITEMS: NavItem[] = [
     },
   },
   {
-    label: "FAQ",
+    label: "Resources",
     to: "/faqs",
+    activePrefixes: ["/faqs", "/blog", "/partners", "/enquire"],
     mega: {
-      exploreEyebrow: "Explore Our FAQs",
-      exploreCta: { label: "Explore All FAQs", to: "/faqs" },
+      exploreEyebrow: "Resources",
+      exploreCta: { label: "Read the FAQs", to: "/faqs" },
       groups: [
         {
           title: "FAQs",
           links: [
             { label: "Booking & Process", to: "/faqs#booking" },
-            { label: "Website Experience", to: "/faqs#website" },
             { label: "Build Your Own Website", to: "/faqs#build" },
             { label: "RSVP & Guest Management", to: "/faqs#rsvp" },
-            { label: "Digital Invitations & Save the Dates", to: "/faqs#invitations" },
             { label: "Print Stationery", to: "/faqs#stationery" },
           ],
         },
-        PARTNERS,
-      ],
-    },
-  },
-  {
-    label: "Blog",
-    to: "/blog",
-    mega: {
-      exploreEyebrow: "The Journal",
-      exploreCta: { label: "Read the latest articles", to: "/blog" },
-      groups: [
         {
-          title: "Topics",
+          title: "The Journal",
           links: [
-            { label: "Wedding", to: "/blog?topic=Wedding" },
-            { label: "Invitations", to: "/blog?topic=Invitations" },
+            { label: "Latest articles", to: "/blog" },
             { label: "Planning", to: "/blog?topic=Planning" },
-            { label: "Stationery", to: "/blog?topic=Stationery" },
-          ],
-        },
-        {
-          title: "More topics",
-          links: [
-            { label: "Events", to: "/blog?topic=Events" },
             { label: "Tips & Guides", to: "/blog?topic=Tips+%26+Guides" },
-            { label: "Behind the Scenes", to: "/blog?topic=Behind+the+Scenes" },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    label: "Inquire",
-    to: "/enquire#start",
-    mega: {
-      exploreEyebrow: "Work with us",
-      exploreCta: { label: "Start an inquiry", to: "/enquire#start" },
-      groups: [
-        {
-          title: "For clients",
-          links: [
-            { label: "Start a project", to: "/enquire#start" },
-            { label: "Ask a question", to: "/faqs" },
-            { label: "Your dashboard", to: "/account" },
           ],
         },
         {

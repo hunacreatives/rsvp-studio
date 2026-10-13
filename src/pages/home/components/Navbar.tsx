@@ -248,6 +248,7 @@ export default function Navbar({
                   }}
                 >
                   {item.label}
+                  {item.badge ? <span className="ml-1.5 inline-block rounded-full bg-[#fff1cc] px-1.5 py-[1px] align-[2px] text-[10px] font-semibold uppercase tracking-[0.06em] text-[#8a6a10]">{item.badge}</span> : null}
                   <span
                     className="absolute left-0 -bottom-[1px] h-[2px] bg-[var(--acc-blue)] transition-all duration-300"
                     style={{ width: highlighted ? "100%" : "0%" }}
@@ -486,6 +487,7 @@ export default function Navbar({
                       }
                     >
                       {item.label}
+                      {item.badge ? <span className="ml-1.5 inline-block rounded-full bg-[#fff1cc] px-1.5 py-[1px] align-[2px] text-[10px] font-semibold uppercase tracking-[0.06em] text-[#8a6a10]">{item.badge}</span> : null}
                     </span>
                     {item.mega && (
                       <i
