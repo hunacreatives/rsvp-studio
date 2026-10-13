@@ -3,14 +3,10 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ErrorText, Field, Input, OutlineCard, PrimaryButton, Select } from "@/pages/account/portal/ui";
 import { parseSpec } from "@/pages/wedding-sites/spec/schema";
 import { StudioHeader } from "../StudioLayout";
-import { createDraftVersion, getTemplate, templateIdFrom } from "../templatesApi";
+import { createDraftVersion, getTemplate, templateIdFrom, TEMPLATE_OCCASIONS } from "../templatesApi";
 
-const EVENT_TYPES = [
-  { id: "wedding", label: "Wedding" },
-  { id: "birthday", label: "Birthday" },
-  { id: "anniversary", label: "Anniversary" },
-  { id: "other", label: "Other" },
-];
+// The same occasions as the Templates list (templatesApi.ts).
+const EVENT_TYPES = TEMPLATE_OCCASIONS;
 
 /**
  * Upload a template: its file (template.json) plus its artwork. Creates a

@@ -119,6 +119,7 @@ const PILL_TONES = {
   lime: { bg: "#ecfbcc", fg: "#3d5a12" },
   grey: { bg: "#ececec", fg: "#55556a" },
   coral: { bg: "#ffe6df", fg: "#b23b22" },
+  gold: { bg: "#ffc800", fg: "#000727" },
 };
 
 export function StatusPill({ tone, children, size = "sm" }: { tone: keyof typeof PILL_TONES; children: ReactNode; size?: "sm" | "md" }) {

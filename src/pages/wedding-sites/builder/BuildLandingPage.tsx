@@ -33,27 +33,26 @@ function usePrices() {
   return prices;
 }
 
-function DesignCard({ t, price, onUse }: { t: TemplateDefinition; price: number | undefined; onUse: () => void }) {
+// One tap per design: the card opens its full preview, where "Use this design" lives
+// (no button on every card, so the grid stays about the designs).
+function DesignCard({ t, price }: { t: TemplateDefinition; price: number | undefined }) {
   return (
-    <li className="group flex flex-col">
-      <Link to={`/build/preview/${t.id}`} className="relative block overflow-hidden rounded-[22px] border border-[var(--line)] bg-white shadow-[0_1px_3px_rgba(0,7,39,0.06)]" style={{ aspectRatio: "4 / 3" }} aria-label={`Preview ${t.label}`}>
-        <TemplateMockupPreview template={t} />
-        <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[12px] font-semibold ${t.tier === "premium" ? "bg-[var(--acc-yellow)] text-[var(--ink)]" : "bg-white text-[var(--ink)]"}`}>
-          {t.tier === "premium" ? "Premium" : "Free"}
+    <li>
+      <Link to={`/build/preview/${t.id}`} className="group block" aria-label={`Preview ${t.label}`}>
+        <span className="relative block overflow-hidden rounded-[22px] border border-[var(--line)] bg-white shadow-[0_1px_3px_rgba(0,7,39,0.06)] transition-shadow group-hover:shadow-[0_18px_40px_-24px_rgba(0,7,39,0.35)]" style={{ aspectRatio: "4 / 3" }}>
+          <TemplateMockupPreview template={t} />
+          <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[12px] font-semibold ${t.tier === "premium" ? "bg-[var(--acc-yellow)] text-[var(--ink)]" : "bg-white text-[var(--ink)]"}`}>
+            {t.tier === "premium" ? "Premium" : "Free"}
+          </span>
+          <span className="absolute inset-0 hidden items-center justify-center bg-[rgba(0,7,39,0.45)] opacity-0 transition-opacity group-hover:opacity-100 md:flex">
+            <span className="rounded-full bg-white px-5 py-2.5 text-[13px] font-medium text-[var(--ink)]">Preview →</span>
+          </span>
         </span>
-        <span className="absolute inset-0 hidden items-center justify-center bg-[rgba(0,7,39,0.45)] opacity-0 transition-opacity group-hover:opacity-100 md:flex">
-          <span className="rounded-full bg-white px-5 py-2.5 text-[13px] font-medium text-[var(--ink)]">Preview the full site →</span>
+        <span className="mt-3 flex items-baseline justify-between gap-3">
+          <span className="font-display text-[1.2rem] font-semibold text-[var(--ink)] group-hover:underline">{t.label}</span>
+          <span className="shrink-0 text-[14px] text-[var(--slate)]">{t.tier === "premium" ? (price ? peso(price) : "Premium") : "Free"}</span>
         </span>
       </Link>
-      <div className="mt-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-display text-[1.2rem] font-semibold text-[var(--ink)]">{t.label}</p>
-          <p className="text-[14px] text-[var(--slate)]">{t.tier === "premium" ? (price ? `Premium · ${peso(price)}` : "Premium") : "Free to publish"}</p>
-        </div>
-        <button onClick={onUse} className="min-h-[44px] shrink-0 rounded-full bg-[var(--ink)] px-4 text-[14px] font-medium text-white md:min-h-[40px]">
-          Use this design
-        </button>
-      </div>
     </li>
   );
 }
@@ -231,11 +230,11 @@ export default function BuildLandingPage() {
         ) : (
           <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {shown.map((t) => (
-              <DesignCard key={t.id} t={t} price={prices[t.tier]} onUse={() => start(t.id)} />
+              <DesignCard key={t.id} t={t} price={prices[t.tier]} />
             ))}
           </ul>
         )}
-        <p className="mt-6 text-[14px] text-[var(--slate)]">Switch designs anytime — your details and photos carry over.</p>
+        <p className="mt-6 text-[14px] text-[var(--slate)]">Tap a design to see it in full. Switch anytime — your details and photos carry over.</p>
       </section>
 
       {/* How it works */}

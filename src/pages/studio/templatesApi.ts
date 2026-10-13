@@ -12,6 +12,8 @@ export interface TemplateRow {
   tier: "free" | "premium";
   status: TemplateStatus;
   event_types: string[];
+  /** On the /build front page (supabase/template-tags.sql). Missing until that SQL runs. */
+  featured?: boolean;
   sort: number;
   thumbnail_url: string | null;
   current_version_id: string | null;
@@ -46,7 +48,17 @@ export async function getTemplate(id: string): Promise<{ template: TemplateRow; 
   return { template, versions };
 }
 
-export async function updateTemplate(id: string, patch: Partial<Pick<TemplateRow, "label" | "tier" | "status" | "event_types" | "sort" | "thumbnail_url">>) {
+/** The occasions a design suits (templates.event_types), for the gallery's filters. */
+export const TEMPLATE_OCCASIONS = [
+  { id: "wedding", label: "Wedding" },
+  { id: "birthday", label: "Birthday" },
+  { id: "debut", label: "Debut" },
+  { id: "christening", label: "Christening" },
+  { id: "anniversary", label: "Anniversary" },
+  { id: "other", label: "Other" },
+] as const;
+
+export async function updateTemplate(id: string, patch: Partial<Pick<TemplateRow, "label" | "tier" | "status" | "event_types" | "sort" | "thumbnail_url" | "featured">>) {
   must(await supabase.from("templates").update(patch).eq("id", id));
 }
 

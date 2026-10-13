@@ -4,7 +4,7 @@ import { usePortal } from "@/pages/account/portal/PortalContext";
 import { formatDate } from "@/pages/account/portal/format";
 import { ErrorText, Input, PillButton, StatusPill } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
-import { listTemplates, type TemplateRow } from "../templatesApi";
+import { listTemplates, TEMPLATE_OCCASIONS, updateTemplate, type TemplateRow } from "../templatesApi";
 import * as studio from "../studioApi";
 import DomainsCard from "./DomainsCard";
 import PromoCodesCard from "./PromoCodesCard";
@@ -51,15 +51,16 @@ export default function TemplatesPage() {
         {(rows ?? []).map((t) => (
           <li key={t.id}>
             {t.kind === "spec" ? (
-              <Link to={`/studio/templates/${t.id}`} className="flex items-center gap-3 px-4 py-3.5">
+              <Link to={`/studio/templates/${t.id}`} className="flex items-center gap-3 px-4 pt-3.5">
                 <TemplateCardBody t={t} />
                 <i className="ri-arrow-right-s-line text-[20px] text-[var(--slate)]" />
               </Link>
             ) : (
-              <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="flex items-center gap-3 px-4 pt-3.5">
                 <TemplateCardBody t={t} />
               </div>
             )}
+            <div className="px-4 pb-3.5 pt-2">{!demo ? <TemplateTags t={t} onChange={(next) => setRows((cur) => cur?.map((r) => (r.id === t.id ? next : r)) ?? cur)} /> : null}</div>
           </li>
         ))}
         {rows && !rows.length && !demo ? <li className="px-5 py-10 text-center text-[14px] text-[var(--slate)]">No templates yet.</li> : null}
@@ -74,6 +75,7 @@ export default function TemplatesPage() {
               <th className="px-5 py-3 font-medium">Type</th>
               <th className="px-5 py-3 font-medium">Tier</th>
               <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Occasions</th>
               <th className="px-5 py-3 font-medium">Updated</th>
             </tr>
           </thead>
@@ -95,23 +97,69 @@ export default function TemplatesPage() {
                 <td className="px-5 py-3">
                   <StatusPill tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</StatusPill>
                 </td>
+                <td className="px-5 py-3">
+                  {!demo ? <TemplateTags t={t} onChange={(next) => setRows((cur) => cur?.map((r) => (r.id === t.id ? next : r)) ?? cur)} /> : null}
+                </td>
                 <td className="px-5 py-3 text-[var(--slate)]">{formatDate(t.updated_at)}</td>
               </tr>
             ))}
             {rows && !rows.length && !demo ? (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-[var(--slate)]">No templates yet.</td>
+                <td colSpan={6} className="px-5 py-10 text-center text-[var(--slate)]">No templates yet.</td>
               </tr>
             ) : null}
             {!rows && !error ? (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-[var(--slate)]">Loading…</td>
+                <td colSpan={6} className="px-5 py-10 text-center text-[var(--slate)]">Loading…</td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
     </>
+  );
+}
+
+/** Occasion chips and the Featured star, saved as they're tapped. */
+function TemplateTags({ t, onChange }: { t: TemplateRow; onChange: (next: TemplateRow) => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const save = async (patch: Partial<TemplateRow>) => {
+    const prev = t;
+    onChange({ ...t, ...patch });
+    setError(null);
+    try {
+      await updateTemplate(t.id, patch);
+    } catch (e) {
+      onChange(prev);
+      setError(/featured/.test(String(e instanceof Error ? e.message : e)) ? "Run template-tags.sql first." : "Couldn’t save.");
+    }
+  };
+  const chip = "min-h-[36px] rounded-full border px-2.5 text-[12px] font-medium transition-colors md:min-h-[28px]";
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <button
+        onClick={() => save({ featured: !t.featured })}
+        aria-pressed={!!t.featured}
+        title="Featured on the Build Your Website page"
+        className={`${chip} ${t.featured ? "border-[var(--acc-yellow)] bg-[var(--acc-yellow)] text-[var(--ink)]" : "border-[var(--line)] bg-white text-[var(--slate)]"}`}
+      >
+        ★ Featured
+      </button>
+      {TEMPLATE_OCCASIONS.map((o) => {
+        const on = t.event_types.includes(o.id);
+        return (
+          <button
+            key={o.id}
+            onClick={() => save({ event_types: on ? t.event_types.filter((x) => x !== o.id) : [...t.event_types, o.id] })}
+            aria-pressed={on}
+            className={`${chip} ${on ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--slate)]"}`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+      {error ? <span className="text-[12px] text-[#c2412d]">{error}</span> : null}
+    </div>
   );
 }
 

@@ -16,10 +16,17 @@ export const isDiy = (p: Pick<Project, "managed_by_studio">) => p.managed_by_stu
 export function ProjectStatusPill({ project }: { project: Project }) {
   const { sites } = usePortal();
   // DIY sites have no studio progress: they're a draft until published, then live.
+  // Premium ones say so, so it's clear which site uses the one free live slot.
   if (isDiy(project)) {
     const site = sites[project.id];
-    if (site?.ended) return <StatusPill tone="grey">Ended</StatusPill>;
-    return site?.publishedAt ? <StatusPill tone="lime">Live</StatusPill> : <StatusPill tone="grey">Draft</StatusPill>;
+    const status = site?.ended ? <StatusPill tone="grey">Ended</StatusPill> : site?.publishedAt ? <StatusPill tone="lime">Live</StatusPill> : <StatusPill tone="grey">Draft</StatusPill>;
+    if (!site?.premium) return status;
+    return (
+      <span className="inline-flex flex-wrap gap-1.5">
+        {status}
+        <StatusPill tone="gold">Premium</StatusPill>
+      </span>
+    );
   }
   return project.project_status === "completed" ? (
     <StatusPill tone="lime">Completed</StatusPill>

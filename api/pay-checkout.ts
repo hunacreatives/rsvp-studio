@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     eventId = inv.event_id;
     amountCentavos = Math.round(Number(inv.amount) * 100);
     name = `${ev.name}: ${inv.description}`;
-    description = `The RSVP Studio — invoice ${inv.number}`;
+    description = `The RSVP Studio — Invoice ${inv.number}`;
     back = `${origin}/account/billing/${inv.id}`;
   } else if (body.eventId && (body.domain || body.renewDomain === true)) {
     const ev = await canAccess(body.eventId, user.id);
@@ -80,8 +80,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       kind = "domain_renewal";
       domain = { name: current.domain, usd, renewalUsd: usd };
       amountCentavos = pesoPrice(usd, settings) * 100;
-      name = `${ev.name}: renew ${current.domain} for 1 year`;
-      description = "The RSVP Studio — web address renewal";
+      name = `${ev.name}: Renew ${current.domain} for 1 Year`;
+      description = "The RSVP Studio — Web Address Renewal";
       back = `${origin}/account/projects/${body.eventId}`;
       returnParam = "renewed";
     } else {
@@ -98,8 +98,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       kind = "domain";
       domain = { name: quote.domain, usd: quote.usd, renewalUsd: quote.renewalUsd };
       amountCentavos = quote.php * 100;
-      name = `${ev.name}: ${quote.domain} (1 year)`;
-      description = "The RSVP Studio — your own web address";
+      name = `${ev.name}: ${quote.domain} (1 Year)`;
+      description = "The RSVP Studio — Your Own Web Address";
       back = `${origin}/account/events/${body.eventId}/site-builder/edit`;
       returnParam = "domain";
     }
@@ -115,8 +115,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     eventId = body.eventId;
     tier = "premium";
     amountCentavos = u.due_centavos;
-    name = `${ev.name}: Premium for your event website`;
-    description = "The RSVP Studio — Premium event website";
+    name = `${ev.name}: Premium for Your Event Website`;
+    description = "The RSVP Studio — Premium Event Website";
     back = `${origin}/account/events/${body.eventId}/site-builder/edit`;
     returnParam = "upgraded";
   } else if (body.eventId) {
@@ -132,8 +132,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     eventId = body.eventId;
     tier = q.tier;
     amountCentavos = q.due_centavos;
-    name = `${ev.name}: event website (${q.tier === "premium" ? "Premium" : "Standard"} template)`;
-    description = "The RSVP Studio — publish your event website";
+    name = `${ev.name}: Event Website (${q.tier === "premium" ? "Premium" : "Standard"} Template)`;
+    description = "The RSVP Studio — Publish Your Event Website";
     back = `${origin}/account/events/${body.eventId}/site-builder/edit`;
   } else {
     return res.status(400).json({ error: "Nothing to pay for." });

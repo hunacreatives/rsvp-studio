@@ -282,7 +282,12 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
                 <span aria-hidden style={{ width: 7, height: 7, borderRadius: 4, background: "#2dc76d" }} /> Live
               </span>
               <h2 style={{ position: "relative", margin: "10px 0 0", fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 28, fontWeight: 400, lineHeight: 1.2 }}>Your website is live.</h2>
-              <p style={{ position: "relative", margin: "6px 0 0", fontSize: 15, color: "#55556a" }}>Send the link to your guests. They RSVP right on the site.</p>
+              <p style={{ position: "relative", margin: "6px 0 0", fontSize: 15, lineHeight: 1.55, color: "#55556a" }}>
+                {/* Two even lines, each kept whole. */}
+                <span style={{ whiteSpace: "nowrap" }}>Share it with your guests</span>
+                <br />
+                <span style={{ whiteSpace: "nowrap" }}>and watch the RSVPs roll in.</span>
+              </p>
             </div>
 
             {/* Their link: the thing to share. */}
@@ -330,27 +335,46 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
               </div>
             ) : null}
 
-            <p style={{ margin: "16px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>Changed something later? Tap “Update live site” to put your edits online.</p>
-            {flow.skippedDomain ? (
-              <p style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>
-                Want your own address later, like {slug.replace(/-/g, "")}.com? Get it anytime from your project’s <strong style={{ color: "#000727" }}>Website</strong> tab.
-              </p>
+            {/* What they can do next, as two tidy rows instead of paragraphs. */}
+            {flow.skippedDomain || upsell ? (
+              <div style={{ marginTop: 18 }}>
+                <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#868697" }}>Next</p>
+                <div style={{ border: "1px solid #e7e7ee", borderRadius: 16, overflow: "hidden" }}>
+                  {[
+                    ...(flow.skippedDomain
+                      ? [{ icon: "ri-global-line", color: "#2f61d5", title: "Get your own address", sub: `Like ${slug.replace(/-/g, "")}.com`, href: `/account/projects/${flow.eventId}?tab=website` }]
+                      : []),
+                    ...(upsell
+                      ? [{ icon: "ri-vip-crown-line", color: "#b8860b", title: `Upgrade to Premium · ${upsell.price}`, sub: "Every RSVP by email, guest reminders, photo sharing", onClick: () => (flow.close(), upsell.open()) }]
+                      : []),
+                  ].map((r, k) => {
+                    const inner = (
+                      <>
+                        <span style={{ display: "grid", placeItems: "center", width: 36, height: 36, flexShrink: 0, borderRadius: 18, background: "#f5f5f2" }}>
+                          <i className={r.icon} aria-hidden style={{ fontSize: 18, color: r.color }} />
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                          <span style={{ display: "block", fontSize: 14.5, fontWeight: 600, color: "#000727" }}>{r.title}</span>
+                          <span style={{ display: "block", marginTop: 1, fontSize: 13, color: "#6b6b7c" }}>{r.sub}</span>
+                        </span>
+                        <i className="ri-arrow-right-s-line" aria-hidden style={{ fontSize: 20, color: "#a0a0ad" }} />
+                      </>
+                    );
+                    const rowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 60, padding: "10px 14px", borderTop: k ? "1px solid #e7e7ee" : "none", background: "#fff", textDecoration: "none", cursor: "pointer", fontFamily: "inherit", border: "none" };
+                    return "href" in r && r.href ? (
+                      <a key={r.title} href={r.href} style={{ ...rowStyle, borderTop: k ? "1px solid #e7e7ee" : "none" }}>
+                        {inner}
+                      </a>
+                    ) : (
+                      <button key={r.title} onClick={"onClick" in r ? r.onClick : undefined} style={{ ...rowStyle, borderTop: k ? "1px solid #e7e7ee" : "none" }}>
+                        {inner}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ) : null}
-            {upsell ? (
-              <p style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>
-                You’ll get one email a day with your new RSVPs.{" "}
-                <button
-                  onClick={() => {
-                    flow.close();
-                    upsell.open();
-                  }}
-                  style={{ font: "inherit", fontWeight: 600, color: "#2f61d5", background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
-                >
-                  Upgrade to Premium for {upsell.price}
-                </button>{" "}
-                for an email with every RSVP, guest reminders and photo sharing.
-              </p>
-            ) : null}
+            <p style={{ margin: "14px 0 0", fontSize: 12.5, textAlign: "center", color: "#868697" }}>Made changes later? Tap “Update live site”.</p>
             <button onClick={flow.close} style={{ display: "block", margin: "14px auto 0", minHeight: 44, padding: "0 16px", border: "none", background: "none", color: "#000727", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Done
             </button>
