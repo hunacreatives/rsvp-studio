@@ -50,8 +50,10 @@ function withAlpha(hex: string, alpha: number) {
  * Celebratory fireworks: a rocket climbs with a fading trail, then bursts
  * into a ring of gravity-affected sparks that flicker as they fall.
  * Honours prefers-reduced-motion and pauses when the tab is hidden.
+ * `stopAfter` (ms): no new rockets after that, so it's a short celebration
+ * (e.g. "Your site is live") rather than a loop.
  */
-export default function Fireworks() {
+export default function Fireworks({ stopAfter }: { stopAfter?: number } = {}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -122,11 +124,12 @@ export default function Fireworks() {
     let lastLaunch = 0;
     let running = true;
 
+    const started = performance.now();
     const frame = (t: number) => {
       if (!running) return;
       raf = requestAnimationFrame(frame);
 
-      if (t - lastLaunch > 850 + Math.random() * 900) {
+      if (t - lastLaunch > (stopAfter ? 450 : 850) + Math.random() * 900 && (!stopAfter || t - started < stopAfter)) {
         lastLaunch = t;
         launch();
       }
@@ -224,7 +227,7 @@ export default function Fireworks() {
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
+  }, [stopAfter]);
 
   return (
     <canvas

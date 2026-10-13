@@ -5,6 +5,8 @@ import * as api from "@/pages/account/portal/api";
 import { DOMAIN_PERKS, DomainPicker, peso as pesoWhole } from "./DomainPicker";
 import { DiscountNote, ReferralCode } from "./ReferralCode";
 import "./builder.css";
+import { CharacterTrio } from "@/components/CharacterLoader";
+import Fireworks from "@/pages/enquire/components/Fireworks";
 
 // Publishing a site from the builder:
 //   1. try to publish — studio projects and free templates just go live;
@@ -272,45 +274,70 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
           </>
         ) : step.kind === "live" ? (
           <>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Your site is live</h2>
+            {/* The celebration: our characters under a short burst of fireworks. */}
+            <div style={{ position: "relative", padding: "22px 16px 16px", borderRadius: 16, background: "linear-gradient(180deg, #eef3ff 0%, #f8faff 70%, #ffffff 100%)", textAlign: "center", overflow: "hidden" }}>
+              <Fireworks stopAfter={3500} />
+              <CharacterTrio className="mx-auto" style={{ width: 150, position: "relative" }} />
+              <span style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6, marginTop: 14, padding: "4px 12px", borderRadius: 999, background: "#e3f7ea", color: "#1f7a43", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                <span aria-hidden style={{ width: 7, height: 7, borderRadius: 4, background: "#2dc76d" }} /> Live
+              </span>
+              <h2 style={{ position: "relative", margin: "10px 0 0", fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 28, fontWeight: 400, lineHeight: 1.2 }}>Your website is live.</h2>
+              <p style={{ position: "relative", margin: "6px 0 0", fontSize: 15, color: "#55556a" }}>Send the link to your guests. They RSVP right on the site.</p>
+            </div>
+
+            {/* Their link: the thing to share. */}
+            <div style={{ marginTop: 18, padding: 14, borderRadius: 16, background: "#f5f7ff", border: "1px solid #dbe4fb" }}>
+              <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#2f61d5" }}>Your link</p>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 15, fontWeight: 600, color: "#000727" }}>{url.replace(/^https?:\/\//, "")}</span>
+                <button onClick={copy} className="rb-tap44" style={{ ...btn(true), background: "#2f61d5", padding: "9px 16px", fontSize: 13.5 }}>
+                  {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+              {[
+                { href: `fb-messenger://share/?link=${encodeURIComponent(url)}`, icon: "ri-messenger-fill", color: "#0866ff", label: "Messenger" },
+                { href: `viber://forward?text=${shareText}`, icon: "ri-chat-smile-3-fill", color: "#7360f2", label: "Viber" },
+                { href: `sms:?&body=${shareText}`, icon: "ri-message-3-fill", color: "#2dc76d", label: "Text" },
+                { href: url, icon: "ri-external-link-line", color: "#000727", label: "View site", blank: true },
+              ].map((b) => (
+                <a
+                  key={b.label}
+                  href={b.href}
+                  {...(b.blank ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  style={{ ...btn(false), justifyContent: "center", gap: 8, minHeight: 46, borderRadius: 14 }}
+                >
+                  <i className={b.icon} aria-hidden style={{ fontSize: 18, color: b.color }} />
+                  {b.label}
+                </a>
+              ))}
+            </div>
+
+            {/* The domain they picked: the next step, featured like the address offer. */}
             {flow.pending ? (
-              <div style={{ margin: "14px 0 4px", padding: "14px 16px", borderRadius: 14, background: "#f4f6fd" }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Now let’s get {flow.pending.domain}</p>
-                <p style={{ margin: "4px 0 12px", fontSize: 13.5, color: "#55556a" }}>{pesoWhole(flow.pending.php)} for one year — set up for you in minutes.</p>
-                <button onClick={flow.buyPending} style={btn(true)}>
-                  Pay {pesoWhole(flow.pending.php)}
+              <div style={{ marginTop: 16, padding: "16px 18px", borderRadius: 18, background: "#eef3ff", border: "1.5px solid #2f61d5" }}>
+                <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 999, background: "#2f61d5", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Next: your own address</span>
+                <p style={{ margin: "10px 0 2px", fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 24, lineHeight: 1.2, color: "#000727", overflowWrap: "anywhere" }}>
+                  {flow.pending.domain.replace(/\.[^.]+$/, "")}
+                  <span style={{ color: "#2f61d5" }}>{flow.pending.domain.match(/\.[^.]+$/)?.[0]}</span>
+                </p>
+                <p style={{ margin: "0 0 12px", fontSize: 13.5, color: "#55556a" }}>{pesoWhole(flow.pending.php)} for one year. Set up for you in minutes.</p>
+                <button onClick={flow.buyPending} style={{ ...btn(true), background: "#2f61d5" }}>
+                  Get {flow.pending.domain} · {pesoWhole(flow.pending.php)}
                 </button>
               </div>
             ) : null}
-            <p style={{ margin: "10px 0 14px", fontSize: 15, color: "#55556a" }}>Share this link with your guests:</p>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", background: "#f5f5f2", borderRadius: 12, padding: "10px 12px" }}>
-              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 14 }}>{url}</span>
-              <button onClick={copy} className="rb-tap44" style={{ ...btn(true), padding: "8px 14px", fontSize: 13 }}>
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-              <a href={`fb-messenger://share/?link=${encodeURIComponent(url)}`} style={btn(false)}>
-                Messenger
-              </a>
-              <a href={`viber://forward?text=${shareText}`} style={btn(false)}>
-                Viber
-              </a>
-              <a href={`sms:?&body=${shareText}`} style={btn(false)}>
-                Text message
-              </a>
-              <a href={url} target="_blank" rel="noopener noreferrer" style={btn(false)}>
-                View site
-              </a>
-            </div>
-            <p style={{ margin: "16px 0 0", fontSize: 13, color: "#55556a" }}>Changed something later? Tap “Update live site” to put your edits online.</p>
+
+            <p style={{ margin: "16px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>Changed something later? Tap “Update live site” to put your edits online.</p>
             {flow.skippedDomain ? (
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: "#55556a" }}>
+              <p style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>
                 Want your own address later, like {slug.replace(/-/g, "")}.com? Get it anytime from your project’s <strong style={{ color: "#000727" }}>Website</strong> tab.
               </p>
             ) : null}
             {upsell ? (
-              <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>
+              <p style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.6, color: "#55556a" }}>
                 You’ll get one email a day with your new RSVPs.{" "}
                 <button
                   onClick={() => {
@@ -321,10 +348,10 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
                 >
                   Upgrade to Premium for {upsell.price}
                 </button>{" "}
-                to get an email for every RSVP and use any Premium template.
+                for an email with every RSVP, guest reminders and photo sharing.
               </p>
             ) : null}
-            <button onClick={flow.close} style={{ ...btn(false), marginTop: 16 }}>
+            <button onClick={flow.close} style={{ display: "block", margin: "14px auto 0", minHeight: 44, padding: "0 16px", border: "none", background: "none", color: "#000727", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Done
             </button>
           </>
