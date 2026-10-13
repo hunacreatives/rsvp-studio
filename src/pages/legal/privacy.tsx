@@ -81,6 +81,12 @@ export default function Privacy() {
           correct or delete their reply. Hosts are responsible for having a good reason to share guests&rsquo; details
           with us.
         </p>
+        <p>
+          <strong>The Seat Planner.</strong> A guest list pasted into our free seating chart maker stays in your
+          browser; we don&rsquo;t receive it. If you save the plan to your account or make a share link, the plan
+          (guests&rsquo; names, groups, tables and any meal notes you add) is stored with your account so it opens on
+          other devices, and anyone with a share link can view it until you turn the link off or delete the plan.
+        </p>
       </div>
 
       <div>

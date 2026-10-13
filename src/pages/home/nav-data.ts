@@ -42,6 +42,7 @@ export const NAV_ITEMS: NavItem[] = [
             { label: "Free vs Premium", to: "/faqs#build" },
             { label: "Your own web address", to: "/faqs#build" },
             { label: "RSVPs & guest list", to: "/services/rsvp" },
+            { label: "Mesa: free seating charts", to: "/tools/seating-chart-maker" },
           ],
         },
         {

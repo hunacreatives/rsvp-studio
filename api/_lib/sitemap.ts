@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const SITE = "https://thersvpstudio.com";
 const PAGES = [
   "/", "/build", "/services", "/services/milestone", "/services/monogram", "/services/save-the-date", "/services/stationery",
-  "/services/rsvp", "/collections", "/portfolio", "/blog", "/faqs", "/enquire", "/enquire/partner", "/partners", "/privacy", "/terms",
+  "/services/rsvp", "/tools/seating-chart-maker", "/collections", "/portfolio", "/blog", "/faqs", "/enquire", "/enquire/partner", "/partners", "/privacy", "/terms",
 ];
 // Only works with a case-study page (a live site); the others redirect to the inquiry form.
 const PORTFOLIO = ["claudy-at-30", "tercel-at-41", "gel-at-30", "frances-jash", "carlo-and-trixia"];

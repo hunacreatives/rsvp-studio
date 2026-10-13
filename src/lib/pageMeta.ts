@@ -20,6 +20,7 @@ const META: [RegExp, string, string?][] = [
   [/^\/enquire\/partner/, `Partner with Us — ${SITE}`, "For planners, venues and suppliers who want to work with The RSVP Studio."],
   [/^\/enquire/, `Get a Quote — ${SITE}`, "Tell us about your celebration and we’ll reply within 1 business day."],
   [/^\/build/, `Make Your Own Event Website — ${SITE}`, "Pick a design, add your details and photos, and share one link with your guests."],
+  [/^\/tools\/seating-chart-maker/, `Mesa: Free Seating Chart Maker for Weddings, Debuts & Events — ${SITE}`, "Mesa is a free seating chart maker for weddings, debuts, birthdays and every kind of event. Paste your guest list, seat everyone, then print the plan. No sign-up."],
   [/^\/blog$/, `The Journal — ${SITE}`, "Ideas, guides and stories on invitations, events, and everything in between."],
   [/^\/partners$/, `Partner Program — ${SITE}`, "Planners, coordinators and creators: send us your people, they get 10% off and you earn up to 20%."],
   [/^\/privacy/, `Privacy Policy — ${SITE}`],

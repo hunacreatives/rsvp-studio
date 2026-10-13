@@ -27,6 +27,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     links: [
       { label: "Start a Project", to: "/enquire#start" },
       { label: "Build your own website", to: "/build" },
+      { label: "Mesa: free seating charts", to: "/tools/seating-chart-maker" },
       { label: "Partner program", to: "/partners" },
     ],
   },

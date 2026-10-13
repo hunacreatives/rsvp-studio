@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { esc } from "./_lib/email.js";
 import { sitemap } from "./_lib/sitemap.js";
 import { qrHandler } from "./_lib/qr.js";
+import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_H1, SEATING_LAYOUT, SEATING_PATH, SEATING_STEPS, SEATING_SUB, SEATING_TITLE } from "./_lib/seating-copy.js";
 
 // /invite/:slug, served with the event's own title, description and photo in the
 // page head — so a link shared on Messenger / Viber / Facebook shows "Mia & Noah",
@@ -66,6 +67,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   let html = shell.html;
 
+  // Our own tool pages (?op=page): their title, description and text in the HTML itself.
+  if (req.query.op === "page") return toolPage(req, res, html, origin);
+
   if (/^[a-z0-9-]{1,80}$/.test(slug)) {
     const { data } = await db.rpc("get_public_site", { p_slug: slug });
     const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: { activeTemplateId?: string; byTemplate?: Record<string, { heroImage?: { masterUrl?: string } }> } } | null;
@@ -97,6 +101,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
+  return res.status(200).send(html);
+}
+
+/** /tools/seating-chart-maker: the Seat Planner's head tags, structured data and its guide and
+ *  FAQ as plain HTML inside #root (the app replaces it on load with the same words).
+ *  Shared plans (/view/<token>) get the plain app, kept out of search results. */
+function toolPage(req: VercelRequest, res: VercelResponse, shellHtml: string, origin: string) {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  if (req.query.path === "view") {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
+    return res.status(200).send(shellHtml);
+  }
+  const url = `${origin}${SEATING_PATH}`;
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "WebApplication", name: `${SEATING_NAME} by The RSVP Studio`, alternateName: "Free seating chart maker", url, applicationCategory: "LifestyleApplication", operatingSystem: "Any (web browser)", description: SEATING_DESCRIPTION, offers: { "@type": "Offer", price: "0", priceCurrency: "PHP" } },
+      { "@type": "FAQPage", mainEntity: SEATING_FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+    ],
+  };
+  const tags = [
+    `<title>${esc(SEATING_TITLE)}</title>`,
+    `<meta name="description" content="${esc(SEATING_DESCRIPTION)}" />`,
+    `<link rel="canonical" href="${esc(url)}" />`,
+    `<meta property="og:title" content="${esc(SEATING_TITLE)}" />`,
+    `<meta property="og:description" content="${esc(SEATING_DESCRIPTION)}" />`,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="The RSVP Studio" />`,
+    `<meta property="og:url" content="${esc(url)}" />`,
+    `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`,
+  ].join("\n    ");
+  const body = [
+    `<main>`,
+    `<p>${esc(SEATING_NAME)} by The RSVP Studio · Free seating chart maker</p>`,
+    `<h1>${esc(SEATING_H1)}</h1>`,
+    `<p>${esc(SEATING_SUB)}</p>`,
+    `<p>${esc(SEATING_FACTS)}</p>`,
+    `<h2>How it works</h2><ol>${SEATING_STEPS.map(([h, p]) => `<li><h3>${esc(h)}</h3><p>${esc(p)}</p></li>`).join("")}</ol>`,
+    `<h2>How a Filipino reception is usually seated</h2><dl>${SEATING_LAYOUT.map(([h, p]) => `<dt>${esc(h)}</dt><dd>${esc(p)}</dd>`).join("")}</dl>`,
+    `<h2>Questions</h2>${SEATING_FAQ.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}`,
+    `<p><a href="/build">Make your event website</a> · <a href="/enquire?service=stationery">Printed seating boards and stationery</a></p>`,
+    `</main>`,
+  ].join("");
+  const html = shellHtml
+    .replace(/<title>[\s\S]*?<\/title>/, "")
+    .replace(/<meta\s+name="description"[\s\S]*?\/>/, "")
+    .replace(/<meta\s+property="og:(title|description|type|url|site_name)"[\s\S]*?\/>/g, "")
+    .replace("</head>", `    ${tags}\n  </head>`)
+    .replace('<div id="root"></div>', `<div id="root">${body}</div>`);
   res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
   return res.status(200).send(html);
 }

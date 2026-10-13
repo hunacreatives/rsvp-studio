@@ -60,6 +60,8 @@ const BuilderShellPage = lazy(() => import("../pages/wedding-sites/builder/Build
 const TemplateGalleryPage = lazy(() => import("../pages/wedding-sites/builder/TemplateGalleryPage"));
 const BuildLandingPage = lazy(() => import("../pages/wedding-sites/builder/BuildLandingPage"));
 const TemplatePreviewPage = lazy(() => import("../pages/wedding-sites/public/TemplatePreviewPage"));
+const SeatPlannerPage = lazy(() => import("../pages/tools/seating/SeatPlannerPage"));
+const SeatPlanView = lazy(() => import("../pages/tools/seating/ViewPage"));
 
 const routes: RouteObject[] = [
   { path: "/", element: <Home /> },
@@ -125,6 +127,8 @@ const routes: RouteObject[] = [
   { path: "/invite/:slug/photos", element: <GuestPhotosPage /> },
   { path: "/invite/:slug/table", element: <FindTablePage /> },
   { path: "/build", element: <BuildLandingPage /> },
+  { path: "/tools/seating-chart-maker", element: <SeatPlannerPage /> },
+  { path: "/tools/seating-chart-maker/view/:token", element: <SeatPlanView /> },
   { path: "/build/preview/:templateId", element: <TemplatePreviewPage /> },
   { path: "/account/events/:eventId/site-builder", element: <TemplateGalleryPage /> },
   { path: "/account/events/:eventId/site-builder/edit", element: <BuilderShellPage /> },

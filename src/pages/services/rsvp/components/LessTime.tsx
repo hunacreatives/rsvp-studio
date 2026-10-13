@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
 import RsvpDashboard from "./RsvpDashboard";
 
@@ -25,6 +26,13 @@ export default function LessTime() {
           <p className="mt-4 text-[var(--slate)]">
             RSVP Management keeps the details organized and your team in sync, so
             you can focus on the moments that matter.
+          </p>
+          <p className="mt-4 text-[var(--slate)]">
+            Once the replies are in, plan who sits where with our{" "}
+            <Link to="/tools/seating-chart-maker" className="font-medium text-[var(--ink)] underline underline-offset-4">
+              free seating chart maker
+            </Link>
+            .
           </p>
         </Reveal>
 

@@ -43,6 +43,14 @@
       "destination": "/api/invite-page?slug=:slug"
     },
     {
+      "source": "/tools/seating-chart-maker",
+      "destination": "/api/invite-page?op=page&path=seating"
+    },
+    {
+      "source": "/tools/seating-chart-maker/view/:token",
+      "destination": "/api/invite-page?op=page&path=view"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
