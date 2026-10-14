@@ -136,7 +136,7 @@ export function StatusPill({ tone, children, size = "sm" }: { tone: keyof typeof
 
 export function Avatar({ name, url, size = 40, seed }: { name: string | null | undefined; url?: string | null; size?: number; tone?: string; seed?: string | null }) {
   // No photo → one of the illustrated default avatars, stable per person.
-  return <img src={url || defaultAvatar(seed ?? name)} alt="" className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />;
+  return <img src={url || defaultAvatar(seed ?? name)} alt="" className="shrink-0 rounded-full object-cover ring-1 ring-[rgba(0,7,39,0.1)]" style={{ width: size, height: size }} />;
 }
 
 /** Project cover: real image if we have one, otherwise a soft branded block. */

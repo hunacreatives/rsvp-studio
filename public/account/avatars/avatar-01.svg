@@ -1,9 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
 <defs><clipPath id="c"><circle cx="60" cy="60" r="60"/></clipPath></defs>
-<g clip-path="url(#c)">
-<rect width="120" height="120" fill="#F6DE9C"/>
-<ellipse cx="60" cy="82" rx="45" ry="38" fill="#5A9E62"/>
-<path d="M26.4 95 A37 31 0 1 1 93.6 95" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="2"/>
-<circle cx="52" cy="74" r="3.2" fill="#1d1d1f"/><circle cx="68" cy="74" r="3.2" fill="#1d1d1f"/><path d="M58 81 q5 0 4.5 3.6 q-.5 3 -4.5 3 q5 0 4.5 3.6 q-.5 3 -4.5 3" fill="none" stroke="#1d1d1f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-</g>
+<g clip-path="url(#c)"><rect width="120" height="120" fill="#ffffff"/><path d="M60 128 L8 70 C-8 50 6 22 32 24 C46 25 56 34 60 44 C64 34 74 25 88 24 C114 22 128 50 112 70 Z" fill="#ECAFD1"/><circle cx="52.65" cy="61.8" r="3.57" fill="#111111"/><circle cx="67.35" cy="61.8" r="3.57" fill="#111111"/><path d="M42.15 60.75 Q42.15 79.65 60 79.65 Q77.85 79.65 77.85 60.75" fill="none" stroke="#111111" stroke-width="5.670000000000001" stroke-linecap="round" stroke-linejoin="round"/></g>
 </svg>

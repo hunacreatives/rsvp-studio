@@ -309,7 +309,7 @@ export default function Navbar({
                   <span className="max-w-[120px] truncate text-[14px] text-[var(--ink)]">
                     {accountName.includes("@") ? accountName.split("@")[0] : accountName.split(" ")[0]}
                   </span>
-                  <img src={avatarUrl || defaultAvatar(accountName)} alt="" className="h-9 w-9 rounded-full object-cover" />
+                  <img src={avatarUrl || defaultAvatar(accountName)} alt="" className="h-9 w-9 rounded-full object-cover ring-1 ring-[rgba(0,7,39,0.1)]" />
                 </button>
                 {accountMenuOpen && (
                   <div
@@ -356,7 +356,7 @@ export default function Navbar({
                 aria-label={accountLabel}
                 className="md:hidden grid place-items-center w-11 h-11 rounded-full"
               >
-                <img src={avatarUrl || defaultAvatar(accountName)} alt="" className="h-8 w-8 rounded-full object-cover" />
+                <img src={avatarUrl || defaultAvatar(accountName)} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-[rgba(0,7,39,0.1)]" />
               </button>
             ) : (
               <button

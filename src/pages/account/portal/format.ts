@@ -81,11 +81,11 @@ export function servicesLabel(services: string[], eventType: string | null) {
   return `${EVENT_TYPE_LABEL[eventType ?? ""] ?? "Event"} Website`;
 }
 
-/** One of the 10 default avatars (public/account/avatars), stable per person. */
+/** One of the 12 character avatars (public/account/avatars), stable per person. */
 export function defaultAvatar(seed: string | null | undefined) {
   let h = 0;
   for (const ch of seed ?? "") h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return `/account/avatars/avatar-${String((h % 10) + 1).padStart(2, "0")}.svg`;
+  return `/account/avatars/avatar-${String((h % 12) + 1).padStart(2, "0")}.svg`;
 }
 
 const METHOD: Record<string, string> = { gcash: "GCash", paymaya: "Maya", maya: "Maya", card: "card", qrph: "QR Ph", grab_pay: "GrabPay", bank_transfer: "bank transfer", cash: "cash", other: "other" };
