@@ -50,19 +50,22 @@ function moreFromUs() {
 </td></tr></table></td></tr>`;
 }
 
-export function layout(heading: string, body: string, cta: { label: string; url: string } | null, footer = SETTINGS_FOOTER, opts: { ad?: boolean } = {}) {
+// The heading and button are centred under the logo; the body copy stays left. Letters
+// that open with "Hi <name>," pass { letter: true } and keep everything left.
+export function layout(heading: string, body: string, cta: { label: string; url: string } | null, footer = SETTINGS_FOOTER, opts: { ad?: boolean; letter?: boolean } = {}) {
   const muted = "color:#8a8a99 !important;text-decoration:none;";
+  const align = opts.letter ? "left" : "center";
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
-<style>@media only screen and (max-width:520px){.lpad{padding-left:24px !important;padding-right:24px !important}}</style></head>
+<style>@media only screen and (max-width:520px){.lpad{padding-left:24px !important;padding-right:24px !important}.lh{font-size:22px !important}}</style></head>
 <body style="margin:0;background:#f3f3f5;" bgcolor="#f3f3f5">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f3f3f5" style="background:#f3f3f5;padding:24px 12px;"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#000727 !important;">
 <tr><td align="center" style="padding:34px 32px 6px;"><a href="${SITE_URL}"><img src="${SITE_URL}/brand/logotype-dark.png" alt="The RSVP Studio" width="118" style="display:block;height:auto;border:0;" /></a></td></tr>
 <tr><td class="lpad" style="padding:22px 48px 34px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;color:#000727 !important;">${heading}</td></tr>
+<tr><td class="lh" align="${align}" style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;color:#000727 !important;text-align:${align};">${heading}</td></tr>
 <tr><td style="padding-top:14px;font-size:15px;line-height:1.65;color:#3c3d57 !important;">${body}</td></tr>
-${cta ? `<tr><td style="padding-top:26px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="#2f61d5" style="background:#2f61d5;border-radius:999px;"><a href="${cta.url}" style="display:inline-block;padding:13px 26px;color:#ffffff !important;font-size:15px;font-weight:600;text-decoration:none;">${cta.label}</a></td></tr></table></td></tr>` : ""}
+${cta ? `<tr><td align="${align}" style="padding-top:26px;"><table role="presentation" align="${align}" cellpadding="0" cellspacing="0"><tr><td bgcolor="#2f61d5" style="background:#2f61d5;border-radius:999px;"><a href="${cta.url}" style="display:inline-block;padding:13px 26px;color:#ffffff !important;font-size:15px;font-weight:600;text-decoration:none;">${cta.label}</a></td></tr></table></td></tr>` : ""}
 ${opts.ad === false ? "" : moreFromUs()}
 </table></td></tr>
 <tr><td align="center" style="padding:0 32px 32px;">
@@ -85,11 +88,11 @@ export function partnerLayout(site: string, heading: string, body: string, cta: 
 <img src="${site}/email/partner-characters.png" width="220" alt="" style="display:block;width:220px;max-width:70%;height:auto;border:0;" />
 </td></tr></table>
 <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;background:#ffffff;border-radius:24px;padding:36px 32px;font-family:Inter,Arial,sans-serif;color:#000727 !important;">
-<tr><td style="font-family:Inter,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#2f61d5 !important;">The RSVP Studio</td></tr>
-<tr><td style="padding-top:12px;font-family:Georgia,serif;font-size:28px;line-height:1.25;color:#000727 !important;">${heading}</td></tr>
+<tr><td align="center" style="font-family:Inter,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#2f61d5 !important;text-align:center;">The RSVP Studio</td></tr>
+<tr><td align="center" style="padding-top:12px;font-family:Georgia,serif;font-size:28px;line-height:1.25;color:#000727 !important;text-align:center;">${heading}</td></tr>
 <tr><td style="padding-top:14px;font-size:15px;line-height:1.65;color:#25265e !important;">${body}</td></tr>
-<tr><td style="padding-top:28px;"><a href="${cta.url}" style="display:inline-block;background:#000727;color:#ffffff !important;text-decoration:none;border-radius:999px;padding:14px 28px;font-size:14px;font-weight:600;">${cta.label}</a></td></tr>
-<tr><td style="padding-top:30px;font-size:12px;color:#868697 !important;">${footer}</td></tr>
+<tr><td align="center" style="padding-top:28px;text-align:center;"><a href="${cta.url}" style="display:inline-block;background:#000727;color:#ffffff !important;text-decoration:none;border-radius:999px;padding:14px 28px;font-size:14px;font-weight:600;">${cta.label}</a></td></tr>
+<tr><td align="center" style="padding-top:30px;font-size:12px;color:#868697 !important;text-align:center;">${footer}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 

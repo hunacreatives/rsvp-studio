@@ -51,8 +51,8 @@ ${content}
 }
 
 export const p = (html: string, mb = 18) => `<p class="fb" style="margin:0 0 ${mb}px;color:${BODY}!important;font-size:16px;line-height:1.7;">${html}</p>`;
-export const h1 = (text: string) => `<h1 class="fi" style="margin:0 0 16px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.25;font-weight:400;">${text}</h1>`;
-export const label = (text: string) => `<p class="fs" style="margin:0 0 12px;color:${SLATE}!important;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;">${text}</p>`;
+export const h1 = (text: string) => `<h1 class="fi" style="margin:0 0 16px;text-align:center;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.25;font-weight:400;">${text}</h1>`;
+export const label = (text: string) => `<p class="fs" style="margin:0 0 12px;text-align:center;color:${SLATE}!important;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;">${text}</p>`;
 
 /** What happens next: three numbered steps. */
 export function steps(items: string[]) {
@@ -78,8 +78,8 @@ export function browse(cards: { img: string; title: string; text: string; url: s
 }
 
 function signoff() {
-  return `<p class="fi" style="margin:26px 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;">Talk soon,</p>
-<p class="fb" style="margin:0 0 30px;color:${BODY}!important;font-size:15px;">The RSVP Studio team</p>
+  return `<p class="fi" style="margin:26px 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;text-align:center;">Talk soon,</p>
+<p class="fb" style="margin:0 0 30px;color:${BODY}!important;font-size:15px;text-align:center;">The RSVP Studio team</p>
 <p class="fi" style="margin:0 0 30px;color:${INK}!important;font-size:12px;line-height:1.8;text-align:center;">Need to add something? Just reply to this&nbsp;email.<br />A real person on our team reads every&nbsp;message.</p>`;
 }
 

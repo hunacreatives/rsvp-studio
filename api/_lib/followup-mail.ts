@@ -42,7 +42,7 @@ const day = (iso: string, withWeekday = false) => {
 const peso = (n: number) => `₱${Math.round(n).toLocaleString("en-PH")}`;
 
 function button(text: string, url: string) {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 26px;"><tr><td bgcolor="#2f61d5" style="background:#2f61d5;border-radius:999px;">
+  return `<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:6px auto 26px;"><tr><td bgcolor="#2f61d5" style="background:#2f61d5;border-radius:999px;">
 <a href="${url}" class="fw" style="display:inline-block;padding:14px 28px;color:#ffffff!important;font-size:15px;font-weight:600;text-decoration:none;">${text}</a></td></tr></table>`;
 }
 
@@ -71,8 +71,8 @@ ${rows
 }
 
 function signoff(note = "Questions? Just reply to this email. A real person on our team reads every message.") {
-  return `<p class="fi" style="margin:8px 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;">Talk soon,</p>
-<p class="fb" style="margin:0 0 28px;color:${BODY}!important;font-size:15px;">The RSVP Studio team</p>
+  return `<p class="fi" style="margin:8px 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;text-align:center;">Talk soon,</p>
+<p class="fb" style="margin:0 0 28px;color:${BODY}!important;font-size:15px;text-align:center;">The RSVP Studio team</p>
 ${note ? `<p class="fs" style="margin:0 0 30px;color:${SLATE}!important;font-size:12px;line-height:1.8;text-align:center;">${note}</p>` : ""}`;
 }
 

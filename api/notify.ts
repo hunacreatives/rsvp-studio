@@ -140,7 +140,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               from: FROM,
               to: r.email!,
               subject: `New message: ${thread.subject}`,
-              html: layout(`${esc(caller.full_name || "The RSVP Studio")} sent you a message`, snippet, { label: "Reply in your dashboard", url: `${origin}/account/messages?thread=${thread.id}` }),
+              html: layout(`${caller.full_name?.trim() ? `${esc(caller.full_name.trim().split(/\s+/)[0])} from ` : ""}The RSVP Studio<br>sent you a message`, snippet, { label: "Reply in your dashboard", url: `${origin}/account/messages?thread=${thread.id}` }),
             }),
           );
         }
@@ -173,6 +173,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               `Hi ${esc((customer.full_name || "").split(" ")[0] || "there")},<br><br>We’ve marked <strong>${reqCode(n)}</strong> (${esc(SUPPORT_TOPIC[thread.category ?? "other"] ?? "Support")}) as done. If anything still isn’t right, reply within 7 days and we’ll pick it up again.${ratingButtons(origin, thread.id)}`,
               { label: "View your request", url: `${origin}/account/messages?thread=${thread.id}` },
               serviceFooter(),
+              { letter: true },
             ),
           }),
         );

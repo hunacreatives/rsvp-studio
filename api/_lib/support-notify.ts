@@ -78,8 +78,9 @@ export function customerMessageEmails(
               `${hi}<br><br>Thanks for getting in touch. Your request number is <strong>${reqCode(n)}</strong> (${esc(topic)}). ${when}<br><br><span style="color:#868697">Your message:</span><br>${snippet}<br><br>Is your event in the next 7 days? Message us on Instagram <strong>@rsvpstudioo</strong> as well and we’ll prioritise it.`,
               { label: "View your request", url: link },
               serviceFooter(),
+              { letter: true },
             )
-          : layout("We got your message", `${hi}<br><br>It’s been added to <strong>${reqCode(n)}</strong>. ${when}`, { label: "View your request", url: link }, serviceFooter()),
+          : layout("We got your message", `${hi}<br><br>It’s been added to <strong>${reqCode(n)}</strong>. ${when}`, { label: "View your request", url: link }, serviceFooter(), { letter: true }),
       });
     })(),
   );
