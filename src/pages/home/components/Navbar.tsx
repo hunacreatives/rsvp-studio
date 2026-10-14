@@ -72,8 +72,26 @@ export default function Navbar({
   const [searchQ, setSearchQ] = useState("");
   const searchHits = useMemo(() => siteSearch(searchQ), [searchQ]);
   const headerRef = useRef<HTMLElement | null>(null);
+  const accountRef = useRef<HTMLDivElement | null>(null);
   const [panelTop, setPanelTop] = useState(64);
   const scrollYRef = useRef(0);
+
+  // The account menu closes on a click outside it or Escape (and when a mega panel or search opens).
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!accountRef.current?.contains(e.target as Node)) setAccountMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [accountMenuOpen]);
 
   // Escape closes whichever overlay (menu / search) is open.
   useEffect(() => {
@@ -172,6 +190,7 @@ export default function Navbar({
 
   const go = (to: string) => {
     setOpenMega(null);
+    setAccountMenuOpen(false);
     setMobileOpen(false);
     setSearchOpen(false);
     goTo(navigate, to);
@@ -232,11 +251,13 @@ export default function Navbar({
                   onMouseEnter={() => {
                     setOpenMega(item.mega ? item.label : null);
                     setHoveredItem(item.label);
+                    if (item.mega) setAccountMenuOpen(false);
                   }}
                   onMouseLeave={() => setHoveredItem(null)}
                   onFocus={() => {
                     setOpenMega(item.mega ? item.label : null);
                     setHoveredItem(item.label);
+                    if (item.mega) setAccountMenuOpen(false);
                   }}
                   onBlur={() => setHoveredItem(null)}
                   onClick={() => go(item.to)}
@@ -265,6 +286,7 @@ export default function Navbar({
               aria-expanded={searchOpen}
               onClick={() => {
                 setMobileOpen(false);
+                setAccountMenuOpen(false);
                 setSearchOpen((v) => !v);
               }}
               className="grid place-items-center w-11 h-11 md:w-9 md:h-9 rounded-full transition-colors hover:bg-black/5"
@@ -273,10 +295,15 @@ export default function Navbar({
               <i className="ri-search-line text-lg" />
             </button>
             {accountName ? (
-              <div className="hidden md:block relative">
+              <div ref={accountRef} className="hidden md:block relative">
                 <button
-                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  onClick={() => {
+                    setOpenMega(null);
+                    setSearchOpen(false);
+                    setAccountMenuOpen((v) => !v);
+                  }}
                   aria-label="Account"
+                  aria-expanded={accountMenuOpen}
                   className="flex items-center gap-2.5 rounded-full py-1 pl-3 pr-1 transition-colors hover:bg-black/5"
                 >
                   <span className="max-w-[120px] truncate text-[14px] text-[var(--ink)]">
@@ -286,7 +313,7 @@ export default function Navbar({
                 </button>
                 {accountMenuOpen && (
                   <div
-                    className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden shadow-lg"
+                    className="absolute right-0 top-full z-10 mt-2 w-48 rounded-xl overflow-hidden shadow-lg"
                     style={{ background: "#fff", border: "1px solid var(--line)" }}
                   >
                     <button

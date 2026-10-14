@@ -23,7 +23,7 @@ const PLANS = [
     features: [
       { icon: "ri-quill-pen-line", title: "Designed from Scratch", copy: "Everything is designed exclusively for you" },
       { icon: "ri-team-line", title: "Collaborative Design", copy: "A hands-on experience from start to finish" },
-      { icon: "ri-time-line", title: "Ready in 3–4 Weeks", copy: "Two rounds of changes included" },
+      { icon: "ri-time-line", title: "Ready in 3–4 Weeks", copy: "Three rounds of changes included" },
       { icon: "ri-magic-line", title: "Custom Animations", copy: "Custom interactions and animations designed uniquely for your site" },
       { icon: "ri-mail-check-line", title: "RSVP Management Included", copy: "We follow up with guests and send you the headcount" },
       { icon: "ri-global-line", title: "Free Domain", copy: "A free .com or .net for the first year, subject to availability" },

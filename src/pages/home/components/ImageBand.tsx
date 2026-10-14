@@ -13,6 +13,8 @@ type Props = {
   subtitle: string;
   ctaLabel: string;
   ctaTo: string;
+  /** A second button beside the first, same weight (e.g. one per audience). */
+  secondCta?: { label: string; to: string };
   /** background gradient stack; a stand-in for editorial photography */
   bg: string;
 };
@@ -23,6 +25,7 @@ export default function ImageBand({
   subtitle,
   ctaLabel,
   ctaTo,
+  secondCta,
   bg,
 }: Props) {
   const navigate = useNavigate();
@@ -68,12 +71,17 @@ export default function ImageBand({
         )}
         <h2 className="h-section text-white mx-auto max-w-3xl">{title}</h2>
         <p className="mt-4 text-white/85 text-base md:text-lg mx-auto max-w-xl">{subtitle}</p>
-        <button
-          className="btn btn-white mt-8 max-w-full text-balance"
-          onClick={() => goTo(navigate, ctaTo)}
-        >
-          {ctaLabel}
-        </button>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          {[{ label: ctaLabel, to: ctaTo }, ...(secondCta ? [secondCta] : [])].map((c) => (
+            <button
+              key={c.to}
+              className="btn btn-white max-w-full text-balance"
+              onClick={() => goTo(navigate, c.to)}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -35,10 +35,17 @@ export default function Home() {
         <HowItWorks />
         <Testimonials />
         <ImageBand
-          title="Are you an event planner?"
-          subtitle="Better experiences begin with better collaborations."
-          ctaLabel="Let's Collaborate Together"
-          ctaTo="/enquire/partner"
+          title={
+            <>
+              Are you an event planner{" "}
+              <br className="hidden sm:inline" />
+              or influencer?
+            </>
+          }
+          subtitle={"Better experiences begin with better\u00a0collaborations."}
+          ctaLabel="I'm a planner"
+          ctaTo="/partners"
+          secondCta={{ label: "I'm a creator", to: "/partners?type=creator" }}
           bg="radial-gradient(120% 120% at 80% 10%, #d9e4f5 0%, #cfd8e6 40%, #b9c0cf 100%)"
         />
         <QuestionsAnswered />
