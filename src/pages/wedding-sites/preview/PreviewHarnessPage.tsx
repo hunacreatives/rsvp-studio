@@ -6,6 +6,7 @@ import { isabellaAndMateo } from "../content/fixtures/isabella-and-mateo";
 import { sparseDraft } from "../content/fixtures/sparse-draft";
 import { scrapbookDemoWedding } from "../content/fixtures/scrapbook-demo";
 import { cinematicDemoBirthday } from "../content/fixtures/cinematic-demo";
+import { pickleballDemoBirthday } from "../content/fixtures/pickleball-demo";
 import { listTemplateDefinitions } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
 import type { PresentationState } from "../presentation/types";
@@ -37,6 +38,7 @@ const GIFTS = [
 const fixtures: Record<string, unknown> = {
   "scrapbook-demo": scrapbookDemoWedding,
   "cinematic-demo": cinematicDemoBirthday,
+  "pickleball-demo": pickleballDemoBirthday,
   "isabella-and-mateo": isabellaAndMateo,
   "the-smiths": theSmiths,
   "sparse-draft": sparseDraft,

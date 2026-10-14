@@ -10,6 +10,7 @@ const EXTRA: Record<string, string[]> = {
   "dancing-cormorant": [DANCING, CORMORANT],
   "dancing-inter": [DANCING],
   "homemade-caveat": ["Homemade+Apple", "Caveat:wght@400;500;600;700", "Montserrat:wght@400;500;600"],
+  "yellowtail-jost": ["Yellowtail", "Jost:wght@400;500;600;700", "Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,700;1,9..144,800"],
 };
 const loaded = new Set<string>();
 

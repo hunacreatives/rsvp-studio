@@ -50,6 +50,14 @@ export const fontPairings: FontPairingOption[] = [
     displayFont: '"Homemade Apple", cursive',
     bodyFont: '"Caveat", cursive',
   },
+  {
+    // The Pickleball template: a retro brush script ("Yellowtail") over a
+    // clean geometric sans ("Jost", Futura-like) for the details.
+    id: "yellowtail-jost",
+    label: "Yellowtail & Jost",
+    displayFont: '"Yellowtail", cursive',
+    bodyFont: '"Jost", "Futura", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  },
 ];
 
 export const defaultFontPairingId = fontPairings[0].id;

@@ -6,6 +6,7 @@ import { modernMinimalTemplateDefinition } from "../templates/modern-minimal";
 import { botanicalTemplateDefinition } from "../templates/botanical";
 import { scrapbookTemplateDefinition } from "../templates/scrapbook";
 import { cinematicTemplateDefinition } from "../templates/cinematic";
+import { pickleballTemplateDefinition } from "../templates/pickleball";
 
 // Template contract + registry.
 //
@@ -107,6 +108,7 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   botanical: botanicalTemplateDefinition,
   scrapbook: scrapbookTemplateDefinition,
   cinematic: cinematicTemplateDefinition,
+  pickleball: pickleballTemplateDefinition,
 };
 
 // ---------------------------------------------------------------------------

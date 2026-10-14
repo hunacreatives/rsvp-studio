@@ -57,6 +57,13 @@ export const palettes: PaletteOption[] = [
     label: "Blush & Sage",
     swatches: ["#faf6f1", "#c0606e", "#8b9a6e"],
   },
+  {
+    // The Pickleball template: a cream court, a deep court-green for the
+    // frame and type, and a soft pink for the stripes and accents.
+    id: "court-pink",
+    label: "Court Pink & Green",
+    swatches: ["#f8f3ea", "#1f6f55", "#eeb8c6"],
+  },
 ];
 
 export const defaultPaletteId = palettes[0].id;
