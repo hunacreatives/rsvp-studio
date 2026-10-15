@@ -58,6 +58,14 @@ export const fontPairings: FontPairingOption[] = [
     displayFont: '"Yellowtail", cursive',
     bodyFont: '"Jost", "Futura", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
+  {
+    // The Debut template: a formal copperplate script ("Pinyon Script") over
+    // Cormorant Garamond; the spaced capitals use Cinzel (loaded with it).
+    id: "pinyon-cormorant",
+    label: "Pinyon Script & Cormorant",
+    displayFont: '"Pinyon Script", cursive',
+    bodyFont: '"Cormorant Garamond", Georgia, serif',
+  },
 ];
 
 export const defaultFontPairingId = fontPairings[0].id;

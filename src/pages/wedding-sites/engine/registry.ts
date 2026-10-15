@@ -7,6 +7,8 @@ import { botanicalTemplateDefinition } from "../templates/botanical";
 import { scrapbookTemplateDefinition } from "../templates/scrapbook";
 import { cinematicTemplateDefinition } from "../templates/cinematic";
 import { pickleballTemplateDefinition } from "../templates/pickleball";
+import { debutTemplateDefinition } from "../templates/debut";
+import { loveLetterTemplateDefinition } from "../templates/love-letter";
 
 // Template contract + registry.
 //
@@ -83,6 +85,13 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
    * builder's "<template> details" section.
    */
   customFields?: CustomField[];
+  /**
+   * The sections a host can switch off for this design, in page order: standard keys
+   * (SectionVisibility, e.g. "schedule", "registry") and the design's own (e.g. "bring").
+   * Drives the "Show on website" switches in the editor and Look & Feel's list.
+   * Missing = Look & Feel's general list.
+   */
+  hideable?: { key: string; label: string }[];
 }
 
 export type StandardSection = "story" | "dateVenue" | "schedule" | "accommodations" | "travel" | "gallery" | "keyPeople" | "registry" | "faqs";
@@ -96,6 +105,9 @@ export interface CustomField {
   placeholder?: string;
   multiline?: boolean;
   maxLength?: number;
+  /** The design's own section this field belongs to (a key in `hideable`): the editor groups
+   *  these fields under that section's name with its "Show on website" switch. */
+  section?: string;
 }
 
 // `any` here is the one intentional escape hatch: the registry is
@@ -109,6 +121,8 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   scrapbook: scrapbookTemplateDefinition,
   cinematic: cinematicTemplateDefinition,
   pickleball: pickleballTemplateDefinition,
+  debut: debutTemplateDefinition,
+  "love-letter": loveLetterTemplateDefinition,
 };
 
 // ---------------------------------------------------------------------------

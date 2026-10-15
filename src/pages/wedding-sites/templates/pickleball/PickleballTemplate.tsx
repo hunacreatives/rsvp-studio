@@ -298,7 +298,7 @@ export default function PickleballTemplate({ content, settings, editorPreview = 
             <hr className="pb-rule" />
 
             <div className="pb-cards">
-              {paragraphs.length || editorPreview ? (
+              {vis.hostIntro !== false && (paragraphs.length || editorPreview) ? (
                 <Card title="Let’s Rally" reveal={reveal}>
                   {paragraphs.length ? (
                     paragraphs.map((p, i) => (
@@ -338,9 +338,9 @@ export default function PickleballTemplate({ content, settings, editorPreview = 
                 </Card>
               ) : null}
 
-              {wear || swatches.length || editorPreview ? (
+              {vis.wear !== false && (wear || swatches.length || editorPreview) ? (
                 <Card title="What to Wear" reveal={reveal}>
-                  {wear ? <p className="pb-text">{wear}</p> : <Hint>Add a dress code in the Pickleball details, or leave it empty to hide this.</Hint>}
+                  {wear ? <p className="pb-text">{wear}</p> : <Hint>Add a dress code in the Pickleball details, or switch this section off.</Hint>}
                   {swatches.length ? (
                     <div className="pb-swatches">
                       {swatches.map((c) => (
@@ -351,7 +351,7 @@ export default function PickleballTemplate({ content, settings, editorPreview = 
                 </Card>
               ) : null}
 
-              {bring.length || editorPreview ? (
+              {vis.bring !== false && (bring.length || editorPreview) ? (
                 <Card title="What to Bring" reveal={reveal}>
                   {bring.length ? (
                     <ul className="pb-bring">
@@ -365,7 +365,7 @@ export default function PickleballTemplate({ content, settings, editorPreview = 
                       ))}
                     </ul>
                   ) : (
-                    <Hint>List what guests should bring in the Pickleball details, one thing per line.</Hint>
+                    <Hint>List what guests should bring in the Pickleball details, or switch this section off.</Hint>
                   )}
                 </Card>
               ) : null}

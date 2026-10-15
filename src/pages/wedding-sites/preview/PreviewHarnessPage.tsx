@@ -7,12 +7,15 @@ import { sparseDraft } from "../content/fixtures/sparse-draft";
 import { scrapbookDemoWedding } from "../content/fixtures/scrapbook-demo";
 import { cinematicDemoBirthday } from "../content/fixtures/cinematic-demo";
 import { pickleballDemoBirthday } from "../content/fixtures/pickleball-demo";
+import { debutDemo } from "../content/fixtures/debut-demo";
+import { loveLetterDemo } from "../content/fixtures/love-letter-demo";
 import { listTemplateDefinitions } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
 import type { PresentationState } from "../presentation/types";
 import { parseSpec } from "../spec/schema";
 import { definitionFromSpec } from "../spec/definitionFromSpec";
 import { botanicalSpec } from "../spec/samples/botanical";
+import HarnessEditor from "./HarnessEditor";
 
 // Uploadable-template specs rendered through the generic spec runtime
 // (template id "spec:<name>"), so a spec can be compared side by side with
@@ -26,6 +29,7 @@ const specSamples: Record<string, { label: string; spec: unknown }> = {
 // Gated behind import.meta.env.DEV in src/router/config.tsx.
 //
 // Usage: /internal/event-site-preview?template=<templateId>&fixture=<fixtureId>
+// (&panel=1 adds the real builder panels on the left, on local state)
 // Two intentionally different fixtures are available: a 2-host wedding
 // (the-smiths) and a 1-host birthday (mias-birthday) — proving the
 // canonical content model isn't wedding-specific.
@@ -39,6 +43,8 @@ const fixtures: Record<string, unknown> = {
   "scrapbook-demo": scrapbookDemoWedding,
   "cinematic-demo": cinematicDemoBirthday,
   "pickleball-demo": pickleballDemoBirthday,
+  "debut-demo": debutDemo,
+  "love-letter-demo": loveLetterDemo,
   "isabella-and-mateo": isabellaAndMateo,
   "the-smiths": theSmiths,
   "sparse-draft": sparseDraft,
@@ -182,6 +188,8 @@ export default function PreviewHarnessPage() {
           <strong>Spec failed validation:</strong>
           <ul>{parsed.errors.map((e) => <li key={e}>{e}</li>)}</ul>
         </div>
+      ) : resolved && !specDefinition && searchParams.get("panel") === "1" ? (
+        <HarnessEditor key={`${templateId}:${fixtureId}`} initial={content} templateId={templateId} />
       ) : resolved ? (
         <div style={{ width: previewWidth ?? "100%", maxWidth: "100%", margin: "0 auto" }}>
           <resolved.definition.component content={content} settings={resolved.settings} editorPreview={editorPreview} live={searchParams.get("live") === "1"} />

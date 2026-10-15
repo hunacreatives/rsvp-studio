@@ -27,6 +27,15 @@ export const pickleballTemplateDefinition: TemplateDefinition<BaseTemplateSettin
   uses: ["story", "dateVenue", "schedule", "registry", "faqs"],
   storyLabel: "Invitation message",
   storyHint: "Shown under “Let’s Rally”, e.g. “Grab your paddle and your best trash talk…”. Leave a blank line between paragraphs.",
+  hideable: [
+    { key: "hostIntro", label: "Let’s Rally (your message)" },
+    { key: "schedule", label: "Game Plan (schedule)" },
+    { key: "wear", label: "What to Wear" },
+    { key: "bring", label: "What to Bring" },
+    { key: "registry", label: "Gift Ideas" },
+    { key: "faqs", label: "Good to Know (FAQs)" },
+    { key: "rsvp", label: "RSVP" },
+  ],
   customFields: [
     { key: "kicker", label: "Small line above the headline", placeholder: "Join us for", maxLength: 24 },
     {
@@ -43,7 +52,8 @@ export const pickleballTemplateDefinition: TemplateDefinition<BaseTemplateSettin
     {
       key: "dressCode",
       label: "What to wear",
-      hint: "Your motif colours (Entourage & motif) show as swatches under it. Leave both empty to hide the section.",
+      hint: "Your motif colours (Entourage & motif) show as swatches under it.",
+      section: "wear",
       placeholder: "Court whites, or anything pink and green.",
       multiline: true,
       maxLength: 200,
@@ -51,7 +61,8 @@ export const pickleballTemplateDefinition: TemplateDefinition<BaseTemplateSettin
     {
       key: "bring",
       label: "What to bring",
-      hint: "One thing per line. Leave empty to hide the section.",
+      hint: "One thing per line.",
+      section: "bring",
       placeholder: "Your paddle (we have spares)\nCourt shoes\nA water bottle",
       multiline: true,
       maxLength: 400,

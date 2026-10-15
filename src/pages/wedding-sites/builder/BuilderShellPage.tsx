@@ -97,7 +97,27 @@ export default function BuilderShellPage() {
           <LookAndFeel presentation={presentation} onChange={setPresentation} eventId={eventId} loadFontPreviews={lookOpen} />
         </div>
       </details>
-      <ContentEditor content={content} onChange={setContent} eventId={eventId} template={activeDefinition} premium={!!plan?.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} />
+      <ContentEditor
+        content={content}
+        onChange={setContent}
+        eventId={eventId}
+        template={activeDefinition}
+        premium={!!plan?.premium}
+        onUpgrade={canUpgrade ? upgrade.open : undefined}
+        visibility={resolved?.settings.sectionVisibility}
+        onShowSection={
+          resolved
+            ? (key, on) =>
+                setPresentation({
+                  ...presentation,
+                  byTemplate: {
+                    ...presentation.byTemplate,
+                    [resolved.definition.id]: { ...resolved.settings, sectionVisibility: { ...resolved.settings.sectionVisibility, [key]: on } },
+                  },
+                })
+            : undefined
+        }
+      />
       <GuestSettings eventId={eventId} slug={slug} premium={!!plan?.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} />
     </>
   );

@@ -16,20 +16,22 @@ interface FormFieldProps {
 export function FormField({ label, htmlFor, children, hint }: FormFieldProps) {
   return (
     <div style={{ marginBottom: 16 }}>
+      {label ? (
       <label
-        htmlFor={htmlFor}
-        style={{
-          display: "block",
-          fontSize: 12,
-          fontWeight: 600,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          color: "var(--slate)",
-          marginBottom: 6,
-        }}
-      >
-        {label}
-      </label>
+          htmlFor={htmlFor}
+          style={{
+            display: "block",
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            color: "var(--slate)",
+            marginBottom: 6,
+          }}
+        >
+          {label}
+        </label>
+      ) : null}
       {children}
       {hint ? (
         <p style={{ fontSize: 12, color: "var(--slate)", marginTop: 4 }}>{hint}</p>

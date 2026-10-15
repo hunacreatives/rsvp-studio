@@ -43,6 +43,7 @@ export default function LookAndFeel({
   const isSpec = getCatalogEntry(id)?.kind === "spec";
   const settings: BaseTemplateSettings = { ...defaultBaseTemplateSettings(), ...def.defaultSettings, ...presentation.byTemplate[id] };
   const visibility = { ...defaultSectionVisibility, ...settings.sectionVisibility };
+  const sections = def.hideable ?? SECTIONS;
   const set = (patch: Partial<BaseTemplateSettings>) => onChange({ ...presentation, byTemplate: { ...presentation.byTemplate, [id]: { ...settings, ...patch } } });
 
   return (
@@ -101,9 +102,9 @@ export default function LookAndFeel({
       <div>
         <p style={label}>Sections to show</p>
         <div style={{ display: "grid", gap: 6 }}>
-          {SECTIONS.map((s) => (
+          {sections.map((s) => (
             <label key={s.key} className="rb-check-row" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--ink)" }}>
-              <input type="checkbox" className="rb-check" checked={visibility[s.key]} onChange={(e) => set({ sectionVisibility: { ...visibility, [s.key]: e.target.checked } })} />
+              <input type="checkbox" className="rb-check" checked={visibility[s.key] !== false} onChange={(e) => set({ sectionVisibility: { ...visibility, [s.key]: e.target.checked } })} />
               {s.label}
               {s.key === "rsvp" && !visibility.rsvp ? <span style={{ fontSize: 12, color: "#8a5a00" }}>— guests won’t be able to reply</span> : null}
             </label>

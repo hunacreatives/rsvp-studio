@@ -17,6 +17,8 @@ export interface SectionVisibility {
   registry: boolean;
   faqs: boolean;
   rsvp: boolean;
+  /** A design's own sections (TemplateDefinition.hideable), e.g. Pickleball's "wear" and "bring". */
+  [key: string]: boolean;
 }
 
 export const defaultSectionVisibility: SectionVisibility = {

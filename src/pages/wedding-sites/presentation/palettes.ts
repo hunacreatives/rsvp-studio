@@ -64,6 +64,20 @@ export const palettes: PaletteOption[] = [
     label: "Court Pink & Green",
     swatches: ["#f8f3ea", "#1f6f55", "#eeb8c6"],
   },
+  {
+    // The Debut template: an ivory card, deep wine for the envelope and type,
+    // and an antique gold for the seal and fine lines.
+    id: "wine-gold",
+    label: "Wine & Gold",
+    swatches: ["#f4ede1", "#6b1f2b", "#b8914a"],
+  },
+  {
+    // The Love Letter template: cream paper, olive felt for the envelope and
+    // type, and a deep red for the date card.
+    id: "olive-cream",
+    label: "Olive & Cream",
+    swatches: ["#f6f1e6", "#5b6234", "#8c2632"],
+  },
 ];
 
 export const defaultPaletteId = palettes[0].id;
