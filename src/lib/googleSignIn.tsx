@@ -112,5 +112,7 @@ export function GoogleButton({
 
   if (failed) return <>{fallback}</>;
   // Google draws its own button inside this box (it's 40px tall; the box keeps the 44px tap row).
-  return <div ref={box} className="mt-3 flex min-h-[44px] w-full items-center justify-center" />;
+  // Fixed height, clipped: while it swaps its placeholder for the real button, Google
+  // briefly has both in here (80px), which used to nudge the whole form for a frame.
+  return <div ref={box} className="mt-3 flex h-[44px] w-full items-center justify-center overflow-hidden" />;
 }

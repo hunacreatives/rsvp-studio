@@ -94,6 +94,14 @@ export default function AuthModal({
   const navigate = useNavigate();
   const desktop = useIsDesktop();
 
+  // Warm the illustration up before anyone clicks "Log in".
+  useEffect(() => {
+    if (!desktop || charactersReady) return;
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+    const id = idle(() => void preloadCharacters());
+    return () => (window.cancelIdleCallback ?? window.clearTimeout)(id as number);
+  }, [desktop]);
+
   // Reset ONLY when the modal opens. This used to share an effect with the
   // Escape listener, which depends on `onClose` — a new function on every
   // parent render — so any re-render of the page behind the modal (e.g. the
@@ -255,6 +263,31 @@ const MOVE: Record<string, string> = {
   green: "rs-sway 2.6s ease-in-out -0.3s infinite",
 };
 const CHARACTERS = CHARACTER_LAYOUT.map((c) => ({ ...c, move: MOVE[c.name] }));
+
+/**
+ * Every image the illustration is built from. They're fetched and decoded
+ * ahead of time (desktop, once the page is idle), and the illustration only
+ * shows once they're all ready — otherwise the first frame paints the eyes
+ * and mouths before the bodies arrive, and the group flickers in.
+ */
+const CHARACTER_FILES = [
+  ...[...CHARACTER_LAYOUT.map((c) => c.name), "blue"].flatMap((n) => [`${n}.webp`, `${n}-mouth.webp`]),
+  "bubble.webp",
+].map((f) => `/account/characters/${f}`);
+let charactersLoad: Promise<void> | null = null;
+let charactersReady = false;
+function preloadCharacters() {
+  charactersLoad ??= Promise.all(
+    CHARACTER_FILES.map((src) => {
+      const img = new Image();
+      img.src = src;
+      return img.decode().catch(() => undefined); // a missing piece shouldn't hide the rest
+    }),
+  ).then(() => {
+    charactersReady = true;
+  });
+  return charactersLoad;
+}
 /** Where each character's speech bubble points up to (% across the illustration). */
 // …in the speaker's own colour, so it's clear who's talking.
 const SAY_AT: Record<string, { x: number; y: number; bg: string; ink: string }> = {
@@ -335,6 +368,15 @@ const CHARACTER_CSS = `
  */
 function Characters({ mode }: { mode: Mode }) {
   const root = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(charactersReady);
+  useEffect(() => {
+    if (ready) return;
+    let live = true;
+    preloadCharacters().then(() => live && setReady(true));
+    return () => {
+      live = false;
+    };
+  }, [ready]);
   const [shout, setShout] = useState(0);
   const [hop, setHop] = useState(0);
   const [say, setSay] = useState<{ n: number; who: Speaker; text: string } | null>(null);
@@ -436,7 +478,12 @@ function Characters({ mode }: { mode: Mode }) {
     ));
 
   return (
-    <div ref={root} className="relative w-full max-w-[340px] select-none" style={{ containerType: "inline-size", aspectRatio: "640 / 703" }} aria-hidden>
+    <div
+      ref={root}
+      className="relative w-full max-w-[340px] select-none transition-opacity duration-200"
+      style={{ containerType: "inline-size", aspectRatio: "640 / 703", opacity: ready ? 1 : 0 }}
+      aria-hidden
+    >
       <style>{CHARACTER_CSS}</style>
       <div key={`hop-${hop}`} className={`absolute inset-0 ${hop ? "rs-hooray" : ""}`}>
         {CHARACTERS.map((c) => (
