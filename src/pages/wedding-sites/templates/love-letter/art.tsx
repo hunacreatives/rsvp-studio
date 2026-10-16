@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import { EnvelopeBack, PAPER_GRAIN, Pocket, WaxSeal, lacePath, useSize } from "../shared/stationery";
 
 // Love Letter's own pieces (the shared paper, envelope, seal and lace ribbon
@@ -126,37 +126,6 @@ export function EnvelopeStack({ names, date, mono, photo, focal, editorHint }: {
       <div className="ll-stack__seal">
         <WaxSeal text={mono} tone="ivory" shape="oval" />
       </div>
-    </div>
-  );
-}
-
-/** Days : hours : minutes : seconds to the event (ticks every second once mounted). */
-export function Countdown({ iso, live }: { iso: string; live: boolean }) {
-  const target = Date.parse(iso.includes("T") ? `${iso}${/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? "" : "+08:00"}` : `${iso}T00:00:00+08:00`);
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!live) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [live]);
-  if (Number.isNaN(target)) return null;
-  const left = Math.max(0, target - now);
-  const d = Math.floor(left / 86_400_000), h = Math.floor(left / 3_600_000) % 24, m = Math.floor(left / 60_000) % 60, s = Math.floor(left / 1000) % 60;
-  const cell = (v: number, label: string) => (
-    <div className="ll-count__cell">
-      <span className="ll-count__n">{String(v).padStart(2, "0")}</span>
-      <span className="ll-count__l">{label}</span>
-    </div>
-  );
-  return (
-    <div className="ll-count" role="timer" aria-label={`${d} days, ${h} hours and ${m} minutes to go`}>
-      {cell(d, "Days")}
-      <span className="ll-count__sep">:</span>
-      {cell(h, "Hours")}
-      <span className="ll-count__sep">:</span>
-      {cell(m, "Minutes")}
-      <span className="ll-count__sep">:</span>
-      {cell(s, "Seconds")}
     </div>
   );
 }

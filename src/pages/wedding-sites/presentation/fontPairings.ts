@@ -66,6 +66,15 @@ export const fontPairings: FontPairingOption[] = [
     displayFont: '"Pinyon Script", cursive',
     bodyFont: '"Cormorant Garamond", Georgia, serif',
   },
+  {
+    // The Promenade template: a flowing script for section headings ("Great
+    // Vibes") over a clean sans for the text; the couple's names use Playfair
+    // Display (loaded with it).
+    id: "vibes-montserrat",
+    label: "Great Vibes & Montserrat",
+    displayFont: '"Great Vibes", cursive',
+    bodyFont: '"Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  },
 ];
 
 export const defaultFontPairingId = fontPairings[0].id;

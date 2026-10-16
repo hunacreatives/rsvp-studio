@@ -9,6 +9,7 @@ import { cinematicTemplateDefinition } from "../templates/cinematic";
 import { pickleballTemplateDefinition } from "../templates/pickleball";
 import { debutTemplateDefinition } from "../templates/debut";
 import { loveLetterTemplateDefinition } from "../templates/love-letter";
+import { promenadeTemplateDefinition } from "../templates/promenade";
 
 // Template contract + registry.
 //
@@ -123,6 +124,7 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   pickleball: pickleballTemplateDefinition,
   debut: debutTemplateDefinition,
   "love-letter": loveLetterTemplateDefinition,
+  promenade: promenadeTemplateDefinition,
 };
 
 // ---------------------------------------------------------------------------

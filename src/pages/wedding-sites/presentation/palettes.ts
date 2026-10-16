@@ -78,6 +78,13 @@ export const palettes: PaletteOption[] = [
     label: "Olive & Cream",
     swatches: ["#f6f1e6", "#5b6234", "#8c2632"],
   },
+  {
+    // The Promenade template: a warm cream page, soft brown type, and a muted
+    // gold for the seal, rules and timeline.
+    id: "cream-gold",
+    label: "Cream & Gold",
+    swatches: ["#fbf6ec", "#4b4036", "#c2a06a"],
+  },
 ];
 
 export const defaultPaletteId = palettes[0].id;

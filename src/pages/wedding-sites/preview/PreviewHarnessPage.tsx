@@ -9,6 +9,7 @@ import { cinematicDemoBirthday } from "../content/fixtures/cinematic-demo";
 import { pickleballDemoBirthday } from "../content/fixtures/pickleball-demo";
 import { debutDemo } from "../content/fixtures/debut-demo";
 import { loveLetterDemo } from "../content/fixtures/love-letter-demo";
+import { promenadeDemo } from "../content/fixtures/promenade-demo";
 import { listTemplateDefinitions } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
 import type { PresentationState } from "../presentation/types";
@@ -45,6 +46,7 @@ const fixtures: Record<string, unknown> = {
   "pickleball-demo": pickleballDemoBirthday,
   "debut-demo": debutDemo,
   "love-letter-demo": loveLetterDemo,
+  "promenade-demo": promenadeDemo,
   "isabella-and-mateo": isabellaAndMateo,
   "the-smiths": theSmiths,
   "sparse-draft": sparseDraft,

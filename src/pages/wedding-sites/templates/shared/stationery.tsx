@@ -365,7 +365,7 @@ export function Pocket() {
         <path d={right} fill={`url(#${id}-r)`} />
         {/* the bottom flap's shadow on the side flaps */}
         <g clipPath={`url(#${id}-sides)`}>
-          <path d={`M-20 ${h + 4}L${tx} ${ty - 6}L${w + 20} ${h + 4}`} fill="none" stroke="#12020a" strokeOpacity=".55" strokeWidth="14" filter={`url(#${id}-soft)`} />
+          <path d={`M-20 ${h + 4}L${tx} ${ty - 6}L${w + 20} ${h + 4}`} fill="none" stroke="#12020a" style={{ strokeOpacity: "var(--st-fold-shadow, .55)" }} strokeWidth="14" filter={`url(#${id}-soft)`} />
         </g>
         <path d={bottom} fill={`url(#${id}-b)`} />
         {/* paper edges catching the light */}
@@ -403,7 +403,7 @@ export function Flap() {
           </filter>
         </defs>
         {/* its shadow on the pocket below */}
-        <path d={`M0 4L${tx} ${ty + 10}L${w} 4`} fill="none" stroke="#12020a" strokeOpacity=".6" strokeWidth="16" filter={`url(#${id}-soft)`} />
+        <path d={`M0 4L${tx} ${ty + 10}L${w} 4`} fill="none" stroke="#12020a" style={{ strokeOpacity: "var(--st-flap-shadow, .6)" }} strokeWidth="16" filter={`url(#${id}-soft)`} />
         <path d={flap} fill={`url(#${id}-f)`} />
         <path d={flap} fill={`url(#${id}-sheen)`} />
         <path d={`M0 0L${tx} ${ty}L${w} 0`} fill="none" stroke="#fff" strokeOpacity=".18" strokeWidth="1.1" transform="translate(0 -0.6)" />
