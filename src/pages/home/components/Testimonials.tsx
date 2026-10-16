@@ -97,7 +97,7 @@ function Card({ q, className = "", style, phone = false }: { q: Quote; className
 
 export default function Testimonials() {
   return (
-    <section className="py-16 md:py-32 overflow-hidden" style={{ background: "var(--paper)" }}>
+    <section className="py-16 md:py-32 overflow-hidden" style={{ background: "var(--warm-white)" }}>
       <style>{CARD_CSS}</style>
       <div className="container-x text-center">
         <Reveal as="p" className="eyebrow">

@@ -1,5 +1,5 @@
 import { Reveal } from "@/lib/Reveal";
-import InvitePlaceholder from "./InvitePlaceholder";
+import StepArt from "./StepArt";
 
 const STEPS = [
   {
@@ -35,8 +35,8 @@ export default function HowItWorks() {
         {STEPS.map((s, i) => (
           <Reveal key={s.n} delay={i * 0.08} className="text-center md:text-left">
             <div className="relative mx-auto max-w-[220px] md:max-w-none">
-              <InvitePlaceholder seed={i + 4} className="w-full aspect-[3/4]" />
-              <span className="absolute left-4 top-4 grid place-items-center w-8 h-8 rounded-full bg-white text-[var(--ink)] text-sm font-semibold shadow">
+              <StepArt step={s.n} />
+              <span className="absolute right-4 top-4 grid place-items-center w-8 h-8 rounded-full bg-white text-[var(--ink)] text-sm font-semibold shadow">
                 {s.n}
               </span>
             </div>

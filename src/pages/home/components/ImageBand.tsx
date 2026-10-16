@@ -15,8 +15,10 @@ type Props = {
   ctaTo: string;
   /** A second button beside the first, same weight (e.g. one per audience). */
   secondCta?: { label: string; to: string };
-  /** background gradient stack; a stand-in for editorial photography */
-  bg: string;
+  /** background photo */
+  image?: string;
+  /** gradient stack, where there's no photo yet */
+  bg?: string;
 };
 
 export default function ImageBand({
@@ -26,6 +28,7 @@ export default function ImageBand({
   ctaLabel,
   ctaTo,
   secondCta,
+  image,
   bg,
 }: Props) {
   const navigate = useNavigate();
@@ -61,16 +64,26 @@ export default function ImageBand({
       <div
         ref={layer}
         className="absolute inset-0 -z-10 scale-110"
-        style={{ background: bg }}
+        style={{
+          background: image ? `url(${image}) center / cover no-repeat` : bg,
+        }}
       />
-      <div className="absolute inset-0 -z-10 bg-[rgba(0,7,39,0.42)]" />
+      {/* Photos get shade only behind the text, so the edges keep their colour. */}
+      <div
+        className="absolute inset-0 -z-10"
+        style={{
+          background: image
+            ? "radial-gradient(ellipse 55% 60% at 50% 50%, rgba(0,7,39,0.38), rgba(0,7,39,0.06) 100%)"
+            : "rgba(0,7,39,0.42)",
+        }}
+      />
 
       <div className="container-x">
         {eyebrow && (
           <p className="eyebrow !text-white/70 mb-4">{eyebrow}</p>
         )}
-        <h2 className="h-section text-white mx-auto max-w-3xl">{title}</h2>
-        <p className="mt-4 text-white/85 text-base md:text-lg mx-auto max-w-xl">{subtitle}</p>
+        <h2 className="h-section text-white mx-auto max-w-3xl [text-shadow:0_2px_24px_rgba(0,7,39,0.35)]">{title}</h2>
+        <p className="mt-4 text-white/90 [text-shadow:0_1px_12px_rgba(0,7,39,0.4)] text-base md:text-lg mx-auto max-w-xl">{subtitle}</p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           {[{ label: ctaLabel, to: ctaTo }, ...(secondCta ? [secondCta] : [])].map((c) => (
             <button

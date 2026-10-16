@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import InvitePlaceholder from "./InvitePlaceholder";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const UPPER = ["Elena & Jibin", "Amalfi", "Maria & Quim", "Lucia & Felipe", "The Garden Party"];
-const LOWER = ["Martina", "Diana & Richard", "One-ce Upon a Time", "Baby Rosewood", "Frances Jash"];
+// Invitation cards drifting either side of the phone.
+const INVITES = Array.from({ length: 10 }, (_, i) => `/home/invites/invite-${String(i + 1).padStart(2, "0")}.webp`);
+const UPPER = INVITES.slice(0, 5);
+const LOWER = INVITES.slice(5);
 
 // "Happy Birthday" around the world — cycles in the hero pill.
 const GREETINGS = [
@@ -36,8 +37,6 @@ export default function Hero() {
   const navigate = useNavigate();
   const root = useRef<HTMLDivElement | null>(null);
   const phone = useRef<HTMLDivElement | null>(null);
-  const upperRow = useRef<HTMLDivElement | null>(null);
-  const lowerRow = useRef<HTMLDivElement | null>(null);
   const [greetIdx, setGreetIdx] = useState(0);
   const [screenIdx, setScreenIdx] = useState(0);
 
@@ -75,26 +74,6 @@ export default function Hero() {
           },
         },
       );
-      gsap.to(upperRow.current, {
-        xPercent: -12,
-        ease: "none",
-        scrollTrigger: {
-          trigger: root.current,
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true,
-        },
-      });
-      gsap.to(lowerRow.current, {
-        xPercent: 12,
-        ease: "none",
-        scrollTrigger: {
-          trigger: root.current,
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true,
-        },
-      });
     }, root);
     return () => ctx.revert();
   }, []);
@@ -137,34 +116,25 @@ export default function Hero() {
 
       {/* Parallax card field + phone */}
       <div className="relative mt-14 md:mt-16">
-        <div
-          ref={upperRow}
-          className="flex gap-5 md:gap-7 px-6 will-change-transform"
-          style={{ marginLeft: "-4%", width: "108%" }}
-        >
-          {UPPER.map((label, i) => (
-            <InvitePlaceholder
-              key={label}
-              seed={i + 1}
-              label={label}
-              className="flex-1 min-w-[150px] aspect-[3/4]"
-            />
-          ))}
-        </div>
-        <div
-          ref={lowerRow}
-          className="mt-5 md:mt-7 flex gap-5 md:gap-7 px-6 will-change-transform"
-          style={{ marginLeft: "-4%", width: "108%" }}
-        >
-          {LOWER.map((label, i) => (
-            <InvitePlaceholder
-              key={label}
-              seed={i + 6}
-              label={label}
-              className="flex-1 min-w-[150px] aspect-[3/4]"
-            />
-          ))}
-        </div>
+        {/* Two rows drifting opposite ways, softened so the phone carries the eye. */}
+        {[UPPER, LOWER].map((row, r) => (
+          <div key={r} className={`overflow-hidden ${r ? "mt-5 md:mt-7" : ""}`} aria-hidden>
+            <div
+              className={`marquee-track flex w-max ${r ? "marquee-track--reverse" : ""}`}
+              style={{ animationDuration: "70s" }}
+            >
+              {[...row, ...row, ...row, ...row].map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  loading="lazy"
+                  className="mr-5 md:mr-7 w-[150px] md:w-[230px] aspect-[3/4] rounded-[14px] object-cover opacity-60 saturate-[1.35] blur-[3px]"
+                />
+              ))}
+            </div>
+          </div>
+        ))}
 
         {/* Sticky-feeling phone mockup, centered over the field */}
         <div className="pointer-events-none absolute inset-0 grid place-items-center">

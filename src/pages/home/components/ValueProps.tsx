@@ -1,11 +1,17 @@
 import { useRef } from "react";
 import { Reveal } from "@/lib/Reveal";
-import InvitePlaceholder from "./InvitePlaceholder";
+import EnvelopeArt from "./EnvelopeArt";
+import ThemeArt from "./ThemeArt";
+import ExportArt from "./ExportArt";
+import RsvpArt from "./RsvpArt";
+
+const CARD = "block w-full aspect-[8/7] rounded-[14px] shadow-[0_30px_60px_-30px_rgba(0,7,39,0.28)]";
+
 const CARDS = [
-  { title: "Interactive", copy: "The first \u201cwow\u201d before anything else." },
-  { title: "Personal", copy: "Designed around you." },
-  { title: "Effortless", copy: "RSVPs made simple." },
-  { title: "Export to sheet", copy: "Guest list ready." },
+  { title: "Interactive", copy: "The first \u201cwow\u201d before anything else.", Art: EnvelopeArt },
+  { title: "Personal", copy: "Designed around you.", Art: ThemeArt },
+  { title: "Effortless", copy: "RSVPs made simple.", Art: RsvpArt },
+  { title: "Export to sheet", copy: "Guest list ready.", Art: ExportArt },
 ];
 
 export default function ValueProps() {
@@ -18,7 +24,7 @@ export default function ValueProps() {
   };
 
   return (
-    <section className="py-16 md:py-32" style={{ background: "var(--paper)" }}>
+    <section className="py-16 md:py-32" style={{ background: "var(--warm-white)" }}>
       <div className="container-x">
         <Reveal
           as="h2"
@@ -55,8 +61,7 @@ export default function ValueProps() {
                 i === 0 ? "ml-6" : ""
               } ${i === CARDS.length - 1 ? "mr-6" : ""}`}
             >
-              {/* Placeholder until the studio's own photos are ready. */}
-              <InvitePlaceholder seed={i + 2} className="w-full aspect-[3/4]" />
+              <c.Art className={CARD} />
               <h3 className="mt-5 font-display text-xl font-semibold text-[var(--ink)]">
                 {c.title}
               </h3>

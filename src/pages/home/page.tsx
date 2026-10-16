@@ -30,7 +30,7 @@ export default function Home() {
           subtitle="Elevated digital experiences for life's most meaningful milestones."
           ctaLabel="Explore More of Our Services"
           ctaTo="/services"
-          bg="radial-gradient(120% 120% at 20% 10%, #f7d9c9 0%, #e9c4cf 45%, #cdb4d8 100%)"
+          image="/home/band-balloons.webp"
         />
         <HowItWorks />
         <Testimonials />
@@ -46,7 +46,7 @@ export default function Home() {
           ctaLabel="I'm a planner"
           ctaTo="/partners"
           secondCta={{ label: "I'm a creator", to: "/partners?type=creator" }}
-          bg="radial-gradient(120% 120% at 80% 10%, #d9e4f5 0%, #cfd8e6 40%, #b9c0cf 100%)"
+          image="/home/band-flatlay.webp"
         />
         <QuestionsAnswered />
         <InstagramStrip />
