@@ -812,3 +812,25 @@
 .sp-gate ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; color: var(--panel-fg); }
 .sp-gate li { display: flex; gap: 8px; }
 .sp-gate li::before { content: "✓"; color: var(--ok); font-weight: 700; }
+
+/* ---- Mesa's page on phones: no tall empty tiles, one row per feature ---- */
+@media (max-width: 640px) {
+  .mesa-tile { min-height: 0; padding: 24px 22px 0; border-radius: 24px; }
+  .mesa-tile-pic { padding-top: 22px; transform: translateY(18px); }
+  .mesa-tile-pic .mesa-poster { width: 150px; }
+  .mesa-tile-pic .mesa-why { padding: 18px 20px 36px; }
+  .mesa-specs { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .mesa-spec { display: grid; grid-template-columns: 42px minmax(0, 1fr); column-gap: 14px; align-items: start; padding: 16px 18px; border-radius: 18px; }
+  .mesa-spec .mesa-icon { grid-row: span 2; margin-bottom: 0; }
+  .mesa-specs dt { font-size: 16px; }
+  .mesa-specs dd { margin-top: 2px; font-size: 14px; }
+  .mesa-calc { padding: 24px; }
+  /* Hero: one big line. The name becomes a small label above it; no confetti. */
+  .mesa-lockup { gap: 6px; }
+  .mesa-word { font-size: 20px; }
+  .mesa-by { font-size: 13px; }
+  .mesa-page > section:first-child .fiesta { display: none; }
+  /* The hero's phone takes the height left under the words (its box is a size container). */
+  .mesa-phone-fit { width: fit-content; }
+  .mesa-phone-fit .mesa-phone-screen { height: min(calc(100cqh - 14px), 560px); width: auto; }
+}

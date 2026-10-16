@@ -12,6 +12,7 @@ import { useTemplateCatalog } from "../engine/catalog";
 import { getTemplateDefinition, type TemplateDefinition } from "../engine/registry";
 import TemplateMockupPreview from "./components/TemplateMockupPreview";
 import { CharacterTrio } from "@/components/CharacterLoader";
+import SeatingArt from "@/pages/home/components/SeatingArt";
 import { trackEvent } from "@/lib/analytics";
 
 // /build — "Build your website", the DIY front door. Designs first: a short hero,
@@ -40,18 +41,19 @@ function DesignCard({ t, price }: { t: TemplateDefinition; price: number | undef
   return (
     <li>
       <Link to={`/build/preview/${t.id}`} className="group block" aria-label={`Preview ${t.label}`}>
-        <span className="relative block overflow-hidden rounded-[22px] border border-[var(--line)] bg-white shadow-[0_1px_3px_rgba(0,7,39,0.06)] transition-shadow group-hover:shadow-[0_18px_40px_-24px_rgba(0,7,39,0.35)]" style={{ aspectRatio: "4 / 3" }}>
+        <span className="relative block overflow-hidden rounded-[14px] border border-[var(--line)] bg-white shadow-[0_1px_3px_rgba(0,7,39,0.06)] transition-shadow group-hover:shadow-[0_18px_40px_-24px_rgba(0,7,39,0.35)] sm:rounded-[22px]" style={{ aspectRatio: "4 / 3" }}>
           <TemplateMockupPreview template={t} />
-          <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[12px] font-semibold ${t.tier === "premium" ? "bg-[var(--acc-yellow)] text-[var(--ink)]" : "bg-white text-[var(--ink)]"}`}>
+          <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[12px] ${t.tier === "premium" ? "bg-[var(--acc-yellow)] text-[var(--ink)]" : "bg-white text-[var(--ink)]"}`}>
             {t.tier === "premium" ? "Premium" : "Free"}
           </span>
           <span className="absolute inset-0 hidden items-center justify-center bg-[rgba(0,7,39,0.45)] opacity-0 transition-opacity group-hover:opacity-100 md:flex">
             <span className="rounded-full bg-white px-5 py-2.5 text-[13px] font-medium text-[var(--ink)]">Preview →</span>
           </span>
         </span>
-        <span className="mt-3 flex items-baseline justify-between gap-3">
-          <span className="font-display text-[1.2rem] font-semibold text-[var(--ink)] group-hover:underline">{t.label}</span>
-          <span className="shrink-0 text-[14px] text-[var(--slate)]">{t.tier === "premium" ? (price ? peso(price) : "Premium") : "Free"}</span>
+        {/* Phones: name over price (two designs per row); wider: side by side. */}
+        <span className="mt-2 flex flex-col sm:mt-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+          <span className="font-display text-[15px] font-semibold leading-snug text-[var(--ink)] group-hover:underline sm:text-[1.2rem]">{t.label}</span>
+          <span className="shrink-0 text-[13px] text-[var(--slate)] sm:text-[14px]">{t.tier === "premium" ? (price ? peso(price) : "Premium") : "Free"}</span>
         </span>
       </Link>
     </li>
@@ -79,7 +81,7 @@ function PhoneDemo({ templateId }: { templateId: string }) {
     <Link
       to={`/build/preview/${templateId}`}
       aria-label={`Preview ${t.label}`}
-      className="mx-auto block w-full max-w-[300px] rounded-[38px] bg-[#161616] p-[9px] shadow-[0_30px_60px_-30px_rgba(0,7,39,0.5)]"
+      className="mx-auto block w-full max-w-[210px] rounded-[32px] bg-[#161616] p-[8px] shadow-[0_30px_60px_-30px_rgba(0,7,39,0.5)] sm:max-w-[300px] sm:rounded-[38px] sm:p-[9px]"
     >
       <div ref={boxRef} className="relative overflow-hidden rounded-[30px] bg-white" style={{ height: scale ? PHONE_H * scale : undefined, aspectRatio: scale ? undefined : `${PHONE_W} / ${PHONE_H}` }}>
         {scale ? (
@@ -168,7 +170,7 @@ export default function BuildLandingPage() {
       <Navbar />
 
       {/* Hero: a soft warm wash and our three characters. */}
-      <section className="pb-12 pt-14 text-center md:pb-16 md:pt-20" style={{ background: "linear-gradient(180deg, #fff1cc 0%, #fff8e6 55%, var(--warm-white) 100%)" }}>
+      <section className="pb-8 pt-10 text-center sm:pb-12 sm:pt-14 md:pb-16 md:pt-20" style={{ background: "linear-gradient(180deg, #fff1cc 0%, #fff8e6 55%, var(--warm-white) 100%)" }}>
         <div className="container-x">
         <p className="eyebrow">Build your website</p>
         <h1 className="mx-auto mt-4 max-w-3xl font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] text-balance" style={{ fontSize: "clamp(2.1rem, 5vw, 3.4rem)" }}>
@@ -200,13 +202,13 @@ export default function BuildLandingPage() {
             </Link>
           </p>
         ) : null}
-        <CharacterTrio className="mx-auto mt-10 w-[180px] md:w-[220px]" />
+        <CharacterTrio className="mx-auto mt-7 w-[150px] sm:mt-10 sm:w-[180px] md:w-[220px]" />
         </div>
       </section>
 
       {/* The designs */}
-      <section id="designs" className="container-x scroll-mt-24 pb-16 md:pb-24">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <section id="designs" className="container-x scroll-mt-24 pb-12 sm:pb-16 md:pb-24">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
           <h2 className="font-display text-[1.6rem] font-semibold text-[var(--ink)] md:text-[1.9rem]">Choose a design</h2>
           {hasPremium ? (
             <div role="group" aria-label="Filter designs" className="flex gap-2">
@@ -224,13 +226,13 @@ export default function BuildLandingPage() {
           ) : null}
         </div>
         {!ready && !templates.length ? (
-          <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
+          <ul className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3" aria-hidden>
             {[0, 1, 2].map((i) => (
-              <li key={i} className="aspect-[4/3] animate-pulse rounded-[22px] bg-[var(--paper)]" />
+              <li key={i} className="aspect-[4/3] animate-pulse rounded-[14px] bg-[var(--paper)] sm:rounded-[22px]" />
             ))}
           </ul>
         ) : (
-          <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3">
             {shown.map((t) => (
               <DesignCard key={t.id} t={t} price={prices[t.tier]} />
             ))}
@@ -240,22 +242,25 @@ export default function BuildLandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="py-16 md:py-24" style={{ background: "#e9f6fb" }}>
+      <section className="py-12 sm:py-16 md:py-24" style={{ background: "#e9f6fb" }}>
         <div className="container-x">
           <h2 className="text-center font-display text-[1.6rem] font-semibold text-[var(--ink)] md:text-[1.9rem]">How it works</h2>
-          <ol className="mx-auto mt-10 grid max-w-5xl gap-8 md:grid-cols-3">
+          <ol className="mx-auto mt-8 grid max-w-5xl gap-6 sm:mt-10 sm:gap-8 md:grid-cols-3">
             {[
               { icon: "ri-palette-line", bg: "var(--acc-yellow)", ink: "var(--ink)", title: "Pick a design", text: "Preview any design with sample details, then make it yours." },
               { icon: "ri-image-add-line", bg: "var(--acc-coral)", ink: "#fff", title: "Add your details", text: "Names, date, venue, schedule and photos — from your phone or laptop." },
               { icon: "ri-share-forward-line", bg: "var(--acc-green)", ink: "#fff", title: "Share one link", text: "Send it by Messenger or text. Guests RSVP on the site; you see every reply." },
             ].map((s, i) => (
-              <li key={s.title} className="text-center">
-                <span className="mx-auto grid h-14 w-14 place-items-center rounded-full text-[24px]" style={{ background: s.bg, color: s.ink }}>
+              // Phones: icon beside the text, so the three steps take a third of the height.
+              <li key={s.title} className="flex items-start gap-4 text-left md:block md:text-center">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[21px] md:mx-auto md:h-14 md:w-14 md:text-[24px]" style={{ background: s.bg, color: s.ink }}>
                   <i className={s.icon} aria-hidden />
                 </span>
-                <p className="mt-4 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--slate)]">Step {i + 1}</p>
-                <p className="mt-1 font-display text-[1.3rem] font-semibold text-[var(--ink)]">{s.title}</p>
-                <p className="mx-auto mt-2 max-w-[30ch] text-[15px] leading-relaxed text-[var(--slate)]">{s.text}</p>
+                <div>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--slate)] md:mt-4 md:text-[13px]">Step {i + 1}</p>
+                  <p className="mt-0.5 font-display text-[1.15rem] font-semibold text-[var(--ink)] md:mt-1 md:text-[1.3rem]">{s.title}</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-[var(--slate)] md:mx-auto md:mt-2 md:max-w-[30ch] md:text-[15px]">{s.text}</p>
+                </div>
               </li>
             ))}
           </ol>
@@ -263,17 +268,17 @@ export default function BuildLandingPage() {
       </section>
 
       {/* Free vs Premium */}
-      <section className="container-x py-16 md:py-24">
+      <section className="container-x py-12 sm:py-16 md:py-24">
         <h2 className="text-center font-display text-[1.6rem] font-semibold text-[var(--ink)] md:text-[1.9rem]">Free, or Premium</h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[15px] text-[var(--slate)]">Every site gets RSVPs and a guest list. Premium adds the extras, once per event.</p>
         <div className="mx-auto mt-8 max-w-3xl">
           {/* Fits a phone without scrolling sideways, so Premium is never hidden off-screen. */}
-          <table className="w-full text-[14px] md:text-[15px]">
+          <table className="w-full text-[13px] sm:text-[14px] md:text-[15px]">
             <thead>
               <tr className="text-left">
                 <th className="pb-3 font-normal text-[var(--slate)]" />
-                <th className="w-[26%] pb-3 text-center align-bottom font-display text-[1.05rem] font-semibold text-[var(--ink)] md:w-[24%] md:text-[1.15rem]">Free</th>
-                <th className="w-[30%] rounded-t-2xl bg-[#fff4cf] px-1 pb-3 pt-3 text-center align-bottom font-display text-[1.05rem] font-semibold text-[var(--ink)] md:w-[28%] md:text-[1.15rem]">
+                <th className="w-[19%] pb-3 text-center align-bottom font-display text-[1rem] font-semibold text-[var(--ink)] sm:w-[26%] sm:text-[1.05rem] md:w-[24%] md:text-[1.15rem]">Free</th>
+                <th className="w-[27%] rounded-t-2xl bg-[#fff4cf] px-1 pb-3 pt-3 text-center align-bottom font-display text-[1rem] font-semibold text-[var(--ink)] sm:w-[30%] sm:text-[1.05rem] md:w-[28%] md:text-[1.15rem]">
                   <span className="mb-1.5 inline-block rounded-full bg-[var(--acc-yellow)] px-2.5 py-0.5 font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ink)]">Recommended</span>
                   <span className="block">Premium</span>
                   {premiumPrice ? <span className="block font-sans text-[12px] font-normal leading-snug text-[var(--slate)] md:text-[13px]">{peso(premiumPrice)} per event <span className="block md:inline">({peso(Math.floor(premiumPrice * 0.9))} for your first)</span></span> : null}
@@ -294,9 +299,9 @@ export default function BuildLandingPage() {
                 ["Online after your event", "30 days", "1 year"],
               ].map(([label, free, prem], row, all) => (
                 <tr key={String(label)}>
-                  <td className="py-3 pr-3 text-[var(--ink)]">{label}</td>
+                  <td className="py-2.5 pr-2 leading-snug text-[var(--ink)] sm:py-3 sm:pr-3">{label}</td>
                   {[free, prem].map((v, i) => (
-                    <td key={i} className={`px-1 py-3 text-center leading-snug text-[var(--slate)] ${i === 1 ? `bg-[#fff4cf] ${row === all.length - 1 ? "rounded-b-2xl" : ""}` : ""}`}>
+                    <td key={i} className={`px-1 py-2.5 text-center text-[12px] leading-snug text-[var(--slate)] sm:py-3 sm:text-[inherit] ${i === 1 ? `bg-[#fff4cf] ${row === all.length - 1 ? "rounded-b-2xl" : ""}` : ""}`}>
                       {v === true ? <i className="ri-check-line text-[20px] text-[#3d7a12]" aria-label="Included" /> : v === false ? <span aria-label="Not included">—</span> : String(v)}
                     </td>
                   ))}
@@ -308,51 +313,60 @@ export default function BuildLandingPage() {
         </div>
       </section>
 
-      {/* A real one: a soft pink that picks up the Cinematic design. */}
-      <section className="py-16 md:py-24" style={{ background: "#fcecf2" }}>
-        <div className="container-x grid items-center gap-8 md:grid-cols-2 md:gap-14">
-          <PhoneDemo templateId="cinematic" />
-          <div>
+      {/* A real one: a soft pink that picks up the Cinematic design.
+          Phones: centred, words → phone → buttons. Desktop: phone left, words and buttons right. */}
+      <section className="py-12 sm:py-16 md:py-24" style={{ background: "#fcecf2" }}>
+        <div className="container-x grid items-center gap-y-7 [grid-template-areas:'text'_'visual'_'actions'] md:grid-cols-2 md:gap-x-14 md:gap-y-6 md:[grid-template-areas:'visual_text'_'visual_actions']">
+          <div className="[grid-area:visual]">
+            <PhoneDemo templateId="cinematic" />
+          </div>
+          <div className="text-center [grid-area:text] md:self-end md:text-left">
             <p className="eyebrow">What guests see</p>
             <h2 className="mt-3 font-display text-[1.8rem] font-semibold leading-tight text-[var(--ink)] md:text-[2.2rem] text-balance">One link, opened on a phone</h2>
-            <p className="mt-4 max-w-[46ch] text-[16px] leading-relaxed text-[var(--slate)]">
+            <p className="mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed text-[var(--slate)] sm:text-[16px] md:mx-0" style={{ textWrap: "pretty" }}>
               This is Cinematic with sample details. Photos, the date and venue, a dress code, and an RSVP card guests fill in right there. Gel’s 30th started as this exact design.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button onClick={() => start("cinematic")} className="btn btn-primary">Use Cinematic</button>
-              <Link to="/build/preview/cinematic" className="btn btn-ghost">Preview it</Link>
-            </div>
+          </div>
+          <div className="flex justify-center gap-3 [grid-area:actions] md:self-start md:justify-start">
+            <button onClick={() => start("cinematic")} className="btn btn-primary">Use Cinematic</button>
+            <Link to="/build/preview/cinematic" className="btn btn-ghost">Preview it</Link>
           </div>
         </div>
       </section>
 
-      {/* Mesa, our free seating chart maker: the next thing hosts need after the website. */}
-      <section className="py-16 md:py-24" style={{ background: "#fff6dc" }}>
-        <div className="container-x grid items-center gap-8 md:grid-cols-[0.9fr_1.1fr] md:gap-14">
-          <div>
+      {/* Mesa, our free seating chart maker: the next thing hosts need after the website.
+          Phones: centred, the tables illustration instead of the (unreadably small) editor screenshot. */}
+      <section className="py-12 sm:py-16 md:py-24" style={{ background: "#fff6dc" }}>
+        <div className="container-x grid items-center gap-y-7 [grid-template-areas:'text'_'visual'_'actions'] md:grid-cols-[0.9fr_1.1fr] md:gap-x-14 md:gap-y-6 md:[grid-template-areas:'text_visual'_'actions_visual']">
+          <div className="text-center [grid-area:text] md:self-end md:text-left">
             <p className="eyebrow">Mesa · free seating charts</p>
             <h2 className="mt-3 font-display text-[1.8rem] font-semibold leading-tight text-[var(--ink)] md:text-[2.2rem] text-balance">Then seat everyone with Mesa</h2>
-            <p className="mt-4 max-w-[46ch] text-[16px] leading-relaxed text-[var(--slate)]" style={{ textWrap: "pretty" }}>
+            <p className="mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed text-[var(--slate)] sm:text-[16px] md:mx-0" style={{ textWrap: "pretty" }}>
               Paste your guest list and Mesa seats every family, sponsor and barkada at the right table. Print the plan, or let guests find their table on your website.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/tools/seating-chart-maker" className="btn btn-primary">
-                Open Mesa
-              </Link>
-              <Link to="/tools/seating-chart-maker#how" className="btn btn-ghost">
-                See how it works
-              </Link>
-            </div>
           </div>
-          <Link to="/tools/seating-chart-maker" className="block overflow-hidden rounded-[20px] border-[8px] border-[#111] bg-[#111] shadow-[0_40px_80px_-40px_rgba(0,7,39,0.45)]" aria-label="Open Mesa">
-            <img src="/tools/mesa/editor-1440.webp" alt="Mesa’s editor with every guest seated" loading="lazy" className="block aspect-[16/10] w-full rounded-[10px] object-cover object-left-top" />
+          <Link to="/tools/seating-chart-maker" className="block [grid-area:visual]" aria-label="Open Mesa">
+            <SeatingArt className="mx-auto block aspect-[8/7] w-full max-w-[340px] rounded-[20px] md:hidden" />
+            <span className="hidden overflow-hidden rounded-[20px] border-[8px] border-[#111] bg-[#111] shadow-[0_40px_80px_-40px_rgba(0,7,39,0.45)] md:block">
+              <img src="/tools/mesa/editor-1440.webp" alt="Mesa’s editor with every guest seated" loading="lazy" className="block aspect-[16/10] w-full rounded-[10px] object-cover object-left-top" />
+            </span>
           </Link>
+          <div className="flex justify-center gap-3 [grid-area:actions] md:self-start md:justify-start">
+            <Link to="/tools/seating-chart-maker" className="btn btn-primary">
+              Open Mesa
+            </Link>
+            <Link to="/tools/seating-chart-maker#how" className="btn btn-ghost">
+              {/* "See" drops on phones so both buttons fit on one line */}
+              <span className="sm:hidden">How it works</span>
+              <span className="hidden sm:inline">See how it works</span>
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Questions */}
       {faqs.length ? (
-        <section className="container-x py-16 md:py-24">
+        <section className="container-x py-12 sm:py-16 md:py-24">
           <h2 className="text-center font-display text-[1.6rem] font-semibold text-[var(--ink)] md:text-[1.9rem]">Questions</h2>
           <div className="mx-auto mt-8 max-w-2xl divide-y divide-[var(--line)] border-y border-[var(--line)]">
             {faqs.map((f) => (
@@ -372,8 +386,8 @@ export default function BuildLandingPage() {
       ) : null}
 
       {/* Rather we make it? */}
-      <section className="container-x pb-20 md:pb-28">
-        <div className="rounded-[28px] bg-[var(--acc-blue)] px-6 py-14 text-center md:py-20">
+      <section className="container-x pb-14 sm:pb-20 md:pb-28">
+        <div className="rounded-[24px] bg-[var(--acc-blue)] px-6 py-11 text-center sm:rounded-[28px] sm:py-14 md:py-20">
           <h2 className="mx-auto max-w-xl font-display font-semibold leading-tight text-white text-balance" style={{ fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)" }}>
             Rather we make it for you?
           </h2>

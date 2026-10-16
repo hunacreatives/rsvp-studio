@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -350,6 +350,18 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
     window.scrollTo(0, 0);
   }, []);
 
+  // Phones: the hero is exactly one screen below the top bar. Measure where it starts.
+  const hero = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const set = () => {
+      const el = hero.current;
+      if (el) el.style.setProperty("--hero-top", `${el.getBoundingClientRect().top + window.scrollY}px`);
+    };
+    set();
+    window.addEventListener("resize", set);
+    return () => window.removeEventListener("resize", set);
+  }, []);
+
   const start = () => setSheet(true);
 
   const startButtons = (
@@ -368,7 +380,7 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
           <button className="btn btn-primary w-full max-w-[280px] sm:w-auto" onClick={start}>
             Start free
           </button>
-          <a href="#how" className="group inline-flex min-h-11 items-center gap-1.5 text-[15px] font-medium text-[var(--ink)]">
+          <a href="#how" className="group hidden min-h-11 items-center gap-1.5 text-[15px] font-medium text-[var(--ink)] sm:inline-flex">
             <span className="underline-offset-[5px] group-hover:underline">See how it works</span>
             <i className="ri-arrow-down-line" aria-hidden />
           </a>
@@ -382,10 +394,14 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
       <Navbar />
       <main className="mesa-page overflow-hidden">
         {/* Hero: the Build page's warm wash, a string of banderitas, the name, the product. */}
-        <section className="relative overflow-hidden pt-14 text-center md:pt-20" style={{ background: "linear-gradient(180deg, #fff1cc 0%, #fff8e6 45%, var(--warm-white) 80%)" }}>
+        <section
+          ref={hero}
+          className="relative overflow-hidden pt-8 text-center sm:pt-14 md:pt-20 max-sm:flex max-sm:h-[max(calc(100svh-var(--hero-top,64px)),600px)] max-sm:flex-col"
+          style={{ background: "linear-gradient(180deg, #fff1cc 0%, #fff8e6 45%, var(--warm-white) 80%)" }}
+        >
           <Confetti />
-          <div className="container-x mesa-hero-content">
-            <p className="mesa-lockup">
+          <div className="container-x mesa-hero-content max-sm:flex max-sm:min-h-0 max-sm:flex-1 max-sm:flex-col">
+            <p className="mesa-lockup max-sm:self-center">
               <span className="mesa-word">{SEATING_NAME}</span>
               <span className="mesa-by">by The RSVP Studio</span>
             </p>
@@ -396,15 +412,23 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
               <Lines text={SEATING_SUB} />
             </p>
             <div className="mt-8">{startButtons}</div>
-            <p className="mt-4 text-[14px] text-[var(--slate)]">{current ? `“${current.title}” · ${current.guests.filter((g) => g.tableId).length} of ${current.guests.length} seated` : SEATING_FACTS}</p>
+            {/* Phones: the facts repeat in "Everything's free" below, so only a plan in progress shows here. */}
+            <p className={`mt-4 text-[14px] text-[var(--slate)] ${current ? "" : "hidden sm:block"}`}>{current ? `“${current.title}” · ${current.guests.filter((g) => g.tableId).length} of ${current.guests.length} seated` : SEATING_FACTS}</p>
             {/* The real thing: screenshots of Mesa itself (public/tools/mesa). */}
-            <div className="relative mx-auto mt-12 max-w-[820px] pb-16 md:mt-14 md:pb-20">
+            {/* Phones: fills the rest of the screen; the phone below sizes to it. */}
+            <div className="relative mx-auto mt-12 max-w-[820px] sm:pb-16 md:mt-14 md:pb-20 max-sm:mb-7 max-sm:mt-7 max-sm:min-h-0 max-sm:w-full max-sm:flex-1 max-sm:[container-type:size]">
               <span className="mesa-wash w1" aria-hidden />
               <span className="mesa-wash w2" aria-hidden />
               <span className="mesa-wash w3" aria-hidden />
-              <Laptop>
-                <img src="/tools/mesa/editor-1440.webp" srcSet="/tools/mesa/editor-1440.webp 1440w, /tools/mesa/editor.webp 2880w" sizes="(max-width: 860px) 92vw, 800px" alt="Mesa’s editor: a wedding reception with every guest seated" className="block h-full w-full rounded-[10px] object-cover object-left-top" />
-              </Laptop>
+              {/* Phones get Mesa on a phone: the laptop screenshot is unreadable that small. */}
+              <Phone className="mesa-phone-fit relative mx-auto sm:hidden">
+                <img src="/tools/mesa/phone.webp" alt="Mesa on a phone, with every guest seated" className="block h-full w-full object-cover object-top" />
+              </Phone>
+              <div className="hidden sm:block">
+                <Laptop>
+                  <img src="/tools/mesa/editor-1440.webp" srcSet="/tools/mesa/editor-1440.webp 1440w, /tools/mesa/editor.webp 2880w" sizes="(max-width: 860px) 92vw, 800px" alt="Mesa’s editor: a wedding reception with every guest seated" className="block h-full w-full rounded-[10px] object-cover object-left-top" />
+                </Laptop>
+              </div>
               <Phone className="mesa-phone-hero hidden sm:block">
                 <img src="/tools/mesa/phone.webp" alt="Mesa on a phone" className="block h-full w-full object-cover object-top" />
               </Phone>
@@ -420,12 +444,12 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
         </section>
 
         {/* How it works: the three steps side by side, each with a small picture. */}
-        <section id="how" className="scroll-mt-20 bg-[var(--warm-white)] py-16 md:py-24">
+        <section id="how" className="scroll-mt-20 bg-[var(--warm-white)] py-12 sm:py-16 md:py-24">
           <div className="container-x">
             <Reveal className="text-center">
               <h2 className="mesa-h2 mx-auto">How it works</h2>
             </Reveal>
-            <div className="mt-12 grid gap-5 md:grid-cols-3">
+            <div className="mt-8 grid gap-4 sm:mt-12 sm:gap-5 md:grid-cols-3">
               <Reveal className="mesa-tile t1">
                 <p className="mesa-tile-n">Step 1</p>
                 <h3>Paste your list.</h3>
@@ -473,11 +497,11 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
         </section>
 
         {/* The Filipino reception, and your venue */}
-        <section className="mesa-lilac py-16 md:py-24">
+        <section className="mesa-lilac py-12 sm:py-16 md:py-24">
           <div className="container-x grid items-center gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
             <Reveal>
               <h2 className="mesa-h2">Made for the Filipino reception.</h2>
-              <dl className="mt-8 grid gap-4">
+              <dl className="mt-6 grid gap-4 sm:mt-8">
                 {SEATING_LAYOUT.slice(0, 4).map(([h, p]) => (
                   <div key={h}>
                     <dt className="text-[16px] font-semibold text-[var(--ink)]">{h}</dt>
@@ -503,12 +527,12 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
         </section>
 
         {/* Everything's free */}
-        <section className="bg-[var(--warm-white)] py-16 md:py-24">
+        <section className="bg-[var(--warm-white)] py-12 sm:py-16 md:py-24">
           <div className="container-x">
             <Reveal className="text-center">
               <h2 className="mesa-h2 mx-auto">Everything’s free.</h2>
             </Reveal>
-            <dl className="mesa-specs mx-auto mt-10 max-w-[1000px]">
+            <dl className="mesa-specs mx-auto mt-8 max-w-[1000px] sm:mt-10">
               {[
                 ["No guest limit", "300, 500, more.", "ri-team-line", "sky"],
                 ["No sign-up to start", "Seat everyone first;\na free account to download.", "ri-door-open-line", "sun"],
@@ -534,7 +558,7 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
         </section>
 
         {/* Questions, with the table calculator */}
-        <section className="bg-[var(--paper)] py-16 md:py-24">
+        <section className="bg-[var(--paper)] py-12 sm:py-16 md:py-24">
           <div className="container-x grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
             <div className="mesa-calc">
               <h2 className="font-display text-[1.6rem] font-semibold">How many tables?</h2>
@@ -558,7 +582,7 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
         </section>
 
         {/* Closing */}
-        <section className="relative overflow-hidden py-16 text-center md:py-24" style={{ background: "linear-gradient(0deg, #fff1cc 0%, #fff8e6 45%, var(--warm-white) 100%)" }}>
+        <section className="relative overflow-hidden py-12 text-center sm:py-16 md:py-24" style={{ background: "linear-gradient(0deg, #fff1cc 0%, #fff8e6 45%, var(--warm-white) 100%)" }}>
           <Confetti lite />
           <div className="container-x mesa-hero-content">
             <CharacterTrio className="mx-auto w-[150px] md:w-[180px]" />
