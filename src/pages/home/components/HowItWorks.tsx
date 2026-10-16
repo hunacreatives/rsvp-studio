@@ -34,7 +34,7 @@ export default function HowItWorks() {
       <div className="container-x mt-14 md:mt-20 grid gap-10 md:grid-cols-3">
         {STEPS.map((s, i) => (
           <Reveal key={s.n} delay={i * 0.08} className="text-center md:text-left">
-            <div className="relative mx-auto max-w-[220px] md:max-w-none">
+            <div className="relative mx-auto w-full max-w-[420px] md:max-w-none">
               <StepArt step={s.n} />
               <span className="absolute right-4 top-4 grid place-items-center w-8 h-8 rounded-full bg-white text-[var(--ink)] text-sm font-semibold shadow">
                 {s.n}

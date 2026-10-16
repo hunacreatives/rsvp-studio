@@ -4,13 +4,17 @@ import EnvelopeArt from "./EnvelopeArt";
 import ThemeArt from "./ThemeArt";
 import ExportArt from "./ExportArt";
 import RsvpArt from "./RsvpArt";
+import GuestsArt from "./GuestsArt";
+import SeatingArt from "./SeatingArt";
 
 const CARD = "block w-full aspect-[8/7] rounded-[14px] shadow-[0_30px_60px_-30px_rgba(0,7,39,0.28)]";
 
 const CARDS = [
   { title: "Interactive", copy: "The first \u201cwow\u201d before anything else.", Art: EnvelopeArt },
-  { title: "Personal", copy: "Designed around you.", Art: ThemeArt },
+  { title: "Made for each guest", copy: "Every invite says their name.", Art: GuestsArt },
   { title: "Effortless", copy: "RSVPs made simple.", Art: RsvpArt },
+  { title: "Personal", copy: "Designed around you.", Art: ThemeArt },
+  { title: "Seating, sorted", copy: "Guests find their table.", Art: SeatingArt },
   { title: "Export to sheet", copy: "Guest list ready.", Art: ExportArt },
 ];
 

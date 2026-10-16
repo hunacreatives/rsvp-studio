@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -7,6 +7,11 @@ gsap.registerPlugin(ScrollTrigger);
 
 // Invitation cards drifting either side of the phone.
 const INVITES = Array.from({ length: 10 }, (_, i) => `/home/invites/invite-${String(i + 1).padStart(2, "0")}.webp`);
+// Rows dissolve into the page at both sides instead of being cut off.
+const EDGE_FADE = {
+  maskImage: "linear-gradient(to right, transparent, #000 18%, #000 82%, transparent)",
+  WebkitMaskImage: "linear-gradient(to right, transparent, #000 18%, #000 82%, transparent)",
+};
 const UPPER = INVITES.slice(0, 5);
 const LOWER = INVITES.slice(5);
 
@@ -39,6 +44,17 @@ export default function Hero() {
   const phone = useRef<HTMLDivElement | null>(null);
   const [greetIdx, setGreetIdx] = useState(0);
   const [screenIdx, setScreenIdx] = useState(0);
+
+  // Phones: the hero is exactly one screen below the top bar. Measure where it starts.
+  useLayoutEffect(() => {
+    const set = () => {
+      const el = root.current;
+      if (el) el.style.setProperty("--hero-top", `${el.getBoundingClientRect().top + window.scrollY}px`);
+    };
+    set();
+    window.addEventListener("resize", set);
+    return () => window.removeEventListener("resize", set);
+  }, []);
 
   useEffect(() => {
     const id = window.setInterval(
@@ -81,10 +97,10 @@ export default function Hero() {
   return (
     <section
       ref={root}
-      className="relative overflow-hidden pt-16 md:pt-24 pb-24"
+      className="relative overflow-hidden pt-8 sm:pt-16 md:pt-24 pb-6 sm:pb-14 md:pb-24 max-sm:flex max-sm:h-[max(calc(100svh-var(--hero-top,96px)),640px)] max-sm:flex-col"
       style={{ background: "var(--warm-white)" }}
     >
-      <div className="container-x relative z-10 text-center">
+      <div className="container-x relative z-10 shrink-0 text-center">
         {/* The greeting sits above the headline as a quiet label, changing language. */}
         <p className="mb-4 flex justify-center text-[15px] text-[var(--slate)] md:text-[17px]" aria-label="Greetings in any language">
           <span className="relative inline-flex h-[1.5em] items-center overflow-hidden font-display italic">
@@ -103,7 +119,9 @@ export default function Hero() {
           Weddings, birthdays, christenings and more, with RSVPs built in. Websites from ₱3,000.
         </p>
         {/* One button; doing it yourself is the quieter option beside it. */}
-        <div className="mt-7 flex flex-col items-center justify-center gap-x-7 gap-y-3 sm:flex-row">
+        {/* Phones skip these: the top bar has "Get a quote" and the menu has the builder,
+            so the phone and cards come up sooner. */}
+        <div className="mt-7 hidden items-center justify-center gap-x-7 gap-y-3 sm:flex sm:flex-row">
           <button className="btn btn-primary w-full max-w-[280px] sm:w-auto sm:max-w-none" onClick={() => navigate("/enquire#start")}>
             Get a quote
           </button>
@@ -115,10 +133,11 @@ export default function Hero() {
       </div>
 
       {/* Parallax card field + phone */}
-      <div className="relative mt-14 md:mt-16">
+      {/* On phones this fills the rest of the screen, and the rows and phone size to it. */}
+      <div className="relative mt-7 sm:mt-14 md:mt-16 max-sm:mb-6 max-sm:min-h-0 max-sm:flex-1 max-sm:[container-type:size]">
         {/* Two rows drifting opposite ways, softened so the phone carries the eye. */}
         {[UPPER, LOWER].map((row, r) => (
-          <div key={r} className={`overflow-hidden ${r ? "mt-5 md:mt-7" : ""}`} aria-hidden>
+          <div key={r} className={`overflow-hidden ${r ? "mt-4 sm:mt-5 md:mt-7" : ""}`} style={EDGE_FADE} aria-hidden>
             <div
               className={`marquee-track flex w-max ${r ? "marquee-track--reverse" : ""}`}
               style={{ animationDuration: "70s" }}
@@ -129,7 +148,7 @@ export default function Hero() {
                   src={src}
                   alt=""
                   loading="lazy"
-                  className="mr-5 md:mr-7 w-[150px] md:w-[230px] aspect-[3/4] rounded-[14px] object-cover opacity-60 saturate-[1.35] blur-[3px]"
+                  className="mr-4 sm:mr-5 md:mr-7 w-[150px] md:w-[230px] max-sm:h-[calc((100cqh-16px)/2)] max-sm:w-auto aspect-[3/4] rounded-[14px] object-cover opacity-60 saturate-[1.35] blur-[3px]"
                 />
               ))}
             </div>
@@ -140,7 +159,7 @@ export default function Hero() {
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div
             ref={phone}
-            className="pointer-events-auto relative w-[190px] md:w-[270px] aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] shadow-[0_50px_90px_-30px_rgba(0,7,39,0.5)]"
+            className="pointer-events-auto relative w-[190px] md:w-[270px] max-sm:h-[min(100cqh,560px)] max-sm:w-auto aspect-[9/19] rounded-[38px] border-[10px] border-[#111] bg-[#111] shadow-[0_50px_90px_-30px_rgba(0,7,39,0.5)]"
           >
             <div className="absolute left-1/2 top-2 -translate-x-1/2 w-16 h-1.5 rounded-full bg-black/70 z-10" />
             <div className="absolute inset-0 rounded-[28px] overflow-hidden bg-[#3f4a32]">
@@ -171,7 +190,8 @@ export default function Hero() {
         </div>
       </div>
 
-      <div className="container-x relative z-10 mt-16 flex flex-col items-center gap-6">
+      {/* Desktop only: on phones "Get a quote" is already just above (and in the top bar). */}
+      <div className="container-x relative z-10 mt-16 hidden flex-col items-center gap-6 md:flex">
         <button
           className="btn btn-primary"
           onClick={() => navigate("/enquire#start")}

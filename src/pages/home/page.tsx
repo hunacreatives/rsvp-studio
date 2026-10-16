@@ -31,6 +31,7 @@ export default function Home() {
           ctaLabel="Explore More of Our Services"
           ctaTo="/services"
           image="/home/band-balloons.webp"
+          blur={8}
         />
         <HowItWorks />
         <Testimonials />

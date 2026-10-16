@@ -258,31 +258,34 @@ html.lenis body {
   0%, 40%, 100% { transform: translate(0, 0); }
   50%, 72% { transform: translate(-20px, 10px); }
 }
-.hw-look-side { animation: hw-look-side 7.5s ease-in-out infinite 0.5s; }
+/* "we got you!" — one 8s beat: glance right, glance left, face front, then wink */
+.hw-look-side { animation: hw-look-side 8s ease-in-out infinite; }
 @keyframes hw-look-side {
-  0%, 30%, 100% { transform: translate(0, 0); }
-  38%, 58% { transform: translate(26px, -10px); }
-  66%, 84% { transform: translate(-22px, 12px); }
+  0%, 8%, 100% { transform: translate(0, 0); }
+  14%, 26% { transform: translate(26px, -10px); }
+  31% { transform: translate(0, 0); }
+  36%, 47% { transform: translate(-22px, 12px); }
+  52% { transform: translate(0, 0); }
 }
-/* Right eye: open, snaps shut into the wink, holds, opens again (6s beat) */
-.hw-eye-r { animation: hw-eye-r 6s infinite; }
+/* Right eye: only once he's facing front (from 52%) — snaps shut into the wink, holds, opens */
+.hw-eye-r { animation: hw-eye-r 8s infinite; }
 @keyframes hw-eye-r {
-  0%, 43% { transform: scaleY(1); opacity: 1; animation-timing-function: ease-in; }
-  45.5% { transform: scaleY(0.06); opacity: 1; }
-  45.6%, 80% { transform: scaleY(0.06); opacity: 0; }
-  80.1% { transform: scaleY(0.06); opacity: 1; animation-timing-function: ease-out; }
-  83.5%, 100% { transform: scaleY(1); opacity: 1; }
+  0%, 56% { transform: scaleY(1); opacity: 1; animation-timing-function: ease-in; }
+  58.5% { transform: scaleY(0.06); opacity: 1; }
+  58.6%, 82% { transform: scaleY(0.06); opacity: 0; }
+  82.1% { transform: scaleY(0.06); opacity: 1; animation-timing-function: ease-out; }
+  85%, 100% { transform: scaleY(1); opacity: 1; }
 }
-.hw-wink { animation: hw-wink 6s infinite; }
+.hw-wink { animation: hw-wink 8s infinite; }
 @keyframes hw-wink {
-  0%, 45.5% { opacity: 0; }
-  45.6%, 80% { opacity: 1; }
-  80.1%, 100% { opacity: 0; }
+  0%, 58.5% { opacity: 0; }
+  58.6%, 82% { opacity: 1; }
+  82.1%, 100% { opacity: 0; }
 }
-.hw-grin { animation: hw-grin 6s ease-in-out infinite; }
+.hw-grin { animation: hw-grin 8s ease-in-out infinite; }
 @keyframes hw-grin {
-  0%, 43%, 82%, 100% { transform: scale(1); }
-  48%, 78% { transform: scale(1.06, 1.12); }
+  0%, 56%, 86%, 100% { transform: scale(1); }
+  61%, 80% { transform: scale(1.06, 1.12); }
 }
 
 /* Card 2: a cover slides off each value like it's being typed */
@@ -374,31 +377,73 @@ html.lenis body {
   85%, 100% { transform: translateY(330px); }
 }
 
-/* "Personal": three palettes, cross-fading; tiles pop at each change (9s) */
-.hw-theme-bg { fill: #4a5ea8; animation: hw-theme-bg 9s ease-in-out infinite; }
-.hw-theme-ink { fill: #ebc1dd; animation: hw-theme-ink 9s ease-in-out infinite; }
-.hw-theme-tile { fill: #ebc1dd; animation: hw-theme-ink 9s ease-in-out infinite, hw-theme-pop 3s ease-in-out infinite; }
-@keyframes hw-theme-bg {
-  0%, 28%, 100% { fill: #4a5ea8; }
-  33%, 61% { fill: #2e7d5b; }
-  66%, 94% { fill: #24275b; }
+/* "Personal": a new person's colour + typeface every 3s (9s loop) */
+.hw-persona { animation: hw-persona 9s ease-in-out infinite; }
+.hw-persona--2 { opacity: 0; animation-delay: -6s; }
+.hw-persona--3 { opacity: 0; animation-delay: -3s; }
+@keyframes hw-persona {
+  0% { opacity: 0; transform: translateY(16px); }
+  4%, 31% { opacity: 1; transform: translateY(0); }
+  33%, 100% { opacity: 0; transform: translateY(-10px); }
 }
-@keyframes hw-theme-ink {
-  0%, 28%, 100% { fill: #ebc1dd; }
-  33%, 61% { fill: #f7e3a1; }
-  66%, 94% { fill: #9fd6ec; }
+.hw-persona-bg { fill: #4662ae; animation: hw-persona-bg 9s ease-in-out infinite; }
+@keyframes hw-persona-bg {
+  0%, 31.5%, 100% { fill: #4662ae; }
+  33.5%, 64.8% { fill: #2e9e63; }
+  66.8%, 98% { fill: #f7cb46; }
 }
-/* drawings inside the tiles take the background colour of the current theme */
-.hw-theme-fg { fill: #4a5ea8; animation: hw-theme-bg 9s ease-in-out infinite; }
-.hw-party-flame { transform-origin: 50% 100% !important; animation: hw-party-flame 1.1s ease-in-out infinite alternate; }
-@keyframes hw-party-flame { to { transform: scale(0.8, 1.15) rotate(4deg); } }
-@keyframes hw-theme-pop {
-  0%, 88%, 100% { transform: scale(1); }
-  94% { transform: scale(0.96); }
+
+/* "Made for each guest": envelope stack, front one slides away every 3s (9s loop).
+   Static classes are the resting stack (what reduced motion shows). */
+.hw-guest {
+  position: absolute;
+  left: 26cqw;
+  top: 32cqw;
+  width: 56cqw;
+  height: 36cqw;
+  border-radius: 1.4cqw;
+  background: #fffdf8;
+  box-shadow: 0 1.6cqw 3.2cqw rgba(0, 0, 0, 0.28);
+  animation: hw-guest 9s ease-in-out infinite;
+}
+.hw-guest--1 { z-index: 3; transform: rotate(-2deg); }
+.hw-guest--2 { z-index: 2; transform: translate(-3cqw, -5cqw) rotate(3deg) scale(0.95); animation-delay: -6s; }
+.hw-guest--3 { z-index: 1; transform: translate(-6cqw, -10cqw) rotate(-5deg) scale(0.9); animation-delay: -3s; }
+@keyframes hw-guest {
+  0%, 27% { z-index: 3; transform: rotate(-2deg); opacity: 1; }
+  29% { opacity: 0.4; }
+  31% { z-index: 3; transform: translate(42cqw, 6cqw) rotate(12deg); opacity: 0; }
+  31.5% { z-index: 1; transform: translate(-6cqw, -10cqw) rotate(-5deg) scale(0.9); opacity: 0; }
+  35%, 61% { z-index: 1; transform: translate(-6cqw, -10cqw) rotate(-5deg) scale(0.9); opacity: 1; }
+  67%, 94% { z-index: 2; transform: translate(-3cqw, -5cqw) rotate(3deg) scale(0.95); opacity: 1; }
+  100% { z-index: 3; transform: rotate(-2deg); opacity: 1; }
+}
+
+/* "Seating, sorted": guest walks to the free seat, table lights up (7s loop).
+   Base styles are the seated state (what reduced motion shows). */
+.hw-seat-guest { animation: hw-seat-guest 7s infinite; }
+@keyframes hw-seat-guest {
+  0% { transform: translate(109px, 299px); opacity: 0; }
+  8% { transform: translate(109px, 299px); opacity: 1; animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1); }
+  40%, 86% { transform: translate(0, 0); opacity: 1; }
+  94%, 100% { transform: translate(0, 0); opacity: 0; }
+}
+.hw-seat-name { opacity: 0; animation: hw-seat-name 7s infinite; }
+@keyframes hw-seat-name {
+  0% { opacity: 0; }
+  8%, 40% { opacity: 1; }
+  46%, 100% { opacity: 0; }
+}
+.hw-seat-ring { animation: hw-seat-pop 7s infinite; }
+.hw-seat-tag { animation: hw-seat-pop 7s infinite 0.15s; }
+@keyframes hw-seat-pop {
+  0%, 42% { opacity: 0; transform: scale(0.92); }
+  49%, 86% { opacity: 1; transform: scale(1); }
+  94%, 100% { opacity: 0; transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hw svg * { animation: none !important; }
+  .hw svg *, .hw-guest { animation: none !important; }
   .hw-rsvp-cursor, .hw-rsvp-ripple { display: none; }
   .hw-cover, .hw-caret, .hw-eye-r { display: none; }
 }

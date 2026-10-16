@@ -19,6 +19,8 @@ type Props = {
   image?: string;
   /** gradient stack, where there's no photo yet */
   bg?: string;
+  /** extra softening for the photo, in px */
+  blur?: number;
 };
 
 export default function ImageBand({
@@ -30,6 +32,7 @@ export default function ImageBand({
   secondCta,
   image,
   bg,
+  blur,
 }: Props) {
   const navigate = useNavigate();
   const root = useRef<HTMLDivElement | null>(null);
@@ -66,6 +69,8 @@ export default function ImageBand({
         className="absolute inset-0 -z-10 scale-110"
         style={{
           background: image ? `url(${image}) center / cover no-repeat` : bg,
+          // the layer is scaled 110% inside overflow-hidden, so blurred edges never show
+          filter: blur ? `blur(${blur}px)` : undefined,
         }}
       />
       {/* Photos get shade only behind the text, so the edges keep their colour. */}
