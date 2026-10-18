@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { esc } from "./_lib/email.js";
 import { sitemap } from "./_lib/sitemap.js";
 import { qrHandler } from "./_lib/qr.js";
+import { blogPage } from "./_lib/blog-page.js";
 import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_H1, SEATING_LAYOUT, SEATING_PATH, SEATING_STEPS, SEATING_SUB, SEATING_TITLE } from "./_lib/seating-copy.js";
 
 // /invite/:slug, served with the event's own title, description and photo in the
@@ -69,6 +70,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Our own tool pages (?op=page): their title, description and text in the HTML itself.
   if (req.query.op === "page") return toolPage(req, res, html, origin);
+  // Blog articles (?op=blog): their own title, description, preview and text in the HTML.
+  if (req.query.op === "blog") return blogPage(db, req.query.slug, res, html);
 
   if (/^[a-z0-9-]{1,80}$/.test(slug)) {
     const { data } = await db.rpc("get_public_site", { p_slug: slug });

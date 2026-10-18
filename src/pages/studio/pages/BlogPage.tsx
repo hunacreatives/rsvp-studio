@@ -5,6 +5,7 @@ import { FilterTabs, Input, PillButton, Select, Textarea, Toggle } from "@/pages
 import Markdown from "@/pages/blog/Markdown";
 import { BLOG_CATEGORIES, deletePost, loadAllPosts, readMinutes, savePost, slugify, uploadBlogImage, type BlogPost, type PostInput } from "@/pages/blog/blogApi";
 import { StudioHeader } from "../StudioLayout";
+import { LinkPicker, SeoPanel } from "./BlogSeo";
 
 // Studio → Blog: write, preview and publish articles for /blog (supabase/blog.sql).
 // Articles are plain text with a little Markdown (headings, lists, bold, links,
@@ -18,7 +19,7 @@ const toLocalInput = (iso: string | null) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const blank = (): PostInput => ({ slug: "", title: "", excerpt: "", body: "", category: "Tips & Guides", cover_url: null, cover_alt: "", author: "The RSVP Studio", featured: false, status: "draft", published_at: null });
+const blank = (): PostInput => ({ slug: "", title: "", excerpt: "", body: "", category: "Tips & Guides", cover_url: null, cover_alt: "", author: "The RSVP Studio", featured: false, seo_title: "", seo_description: "", focus_keyword: "", status: "draft", published_at: null });
 
 export default function BlogPage() {
   const { demo } = usePortal();
@@ -44,6 +45,7 @@ export default function BlogPage() {
     return (
       <PostEditor
         initial={editing}
+        posts={posts}
         onDone={async () => {
           setEditing(null);
           await reload();
@@ -104,9 +106,19 @@ export default function BlogPage() {
   );
 }
 
-function PostEditor({ initial, onDone }: { initial: { id: string | null; p: PostInput }; onDone: () => void }) {
+function PostEditor({ initial, posts, onDone }: { initial: { id: string | null; p: PostInput }; posts: BlogPost[]; onDone: () => void }) {
   const [id, setId] = useState(initial.id);
-  const [p, setP] = useState<PostInput>({ ...initial.p, excerpt: initial.p.excerpt ?? "", cover_alt: initial.p.cover_alt ?? "" });
+  const [p, setP] = useState<PostInput>({
+    ...initial.p,
+    excerpt: initial.p.excerpt ?? "",
+    cover_alt: initial.p.cover_alt ?? "",
+    seo_title: initial.p.seo_title ?? "",
+    seo_description: initial.p.seo_description ?? "",
+    focus_keyword: initial.p.focus_keyword ?? "",
+  });
+  const [linking, setLinking] = useState(false);
+  // The body's selection when "Add link" was pressed: the link wraps it, or goes at the cursor.
+  const sel = useRef<[number, number]>([0, 0]);
   const [slugTouched, setSlugTouched] = useState(!!initial.id);
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [when, setWhen] = useState(toLocalInput(initial.p.published_at));
@@ -127,7 +139,18 @@ function PostEditor({ initial, onDone }: { initial: { id: string | null; p: Post
     setBusy(status === "published" ? "Publishing…" : "Saving…");
     try {
       const published_at = status === "published" ? new Date(when).toISOString() : p.published_at;
-      const newId = await savePost(id, { ...p, slug, title: p.title.trim(), excerpt: p.excerpt?.trim() || null, cover_alt: p.cover_alt?.trim() || null, status, published_at });
+      const newId = await savePost(id, {
+        ...p,
+        slug,
+        title: p.title.trim(),
+        excerpt: p.excerpt?.trim() || null,
+        cover_alt: p.cover_alt?.trim() || null,
+        seo_title: p.seo_title?.trim() || null,
+        seo_description: p.seo_description?.trim() || null,
+        focus_keyword: p.focus_keyword?.trim() || null,
+        status,
+        published_at,
+      });
       setId(newId);
       setP((x) => ({ ...x, slug, status, published_at }));
       setSaved(true);
@@ -154,6 +177,20 @@ function PostEditor({ initial, onDone }: { initial: { id: string | null; p: Post
       setError(e instanceof Error ? e.message : "Couldn’t upload.");
     }
     setBusy(null);
+  };
+
+  const insertLink = (path: string, title: string) => {
+    const [a, b] = sel.current;
+    const text = p.body.slice(a, b).trim() || title || path;
+    const link = `[${text}](${path})`;
+    set({ body: p.body.slice(0, a) + link + p.body.slice(b) });
+    // Put the cursor after the link.
+    requestAnimationFrame(() => {
+      const ta = bodyRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.setSelectionRange(a + link.length, a + link.length);
+    });
   };
 
   const remove = async () => {
@@ -197,57 +234,73 @@ function PostEditor({ initial, onDone }: { initial: { id: string | null; p: Post
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="min-w-0 rounded-[22px] border border-[var(--line)] bg-white p-5">
-          <input
-            value={p.title}
-            onChange={(e) => set({ title: e.target.value, ...(slugTouched ? {} : { slug: slugify(e.target.value) }) })}
-            placeholder="Article title"
-            aria-label="Title"
-            className="w-full bg-transparent font-display text-[1.7rem] font-semibold leading-tight text-[var(--ink)] outline-none placeholder:text-[#c4c4cc]"
-          />
-          <Textarea
-            value={p.excerpt ?? ""}
-            onChange={(e) => set({ excerpt: e.target.value })}
-            placeholder="One or two lines that sum it up (shown on the blog and in link previews)"
-            rows={2}
-            className="mt-3 w-full"
-          />
+        <div className="min-w-0 space-y-6">
+          <section className="rounded-[22px] border border-[var(--line)] bg-white p-5">
+            <input
+              value={p.title}
+              onChange={(e) => set({ title: e.target.value, ...(slugTouched ? {} : { slug: slugify(e.target.value) }) })}
+              placeholder="Article title"
+              aria-label="Title"
+              className="w-full bg-transparent font-display text-[1.7rem] font-semibold leading-tight text-[var(--ink)] outline-none placeholder:text-[#c4c4cc]"
+            />
+            <Textarea
+              value={p.excerpt ?? ""}
+              onChange={(e) => set({ excerpt: e.target.value })}
+              placeholder="One or two lines that sum it up (shown on the blog and in link previews)"
+              rows={2}
+              className="mt-3 w-full"
+            />
 
-          <div className="mt-5 flex items-center justify-between gap-3">
-            <div role="tablist" className="inline-flex rounded-full border border-[var(--line)] p-0.5 text-[14px]">
-              {(["write", "preview"] as const).map((t) => (
-                <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`min-h-[40px] rounded-full px-4 md:min-h-[32px] ${tab === t ? "bg-[var(--ink)] text-white" : "text-[var(--ink)]"}`}>
-                  {t === "write" ? "Write" : "Preview"}
-                </button>
-              ))}
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <div role="tablist" className="inline-flex rounded-full border border-[var(--line)] p-0.5 text-[14px]">
+                {(["write", "preview"] as const).map((t) => (
+                  <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`min-h-[40px] rounded-full px-4 md:min-h-[32px] ${tab === t ? "bg-[var(--ink)] text-white" : "text-[var(--ink)]"}`}>
+                    {t === "write" ? "Write" : "Preview"}
+                  </button>
+                ))}
+              </div>
+              {tab === "write" ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const ta = bodyRef.current;
+                      sel.current = ta ? [ta.selectionStart, ta.selectionEnd] : [p.body.length, p.body.length];
+                      setLinking(true);
+                    }}
+                    className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[var(--line)] px-4 text-[14px] text-[var(--ink)] md:min-h-[36px]"
+                  >
+                    <i className="ri-link" aria-hidden /> Add link
+                  </button>
+                  <button onClick={() => photoRef.current?.click()} disabled={!!busy} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[var(--line)] px-4 text-[14px] text-[var(--ink)] md:min-h-[36px]">
+                    <i className="ri-image-add-line" aria-hidden /> Add photo
+                  </button>
+                </div>
+              ) : null}
             </div>
+            <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={(e) => (e.target.files?.[0] && upload(e.target.files[0], "body"), (e.target.value = ""))} />
+
             {tab === "write" ? (
-              <button onClick={() => photoRef.current?.click()} disabled={!!busy} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[var(--line)] px-4 text-[14px] text-[var(--ink)] md:min-h-[36px]">
-                <i className="ri-image-add-line" aria-hidden /> Add photo
-              </button>
-            ) : null}
-          </div>
-          <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={(e) => (e.target.files?.[0] && upload(e.target.files[0], "body"), (e.target.value = ""))} />
+              <>
+                <textarea
+                  ref={bodyRef}
+                  value={p.body}
+                  onChange={(e) => set({ body: e.target.value })}
+                  placeholder={"Start writing…\n\n## A heading\nA paragraph. **Bold**, *italic*, [a link](https://thersvpstudio.com).\n\n- A list item\n- Another one"}
+                  className="mt-3 min-h-[460px] w-full resize-y rounded-2xl border border-[var(--line)] bg-[#fcfcfa] p-4 font-mono text-[15px] leading-relaxed text-[var(--ink)] outline-none focus:border-[var(--ink)] md:text-[14px]"
+                />
+                <p className="mt-2 text-[13px] text-[var(--slate)]">
+                  ## heading · ### smaller heading · **bold** · *italic* · [text](link) · - list · &gt; quote · a blank line between paragraphs · {readMinutes(p.body)} min read
+                </p>
+              </>
+            ) : (
+              <div className="mt-4 min-h-[460px] space-y-5 rounded-2xl border border-[var(--line)] p-5 text-[17px] leading-[1.75] text-[#2a2c3d]">
+                {p.body.trim() ? <Markdown source={p.body} newTab /> : <p className="text-[var(--slate)]">Nothing written yet.</p>}
+              </div>
+            )}
+          </section>
 
-          {tab === "write" ? (
-            <>
-              <textarea
-                ref={bodyRef}
-                value={p.body}
-                onChange={(e) => set({ body: e.target.value })}
-                placeholder={"Start writing…\n\n## A heading\nA paragraph. **Bold**, *italic*, [a link](https://thersvpstudio.com).\n\n- A list item\n- Another one"}
-                className="mt-3 min-h-[460px] w-full resize-y rounded-2xl border border-[var(--line)] bg-[#fcfcfa] p-4 font-mono text-[15px] leading-relaxed text-[var(--ink)] outline-none focus:border-[var(--ink)] md:text-[14px]"
-              />
-              <p className="mt-2 text-[13px] text-[var(--slate)]">
-                ## heading · **bold** · *italic* · [text](link) · - list · &gt; quote · a blank line between paragraphs · {readMinutes(p.body)} min read
-              </p>
-            </>
-          ) : (
-            <div className="mt-4 min-h-[460px] space-y-5 rounded-2xl border border-[var(--line)] p-5 text-[17px] leading-[1.75] text-[#2a2c3d]">
-              {p.body.trim() ? <Markdown source={p.body} /> : <p className="text-[var(--slate)]">Nothing written yet.</p>}
-            </div>
-          )}
-        </section>
+          <SeoPanel p={p} set={set} posts={posts} selfId={id} />
+        </div>
 
         <aside className="space-y-4">
           <div className="rounded-[22px] border border-[var(--line)] bg-white p-5">
@@ -316,6 +369,7 @@ function PostEditor({ initial, onDone }: { initial: { id: string | null; p: Post
           </button>
         </aside>
       </div>
+      <LinkPicker open={linking} onClose={() => setLinking(false)} onPick={insertLink} posts={posts} selfId={id} />
     </>
   );
 }

@@ -6,18 +6,22 @@ import FooterSection from "../home/components/FooterSection";
 import { formatDate } from "@/pages/account/portal/format";
 import Markdown from "./Markdown";
 import { PostCover, PostMeta } from "./page";
-import { loadPost, loadPublishedPosts, readMinutes, type BlogPost } from "./blogApi";
+import { loadPost, loadPublishedPosts, readMinutes, seoDescription, seoTitle, type BlogPost } from "./blogApi";
 
 // /blog/:slug — one article: title, cover, the story, sharing, and more to read.
 // Drafts open too for staff (RLS lets only them read unpublished posts).
 
+// The server sends these tags already (api/_lib/blog-page.ts) for search engines and link
+// previews; this keeps them right when someone moves between articles in the app.
 function setHeadMeta(post: BlogPost) {
-  document.title = `${post.title} — The RSVP Studio`;
-  const desc = post.excerpt ?? "";
+  document.title = `${seoTitle(post)} — The RSVP Studio`;
+  const desc = seoDescription(post);
+  const url = `https://thersvpstudio.com/blog/${post.slug}`;
   for (const [sel, attr, key, val] of [
     ['meta[name="description"]', "name", "description", desc],
-    ['meta[property="og:title"]', "property", "og:title", post.title],
+    ['meta[property="og:title"]', "property", "og:title", seoTitle(post)],
     ['meta[property="og:description"]', "property", "og:description", desc],
+    ['meta[property="og:url"]', "property", "og:url", url],
     ...(post.cover_url ? [['meta[property="og:image"]', "property", "og:image", post.cover_url] as const] : []),
   ] as const) {
     let el = document.head.querySelector<HTMLMetaElement>(sel);
@@ -28,6 +32,13 @@ function setHeadMeta(post: BlogPost) {
     }
     el.content = val;
   }
+  let canon = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (!canon) {
+    canon = document.createElement("link");
+    canon.rel = "canonical";
+    document.head.appendChild(canon);
+  }
+  canon.href = url;
 }
 
 export default function BlogPostPage() {

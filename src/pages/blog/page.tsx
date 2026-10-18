@@ -13,6 +13,7 @@ const PAGE = 9;
 
 const demoPost = (slug: string, title: string, excerpt: string, category: string, date: string, words: number, featured = false): BlogPost => ({
   id: slug, slug, title, excerpt, category, featured, body: "word ".repeat(words), cover_url: null, cover_alt: null, author: "The RSVP Studio",
+  seo_title: null, seo_description: null, focus_keyword: null,
   status: "published", published_at: date, created_at: date, updated_at: date,
 });
 const DEMO_POSTS: BlogPost[] = [

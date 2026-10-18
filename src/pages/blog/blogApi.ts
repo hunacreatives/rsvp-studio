@@ -17,6 +17,10 @@ export type BlogPost = {
   cover_alt: string | null;
   author: string;
   featured: boolean;
+  /** Search engines and link previews (supabase/blog-seo.sql). Blank = title / excerpt. */
+  seo_title: string | null;
+  seo_description: string | null;
+  focus_keyword: string | null;
   status: "draft" | "published";
   published_at: string | null;
   created_at: string;
@@ -35,7 +39,11 @@ export const slugify = (s: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
 
-const COLS = "id, slug, title, excerpt, body, category, cover_url, cover_alt, author, featured, status, published_at, created_at, updated_at";
+const COLS = "id, slug, title, excerpt, body, category, cover_url, cover_alt, author, featured, seo_title, seo_description, focus_keyword, status, published_at, created_at, updated_at";
+
+/** What Google and link previews show: the SEO fields, else the title and excerpt. */
+export const seoTitle = (p: Pick<BlogPost, "seo_title" | "title">) => p.seo_title?.trim() || p.title;
+export const seoDescription = (p: Pick<BlogPost, "seo_description" | "excerpt">) => p.seo_description?.trim() || p.excerpt?.trim() || "";
 
 let publishedCache: Promise<BlogPost[] | null> | null = null;
 /** Published posts, newest first. null = the blog isn't set up yet. Cached per page load. */
@@ -57,7 +65,10 @@ export async function loadAllPosts(): Promise<BlogPost[] | null> {
   return error ? null : ((data ?? []) as BlogPost[]);
 }
 
-export type PostInput = Pick<BlogPost, "slug" | "title" | "excerpt" | "body" | "category" | "cover_url" | "cover_alt" | "author" | "featured" | "status" | "published_at">;
+export type PostInput = Pick<
+  BlogPost,
+  "slug" | "title" | "excerpt" | "body" | "category" | "cover_url" | "cover_alt" | "author" | "featured" | "seo_title" | "seo_description" | "focus_keyword" | "status" | "published_at"
+>;
 
 export async function savePost(id: string | null, p: PostInput): Promise<string> {
   const row = { ...p, updated_at: new Date().toISOString() };
