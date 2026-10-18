@@ -256,6 +256,10 @@ const DEMO_GUESTS: api.Guest[] = [
   { id: "g1", name: "Maria Santos", email: "maria@example.com", message: "Can’t wait to celebrate with you both!", created_at: new Date().toISOString(), attending: true, guest_count: 2, dietary: "Vegetarian" },
   { id: "g2", name: "Paolo Cruz", email: "paolo@example.com", message: null, created_at: new Date(Date.now() - 86_400_000).toISOString(), attending: false, guest_count: 0 },
   { id: "g3", name: "Bea Reyes", email: "bea@example.com", message: "See you there 💛", created_at: new Date(Date.now() - 3 * 86_400_000).toISOString(), attending: true, guest_count: 1 },
+  { id: "g4", name: "Miguel Tan", email: "miguel@example.com", message: null, created_at: new Date(Date.now() - 4 * 86_400_000).toISOString(), attending: true, guest_count: 2, dietary: "No seafood" },
+  { id: "g5", name: "Carla Villanueva", email: "carla@example.com", message: "Congratulations, Nikki and Alan!", created_at: new Date(Date.now() - 5 * 86_400_000).toISOString(), attending: true, guest_count: 1 },
+  { id: "g6", name: "Josh Ramos", email: "josh@example.com", message: "So sorry, we’ll be abroad. Sending love!", created_at: new Date(Date.now() - 6 * 86_400_000).toISOString(), attending: false, guest_count: 0 },
+  { id: "g7", name: "Andrea Lim", email: "andrea@example.com", message: null, created_at: new Date(Date.now() - 8 * 86_400_000).toISOString(), attending: true, guest_count: 3 },
 ];
 
 function GuestsTab({ project }: { project: Project }) {

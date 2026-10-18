@@ -11,8 +11,11 @@ type Props = {
   eyebrow?: string;
   title: ReactNode;
   subtitle: string;
-  ctaLabel: string;
-  ctaTo: string;
+  /** Optional: a page hero can be just the words. */
+  ctaLabel?: string;
+  ctaTo?: string;
+  /** h1 when the band is the page's hero (e.g. Services); h2 otherwise. */
+  as?: "h1" | "h2";
   /** A second button beside the first, same weight (e.g. one per audience). */
   secondCta?: { label: string; to: string };
   /** background photo */
@@ -33,6 +36,7 @@ export default function ImageBand({
   image,
   bg,
   blur,
+  as: Heading = "h2",
 }: Props) {
   const navigate = useNavigate();
   const root = useRef<HTMLDivElement | null>(null);
@@ -87,8 +91,9 @@ export default function ImageBand({
         {eyebrow && (
           <p className="eyebrow !text-white/70 mb-4">{eyebrow}</p>
         )}
-        <h2 className="h-section text-white mx-auto max-w-3xl [text-shadow:0_2px_24px_rgba(0,7,39,0.35)]">{title}</h2>
+        <Heading className="h-section text-white mx-auto max-w-3xl [text-shadow:0_2px_24px_rgba(0,7,39,0.35)]">{title}</Heading>
         <p className="mt-4 text-white/90 [text-shadow:0_1px_12px_rgba(0,7,39,0.4)] text-base md:text-lg mx-auto max-w-xl">{subtitle}</p>
+        {ctaLabel && ctaTo ? (
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           {[{ label: ctaLabel, to: ctaTo }, ...(secondCta ? [secondCta] : [])].map((c) => (
             <button
@@ -100,6 +105,7 @@ export default function ImageBand({
             </button>
           ))}
         </div>
+        ) : null}
       </div>
     </section>
   );

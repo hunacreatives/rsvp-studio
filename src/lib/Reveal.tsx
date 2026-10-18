@@ -8,6 +8,8 @@ type RevealProps = {
   /** stagger delay in seconds */
   delay?: number;
   style?: React.CSSProperties;
+  /** anchor target (e.g. for #section links) */
+  id?: string;
 };
 
 /**
@@ -22,6 +24,7 @@ export function Reveal({
   className,
   delay = 0,
   style,
+  id,
 }: RevealProps) {
   const Tag = (as ?? "div") as ElementType;
   const ref = useRef<HTMLElement | null>(null);
@@ -64,7 +67,7 @@ export function Reveal({
   }, [delay]);
 
   return (
-    <Tag ref={ref} data-reveal className={className} style={style}>
+    <Tag ref={ref} id={id} data-reveal className={className} style={style}>
       {children}
     </Tag>
   );

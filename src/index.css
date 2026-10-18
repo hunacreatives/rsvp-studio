@@ -290,10 +290,10 @@ html.lenis body {
 
 /* Card 2: a cover slides off each value like it's being typed */
 .hw .hw-type { transform-box: view-box; transform-origin: 0 0; }
-.hw-type { animation: 10s infinite; }
-.hw-type--1 { animation-name: hw-type-1; }
-.hw-type--2 { animation-name: hw-type-2; }
-.hw-type--3 { animation-name: hw-type-3; }
+/* Full shorthand per field: a nameless `animation: 10s infinite` is minified to `none` in the build. */
+.hw-type--1 { animation: hw-type-1 10s infinite; }
+.hw-type--2 { animation: hw-type-2 10s infinite; }
+.hw-type--3 { animation: hw-type-3 10s infinite; }
 @keyframes hw-type-1 {
   0%, 4% { transform: translateX(0); animation-timing-function: steps(7, end); }
   14%, 94% { transform: translateX(212px); }
@@ -309,10 +309,10 @@ html.lenis body {
   60%, 94% { transform: translateX(332px); }
   94.5%, 100% { transform: translateX(0); }
 }
-.hw-caret { opacity: 0; animation: 10s step-end infinite; }
-.hw-caret--1 { animation-name: hw-caret-1; }
-.hw-caret--2 { animation-name: hw-caret-2; }
-.hw-caret--3 { animation-name: hw-caret-3; }
+.hw-caret { opacity: 0; }
+.hw-caret--1 { animation: hw-caret-1 10s step-end infinite; }
+.hw-caret--2 { animation: hw-caret-2 10s step-end infinite; }
+.hw-caret--3 { animation: hw-caret-3 10s step-end infinite; }
 @keyframes hw-caret-1 { 0% { opacity: 1; } 17% { opacity: 0; } }
 @keyframes hw-caret-2 { 0% { opacity: 0; } 17% { opacity: 1; } 39% { opacity: 0; } }
 @keyframes hw-caret-3 {
@@ -446,6 +446,31 @@ html.lenis body {
   .hw svg *, .hw-guest { animation: none !important; }
   .hw-rsvp-cursor, .hw-rsvp-ripple { display: none; }
   .hw-cover, .hw-caret, .hw-eye-r { display: none; }
+}
+
+/* Services: monogram seals — a gentle drift, and light catching the wax every few seconds */
+.svc-mono { position: relative; animation: svc-mono-float 6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes svc-mono-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(-0.8deg); }
+}
+.svc-mono-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.65) 50%, transparent 62%) no-repeat;
+  background-size: 260% 100%;
+  -webkit-mask: url(/services/page/monogram.webp) center / 100% 100% no-repeat;
+  mask: url(/services/page/monogram.webp) center / 100% 100% no-repeat;
+  animation: svc-mono-shine 4.8s ease-in-out infinite 1s;
+}
+@keyframes svc-mono-shine {
+  0% { background-position: 130% 0; }
+  45%, 100% { background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .svc-mono, .svc-mono-shine { animation: none; }
+  .svc-mono-shine { display: none; }
 }
 
 /* Reveal-on-scroll — GSAP toggles [data-revealed] */
