@@ -289,6 +289,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
                 <br />
                 <span style={{ whiteSpace: "nowrap" }}>and watch the RSVPs roll in.</span>
               </p>
+              <p style={{ position: "relative", margin: "14px 0 0", fontFamily: "Georgia, 'Times New Roman', serif", fontStyle: "italic", fontSize: 15, color: "#2f61d5" }}>Your celebration is our celebration, too.</p>
             </div>
 
             {/* Their link: the thing to share. */}

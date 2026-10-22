@@ -45,7 +45,10 @@ export default function FooterSection() {
               alt="The RSVP Studio"
               className="h-12 w-auto"
             />
-            <p className="mt-5 max-w-xs text-[15px] md:text-sm leading-relaxed text-white/65">
+            <p className="mt-5 max-w-xs font-display text-[17px] italic leading-snug text-white/90">
+              Your celebration is our celebration, too.
+            </p>
+            <p className="mt-3 max-w-xs text-[15px] md:text-sm leading-relaxed text-white/65">
               Interactive digital invitations and event websites for life's most
               meaningful milestones.
             </p>

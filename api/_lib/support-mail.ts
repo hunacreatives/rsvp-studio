@@ -39,6 +39,8 @@ export function makeSendMail(resend: Resend | null) {
 // Customer emails also carry a small "more from The RSVP Studio" card (an ad for what
 // else we make); emails only the team receives pass { ad: false }.
 const SITE_URL = "https://thersvpstudio.com";
+/** Our sign-off on emails to hosts and clients (never on guests' emails: those are the couple's). */
+export const TAGLINE = `<p style="margin:0 0 18px;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;line-height:1.5;color:#4a4b63 !important;">Your celebration is our celebration, too.</p>`;
 function moreFromUs() {
   const link = (label: string, path: string) => `<a href="${SITE_URL}${path}" style="color:#2f61d5 !important;text-decoration:none;">${label}</a>`;
   return `<tr><td style="padding-top:30px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" bgcolor="#eef3ff" style="background:#eef3ff;border-radius:18px;padding:22px 20px;text-align:center;">
@@ -69,6 +71,7 @@ ${cta ? `<tr><td align="${align}" style="padding-top:26px;"><table role="present
 ${opts.ad === false ? "" : moreFromUs()}
 </table></td></tr>
 <tr><td align="center" style="padding:0 32px 32px;">
+${opts.ad === false ? "" : TAGLINE}
 <table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>
 <p style="margin:18px 0 12px;font-size:12px;"><a href="https://www.instagram.com/rsvpstudioo/" style="${muted}">Instagram</a>&nbsp;&middot;&nbsp;<a href="https://www.facebook.com/p/The-RSVP-Studio-61590604769707/" style="${muted}">Facebook</a></p>
 <p style="margin:0 0 12px;font-size:12px;"><a href="${SITE_URL}" style="${muted}">The RSVP Studio</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/services" style="${muted}">Services</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/portfolio" style="${muted}">Our work</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/faqs" style="${muted}">FAQs</a></p>

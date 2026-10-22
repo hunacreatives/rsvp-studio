@@ -1,5 +1,6 @@
 import { esc } from "./email.js";
 import { partnerLayout } from "./support-mail.js";
+import { TAGLINE } from "./support-mail.js";
 
 // The "we got it" email someone receives after sending a form (api/enquire.ts).
 //   project-inquiry → "We got your RSVP": an RSVP-style reply card with what they asked
@@ -26,7 +27,7 @@ export const CORAL = "#ff7052";
 
 /** The branded email: logo, an illustration, the content rows, links and a footer line.
  *  Also used by the follow-up emails (followup-mail.ts), which pass their own footer. */
-export function frame({ preheader, spot, spotAlt, content, footer = "You received this email because you sent us a message on thersvpstudio.com.", cover }: { preheader: string; spot: string; spotAlt: string; content: string; footer?: string; cover?: string }) {
+export function frame({ preheader, spot, spotAlt, content, footer = "You received this email because you sent us a message on thersvpstudio.com.", cover, tagline = true }: { preheader: string; spot: string; spotAlt: string; content: string; footer?: string; cover?: string; /** Our sign-off; off for guests' emails (those are the couple's). */ tagline?: boolean }) {
   return `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light" /><meta name="supported-color-schemes" content="light" />
 <style>:root{color-scheme:light only;supported-color-schemes:light only}
@@ -42,6 +43,7 @@ ${cover
   : `<tr><td align="center" style="padding:22px 32px 4px;"><img src="${SITE}/email/${spot}" alt="${spotAlt}" width="200" style="display:block;width:200px;height:auto;border:0;" /></td></tr>`}
 ${content}
 <tr><td align="center" style="padding:0 32px 36px;">
+${tagline ? TAGLINE : ""}
 <table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>
 <p class="fs" style="margin:20px 0 14px;font-size:12px;color:${SLATE}!important;"><a href="https://www.instagram.com/rsvpstudioo/" class="fs" style="color:${SLATE}!important;text-decoration:none;">Instagram</a>&nbsp;&middot;&nbsp;<a href="https://www.facebook.com/p/The-RSVP-Studio-61590604769707/" class="fs" style="color:${SLATE}!important;text-decoration:none;">Facebook</a></p>
 <p class="fs" style="margin:0 0 14px;font-size:12px;color:${SLATE}!important;"><a href="${SITE}" class="fs" style="color:${SLATE}!important;text-decoration:none;">The RSVP Studio</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE}/services" class="fs" style="color:${SLATE}!important;text-decoration:none;">Services</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE}/portfolio" class="fs" style="color:${SLATE}!important;text-decoration:none;">Our work</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE}/faqs" class="fs" style="color:${SLATE}!important;text-decoration:none;">FAQs</a></p>

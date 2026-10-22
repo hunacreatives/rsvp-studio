@@ -177,6 +177,7 @@ export function guestConfirmation(
     return {
       subject: `Thank you for letting us know — ${b.hostsPlain}`,
       html: frame({
+      tagline: false,
         preheader: `Your reply has been sent to ${esc(b.hostsPlain)}.`,
         spot: "confirm-spot.png",
         spotAlt: b.cover ? esc(o.eventName) : "An RSVP card in an envelope",
@@ -200,6 +201,7 @@ ${makeYourOwn}
   return {
     subject: `You’re on the list — ${b.hostsPlain}`,
     html: frame({
+      tagline: false,
       preheader: b.when ? `${b.when.long}${b.venue ? ` · ${esc(b.venue)}` : ""}. Save the date.` : "Your RSVP is in.",
       spot: "confirm-spot.png",
       spotAlt: b.cover ? esc(o.eventName) : "An RSVP card in an envelope",
@@ -233,6 +235,7 @@ export function guestReminder(o: Common & { guestCount: number | null; photos?: 
   return {
     subject: `See you on ${weekday}, ${o.guestName.trim().split(/\s+/)[0] || "friend"}`,
     html: frame({
+      tagline: false,
       preheader: `${b.when ? `${b.when.long}${b.when.time ? ` · ${b.when.time}` : ""}` : ""}${b.venue ? ` · ${esc(b.venue)}` : ""}. Directions and details inside.`,
       spot: "confirm-spot.png",
       spotAlt: b.cover ? esc(o.eventName) : "An RSVP card in an envelope",

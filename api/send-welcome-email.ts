@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { esc, sendChecked } from "./_lib/email.js";
+import { TAGLINE } from "./_lib/support-mail.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -90,6 +91,7 @@ function renderEmail(firstName: string) {
             <!-- Footer (shared with the verify email) -->
             <tr>
               <td align="center" style="padding:0 32px 36px;">
+                ${TAGLINE}
                 <table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>
                 <p class="force-slate" style="margin:20px 0 14px;font-size:12px;color:#868697 !important;">
                   <a href="https://www.instagram.com/rsvpstudioo/" class="force-slate" style="color:#868697 !important;text-decoration:none;">Instagram</a>
