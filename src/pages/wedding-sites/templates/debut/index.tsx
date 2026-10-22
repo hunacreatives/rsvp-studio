@@ -19,6 +19,7 @@ export const debutTemplateDefinition: TemplateDefinition<BaseTemplateSettings> =
   label: "Debut",
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/debut/thumbnail.jpg",
+  cardImage: "/event-templates/cards/debut.webp",
   component: DebutTemplate,
   defaultSettings,
   tier: "free",

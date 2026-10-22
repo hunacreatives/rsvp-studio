@@ -16,6 +16,7 @@ export const scrapbookTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   label: "Scrapbook",
   archetype: "scrapbook",
   previewThumbnailUrl: "/event-templates/scrapbook/thumbnail.jpg",
+  cardImage: "/event-templates/cards/scrapbook.webp",
   component: ScrapbookTemplate,
   defaultSettings,
   tier: "premium",

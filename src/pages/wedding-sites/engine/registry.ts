@@ -80,6 +80,12 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
    * templates.event_types (Studio → Templates). Empty or missing: any event.
    */
   occasions?: string[];
+  /**
+   * A still of the design's first screen for the gallery cards (/build and the account
+   * picker), made by scripts/template-cards.mjs. Without it the card renders the template
+   * live, which is heavy with many cards on one page.
+   */
+  cardImage?: string;
   /** False for a design no longer offered (it still renders existing sites). Only matters when
    *  the database catalog can't load; otherwise templates.status decides. */
   offered?: boolean;

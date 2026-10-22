@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { resolveEventTheme } from "../../engine/theme";
+import { palettes } from "../../presentation/palettes";
 import type { TemplateDefinition } from "../../engine/registry";
 import { isPhoneNow } from "../useIsPhone";
 
@@ -25,6 +26,22 @@ const navLabels = ["Story", "Schedule", "Gallery", "RSVP"];
 const DEMO_WIDTH = 1100;
 
 export default function TemplateMockupPreview({ template }: TemplateMockupPreviewProps) {
+  // A still of the design (scripts/template-cards.mjs): cheap enough for a page of cards. Before
+  // the theme below, which would also download the design's fonts the still doesn't need.
+  if (template.cardImage) {
+    return (
+      <img
+        src={template.cardImage}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        decoding="async"
+        width={960}
+        height={720}
+        style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", objectPosition: "top", background: palettes.find((p) => p.id === template.defaultSettings.paletteId)?.swatches[0] }}
+      />
+    );
+  }
   const theme = resolveEventTheme(template.defaultSettings);
 
   // A template that ships demo content previews as its REAL self —

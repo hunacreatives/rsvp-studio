@@ -18,6 +18,7 @@ export const openPlayTemplateDefinition: TemplateDefinition<BaseTemplateSettings
   label: "Open Play",
   archetype: "editorial",
   previewThumbnailUrl: "/event-templates/open-play/demo/play-1.webp",
+  cardImage: "/event-templates/cards/open-play.webp",
   component: OpenPlayTemplate,
   defaultSettings,
   tier: "premium",

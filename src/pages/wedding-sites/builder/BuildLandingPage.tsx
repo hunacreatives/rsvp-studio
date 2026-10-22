@@ -188,9 +188,17 @@ export default function BuildLandingPage() {
               ) : null}
             </div>
             {!ready && !templates.length ? (
-              <ul className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3" aria-hidden>
-                {[0, 1, 2].map((i) => (
-                  <li key={i} className="aspect-[4/3] animate-pulse rounded-[14px] bg-[var(--paper)] sm:rounded-[22px]" />
+              // The same grid and card height as the real cards (image, then name and price), and
+              // enough of them to fill the screen, so nothing jumps when the designs arrive.
+              <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3" aria-hidden>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <li key={i}>
+                    <span className="block aspect-[4/3] animate-pulse rounded-[14px] bg-[var(--paper)] sm:rounded-[22px]" />
+                    <span className="invisible mt-2 flex flex-col sm:mt-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                      <span className="font-display text-[15px] font-semibold leading-snug sm:text-[1.2rem]">Design</span>
+                      <span className="text-[13px] sm:text-[14px]">Free</span>
+                    </span>
+                  </li>
                 ))}
               </ul>
             ) : (

@@ -27,6 +27,7 @@ export const editorialFormalTemplateDefinition: TemplateDefinition<EditorialForm
   label: "Editorial Formal",
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/editorial-formal/thumbnail.jpg",
+  cardImage: "/event-templates/cards/editorial-formal.webp",
   component: EditorialFormalTemplate,
   defaultSettings,
   tier: "free",

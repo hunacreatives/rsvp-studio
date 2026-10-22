@@ -4,6 +4,7 @@ import { useTemplateCatalog } from "../engine/catalog";
 import { getTemplateDefinition } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
 import { SiteCreditProvider } from "../engine/siteCredit";
+import { scrollToTopNow } from "@/lib/lenis";
 import { normalizeEventContent } from "../content/normalize";
 import { isabellaAndMateo } from "../content/fixtures/isabella-and-mateo";
 
@@ -20,7 +21,7 @@ export default function TemplatePreviewPage() {
   const resolved = definition ? resolveTemplate({ activeTemplateId: templateId, byTemplate: {} }) : undefined;
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollToTopNow();
   }, [templateId]);
 
   if (!definition || !resolved) {

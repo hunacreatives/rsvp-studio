@@ -19,6 +19,7 @@ export const loveLetterTemplateDefinition: TemplateDefinition<BaseTemplateSettin
   label: "Love Letter",
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/love-letter/thumbnail.jpg",
+  cardImage: "/event-templates/cards/love-letter.webp",
   component: LoveLetterTemplate,
   defaultSettings,
   tier: "free",

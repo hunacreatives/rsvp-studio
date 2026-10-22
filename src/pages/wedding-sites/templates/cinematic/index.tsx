@@ -18,6 +18,7 @@ export const cinematicTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   label: "Cinematic",
   archetype: "cinematic",
   previewThumbnailUrl: "/event-templates/cinematic/thumbnail.jpg",
+  cardImage: "/event-templates/cards/cinematic.webp",
   component: CinematicTemplate,
   defaultSettings,
   tier: "premium",

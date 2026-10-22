@@ -20,6 +20,7 @@ export const pickleballTemplateDefinition: TemplateDefinition<BaseTemplateSettin
   label: "Pickleball",
   archetype: "editorial",
   previewThumbnailUrl: "/event-templates/pickleball/thumbnail.jpg",
+  cardImage: "/event-templates/cards/pickleball.webp",
   component: PickleballTemplate,
   defaultSettings,
   tier: "free",

@@ -12,7 +12,7 @@ import { capizDemo } from "../content/fixtures/capiz-demo";
 import { debutDemo } from "../content/fixtures/debut-demo";
 import { loveLetterDemo } from "../content/fixtures/love-letter-demo";
 import { promenadeDemo } from "../content/fixtures/promenade-demo";
-import { listTemplateDefinitions } from "../engine/registry";
+import { getTemplateDefinition, listTemplateDefinitions } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
 import type { PresentationState } from "../presentation/types";
 import { parseSpec } from "../spec/schema";
@@ -79,7 +79,8 @@ export default function PreviewHarnessPage() {
   const previewWidth = widthParam ? Number(widthParam) : undefined;
 
   const templates = listTemplateDefinitions();
-  const rawFixture = fixtures[fixtureId] ?? scrapbookDemoWedding;
+  // fixture=demo: the template's own sample (what its gallery card shows).
+  const rawFixture = fixtureId === "demo" ? getTemplateDefinition(templateId)?.demoContent ?? scrapbookDemoWedding : fixtures[fixtureId] ?? scrapbookDemoWedding;
   const content = normalizeEventContent(rawFixture);
   const sample = specSamples[templateId];
   const parsed = sample ? parseSpec(sample.spec) : undefined;
@@ -197,7 +198,7 @@ export default function PreviewHarnessPage() {
       ) : resolved && !specDefinition && searchParams.get("panel") === "1" ? (
         <HarnessEditor key={`${templateId}:${fixtureId}`} initial={content} templateId={templateId} />
       ) : resolved ? (
-        <div style={{ width: previewWidth ?? "100%", maxWidth: "100%", margin: "0 auto" }}>
+        <div data-harness-render data-gallery-width={resolved.definition.galleryWidth ?? 1100} style={{ width: previewWidth ?? "100%", maxWidth: "100%", margin: "0 auto" }}>
           <resolved.definition.component content={content} settings={resolved.settings} editorPreview={editorPreview} live={searchParams.get("live") === "1"} demo={searchParams.get("demo") === "1"} gallery={searchParams.get("gallery") === "1"} />
         </div>
       ) : (

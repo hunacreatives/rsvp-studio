@@ -18,6 +18,7 @@ export const promenadeTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   label: "Promenade",
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/promenade/thumbnail.jpg",
+  cardImage: "/event-templates/cards/promenade.webp",
   component: PromenadeTemplate,
   defaultSettings,
   tier: "free",

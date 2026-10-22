@@ -20,6 +20,7 @@ export const modernMinimalTemplateDefinition: TemplateDefinition<BaseTemplateSet
   label: "Modern Minimal",
   archetype: "modern-minimal",
   previewThumbnailUrl: "/event-templates/modern-minimal/thumbnail.jpg",
+  cardImage: "/event-templates/cards/modern-minimal.webp",
   component: ModernMinimalTemplate,
   defaultSettings,
   tier: "free",
