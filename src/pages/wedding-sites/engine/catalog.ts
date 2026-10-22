@@ -30,6 +30,7 @@ type TemplateRow = {
   sort: number;
   current_version_id: string | null;
   thumbnail_url: string | null;
+  event_types: string[] | null;
 };
 type VersionRow = { id: string; template_id: string; spec: unknown; demo_content: unknown };
 
@@ -39,7 +40,7 @@ export function loadTemplateCatalog(): Promise<void> {
     try {
       const { data: rows, error } = await supabase
         .from("templates")
-        .select("id, label, kind, tier, status, sort, current_version_id, thumbnail_url");
+        .select("id, label, kind, tier, status, sort, current_version_id, thumbnail_url, event_types");
       if (error || !rows) throw error ?? new Error("no catalog");
       const templates = rows as TemplateRow[];
       const versionIds = templates.filter((t) => t.kind === "spec" && t.current_version_id).map((t) => t.current_version_id as string);
@@ -77,6 +78,7 @@ export function loadTemplateCatalog(): Promise<void> {
           sort: t.sort,
           currentVersionId: t.current_version_id,
           thumbnailUrl: t.thumbnail_url,
+          eventTypes: t.event_types ?? [],
         })),
         specDefs,
       );
@@ -106,5 +108,7 @@ export function useTemplateCatalog() {
     loadTemplateCatalog();
   }, []);
   useSyncExternalStore(subscribeTemplates, templatesVersion);
-  return { ready, templates: listTemplateDefinitions() };
+  // Nothing until the catalog has loaded: the built-in list includes designs the catalog
+  // hides (Botanical), which would flash in the gallery for a moment.
+  return { ready, templates: ready ? listTemplateDefinitions() : [] };
 }

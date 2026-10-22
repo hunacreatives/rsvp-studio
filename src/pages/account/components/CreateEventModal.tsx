@@ -6,6 +6,8 @@ import CharacterLoader from "@/components/CharacterLoader";
 import * as api from "@/pages/account/portal/api";
 import CreateEventForm from "./CreateEventForm";
 import { useCreateEvent, type CreateEventInput, type EventType } from "../useCreateEvent";
+import { useTemplateCatalog } from "@/pages/wedding-sites/engine/catalog";
+import { getTemplateDefinition, templateFitsEvent } from "@/pages/wedding-sites/engine/registry";
 
 interface CreateEventModalProps {
   onClose: () => void;
@@ -28,6 +30,15 @@ const EVENT_TYPES: { type: EventType; label: string; icon: string }[] = [
 export default function CreateEventModal({ onClose, templateId }: CreateEventModalProps) {
   const [eventType, setEventType] = useState<EventType | null>(null);
   const { createEvent, status, errorDetail } = useCreateEvent();
+  // A design picked on /build is for certain kinds of event (Studio → Templates): only those
+  // are offered, and with just one the question is skipped.
+  const { ready: catalogReady } = useTemplateCatalog();
+  const picked = templateId ? getTemplateDefinition(templateId) : undefined;
+  const eventTypes = picked ? EVENT_TYPES.filter((o) => templateFitsEvent(picked, o.type)) : EVENT_TYPES;
+  const onlyType = catalogReady && picked && eventTypes.length === 1 ? eventTypes[0].type : null;
+  useEffect(() => {
+    if (onlyType && eventType === null) setEventType(onlyType);
+  }, [onlyType, eventType]);
   const navigate = useNavigate();
   // Free accounts: 3 projects at a time (supabase/free-limits.sql). At the limit,
   // offer to make one Premium (which frees its slot) or delete one.
@@ -101,7 +112,7 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
           <i className="ri-close-line text-2xl" />
         </button>
 
-        {freeProjects === undefined ? (
+        {freeProjects === undefined || (templateId && !catalogReady) ? (
           <CharacterLoader message="One moment…" />
         ) : atLimit ? (
           <>
@@ -145,7 +156,7 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
               What kind of event would you like to create?
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-1">
-              {EVENT_TYPES.map((option) => (
+              {eventTypes.map((option) => (
                 <button
                   key={option.type}
                   onClick={() => setEventType(option.type)}
@@ -162,7 +173,7 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
           <>
             <CreateEventForm
               eventType={eventType}
-              onBack={() => setEventType(null)}
+              onBack={onlyType ? onClose : () => setEventType(null)}
               onSubmit={handleSubmit}
               submitting={status === "creating"}
             />

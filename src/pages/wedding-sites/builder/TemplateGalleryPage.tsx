@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/pages/home/components/Navbar";
-import { type TemplateArchetype, type TemplateDefinition } from "../engine/registry";
+import { templateFitsEvent, type TemplateArchetype, type TemplateDefinition } from "../engine/registry";
 import { useTemplateCatalog } from "../engine/catalog";
 import type { PresentationState } from "../presentation/types";
 import { useEventSiteDraft } from "./useEventSiteDraft";
@@ -119,8 +119,9 @@ export default function TemplateGalleryPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { status, errorDetail, presentation, setPresentation, save } = useEventSiteDraft(eventId);
-  const { templates } = useTemplateCatalog();
-  const [eventType, setEventType] = useState<string | null>(null);
+  const { templates, ready: catalogReady } = useTemplateCatalog();
+  // undefined until the event loads, so the gallery never flashes designs for another kind of event.
+  const [eventType, setEventType] = useState<string | null | undefined>(undefined);
   const [archetypeFilter, setArchetypeFilter] = useState<TemplateArchetype | "all">("all");
   const [opening, setOpening] = useState<string | null>(null);
 
@@ -135,19 +136,21 @@ export default function TemplateGalleryPage() {
   }, [eventId]);
 
   const subtitle = `${EVENT_TYPE_LABEL[eventType ?? ""] ?? "Event"} Website`;
-  const archetypes = Array.from(new Set(templates.map((t) => t.archetype)));
-  const visibleTemplates = templates.filter((t) => archetypeFilter === "all" || t.archetype === archetypeFilter);
+  // Each design is for certain kinds of event (Studio → Templates): only those are offered.
+  const forEvent = eventType === undefined ? [] : templates.filter((t) => templateFitsEvent(t, eventType));
+  const archetypes = Array.from(new Set(forEvent.map((t) => t.archetype)));
+  const visibleTemplates = forEvent.filter((t) => archetypeFilter === "all" || t.archetype === archetypeFilter);
 
   // Picked on /build before the event existed (?template=…): choose it straight away.
   const [params] = useSearchParams();
   const preselect = params.get("template");
   const preselected = useRef(false);
   useEffect(() => {
-    if (preselected.current || !preselect || status !== "ready" || !templates.some((t) => t.id === preselect)) return;
+    if (preselected.current || !preselect || status !== "ready" || !forEvent.some((t) => t.id === preselect)) return;
     preselected.current = true;
     void chooseTemplate(preselect);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preselect, status, templates]);
+  }, [preselect, status, templates, eventType]);
 
   async function chooseTemplate(templateId: string) {
     // Saving can take a moment on mobile data: show "Opening…" and ignore repeat taps.
@@ -225,7 +228,7 @@ export default function TemplateGalleryPage() {
           ))}
         </div>
 
-        {status === "loading" ? (
+        {status === "loading" || eventType === undefined || !catalogReady ? (
           <p className="mt-10 text-center" style={{ color: "var(--slate)" }}>
             Loading&hellip;
           </p>

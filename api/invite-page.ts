@@ -16,45 +16,57 @@ import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_
 const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_ANON_KEY!);
 let shell: { html: string; at: number } | null = null;
 
+type Img = { masterUrl?: string; width?: number; height?: number; alt?: string };
 type Content = {
   hosts?: { name?: string }[];
   eventDate?: string;
   occasion?: string;
   primaryLocation?: { name?: string; addressLine?: string };
-  galleries?: { items?: { image?: { masterUrl?: string } }[] }[];
+  galleries?: { items?: { order?: number; image?: Img }[] }[];
 };
 
-const INVITE: Record<string, string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary" };
+const KIND: Record<string, string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary" };
 
-function describe(c: Content) {
-  const names = (c.hosts ?? []).map((h) => h.name?.trim()).filter(Boolean).join(" & ");
-  const kind = c.occasion && INVITE[c.occasion] ? `${INVITE[c.occasion]} ` : "";
-  const title = names ? `${names} — You’re Invited` : "You’re Invited";
-  let when = "";
-  if (c.eventDate && /^\d{4}-\d{2}-\d{2}/.test(c.eventDate)) {
-    const d = new Date(`${c.eventDate.slice(0, 10)}T00:00:00Z`);
-    when = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
-  }
-  const where = c.primaryLocation?.name || c.primaryLocation?.addressLine || "";
-  const description = [`${kind}celebration${names ? ` of ${names}` : ""}`, when, where].filter(Boolean).join(" · ") + ". Tap to see the details and RSVP. Made with love by The RSVP Studio.";
-  return { title, description: description.charAt(0).toUpperCase() + description.slice(1) };
+/** "Ana & Ben", or "Ana, Ben & Cy". */
+const joinNames = (n: string[]) => (n.length > 2 ? `${n.slice(0, -1).join(", ")} & ${n[n.length - 1]}` : n.join(" & "));
+
+/** "Saturday, December 4, 2027" from the event's date (no time zone games: the date as written). */
+function longDate(iso?: string) {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return "";
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
-type Std = { names?: string[]; occasion?: string; eventDate?: string; venue?: string; image?: { url?: string } };
-const STD_KIND: Record<string, string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary" };
+// The preview card: names in the title; the description is the facts a guest looks for
+// (what, when, where) and kept under ~110 characters, where Messenger and Facebook cut it.
+function describe(c: Content, ended: boolean) {
+  const names = joinNames((c.hosts ?? []).map((h) => h.name?.trim() ?? "").filter(Boolean));
+  const title = names ? `${names} — You’re Invited` : "You’re Invited";
+  const loc = c.primaryLocation;
+  // The town from the address: "Tagaytay, Cavite" → Tagaytay; "32nd Street, BGC, Taguig" → Taguig.
+  const parts = (loc?.addressLine ?? "").split(",").map((p) => p.trim()).filter(Boolean);
+  const town = parts.length >= 3 ? parts[parts.length - 1] : parts[0] ?? "";
+  const where = loc?.name?.trim() ? (town && !loc.name.includes(town) ? `${loc.name.trim()}, ${town}` : loc.name.trim()) : loc?.addressLine?.trim() ?? "";
+  const facts = [c.occasion ? KIND[c.occasion] ?? "" : "", longDate(c.eventDate), where].filter(Boolean).join(" · ");
+  const ask = ended ? "Thank you for celebrating with us." : "Tap for the details and to RSVP.";
+  return { title, description: facts ? `${facts}. ${ask}` : ask };
+}
+
+/** The photo guests see first: the design's cover photo, else the first photo in the couple's order. */
+function coverOf(c: Content, pres: Presentation | undefined): Img | undefined {
+  const hero = pres?.byTemplate?.[pres.activeTemplateId ?? ""]?.heroImage;
+  if (hero?.masterUrl) return hero;
+  return (c.galleries ?? []).flatMap((g) => [...(g.items ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))).find((i) => i.image?.masterUrl)?.image;
+}
+type Presentation = { activeTemplateId?: string; byTemplate?: Record<string, { heroImage?: Img }> };
+
+type Std = { names?: string[]; occasion?: string; eventDate?: string; venue?: string; image?: { url?: string; width?: number; height?: number } };
 
 function describeStd(s: Std) {
-  const n = (s.names ?? []).map((x) => x?.trim()).filter(Boolean) as string[];
-  const names = n.length > 2 ? `${n.slice(0, -1).join(", ")} & ${n[n.length - 1]}` : n.join(" & ");
+  const names = joinNames((s.names ?? []).map((x) => x?.trim()).filter(Boolean) as string[]);
   const title = names ? `${names} — Save the Date` : "Save the Date";
-  let when = "";
-  if (s.eventDate && /^\d{4}-\d{2}-\d{2}/.test(s.eventDate)) {
-    const d = new Date(`${s.eventDate.slice(0, 10)}T00:00:00Z`);
-    when = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
-  }
-  const kind = s.occasion && STD_KIND[s.occasion] ? `${STD_KIND[s.occasion]} · ` : "";
-  const description = `${kind}${[when, s.venue].filter(Boolean).join(" · ")}${when || s.venue ? ". " : ""}Tap to add it to your calendar. Made with love by The RSVP Studio.`;
-  return { title, description };
+  const facts = [s.occasion ? KIND[s.occasion] ?? "" : "", longDate(s.eventDate), s.venue?.trim() ?? ""].filter(Boolean).join(" · ");
+  return { title, description: `${facts ? `${facts}. ` : ""}Tap to add it to your calendar.` };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -92,16 +104,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (/^[a-z0-9-]{1,80}$/.test(slug)) {
     const { data } = await db.rpc("get_public_site", { p_slug: slug });
-    const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: { activeTemplateId?: string; byTemplate?: Record<string, { heroImage?: { masterUrl?: string } }> }; std?: Std | null; std_live?: boolean } | null;
+    const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: Presentation; std?: Std | null; std_live?: boolean } | null;
     // A studio Save the Date (supabase/save-the-date.sql): the card itself is the preview.
     const std = row?.std_live && row.std?.image?.url ? row.std : null;
     if (std || row?.published_content) {
       const c = row?.published_content ?? {};
-      const { title, description } = std ? describeStd(std) : describe(c);
-      const pres = row?.published_presentation;
-      const cover = std ? std.image!.url! : pres?.byTemplate?.[pres.activeTemplateId ?? ""]?.heroImage?.masterUrl || c.galleries?.[0]?.items?.[0]?.image?.masterUrl || "";
+      const ended = row?.state === "ended";
+      const { title, description } = std ? describeStd(std) : describe(c, ended);
+      const cover: Img | undefined = std ? { masterUrl: std.image!.url!, width: std.image!.width, height: std.image!.height } : coverOf(c, row?.published_presentation);
       // Ended sites' photos are removed later, so their previews don't use them.
-      const image = row?.state !== "ended" && /^https:\/\//.test(cover) ? cover : "";
+      const image = !ended && cover?.masterUrl && /^https:\/\//.test(cover.masterUrl) ? cover : null;
       const tags = [
         `<title>${esc(title)}</title>`,
         `<meta name="description" content="${esc(description)}" />`,
@@ -110,7 +122,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `<meta property="og:type" content="website" />`,
         `<meta property="og:site_name" content="The RSVP Studio" />`,
         `<meta property="og:url" content="${esc(req.query.domain === "1" ? origin : `${origin}/invite/${slug}`)}" />`,
-        image ? `<meta property="og:image" content="${esc(image)}" />` : "",
+        image ? `<meta property="og:image" content="${esc(image.masterUrl!)}" />` : "",
+        // Its size, so Messenger and Facebook show the photo the first time a link is shared.
+        image?.width && image.height ? `<meta property="og:image:width" content="${Math.round(image.width)}" />` : "",
+        image?.width && image.height ? `<meta property="og:image:height" content="${Math.round(image.height)}" />` : "",
+        image?.alt ? `<meta property="og:image:alt" content="${esc(image.alt)}" />` : "",
         image ? `<meta name="twitter:card" content="summary_large_image" />` : "",
       ].join("\n    ");
       html = html

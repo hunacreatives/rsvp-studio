@@ -21,6 +21,8 @@ export const botanicalTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   component: BotanicalTemplate,
   defaultSettings,
   tier: "premium",
+  // Hidden from the gallery (Studio → Templates); existing Botanical sites still render.
+  offered: false,
   // Sample couple for the /build gallery and preview page.
   demoContent: isabellaAndMateo,
 };

@@ -76,6 +76,14 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
    */
   tier?: "free" | "premium";
   /**
+   * The kinds of event this design is for (events.event_type: wedding, birthday, …), from
+   * templates.event_types (Studio → Templates). Empty or missing: any event.
+   */
+  occasions?: string[];
+  /** False for a design no longer offered (it still renders existing sites). Only matters when
+   *  the database catalog can't load; otherwise templates.status decides. */
+  offered?: boolean;
+  /**
    * Sample content used wherever the template is shown as a SAMPLE
    * rather than as someone's event — the gallery card, the dev harness.
    * Never written into a real event and never merged into client
@@ -163,6 +171,7 @@ export interface CatalogEntry {
   sort: number;
   currentVersionId: string | null;
   thumbnailUrl: string | null;
+  eventTypes: string[];
 }
 
 const runtimeTemplates: Record<string, TemplateDefinition<any>> = {};
@@ -201,14 +210,20 @@ export function getCatalogEntry(templateId: string): CatalogEntry | undefined {
 export function getTemplateDefinition(templateId: string): TemplateDefinition | undefined {
   const def = runtimeTemplates[templateId] ?? templateRegistry[templateId];
   const entry = catalog?.[templateId];
-  // The catalog row is the source of truth for label and tier.
-  return def && entry ? { ...def, label: entry.label, tier: entry.tier } : def;
+  // The catalog row is the source of truth for label, tier and the events it's for.
+  return def && entry ? { ...def, label: entry.label, tier: entry.tier, occasions: entry.eventTypes } : def;
+}
+
+/** Whether a design can be used for this kind of event (none set on the design: any event). */
+export function templateFitsEvent(template: Pick<TemplateDefinition, "occasions">, eventType: string | null | undefined): boolean {
+  const o = template.occasions ?? [];
+  return !eventType || o.length === 0 || o.includes(eventType);
 }
 
 /** Templates offered in the gallery: listed ones, in catalog order. Before
  *  the catalog loads (or if it can't), the hand-coded templates. */
 export function listTemplateDefinitions(): TemplateDefinition[] {
-  if (!catalog) return Object.values(templateRegistry);
+  if (!catalog) return Object.values(templateRegistry).filter((d) => d.offered !== false);
   return Object.values(catalog)
     .filter((e) => e.status === "listed")
     .sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label))
