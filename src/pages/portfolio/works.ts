@@ -14,6 +14,15 @@ export type Work = {
   /** Present only for real, delivered projects with a live site to embed. */
   liveUrl?: string;
   thumbnail?: string;
+  /**
+   * Monogram presentation instead of a 3:4 screenshot:
+   * "cover" fills the tile with the artwork (it's already a finished card),
+   * "contain" sits cut-out art on a soft tile,
+   * "foil" / "press" draw the mark (`mark`, a stroke mask) large, in gold foil on
+   * navy or letterpress ink on cream — the way it would actually be printed.
+   */
+  art?: "cover" | "contain" | "foil" | "press";
+  mark?: string;
   description?: string;
 };
 
@@ -78,10 +87,8 @@ export const WORKS: Work[] = [
       "A wedding website for Carlo and Trixia — event details, entourage, and RSVP brought together in one custom, on-brand experience for their guests.",
     seed: 5,
   },
-  { slug: "t-and-h", title: "T & H", category: "Monogram", meta: "Monogram // Duo", tags: ["Duo"], seed: 6 },
-  { slug: "monogram-m", title: "Monogram M", category: "Monogram", meta: "Monogram // Signature", tags: ["Signature"], seed: 7 },
-  { slug: "r-and-a-crest", title: "R & A Crest", category: "Monogram", meta: "Monogram // Crest", tags: ["Crest"], seed: 8 },
-  { slug: "camille-and-rafael", title: "Camille & Rafael", category: "Stationery", meta: "Signature Suite · Tinghun / Engagement", tags: ["Semi-Custom", "Tinghun / Engagement"], seed: 10 },
-  { slug: "arianne-and-marco", title: "Arianne & Marco", category: "Stationery", meta: "Essential Suite · Wedding", tags: ["Semi-Custom", "Wedding"], seed: 11 },
-  { slug: "the-bautistas", title: "The Bautistas", category: "Stationery", meta: "Heirloom Suite · Anniversary", tags: ["Custom", "Anniversary"], seed: 12 },
+  { slug: "t-and-h", title: "T & H", category: "Monogram", meta: "Monogram // Duo", tags: ["Duo"], thumbnail: "/services/monogram/crest-th.png", art: "cover", seed: 6 },
+  { slug: "monogram-m", title: "Monogram M", category: "Monogram", meta: "Monogram // Signature", tags: ["Signature"], thumbnail: "/services/monogram/mono-m-black.png", art: "foil", mark: "/services/monogram/masks/mono-m-black-mark.png", seed: 7 },
+  { slug: "r-and-a", title: "R & A", category: "Monogram", meta: "Monogram // Duo", tags: ["Duo"], thumbnail: "/services/monogram/mono-ra.png", art: "press", mark: "/services/monogram/masks/mono-ra-mark.png", seed: 8 },
+  { slug: "j-and-l-crest", title: "J & L Crest", category: "Monogram", meta: "Monogram // Crest", tags: ["Crest"], thumbnail: "/services/monogram/crest-jl.webp", art: "contain", seed: 9 },
 ];

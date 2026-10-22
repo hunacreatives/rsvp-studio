@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Reveal } from "@/lib/Reveal";
 import { inquiryLink } from "@/pages/enquire/prefill";
 import { lenisRef } from "@/lib/lenis";
+import SuiteUnboxing from "./SuiteUnboxing";
 
 const SHARED_NOTES = [
   "One (1) format is included per project: either print-ready or website format.",
@@ -171,7 +172,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
       <div className="text-center">
         <p className="eyebrow">The {suite.tab} Suite</p>
         <h3
-          className="mt-2 font-display font-semibold leading-[1.15] tracking-[-0.01em] text-[var(--ink)]"
+          className="mt-2 font-display font-semibold leading-[1.15] tracking-[-0.01em] text-[var(--ink)] text-balance"
           style={{ fontSize: "clamp(1.7rem, 3.4vw, 2.4rem)" }}
         >
           {suite.tagline}
@@ -181,7 +182,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
       <div className="mt-10 rounded-3xl bg-white p-6 shadow-[0_30px_70px_-36px_rgba(0,7,39,0.24)] md:p-10">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="font-display text-xl font-semibold italic text-[var(--ink)]">
+            <p className="font-display text-xl font-semibold italic text-[var(--ink)] text-balance">
               {suite.headline}
             </p>
 
@@ -220,13 +221,8 @@ function SuitePanel({ suite }: { suite: Suite }) {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-[var(--paper)]">
-            <img
-              src={suite.img}
-              alt={`${suite.tab} suite stationery`}
-              className="h-full w-full object-cover"
-            />
-          </div>
+          {/* Each suite unboxes from its envelope (SuiteUnboxing): the flat-lay, shown whole. */}
+          <SuiteUnboxing suite={suite.id as "essential" | "signature" | "heirloom"} />
         </div>
 
         {open && (
@@ -234,7 +230,7 @@ function SuitePanel({ suite }: { suite: Suite }) {
             <p className="font-display text-lg font-semibold text-[var(--ink)]">
               {suite.summary}
             </p>
-            <p className="mt-2 text-[var(--slate)]">{suite.sub}</p>
+            <p className="mt-2 text-[var(--slate)]" style={{ textWrap: "pretty" }}>{suite.sub}</p>
 
             <div className="mt-8 grid gap-8 sm:grid-cols-2">
               <div className="space-y-6">
@@ -311,7 +307,7 @@ function AdditionsPanel() {
       </div>
 
       <div className="mt-10 rounded-3xl bg-white p-6 shadow-[0_30px_70px_-36px_rgba(0,7,39,0.24)] md:p-10">
-        <p className="mx-auto max-w-2xl text-center font-display text-lg font-semibold italic text-[var(--ink)]">
+        <p className="mx-auto max-w-2xl text-center font-display text-lg font-semibold italic text-[var(--ink)] text-balance">
           Additional stationery, designed to extend your invitation suite with the
           same thoughtful detail and timeless aesthetic.
         </p>
@@ -322,7 +318,7 @@ function AdditionsPanel() {
               <img
                 src={a.img}
                 alt={a.title}
-                className="h-52 w-full object-cover object-top"
+                className="aspect-[4/5] w-full object-contain p-4"
               />
               <div className="p-5">
                 <p className="font-semibold text-[var(--ink)]">{a.title}</p>

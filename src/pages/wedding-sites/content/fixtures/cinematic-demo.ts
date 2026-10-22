@@ -29,11 +29,12 @@ export const cinematicDemoBirthday: EventContent = {
           order: 0,
           image: {
             id: "cd-img-1",
-            masterUrl: "/instagram/post-03.jpg",
+            // Stock: Kampus Production on Pexels (pexels.com/photo/5935252), Pexels licence.
+            masterUrl: "/event-templates/cinematic/demo-mia-1.webp",
             width: 640,
             height: 800,
-            alt: "Mia at the beach",
-            focalPoint: { x: 0.5, y: 0.4 },
+            alt: "Mia celebrating with a sparkler",
+            focalPoint: { x: 0.5, y: 0.3 },
             createdAt: "2030-01-01T00:00:00",
           },
         },
@@ -42,11 +43,12 @@ export const cinematicDemoBirthday: EventContent = {
           order: 1,
           image: {
             id: "cd-img-2",
-            masterUrl: "/instagram/post-02.jpg",
+            // Stock: same shoot (pexels.com/photo/5935248).
+            masterUrl: "/event-templates/cinematic/demo-mia-2.webp",
             width: 640,
             height: 800,
             alt: "Mia with friends",
-            focalPoint: { x: 0.5, y: 0.45 },
+            focalPoint: { x: 0.5, y: 0.3 },
             createdAt: "2030-01-01T00:00:00",
           },
         },

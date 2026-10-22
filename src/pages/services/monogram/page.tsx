@@ -15,11 +15,10 @@ function CtaStrip() {
     <section className="py-20" style={{ background: "var(--paper)" }}>
       <div className="container-x flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <Reveal>
-          <h2 className="h-section text-[var(--ink)]">
-            Make it unmistakably{" "}
-            <span className="text-[var(--slate)]">yours.</span>
+          <h2 className="h-section text-[var(--slate)]">
+            Make it unmistakably <span className="text-[var(--ink)]">yours.</span>
           </h2>
-          <p className="mt-2 text-lg text-[var(--slate)] max-w-md">
+          <p className="mt-2 text-lg text-[var(--ink)] max-w-md">
             A custom monogram designed to become part of every detail of your
             celebration.
           </p>

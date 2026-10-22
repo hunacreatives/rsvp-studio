@@ -12,6 +12,8 @@ const EXTRA: Record<string, string[]> = {
   "homemade-caveat": ["Homemade+Apple", "Caveat:wght@400;500;600;700", "Montserrat:wght@400;500;600"],
   "vibes-montserrat": ["Great+Vibes", "Playfair+Display:ital,wght@0,500;0,600;1,500", "Montserrat:wght@400;500;600"],
   "pinyon-cormorant": ["Pinyon+Script", CORMORANT, "Cinzel:wght@400;500;600"],
+  "bodoni-newsreader": ["Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700", "Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600"],
+  "barlow-condensed": ["Barlow+Condensed:wght@600;700;800", "Barlow:wght@400;500;600;700", "IBM+Plex+Mono:wght@500;600"],
   "yellowtail-jost": ["Yellowtail", "Jost:wght@400;500;600;700", "Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,700;1,9..144,800"],
 };
 const loaded = new Set<string>();

@@ -466,16 +466,21 @@ export default function Navbar({
                   <div key={group.title}>
                     <p className="eyebrow mb-4">{group.title}</p>
                     <ul className="space-y-3">
-                      {group.links.map((l) => (
-                        <li key={l.label}>
-                          <button
-                            onClick={() => go(l.to)}
-                            className="text-[15px] text-[var(--indigo)] hover:text-[var(--acc-blue)] transition-colors text-left"
-                          >
-                            {l.label}
-                          </button>
-                        </li>
-                      ))}
+                      {group.links.map((l) => {
+                        // The page you're on shows in blue (only exact pages: "/services" alone isn't a link here).
+                        const here = l.to.split("#")[0] !== "/" && isCurrent(l.to);
+                        return (
+                          <li key={l.label}>
+                            <button
+                              onClick={() => go(l.to)}
+                              aria-current={here ? "page" : undefined}
+                              className={`text-[15px] transition-colors text-left hover:text-[var(--acc-blue)] ${here ? "font-semibold text-[var(--acc-blue)]" : "text-[var(--indigo)]"}`}
+                            >
+                              {l.label}
+                            </button>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 ))}

@@ -1,47 +1,74 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Reveal } from "@/lib/Reveal";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/** Scattered monogram / seal / botanical collage behind the title. */
-const PIECES: {
-  src: string;
-  className: string;
-  drift: number;
-  alt?: string;
-}[] = [
-  { src: "/services/monogram/botanical-calla.png", className: "left-[9%] top-[8%] w-[9%] min-w-[70px]", drift: -20 },
-  { src: "/services/monogram/mono-am.webp", className: "left-[15%] top-[28%] w-[14%] min-w-[110px]", drift: 12 },
-  { src: "/services/monogram/seal-am-bronze.webp", className: "left-[12%] top-[50%] w-[11%] min-w-[90px]", drift: -14 },
-  { src: "/services/monogram/crest-jl.webp", className: "hidden sm:block left-[26%] top-[16%] w-[12%] min-w-[100px]", drift: 16 },
-  { src: "/services/monogram/seal-r-pair.png", className: "hidden sm:block left-[27%] top-[52%] w-[12%] min-w-[100px]", drift: -10 },
-  { src: "/services/monogram/crest-b.webp", className: "left-1/2 -translate-x-1/2 top-[6%] w-[21%] min-w-[180px]", drift: 8 },
-  { src: "/services/monogram/botanical-birds.png", className: "hidden sm:block left-[59%] top-[8%] w-[11%] min-w-[90px]", drift: 18 },
-  { src: "/services/monogram/botanical-rose.png", className: "hidden sm:block left-[60%] top-[32%] w-[9%] min-w-[70px]", drift: -16 },
-  { src: "/services/monogram/seal-a-gold.webp", className: "right-[20%] top-[46%] w-[11%] min-w-[90px]", drift: 14 },
-  { src: "/services/monogram/crest-cj.png", className: "right-[10%] top-[18%] w-[14%] min-w-[110px]", drift: -12 },
-  { src: "/services/monogram/botanical-iris.png", className: "right-[8%] top-[4%] w-[9%] min-w-[70px]", drift: 20 },
-  { src: "/services/monogram/seal-sf-blue.png", className: "hidden sm:block right-[16%] top-[38%] w-[10%] min-w-[76px]", drift: -18 },
+/**
+ * Monogram / seal / botanical cluster under the title, laid out from the
+ * design (positions are % of the cluster box, listed back to front).
+ *
+ * Motion follows the site's vocabulary: pieces fade up with the Reveal timing
+ * (centre crest first), drift on scroll like the Stationery hero, and the
+ * metal pieces float with a sweep of light — the same motion as the Monogram
+ * tile on the Services page.
+ */
+const PIECES: { name: string; left: number; top: number; width: number; drift: number; metal?: boolean }[] = [
+  { name: "calla", left: 7.14, top: 0, width: 12.97, drift: -18 },
+  { name: "circle-f", left: 0, top: 22.76, width: 18.97, drift: 10 },
+  { name: "seal-ao", left: 2.97, top: 61.38, width: 13.02, drift: -12, metal: true },
+  { name: "oval-bk", left: 17.82, top: 16.87, width: 15.26, drift: 14 },
+  { name: "card-ajl", left: 14.14, top: 53.17, width: 14.45, drift: -8 },
+  { name: "pearl-flower", left: 23.57, top: 80.94, width: 8.5, drift: 16 },
+  { name: "crest-lc", left: 29.72, top: 18.41, width: 34.6, drift: 6 },
+  { name: "birds", left: 59.65, top: 18.59, width: 15.81, drift: -20, metal: true },
+  { name: "peony", left: 64.63, top: 35.29, width: 10.98, drift: 12 },
+  { name: "seal-g", left: 62.77, top: 56.28, width: 14.03, drift: -10, metal: true },
+  { name: "iris", left: 87.88, top: 31.43, width: 12.12, drift: 18 },
+  { name: "circle-am", left: 76.86, top: 54.18, width: 18, drift: -14 },
+  { name: "seal-t", left: 73.83, top: 20.23, width: 15.54, drift: 10, metal: true },
 ];
+
+// Entrance order: nearest the centre crest first (Reveal spec: 28px, 0.9s, stagger 0.04).
+const CENTRE = { x: 47, y: 45 };
+const ORDER = [...PIECES]
+  .map((p) => ({ name: p.name, d: Math.hypot(p.left + p.width / 2 - CENTRE.x, p.top + 20 - CENTRE.y) }))
+  .sort((a, b) => a.d - b.d)
+  .map((p) => p.name);
+
+const src = (name: string) => `/services/monogram/hero/${name}.webp`;
+const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export default function MonogramHero() {
   const root = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  // Hidden before first paint, then faded up — no flash of the settled cluster.
+  useLayoutEffect(() => {
+    if (still()) return;
     const ctx = gsap.context(() => {
-      gsap.utils.toArray<HTMLElement>("[data-piece]").forEach((el) => {
-        const drift = Number(el.dataset.drift || 0);
+      ORDER.forEach((name, i) => {
+        gsap.from(`[data-piece="${name}"]`, {
+          opacity: 0,
+          y: 28,
+          duration: 0.9,
+          ease: "expo.out", // ≈ the Reveal curve cubic-bezier(0.16, 1, 0.3, 1)
+          delay: 0.15 + i * 0.04,
+        });
+      });
+    }, root);
+    return () => ctx.revert();
+  }, []);
+
+  useEffect(() => {
+    if (still()) return;
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray<HTMLElement>("[data-piece-drift]").forEach((el) => {
         gsap.to(el, {
-          yPercent: drift,
+          yPercent: Number(el.dataset.pieceDrift || 0),
           ease: "none",
-          scrollTrigger: {
-            trigger: root.current,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true,
-          },
+          scrollTrigger: { trigger: root.current, start: "top top", end: "bottom top", scrub: true },
         });
       });
     }, root);
@@ -51,34 +78,56 @@ export default function MonogramHero() {
   return (
     <section
       ref={root}
-      className="relative flex flex-col overflow-hidden pt-16 md:pt-28 pb-8 md:min-h-[calc(100svh-6.5rem)]"
+      className="relative overflow-hidden pt-16 md:pt-24 pb-16 md:pb-24"
       style={{ background: "var(--warm-white)" }}
     >
-      <div className="container-x relative z-10 text-center">
+      <Reveal className="container-x relative z-10 text-center">
         <h1
           className="font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)]"
           style={{ fontSize: "clamp(2.4rem, 5vw, 3.6rem)" }}
         >
           Monograms
         </h1>
-        <p className="mt-3 text-lg md:text-xl text-[var(--slate)]">
-          A signature, made personal.
-        </p>
-      </div>
+        <p className="mt-3 text-lg md:text-xl text-[var(--slate)]">A signature, made personal.</p>
+      </Reveal>
 
-      <div className="relative mt-10 md:mt-14 h-[300px] sm:h-[440px] md:h-[500px]">
-        {PIECES.map((p) => (
-          <img
-            key={p.src}
-            data-piece
-            data-drift={p.drift}
-            src={p.src}
-            alt={p.alt ?? ""}
-            aria-hidden={p.alt ? undefined : "true"}
-            className={`pointer-events-none absolute object-contain drop-shadow-[0_20px_40px_rgba(0,7,39,0.14)] will-change-transform ${p.className}`}
-          />
+      {/* Wider than the screen on phones so the pieces stay legible; edges clip. */}
+      <div
+        className="relative left-1/2 mt-6 md:mt-4 w-[min(1000px,135vw)] -translate-x-1/2"
+        style={{ aspectRatio: "954 / 446" }}
+      >
+        {PIECES.map((p, i) => (
+          <div
+            key={p.name}
+            data-piece-drift={p.drift}
+            className="absolute will-change-transform"
+            style={{ left: `${p.left}%`, top: `${p.top}%`, width: `${p.width}%` }}
+          >
+            <div data-piece={p.name}>
+              {p.metal ? (
+                // Float + light sweep masked to this piece's own shape; staggered so
+                // the four never shine at once.
+                <div
+                  className="svc-mono"
+                  style={
+                    {
+                      "--shine-mask": `url(${src(p.name)})`,
+                      animationDelay: `${-i * 1.1}s`,
+                    } as CSSProperties
+                  }
+                >
+                  <img src={src(p.name)} alt="" aria-hidden="true" className={IMG} />
+                  <span className="svc-mono-shine" aria-hidden style={{ animationDelay: `${1 + i * 0.6}s` }} />
+                </div>
+              ) : (
+                <img src={src(p.name)} alt="" aria-hidden="true" className={IMG} />
+              )}
+            </div>
+          </div>
         ))}
       </div>
     </section>
   );
 }
+
+const IMG = "pointer-events-none block w-full drop-shadow-[0_18px_30px_rgba(0,7,39,0.12)]";

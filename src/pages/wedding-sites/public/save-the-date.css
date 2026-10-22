@@ -1,0 +1,36 @@
+/* The Save the Date link (SaveTheDatePage.tsx). The card's own colours tint the page: a
+   blurred, faded copy of it sits behind everything. */
+.stdp { position: relative; min-height: 100svh; overflow: hidden; background: #fbfaf7; color: #1c1b22; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.stdp-wash { position: absolute; inset: -12%; background-size: cover; background-position: center; filter: blur(60px) saturate(1.15); opacity: 0.5; transform: scale(1.1); pointer-events: none; }
+.stdp-wash::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(251, 250, 247, 0.15), rgba(251, 250, 247, 0.75) 60%, #fbfaf7); }
+.stdp-inner { position: relative; z-index: 1; max-width: 520px; margin: 0 auto; padding: 40px 20px 32px; text-align: center; }
+.stdp-kicker { margin: 0 0 18px; font-family: Lora, Georgia, serif; font-style: italic; font-size: 18px; color: #6b6572; animation: stdp-rise 0.7s ease both; }
+.stdp-card { width: min(100%, 400px); margin: 0 auto; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 50px 90px -40px rgba(20, 15, 30, 0.45), 0 0 0 1px rgba(20, 15, 30, 0.06); animation: stdp-card 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) 0.1s both; }
+.stdp-card img, .stdp-card video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.stdp-names { margin: 32px 0 0; font-family: Lora, Georgia, serif; font-weight: 600; font-size: clamp(2rem, 8vw, 2.8rem); line-height: 1.1; letter-spacing: -0.02em; color: #1c1b22; text-wrap: balance; animation: stdp-rise 0.7s ease 0.35s both; }
+.stdp-when { margin: 10px 0 0; font-size: 17px; font-weight: 500; animation: stdp-rise 0.7s ease 0.45s both; }
+.stdp-venue { margin: 4px 0 0; font-size: 15px; color: #6b6572; animation: stdp-rise 0.7s ease 0.5s both; }
+.stdp-count { display: inline-block; margin: 18px 0 0; padding: 7px 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.75); font-size: 14px; color: #4a4552; box-shadow: 0 0 0 1px rgba(20, 15, 30, 0.06); animation: stdp-rise 0.7s ease 0.55s both; }
+.stdp-count b { font-weight: 700; color: #1c1b22; }
+.stdp-cal { position: relative; margin-top: 26px; animation: stdp-rise 0.7s ease 0.6s both; }
+.stdp-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 28px; border: 0; border-radius: 999px; background: #1c1b22; color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.stdp-btn:disabled { opacity: 0.6; cursor: default; }
+.stdp-cal-menu { display: flex; flex-direction: column; width: min(100%, 280px); margin: 10px auto 0; overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 20px 40px -20px rgba(20, 15, 30, 0.35), 0 0 0 1px rgba(20, 15, 30, 0.06); }
+.stdp-cal-menu a { padding: 14px 18px; font-size: 15px; font-weight: 500; color: #1c1b22; text-decoration: none; }
+.stdp-cal-menu a + a { border-top: 1px solid #eeebe6; }
+.stdp-follow { margin: 16px 0 0; font-family: Lora, Georgia, serif; font-style: italic; font-size: 16px; color: #6b6572; }
+.stdp-signup { margin: 34px auto 0; padding: 22px 20px 18px; border-radius: 22px; background: rgba(255, 255, 255, 0.85); text-align: left; box-shadow: 0 30px 60px -40px rgba(20, 15, 30, 0.35), 0 0 0 1px rgba(20, 15, 30, 0.06); }
+.stdp-signup-title { margin: 0 0 14px; font-family: Lora, Georgia, serif; font-size: 20px; font-weight: 600; text-align: center; color: #1c1b22; text-wrap: balance; }
+.stdp-signup label { display: block; margin-bottom: 12px; }
+.stdp-signup label span { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: #4a4552; }
+.stdp-signup input { width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid #dcd8d0; border-radius: 12px; background: #fff; font: inherit; font-size: 16px; color: #1c1b22; }
+.stdp-signup input:focus { outline: 2px solid #1c1b22; outline-offset: 1px; }
+.stdp-signup .stdp-btn { width: 100%; margin-top: 4px; }
+.stdp-consent { text-wrap: pretty; margin: 12px 0 0; font-size: 12.5px; line-height: 1.5; color: #6b6572; text-align: center; }
+.stdp-error { margin: 0 0 10px; font-size: 14px; color: #b42318; }
+.stdp-done { text-align: center; }
+.stdp-done p:last-child { margin: 0; font-size: 15px; color: #4a4552; }
+.stdp-credit { margin-top: 40px; font-size: 13px; color: #6b6572; }
+@keyframes stdp-card { from { opacity: 0; transform: translateY(24px) scale(0.97) rotate(-1deg); } to { opacity: 1; transform: none; } }
+@keyframes stdp-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .stdp * { animation: none !important; } }

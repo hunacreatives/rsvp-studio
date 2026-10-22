@@ -1,0 +1,8 @@
+/* Stationery hero collage: each piece bobs gently on its own rhythm (StationeryHero.tsx sets
+   the duration and a negative delay per piece, so they never move in step). */
+.sth-float { animation-name: sth-float; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
+@keyframes sth-float {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(-9px) rotate(0.8deg); }
+}
+@media (prefers-reduced-motion: reduce) { .sth-float { animation: none; } }

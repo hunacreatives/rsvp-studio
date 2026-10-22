@@ -87,7 +87,7 @@ function clientSnapshot(): PortalSnapshot {
       },
       {
         id: SOPHIA, name: "Sophia & Ren", event_date: dateIn(200), event_type: "wedding", table_name: null, status: "upcoming",
-        project_status: "in_progress", services: ["Digital Invitations"], progress: 50,
+        project_status: "in_progress", services: ["Digital Save the Date", "Digital Invitations"], progress: 50,
         next_step: "Design Approval", next_step_due: dateIn(7), cover_image_url: "/home/hero-phone/carlo-trixia-2.webp",
         site_url: null, completed_at: null, updated_at: ago(10 * day), created_at: ago(40 * day), owner_id: ME, role: "Owner",
       },
@@ -131,6 +131,14 @@ function clientSnapshot(): PortalSnapshot {
     },
     sites: {
       [NIKKI]: { slug: "nikki-and-alan", publishedAt: null, templateId: "botanical", heroUrl: null },
+      // A live studio Save the Date (supabase/save-the-date.sql), no website yet.
+      [SOPHIA]: {
+        slug: "sophia-and-ren", publishedAt: null, templateId: null, heroUrl: null, stdLive: true,
+        std: {
+          names: ["Sophia", "Ren"], occasion: "wedding", eventDate: dateIn(200).slice(0, 10), venue: "Villa Aurelia, Tagaytay",
+          image: { url: "/services/save-the-date/card-destiny.jpg", width: 680, height: 993 }, video: null, signup: true,
+        },
+      },
     },
   };
 }
@@ -164,6 +172,18 @@ export function demoMessages(threadId: string): Message[] {
       ]),
       base(2, ME, "These look amazing!\nWe just have a few minor comments, will send them over in a bit.", 150),
       base(3, NICOLE, "Perfect! Take your time. If you have any questions in the meantime, feel free to message us here.", 120),
+    ];
+  }
+  if (threadId === "th2") {
+    return [
+      base(1, NICOLE, "Hi Sophia! Here’s the first draft of your Save the Date. Let us know what you think!", 60 * 30, [
+        { name: "Sophia_Ren_SaveTheDate_v1.jpg", path: "demo", size: 2.1 * 1024 * 1024, type: "image/jpeg" },
+      ]),
+      base(2, ME, "We love it! Could our names be a little bigger, and the date in gold?", 60 * 28),
+      base(3, NICOLE, "Of course! Here’s version 2 with both changes.", 60 * 26, [
+        { name: "Sophia_Ren_SaveTheDate_v2.jpg", path: "demo", size: 2.2 * 1024 * 1024, type: "image/jpeg" },
+      ]),
+      base(4, ME, "Thank you! That works for us.", 60 * 24),
     ];
   }
   return [base(1, NICOLE, "Welcome to The RSVP Studio! We’re so glad you’re here.", 60 * 24 * 4)];

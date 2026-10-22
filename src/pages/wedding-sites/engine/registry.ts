@@ -10,6 +10,8 @@ import { pickleballTemplateDefinition } from "../templates/pickleball";
 import { debutTemplateDefinition } from "../templates/debut";
 import { loveLetterTemplateDefinition } from "../templates/love-letter";
 import { promenadeTemplateDefinition } from "../templates/promenade";
+import { openPlayTemplateDefinition } from "../templates/open-play";
+import { capizTemplateDefinition } from "../templates/capiz";
 
 // Template contract + registry.
 //
@@ -35,6 +37,17 @@ export interface TemplateProps<S extends BaseTemplateSettings = BaseTemplateSett
    * and the builder render the finished, resting state instead.
    */
   live?: boolean;
+  /**
+   * True only on the full-page design preview (/build/preview/:id), where a
+   * couple browses the sample: a template may play its opening there, but it
+   * must not fetch live data (that stays behind `live`).
+   */
+  demo?: boolean;
+  /**
+   * True only on the gallery card (/build): the card is a fixed 4:3 frame, so a template
+   * whose first screen is sized to the browser window can size it to the card instead.
+   */
+  gallery?: boolean;
 }
 
 export type TemplateArchetype =
@@ -75,6 +88,12 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
    * Missing = every section (the general-purpose templates).
    */
   uses?: StandardSection[];
+  /**
+   * The page width the gallery card lays the design out at (default 1100). A design whose
+   * first screen is taller than the card (Pickleball's invitation) sets it wider, so the
+   * whole thing fits instead of being cut off.
+   */
+  galleryWidth?: number;
   /** How many gallery photos the design shows (the builder says so). */
   galleryLimit?: number;
   /** What this design calls the "story" (e.g. "Invitation message"). */
@@ -125,6 +144,8 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   debut: debutTemplateDefinition,
   "love-letter": loveLetterTemplateDefinition,
   promenade: promenadeTemplateDefinition,
+  "open-play": openPlayTemplateDefinition,
+  capiz: capizTemplateDefinition,
 };
 
 // ---------------------------------------------------------------------------

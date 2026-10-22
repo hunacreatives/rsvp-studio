@@ -54,14 +54,14 @@ export default function TemplatePreviewPage() {
           <span className={`ml-2 rounded-full px-2 py-0.5 align-middle text-[11px] font-semibold ${definition.tier === "premium" ? "bg-[var(--acc-yellow)] text-[var(--ink)]" : "bg-[var(--paper)] text-[var(--slate)]"}`}>
             {definition.tier === "premium" ? "Premium" : "Free"}
           </span>
-          <span className="ml-2 hidden text-[13px] font-normal text-[var(--slate)] md:inline">Sample details — yours replace them</span>
+          <span className="ml-2 hidden text-[13px] font-normal text-[var(--slate)] md:inline">A sample. Your names, photos and details go in its place.</span>
         </p>
         <button onClick={() => navigate(`/build?start=${encodeURIComponent(templateId)}`)} className="btn btn-primary !px-5 !py-2.5 !text-[12px]">
           Use this design
         </button>
       </div>
       <SiteCreditProvider value={{ show: true }}>
-        <Template content={content} settings={resolved.settings} />
+        <Template content={content} settings={resolved.settings} demo />
       </SiteCreditProvider>
     </div>
   );

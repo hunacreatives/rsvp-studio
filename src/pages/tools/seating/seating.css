@@ -728,6 +728,7 @@
 /* the start sheet */
 .mesa-sheet-scrim { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(0, 7, 39, 0.4); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto; animation: sp-fade 0.2s ease-out; }
 .mesa-sheet { width: min(640px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: 26px; background: var(--warm-white); padding: 28px; box-shadow: 0 40px 120px -40px rgba(0, 7, 39, 0.6); animation: sp-rise 0.3s ease-out; }
+.mesa-sheet--small { width: min(540px, 100%); }
 
 @media (max-width: 900px) {
   .mesa-specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -831,6 +832,8 @@
   .mesa-by { font-size: 13px; }
   .mesa-page > section:first-child .fiesta { display: none; }
   /* The hero's phone takes the height left under the words (its box is a size container). */
-  .mesa-phone-fit { width: fit-content; }
-  .mesa-phone-fit .mesa-phone-screen { height: min(calc(100cqh - 14px), 560px); width: auto; }
+  /* Width is computed from the height, not fit-content: iOS Safari sizes a fit-content box
+     around an aspect-ratio child at the full column width, leaving a wide black frame. */
+  .mesa-phone-fit { --screen-h: min(calc(100cqh - 14px), 560px); width: calc(var(--screen-h) * 9 / 19.3 + 14px); }
+  .mesa-phone-fit .mesa-phone-screen { height: var(--screen-h); width: 100%; }
 }

@@ -37,29 +37,30 @@ export default function Carousel({
 
   return (
     <div className="relative">
-      <div className="mb-5 flex justify-end gap-3">
+      {/* Track runs past the container to the right edge of the screen. */}
+      <div
+        ref={track}
+        className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-2 mr-[calc(50%-50vw)] pr-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {children}
+      </div>
+      <div className="mt-6 flex justify-end gap-2.5">
         <button
           aria-label={`${ariaLabel} — previous`}
           onClick={() => by(-1)}
           disabled={atStart}
-          className="grid place-items-center w-11 h-11 rounded-full border border-[var(--line)] bg-white hover:bg-black/5 transition disabled:opacity-40 disabled:cursor-default"
+          className="grid h-10 w-10 place-items-center rounded-full bg-[#c9c9cf] text-white transition hover:bg-[#a9a9b3] disabled:cursor-default disabled:opacity-50"
         >
-          <i className="ri-arrow-left-line text-lg" />
+          <i className="ri-arrow-left-s-line text-xl" />
         </button>
         <button
           aria-label={`${ariaLabel} — next`}
           onClick={() => by(1)}
           disabled={atEnd}
-          className="grid place-items-center w-11 h-11 rounded-full bg-[var(--ink)] text-white hover:opacity-90 transition disabled:opacity-40 disabled:cursor-default"
+          className="grid h-10 w-10 place-items-center rounded-full bg-[#c9c9cf] text-white transition hover:bg-[#a9a9b3] disabled:cursor-default disabled:opacity-50"
         >
-          <i className="ri-arrow-right-line text-lg" />
+          <i className="ri-arrow-right-s-line text-xl" />
         </button>
-      </div>
-      <div
-        ref={track}
-        className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 -mx-6 px-6 scroll-pl-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {children}
       </div>
     </div>
   );

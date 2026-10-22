@@ -1,3 +1,4 @@
+import type { SaveTheDate } from "@/pages/wedding-sites/content/saveTheDate";
 import { supabase } from "@/lib/supabase";
 import type { Activity, Attachment, Invoice, Message, PersonLite, Profile, Project, Task, Thread, ThreadKind, ThreadSummary, SupportCategory, SupportStatus } from "./types";
 
@@ -13,6 +14,9 @@ export type SiteInfo = {
   premium?: boolean;
   /** When its guest RSVPs and photos were removed (30 days after it ended). */
   guestsPurgedAt?: string | null;
+  /** A studio Save the Date on this link (supabase/save-the-date.sql), and whether the link shows it. */
+  std?: SaveTheDate | null;
+  stdLive?: boolean;
 };
 
 export type PortalSnapshot = {
@@ -54,6 +58,8 @@ type SiteRow = {
   event_id: string;
   slug: string;
   published_at: string | null;
+  std?: SaveTheDate | null;
+  std_live?: boolean;
   draft_content: { galleries?: { items?: { image?: { masterUrl?: string } }[] }[] } | null;
   draft_presentation: {
     activeTemplateId?: string;
@@ -67,7 +73,7 @@ function siteInfo(row: SiteRow): SiteInfo {
     (templateId && row.draft_presentation?.byTemplate?.[templateId]?.heroImage?.masterUrl) ||
     row.draft_content?.galleries?.[0]?.items?.[0]?.image?.masterUrl ||
     null;
-  return { slug: row.slug, publishedAt: row.published_at, templateId, heroUrl: hero };
+  return { slug: row.slug, publishedAt: row.published_at, templateId, heroUrl: hero, std: row.std ?? null, stdLive: row.std_live === true };
 }
 
 /** Projects the user can see. Staff see every project (RLS allows it). */
@@ -150,6 +156,23 @@ export async function loadThreadSummaries(
   });
 }
 
+// Sites for these projects, with their Save the Date. Until supabase/save-the-date.sql is on
+// the database (std doesn't exist yet), the same read without it.
+async function loadSites(ids: string[]) {
+  const cols = "event_id, slug, published_at, draft_content, draft_presentation";
+  const r = await supabase.from("wedding_sites").select(`${cols}, std, std_live`).in("event_id", ids);
+  return r.error?.code === "42703" ? supabase.from("wedding_sites").select(cols).in("event_id", ids) : r;
+}
+
+/** A project's Save the Date numbers: page opens and invitation sign-ups. */
+export async function saveTheDateStats(eventId: string) {
+  const [opens, signups] = await Promise.all([
+    supabase.from("save_the_date_stats").select("opens").eq("event_id", eventId).maybeSingle(),
+    supabase.from("invitees").select("id", { count: "exact", head: true }).eq("event_id", eventId).eq("source", "save_the_date"),
+  ]);
+  return { opens: (opens.data as { opens: number } | null)?.opens ?? 0, signups: signups.count ?? 0 };
+}
+
 export async function loadSnapshot(userId: string): Promise<PortalSnapshot | null> {
   const { data: profile } = await supabase.from("profiles").select(PROFILE_COLS).eq("id", userId).single();
   if (!profile) return null;
@@ -163,7 +186,7 @@ export async function loadSnapshot(userId: string): Promise<PortalSnapshot | nul
     ids.length ? supabase.from("project_activity").select("*").in("event_id", ids).order("created_at", { ascending: false }).limit(60) : none,
     ids.length ? supabase.from("invoices").select("*").in("event_id", ids).order("issued_at", { ascending: false }) : none,
     supabase.from("profiles").select("id, full_name, avatar_url, is_staff, email").eq("is_staff", true),
-    ids.length ? supabase.from("wedding_sites").select("event_id, slug, published_at, draft_content, draft_presentation").in("event_id", ids) : none,
+    ids.length ? loadSites(ids) : none,
     ids.length ? supabase.rpc("project_lifecycle", { p_ids: ids }) : none,
   ]);
 

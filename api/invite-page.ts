@@ -40,6 +40,23 @@ function describe(c: Content) {
   return { title, description: description.charAt(0).toUpperCase() + description.slice(1) };
 }
 
+type Std = { names?: string[]; occasion?: string; eventDate?: string; venue?: string; image?: { url?: string } };
+const STD_KIND: Record<string, string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary" };
+
+function describeStd(s: Std) {
+  const n = (s.names ?? []).map((x) => x?.trim()).filter(Boolean) as string[];
+  const names = n.length > 2 ? `${n.slice(0, -1).join(", ")} & ${n[n.length - 1]}` : n.join(" & ");
+  const title = names ? `${names} — Save the Date` : "Save the Date";
+  let when = "";
+  if (s.eventDate && /^\d{4}-\d{2}-\d{2}/.test(s.eventDate)) {
+    const d = new Date(`${s.eventDate.slice(0, 10)}T00:00:00Z`);
+    when = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+  }
+  const kind = s.occasion && STD_KIND[s.occasion] ? `${STD_KIND[s.occasion]} · ` : "";
+  const description = `${kind}${[when, s.venue].filter(Boolean).join(" · ")}${when || s.venue ? ". " : ""}Tap to add it to your calendar. Made with love by The RSVP Studio.`;
+  return { title, description };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // /sitemap.xml shares this function (vercel.json): the Hobby plan allows 12.
   if (req.query.op === "sitemap") return sitemap(db, res);
@@ -75,14 +92,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (/^[a-z0-9-]{1,80}$/.test(slug)) {
     const { data } = await db.rpc("get_public_site", { p_slug: slug });
-    const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: { activeTemplateId?: string; byTemplate?: Record<string, { heroImage?: { masterUrl?: string } }> } } | null;
-    if (row?.published_content) {
-      const c = row.published_content;
-      const { title, description } = describe(c);
-      const pres = row.published_presentation;
-      const cover = pres?.byTemplate?.[pres.activeTemplateId ?? ""]?.heroImage?.masterUrl || c.galleries?.[0]?.items?.[0]?.image?.masterUrl || "";
+    const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: { activeTemplateId?: string; byTemplate?: Record<string, { heroImage?: { masterUrl?: string } }> }; std?: Std | null; std_live?: boolean } | null;
+    // A studio Save the Date (supabase/save-the-date.sql): the card itself is the preview.
+    const std = row?.std_live && row.std?.image?.url ? row.std : null;
+    if (std || row?.published_content) {
+      const c = row?.published_content ?? {};
+      const { title, description } = std ? describeStd(std) : describe(c);
+      const pres = row?.published_presentation;
+      const cover = std ? std.image!.url! : pres?.byTemplate?.[pres.activeTemplateId ?? ""]?.heroImage?.masterUrl || c.galleries?.[0]?.items?.[0]?.image?.masterUrl || "";
       // Ended sites' photos are removed later, so their previews don't use them.
-      const image = row.state !== "ended" && /^https:\/\//.test(cover) ? cover : "";
+      const image = row?.state !== "ended" && /^https:\/\//.test(cover) ? cover : "";
       const tags = [
         `<title>${esc(title)}</title>`,
         `<meta name="description" content="${esc(description)}" />`,

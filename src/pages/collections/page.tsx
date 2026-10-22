@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
-import InvitePlaceholder from "@/pages/home/components/InvitePlaceholder";
 import { Reveal } from "@/lib/Reveal";
 import { inquiryLink } from "@/pages/enquire/prefill";
 import FilterTabs from "@/pages/portfolio/components/FilterTabs";
+
+gsap.registerPlugin(ScrollTrigger);
 
 type EventType = "Wedding" | "Baby Shower" | "Birthday" | "Engagement";
 
@@ -22,24 +25,16 @@ type Collection = {
   name: string;
   tagline: string;
   events: EventType[];
-  seed: number;
+  img: string;
 };
 
 const COLLECTIONS: Collection[] = [
-  { name: "Garden", tagline: "Lush, romantic, and in full bloom.", events: ["Wedding", "Baby Shower", "Birthday"], seed: 1 },
-  { name: "Floral", tagline: "A charming floral suite for celebrations filled with beauty, colour, and moments to remember.", events: ["Wedding", "Baby Shower", "Birthday"], seed: 2 },
-  { name: "Coastal", tagline: "Airy. Effortless. Sunlit.", events: ["Wedding", "Engagement"], seed: 3 },
-  { name: "Minimalist Polaroid", tagline: "Clean. Nostalgic. Effortless.", events: ["Wedding", "Engagement", "Birthday"], seed: 4 },
-  { name: "Alpine", tagline: "Crisp mountain air and quiet, timeless whites.", events: ["Wedding", "Engagement"], seed: 5 },
-  { name: "Classic", tagline: "Ivory, gold, and timeless refinement.", events: ["Wedding", "Birthday"], seed: 6 },
-];
-
-const BROUGHT_TO_LIFE = [
-  { couple: "Clara & Étienne", base: "Garden", seed: 1 },
-  { couple: "Mia & Noah", base: "Coastal", seed: 3 },
-  { couple: "Aria & Daniel", base: "Minimalist Polaroid", seed: 4 },
-  { couple: "Sofia & Luca", base: "Alpine", seed: 5 },
-  { couple: "Isabella & James", base: "Classic", seed: 6 },
+  { name: "Garden", tagline: "Lush, romantic, and in full bloom.", events: ["Wedding", "Baby Shower", "Birthday"], img: "/collections/garden.webp" },
+  { name: "Floral", tagline: "A charming floral suite for celebrations filled with beauty, colour, and moments to remember.", events: ["Wedding", "Baby Shower", "Birthday"], img: "/collections/floral.webp" },
+  { name: "Coastal", tagline: "Airy. Effortless. Sunlit.", events: ["Wedding", "Engagement"], img: "/collections/coastal.webp" },
+  { name: "Minimalist Polaroid", tagline: "Clean. Nostalgic. Effortless.", events: ["Wedding", "Engagement", "Birthday"], img: "/collections/minimalist-polaroid.webp" },
+  { name: "Alpine", tagline: "Crisp mountain air and quiet, timeless whites.", events: ["Wedding", "Engagement"], img: "/collections/alpine.webp" },
+  { name: "Classic", tagline: "Ivory, gold, and timeless refinement.", events: ["Wedding", "Birthday"], img: "/collections/classic.webp" },
 ];
 
 /** "#baby-shower" → "Baby Shower" (menu links pre-select a filter). */
@@ -64,7 +59,7 @@ function CollectionsGrid() {
       <div className="container-x">
         <FilterTabs<(typeof FILTERS)[number]> options={FILTERS} value={filter} onChange={setFilter} label="Filter by event type" />
 
-        <div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-8 sm:mt-12 sm:gap-6 lg:grid-cols-3 md:gap-8">
+        <div className="mx-auto mt-10 grid max-w-[960px] grid-cols-2 gap-x-3 gap-y-8 sm:mt-12 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3">
           {shown.map((c, i) => (
             <Reveal key={c.name} delay={(i % 3) * 0.05}>
               {/* The whole card asks about this design (Semi-Custom website, this collection). */}
@@ -72,25 +67,26 @@ function CollectionsGrid() {
                 type="button"
                 onClick={() => navigate(inquiryLink({ service: "website", design: "semi-custom", collection: c.name, occasion: filter === "All" ? undefined : filter }))}
                 className="group block w-full text-left"
-                aria-label={`Ask about the ${c.name} collection`}
+                aria-label={`Have us make the ${c.name} design`}
               >
-                <div className="relative">
-                  <InvitePlaceholder
-                    seed={c.seed}
-                    label={c.name}
-                    className="w-full aspect-[3/4]"
+                <div className="relative aspect-[298/408] overflow-hidden rounded-[18px] bg-[var(--paper)] sm:rounded-[22px]">
+                  <img
+                    src={c.img}
+                    alt={`The ${c.name} collection`}
+                    loading={i < 3 ? "eager" : "lazy"}
+                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                   />
                   <span className="absolute inset-x-3 bottom-3 hidden rounded-full bg-white/90 px-4 py-2 text-center text-[13px] font-medium text-[var(--ink)] opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 sm:block">
-                    Use this design →
+                    Have us make this →
                   </span>
                 </div>
                 <h3 className="mt-3 font-display text-lg font-semibold leading-snug text-[var(--ink)] sm:mt-4 sm:text-xl">
                   {c.name}
                 </h3>
-                <p className="mt-1 text-[13px] leading-snug text-[var(--slate)] sm:text-sm sm:leading-normal">{c.tagline}</p>
+                <p className="mt-1 text-pretty text-[13px] leading-snug text-[var(--slate)] sm:text-sm sm:leading-normal">{c.tagline}</p>
                 {/* Touch screens have no hover, so the card's action is spelled out. */}
                 <span className="mt-2 inline-block text-[13px] font-medium text-[var(--acc-blue)] [@media(hover:hover)]:hidden">
-                  Use this design →
+                  Have us make this →
                 </span>
               </button>
             </Reveal>
@@ -101,125 +97,85 @@ function CollectionsGrid() {
             </p>
           )}
         </div>
+
+        {/* Real sites live on Portfolio; this page stays the menu of designs. */}
+        <p className="mt-12 text-center">
+          <Link to="/portfolio" className="btn btn-ghost">
+            See websites we've made
+          </Link>
+        </p>
+        <p className="mt-6 text-center text-[15px] text-[var(--slate)]">
+          Rather make it yourself?{" "}
+          <Link to="/build" className="font-medium text-[var(--acc-blue)] underline-offset-4 hover:underline">
+            Build your own website, free to start →
+          </Link>
+        </p>
       </div>
     </section>
   );
 }
 
-function BroughtToLife() {
-  const navigate = useNavigate();
-  const track = useRef<HTMLDivElement | null>(null);
-  const by = (dir: 1 | -1) => {
-    const el = track.current;
-    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
-  };
-
-  return (
-    <section
-      className="py-16 md:py-32"
-      style={{ background: "var(--warm-white)", borderTop: "1px solid var(--line)" }}
-    >
-      <div className="container-x">
-        <Reveal as="h2" className="h-section text-center text-[var(--ink)]">
-          Collections, brought to life.
-        </Reveal>
-
-        <div className="relative mt-10 md:mt-14">
-          <button
-            aria-label="Previous"
-            onClick={() => by(-1)}
-            className="absolute -left-5 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-[var(--line)] bg-white/80 backdrop-blur hover:bg-white md:grid"
-          >
-            <i className="ri-arrow-left-s-line text-xl" />
-          </button>
-          <div
-            ref={track}
-            className="-mx-6 flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-px-6 px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-6 md:mx-0 md:scroll-px-0 md:px-1"
-          >
-            {BROUGHT_TO_LIFE.map((b) => (
-              <figure
-                key={b.couple}
-                className="w-[70%] shrink-0 snap-center sm:w-[44%] lg:w-[30%]"
-              >
-                <InvitePlaceholder seed={b.seed} className="w-full aspect-[3/4]" />
-                <figcaption className="mt-4 text-center">
-                  <p className="font-semibold text-[var(--ink)]">{b.couple}</p>
-                  <p className="text-sm italic text-[var(--slate)]">
-                    Based on {b.base}
-                  </p>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-          <button
-            aria-label="Next"
-            onClick={() => by(1)}
-            className="absolute -right-5 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-[var(--line)] bg-white/80 backdrop-blur hover:bg-white md:grid"
-          >
-            <i className="ri-arrow-right-s-line text-xl" />
-          </button>
-        </div>
-
-        <div className="mt-12 text-center">
-          <button className="btn btn-ghost" onClick={() => navigate("/portfolio#milestone")}>
-            See More
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
+// Custom = the premium tier. Same treatment as the Crest card on Monogram (warm
+// champagne panel, warm ring), with a real Custom site we made instead of decoration.
 function BespokeBanner() {
   const navigate = useNavigate();
+  const root = useRef<HTMLElement | null>(null);
+
+  // The laptop grows into place as the band scrolls in (the home hero's phone does the same).
+  const shot = useRef<HTMLImageElement | null>(null);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        shot.current,
+        { scale: 0.88 },
+        { scale: 1, ease: "none", scrollTrigger: { trigger: root.current, start: "top 85%", end: "center 55%", scrub: true } },
+      );
+    }, root);
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section
-      className="relative overflow-hidden py-16 md:py-28"
-      style={{ background: "var(--paper)" }}
-    >
-      <img
-        src="/collections/sparkles.png"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute left-[4%] top-4 w-10 opacity-90 sm:left-[6%] sm:top-10 sm:w-16 md:w-24"
-      />
-      <img
-        src="/collections/leaf-sprig.png"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute left-[3%] bottom-8 hidden w-20 opacity-80 md:block md:w-28"
-      />
-      <img
-        src="/collections/champagne.png"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute right-[4%] top-4 w-9 opacity-90 sm:right-[6%] sm:top-12 sm:w-14 md:w-20"
-      />
+    <section ref={root} className="py-16 md:py-24" style={{ background: "var(--warm-white)" }}>
+      <div className="container-x">
+        <Reveal
+          className="grid items-center gap-10 overflow-hidden rounded-[32px] px-6 py-10 ring-1 ring-[#e8dbc4] shadow-[0_40px_80px_-48px_rgba(120,90,40,0.45)] sm:px-10 md:grid-cols-[1fr_1.15fr] md:gap-8 md:px-14 md:py-16"
+          style={{ background: "linear-gradient(160deg, #fbf6ec 0%, #f0e2ca 100%)" }}
+        >
+          <div className="text-center md:text-left">
+            <h2 className="h-section text-balance text-[var(--ink)]">Looking for something uniquely yours?</h2>
+            <p className="mt-4 max-w-md text-pretty text-lg text-[var(--slate)] max-md:mx-auto">
+              Our Custom service starts from scratch, with every detail designed around your story, style, and celebration.
+            </p>
+            <ul className="mt-6 inline-grid gap-2 text-left text-[15px] text-[var(--ink)]">
+              {["Designed from scratch, just for you", "3 rounds of changes", "RSVP management and a free domain included", "Ready in 3–4 weeks"].map((x) => (
+                <li key={x} className="flex gap-2.5">
+                  <i className="ri-check-line mt-px text-[17px] text-[#9a7432]" aria-hidden />
+                  <span>{x}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-6 text-[15px] text-[var(--slate)]">
+              From <strong className="text-[var(--ink)]">₱8,000</strong>
+            </p>
+            <div className="mt-5 flex flex-col items-center gap-3 sm:flex-row md:items-start">
+              <button className="btn btn-primary whitespace-nowrap" onClick={() => navigate(inquiryLink({ service: "website", design: "custom" }))}>
+                Ask about Custom design
+              </button>
+              <Link to="/portfolio" className="btn btn-ghost whitespace-nowrap">
+                See our work
+              </Link>
+            </div>
+          </div>
 
-      <div className="container-x relative">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="h-section text-[var(--ink)]">
-            Looking for something uniquely yours?
-          </h2>
-          <p className="mt-4 text-[var(--slate)]">
-            Our Custom service starts from scratch, with every detail designed around
-            your story, style, and celebration.
-          </p>
-          <button
-            className="btn btn-primary mt-8"
-            onClick={() => navigate(inquiryLink({ service: "website", design: "custom" }))}
-          >
-            Ask about Custom design
-          </button>
-        </div>
-
-        <div className="mt-14 flex justify-center">
           <img
-            src="/collections/bespoke-devices.png"
-            alt="A custom wedding website on a tablet and phone"
-            className="w-full max-w-[440px] drop-shadow-[0_40px_80px_rgba(0,7,39,0.2)]"
+            ref={shot}
+            src="/services/milestone/carlo-laptop.webp"
+            alt="Carlo & Trixia's Custom wedding website on a laptop"
+            loading="lazy"
+            className="mx-auto w-full max-w-[560px] will-change-transform drop-shadow-[0_30px_40px_rgba(60,40,20,0.25)]"
           />
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -242,14 +198,18 @@ export default function CollectionsPage() {
             >
               Semi-Custom Website Collections
             </h1>
-            <p className="mt-3 text-lg md:text-xl text-[var(--slate)]">
-              Our signature designs, personalized for your event.
+            <p className="mt-3 text-lg md:text-xl text-[var(--slate)] text-balance">
+              Pick one of our signature designs. We make it yours.
+            </p>
+            {/* Same facts line as the Save the Date hero. Semi-Custom is done for you —
+                not the do-it-yourself builder, which has its own templates. */}
+            <p className="mt-3 text-[15px] text-[var(--ink)] text-balance">
+              From <strong>₱3,000</strong> · We set it up with your details and photos · Ready in 5–7 business days
             </p>
           </div>
         </section>
 
         <CollectionsGrid />
-        <BroughtToLife />
         <BespokeBanner />
       </main>
       <FooterSection />

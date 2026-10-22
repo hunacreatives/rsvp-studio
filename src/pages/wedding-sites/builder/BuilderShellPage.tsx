@@ -131,7 +131,8 @@ export default function BuilderShellPage() {
   const renderPreview = (phoneLayout: boolean) =>
     resolved ? (
       <PreviewCanvas
-        key={device}
+        // A new design opens at its top, not wherever the last one was scrolled to.
+        key={`${device}:${presentation.activeTemplateId}`}
         // Phone layout: the phone preview renders at the screen's real width, unscaled.
         deviceWidth={device === "phone" ? (phoneLayout ? "fill" : 390) : undefined}
         gutter={phoneLayout ? (device === "phone" ? 0 : 12) : undefined}

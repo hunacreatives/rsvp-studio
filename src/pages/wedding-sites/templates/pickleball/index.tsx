@@ -24,10 +24,15 @@ export const pickleballTemplateDefinition: TemplateDefinition<BaseTemplateSettin
   defaultSettings,
   tier: "free",
   demoContent: pickleballDemoBirthday,
-  uses: ["story", "dateVenue", "schedule", "registry", "faqs"],
+  // Wide enough that the whole invitation card (frame, paddles, button) fits the gallery card.
+  galleryWidth: 1500,
+  uses: ["story", "dateVenue", "schedule", "gallery", "registry", "faqs"],
+  // Three snapshots on the details page.
+  galleryLimit: 3,
   storyLabel: "Invitation message",
   storyHint: "Shown under “Let’s Rally”, e.g. “Grab your paddle and your best trash talk…”. Leave a blank line between paragraphs.",
   hideable: [
+    { key: "gallery", label: "Photos" },
     { key: "hostIntro", label: "Let’s Rally (your message)" },
     { key: "schedule", label: "Game Plan (schedule)" },
     { key: "wear", label: "What to Wear" },

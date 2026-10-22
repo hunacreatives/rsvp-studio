@@ -85,6 +85,32 @@ export const palettes: PaletteOption[] = [
     label: "Cream & Gold",
     swatches: ["#fbf6ec", "#4b4036", "#c2a06a"],
   },
+  {
+    // The Open Play template: a classic blue acrylic court with white lines; the area
+    // around it is green, and the ball is optic yellow (both set by the template).
+    id: "open-court",
+    label: "Court Blue",
+    swatches: ["#2f5d9e", "#ffffff", "#d7e2f4"],
+  },
+  {
+    // Open Play's second scheme: a court under floodlights.
+    id: "night-court",
+    label: "Night Court",
+    swatches: ["#13203a", "#f3efe4", "#a8b3c6"],
+  },
+  {
+    // The Capiz template: a lime-plaster wall and narra-dark ink (the capiz panes, the
+    // wood and the brass are set by the template).
+    id: "capiz-plaster",
+    label: "Plaster & Narra",
+    swatches: ["#ede6da", "#2a211b", "#7d7064"],
+  },
+  {
+    // Capiz's second scheme: the same house at night, the panes lit from inside.
+    id: "capiz-gabi",
+    label: "Candlelight",
+    swatches: ["#1f1a16", "#efe6d6", "#a99b88"],
+  },
 ];
 
 export const defaultPaletteId = palettes[0].id;

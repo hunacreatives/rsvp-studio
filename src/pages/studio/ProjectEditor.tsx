@@ -8,6 +8,7 @@ import type { PersonLite, Project, ProjectStatus } from "@/pages/account/portal/
 import { Cover, ErrorText, Field, Input, OutlineCard, PillButton, Select, Textarea } from "@/pages/account/portal/ui";
 import * as studio from "./studioApi";
 import { deleteProject } from "@/pages/account/portal/api";
+import SaveTheDateEditor from "./SaveTheDateEditor";
 
 const SERVICE_PRESETS = ["Wedding Website", "Event Website", "Digital Invitations", "Digital Save the Date", "Monogram Design", "Stationery Design", "RSVP Management"];
 const EVENT_TYPES = [
@@ -145,10 +146,14 @@ export default function ProjectEditor({
   onOpenInbox: () => void;
   onDeleted: () => void;
 }) {
+  const { sites } = usePortal();
+  // Save the Date projects (or one that already has a Save the Date link).
+  const std = project.services.includes("Digital Save the Date") || Boolean(sites[project.id]?.std);
   return (
     <div className="space-y-5">
       <DetailsCard project={project} />
       <ProgressCard project={project} />
+      {std ? <SaveTheDateEditor project={project} /> : null}
       <ClientCard project={project} owner={owner} members={members} onOpenInbox={onOpenInbox} />
       <UpdateCard project={project} />
       <TasksCard project={project} />

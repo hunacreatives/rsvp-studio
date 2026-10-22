@@ -11,6 +11,8 @@ import EntourageBlock, { entourageTitle } from "../shared/Entourage";
 import { ArcText, CrossedPaddles, Sparkle, Sticker, WavyFrame, mixHex } from "./art";
 import { bringList, dateLine, eventIsOver, headlineLines, hostNames, insideTitle, occasionLine, timeOf } from "./content";
 import RsvpCourt from "./RsvpCourt";
+import { PhotoSlot } from "../shared/PhotoSlot";
+import { photosOf } from "../shared/reveal";
 import { PICKLEBALL_CSS } from "./styles";
 
 /**
@@ -82,7 +84,7 @@ function TitleWords({ text }: { text: string }) {
 
 const Hint = ({ children }: { children: ReactNode }) => <p className="pb-hint">{children}</p>;
 
-export default function PickleballTemplate({ content, settings, editorPreview = false, live = false }: TemplateProps<BaseTemplateSettings>) {
+export default function PickleballTemplate({ content, settings, editorPreview = false, live = false, gallery = false }: TemplateProps<BaseTemplateSettings>) {
   const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
   const reduced = usePrefersReducedMotion();
@@ -186,8 +188,11 @@ export default function PickleballTemplate({ content, settings, editorPreview = 
   const gifts = content.registryLinks.length > 0 || hasCashGifts(content);
   const over = !editorPreview && eventIsOver(content.eventDate);
   const vis = settings.sectionVisibility;
+  const shots = photosOf(content).slice(0, 3).map((g) => g.image);
 
   const vars = {
+    // On the gallery card the first screen is the card (4:3), not the browser window.
+    ...(gallery ? { ["--pb-vh" as string]: ".75cqw" } : {}),
     ["--pb-ink" as string]: theme.ink,
     ["--pb-pink" as string]: theme.muted,
     ["--pb-cream" as string]: theme.background,
@@ -296,6 +301,17 @@ export default function PickleballTemplate({ content, settings, editorPreview = 
             <div className="pb-arch__facts">{facts}</div>
             <VenueLinks content={content} font="var(--pb-sans)" color="var(--pb-ink)" size={14} />
             <hr className="pb-rule" />
+
+            {/* Court moments: up to three snapshots, tilted like prints (placeholders in the builder). */}
+            {vis.gallery !== false && (shots.length || editorPreview) ? (
+              <div className="pb-shots" aria-label="Photos">
+                {(shots.length ? shots : [null, null, null]).map((img, i) => (
+                  <figure key={img?.id ?? i} className={`pb-shot pb-shot--${i + 1}`}>
+                    <PhotoSlot image={img} editorPreview={editorPreview} className="pb-shot__img" />
+                  </figure>
+                ))}
+              </div>
+            ) : null}
 
             <div className="pb-cards">
               {vis.hostIntro !== false && (paragraphs.length || editorPreview) ? (

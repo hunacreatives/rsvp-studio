@@ -124,6 +124,18 @@ function PlanPicture({ chart, order, play = true, still = false }: { chart: Char
   );
 }
 
+/** The editor seating a wedding, on a loop. A still of the empty room with reduced motion. */
+function EditorRecording() {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
+  const cls = "block h-full w-full rounded-[10px] object-cover object-left-top";
+  return reduce ? (
+    <img src="/tools/mesa/editor-1440.webp" alt="Mesa’s editor: a wedding reception with every guest seated" className={cls} />
+  ) : (
+    <video src="/tools/mesa/editor-seating.mp4" poster="/tools/mesa/editor-seating-poster.webp" autoPlay muted loop playsInline aria-label="Someone using Mesa: they seat the Friends group at table 5, press Seat everyone, then zoom in on the names" className={cls} />
+  );
+}
+
 function Laptop({ children }: { children: ReactNode }) {
   return (
     <div className="mesa-laptop">
@@ -341,9 +353,75 @@ function StartSheet({ onClose, onReady, current }: { onClose(): void; onReady(au
   );
 }
 
-export default function StartScreen({ onReady, current, onResume }: { onReady(autoSeat: boolean): void; current?: Chart | null; onResume?(): void }) {
+/** "Edited 5 minutes ago" / "yesterday" / "on 12 Oct". */
+function editedAgo(ts: number): string {
+  const min = Math.round((Date.now() - ts) / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min} minute${min === 1 ? "" : "s"} ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr} hour${hr === 1 ? "" : "s"} ago`;
+  const day = Math.round(hr / 24);
+  if (day === 1) return "yesterday";
+  if (day < 7) return `${day} days ago`;
+  return `on ${new Date(ts).toLocaleDateString("en-PH", { day: "numeric", month: "short" })}`;
+}
+
+/** Shown when you arrive with a saved plan: carry on, start over, or close and look around. */
+function WelcomeBack({ chart, onContinue, onFresh, onClose }: { chart: Chart; onContinue(): void; onFresh(): void; onClose(): void }) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const seated = chart.guests.filter((g) => g.tableId).length;
+
+  return (
+    <div className="mesa-sheet-scrim" onClick={onClose} data-lenis-prevent>
+      <div className="mesa-sheet mesa-sheet--small" role="dialog" aria-modal="true" aria-labelledby="mesa-back-h" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4">
+          <h2 id="mesa-back-h" className="font-display text-[1.7rem] font-semibold leading-tight text-[var(--ink)]">
+            Welcome back
+          </h2>
+          <button onClick={onClose} aria-label="Close and keep browsing" className="-mr-2 -mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
+            <i className="ri-close-line text-xl" />
+          </button>
+        </div>
+        <div className="mt-4 rounded-2xl border border-[var(--line)] bg-white px-4 py-3.5">
+          <p className="font-semibold text-[var(--ink)]">{chart.title}</p>
+          <p className="mt-0.5 text-[14px] text-[var(--slate)]">
+            {chart.guests.length ? `${seated} of ${chart.guests.length} guests seated` : `${chart.tables.length} tables, no guests yet`} · edited {editedAgo(chart.updatedAt)}
+          </p>
+        </div>
+        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row-reverse sm:justify-start">
+          <button className="btn btn-primary whitespace-nowrap sm:flex-1" onClick={onContinue} autoFocus>
+            Continue my plan
+          </button>
+          <button className="btn btn-ghost whitespace-nowrap sm:flex-1" onClick={onFresh}>
+            Start from scratch
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function StartScreen({
+  onReady,
+  current,
+  onResume,
+  welcomeBack = false,
+}: {
+  onReady(autoSeat: boolean): void;
+  current?: Chart | null;
+  onResume?(): void;
+  /** arrived with a saved plan: ask before doing anything */
+  welcomeBack?: boolean;
+}) {
   const sample = useSample();
   const [sheet, setSheet] = useState(false);
+  const [asking, setAsking] = useState(welcomeBack);
   const board = useMemo(() => boardSvg(sample.chart), [sample]);
 
   useEffect(() => {
@@ -413,7 +491,7 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
             </p>
             <div className="mt-8">{startButtons}</div>
             {/* Phones: the facts repeat in "Everything's free" below, so only a plan in progress shows here. */}
-            <p className={`mt-4 text-[14px] text-[var(--slate)] ${current ? "" : "hidden sm:block"}`}>{current ? `“${current.title}” · ${current.guests.filter((g) => g.tableId).length} of ${current.guests.length} seated` : SEATING_FACTS}</p>
+            <p className="mt-4 hidden text-[14px] text-[var(--slate)] sm:block">{SEATING_FACTS}</p>
             {/* The real thing: screenshots of Mesa itself (public/tools/mesa). */}
             {/* Phones: fills the rest of the screen; the phone below sizes to it. */}
             <div className="relative mx-auto mt-12 max-w-[820px] sm:pb-16 md:mt-14 md:pb-20 max-sm:mb-7 max-sm:mt-7 max-sm:min-h-0 max-sm:w-full max-sm:flex-1 max-sm:[container-type:size]">
@@ -426,7 +504,8 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
               </Phone>
               <div className="hidden sm:block">
                 <Laptop>
-                  <img src="/tools/mesa/editor-1440.webp" srcSet="/tools/mesa/editor-1440.webp 1440w, /tools/mesa/editor.webp 2880w" sizes="(max-width: 860px) 92vw, 800px" alt="Mesa’s editor: a wedding reception with every guest seated" className="block h-full w-full rounded-[10px] object-cover object-left-top" />
+                  {/* A scripted session in the real editor, with a visible cursor (public/tools/mesa). */}
+                  <EditorRecording />
                 </Laptop>
               </div>
               <Phone className="mesa-phone-hero hidden sm:block">
@@ -600,6 +679,21 @@ export default function StartScreen({ onReady, current, onResume }: { onReady(au
       </main>
       <FooterSection />
       {sheet ? <StartSheet current={current} onClose={() => setSheet(false)} onReady={onReady} /> : null}
+      {asking && current && !sheet ? (
+        <WelcomeBack
+          chart={current}
+          onContinue={() => {
+            setAsking(false);
+            onResume?.();
+          }}
+          // The new-plan form already warns that it replaces this plan in this browser.
+          onFresh={() => {
+            setAsking(false);
+            setSheet(true);
+          }}
+          onClose={() => setAsking(false)}
+        />
+      ) : null}
     </>
   );
 }

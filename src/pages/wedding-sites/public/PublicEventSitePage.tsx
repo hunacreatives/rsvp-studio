@@ -17,6 +17,8 @@ import SiteLoading from "./SiteLoading";
 import PasswordGate from "./PasswordGate";
 import { getSitePassword, setSitePassword } from "./sitePassword";
 import { InviteeProvider, inviteeToken, type Invitee } from "../engine/invitee";
+import SaveTheDatePage from "./SaveTheDatePage";
+import type { SaveTheDate } from "../content/saveTheDate";
 
 // The live, public event site: /invite/:slug. Reads ONLY the published_*
 // columns (never draft_*) — see the RLS note in
@@ -27,6 +29,7 @@ type LoadState =
   | { status: "not-found" }
   | { status: "gone"; state: "ended" | "deleted"; rawContent: unknown }
   | { status: "locked"; wrong: boolean }
+  | { status: "save-the-date"; std: SaveTheDate }
   | { status: "ready"; presentation: PresentationState; rawContent: unknown; photosOn: boolean; tablesOn: boolean; premium: boolean; invitee: Invitee | null };
 
 /** `slugOverride`: on a custom domain (gelat30.net) the site comes from the host, not the URL. */
@@ -48,7 +51,7 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
       // get_public_site() returns only the published columns for one slug
       // (supabase/site-security-fixes.sql). Until that SQL is applied, fall
       // back to the direct table read so live sites never go dark.
-      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown; state?: "live" | "ended" | "deleted"; locked?: boolean; photos_on?: boolean; tables_on?: boolean; is_premium?: boolean };
+      type Row = { published_content: unknown; published_presentation: unknown; template_spec?: unknown; state?: "live" | "ended" | "deleted"; locked?: boolean; photos_on?: boolean; tables_on?: boolean; is_premium?: boolean; std?: SaveTheDate | null; std_live?: boolean };
       let data: Row | null = null;
       let error: { code?: string } | null = null;
       const password = getSitePassword(slug);
@@ -76,6 +79,12 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
       // Password-protected (supabase/guest-features.sql): ask for it.
       if (!error && data?.locked) {
         setState({ status: "locked", wrong: !!password });
+        return;
+      }
+      // A studio Save the Date (supabase/save-the-date.sql): the link shows it until the
+      // studio switches the link to the full website.
+      if (!error && data?.std_live && data.std?.image?.url) {
+        setState({ status: "save-the-date", std: data.std });
         return;
       }
       if (error || !data || !data.published_content) {
@@ -144,6 +153,9 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
   }
   if (state.status === "not-found") {
     return <NotFound />;
+  }
+  if (state.status === "save-the-date") {
+    return <SaveTheDatePage std={state.std} slug={slug ?? ""} />;
   }
   if (state.status === "gone") {
     return <SiteEndedPage state={state.state} content={state.rawContent ? normalizeEventContent(state.rawContent) : null} slug={slug ?? ""} />;

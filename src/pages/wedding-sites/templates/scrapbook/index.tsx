@@ -6,7 +6,8 @@ import { scrapbookDemoWedding } from "../../content/fixtures/scrapbook-demo";
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "maroon-linen",
-  fontPairingId: "dancing-inter",
+  // Pinyon Script for the names and handwritten notes, Cormorant Garamond for the text.
+  fontPairingId: "pinyon-cormorant",
   sectionVisibility: { ...defaultSectionVisibility },
 };
 

@@ -1,4 +1,5 @@
 import { Reveal } from "@/lib/Reveal";
+import ShareConversation from "./ShareConversation";
 
 const CHANNELS = [
   { icon: "ri-messenger-line", label: "Messenger" },
@@ -9,8 +10,8 @@ const CHANNELS = [
 
 export default function SharedSection() {
   return (
-    <section className="py-16 md:py-32 overflow-hidden" style={{ background: "var(--paper)" }}>
-      <div className="container-x grid items-center gap-14 lg:grid-cols-2">
+    <section className="py-16 md:py-28 overflow-hidden" style={{ background: "var(--warm-white)" }}>
+      <div className="container-x grid items-center gap-14 lg:max-w-[900px] lg:grid-cols-[1fr_auto] lg:gap-10">
         <Reveal>
           <h2
             className="font-display font-semibold tracking-[-0.02em] leading-[1.1] text-[var(--ink)] md:whitespace-nowrap"
@@ -26,7 +27,7 @@ export default function SharedSection() {
           <div className="mt-8 grid max-w-sm grid-cols-4 gap-2 sm:mt-10 sm:flex sm:max-w-none sm:flex-wrap sm:gap-8">
             {CHANNELS.map((c) => (
               <div key={c.label} className="flex flex-col items-center gap-2">
-                <span className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white border border-[var(--line)] text-2xl text-[var(--ink)]">
+                <span className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[var(--paper)] text-2xl text-[var(--ink)]">
                   <i className={c.icon} />
                 </span>
                 <span className="text-[13px] sm:text-sm text-[var(--slate)]">{c.label}</span>
@@ -35,12 +36,8 @@ export default function SharedSection() {
           </div>
         </Reveal>
 
-        <Reveal delay={0.08} className="flex justify-center lg:justify-end">
-          <img
-            src="/services/milestone/imessage-share.webp"
-            alt="An invitation link shared in a message thread"
-            className="w-[280px] md:w-[320px] drop-shadow-[0_30px_60px_rgba(0,7,39,0.18)]"
-          />
+        <Reveal delay={0.08} className="flex justify-center">
+          <ShareConversation />
         </Reveal>
       </div>
     </section>

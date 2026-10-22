@@ -9,7 +9,8 @@ import { downloadCsv } from "@/lib/csv";
 // copy a friendly nudge to send by Messenger or Viber.
 // A reply matches an invitee by email, by mobile number, or by the same name.
 
-export type Invitee = { id: string; name: string; contact: string | null; party_size: number | null; created_at: string; token?: string; table_label?: string | null };
+/** `source`: "save_the_date" = they asked for the invitation on the Save the Date link (supabase/save-the-date.sql). */
+export type Invitee = { id: string; name: string; contact: string | null; party_size: number | null; created_at: string; token?: string; table_label?: string | null; source?: string | null };
 
 const nameKey = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const phoneKey = (s: string | null | undefined) => {
@@ -54,6 +55,11 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
         { id: "i2", name: "Paolo Cruz", contact: null, party_size: 1, created_at: "" },
         { id: "i3", name: "Tita Lorna", contact: "0917 555 0101", party_size: 2, created_at: "" },
         { id: "i4", name: "Jun Dela Cruz", contact: null, party_size: 1, created_at: "" },
+        { id: "i5", name: "Bea Reyes", contact: "bea@example.com", party_size: 1, created_at: "" },
+        { id: "i6", name: "Miguel Tan", contact: "miguel@example.com", party_size: 2, created_at: "" },
+        { id: "i7", name: "Carla Villanueva", contact: "carla@example.com", party_size: 1, created_at: "" },
+        { id: "i8", name: "Tito Ramon Aquino", contact: "0918 555 0144", party_size: 4, created_at: "" },
+        { id: "i9", name: "Ate Joy Mercado", contact: "joy.mercado@example.com", party_size: null, created_at: "", source: "save_the_date" },
       ]);
       return;
     }
@@ -226,9 +232,9 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
               <li key={inv.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-medium text-[var(--ink)]">{inv.name}</p>
-                  {inv.contact || inv.party_size || inv.table_label ? (
+                  {inv.contact || inv.party_size || inv.table_label || inv.source === "save_the_date" ? (
                     <p className="truncate text-[13px] text-[var(--slate)]">
-                      {[inv.contact, inv.party_size ? `${inv.party_size} ${inv.party_size === 1 ? "seat" : "seats"}` : "", inv.table_label ? `Table ${inv.table_label}` : ""].filter(Boolean).join(" · ")}
+                      {[inv.contact, inv.party_size ? `${inv.party_size} ${inv.party_size === 1 ? "seat" : "seats"}` : "", inv.table_label ? `Table ${inv.table_label}` : "", inv.source === "save_the_date" ? "From your Save the Date" : ""].filter(Boolean).join(" · ")}
                     </p>
                   ) : null}
                 </div>

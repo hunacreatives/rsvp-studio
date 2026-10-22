@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { presign, r2PublicUrl, r2Ready } from "./r2.js";
 
 // POST /api/media-upload (→ pay-checkout?op=upload-url, vercel.json): a 5-minute
-// presigned URL for the browser to PUT one event photo straight to R2.
+// presigned URL for the browser to PUT one event photo (or, for staff, one mp4) straight to R2.
 //   body: { eventId, contentType, size }
 //   → { uploadUrl, headers, publicUrl }  ·  503 { fallback: true } when R2 isn't set up
 // (the builder then uploads to Supabase Storage as before).
@@ -15,6 +15,9 @@ const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SER
 
 const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
 const MAX_BYTES = 10 * 1024 * 1024;
+// Animated Save the Dates (Studio only): one short video per project.
+const VIDEO_TYPES: Record<string, string> = { "video/mp4": "mp4" };
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function uploadUrlHandler(req: VercelRequest, res: VercelResponse) {
@@ -30,14 +33,19 @@ export async function uploadUrlHandler(req: VercelRequest, res: VercelResponse) 
   const contentType = String(body.contentType ?? "");
   const size = Number(body.size);
   if (!UUID.test(eventId)) return res.status(404).json({ error: "We couldn’t find that event." });
-  if (!TYPES[contentType]) return res.status(400).json({ error: "Please choose a PNG, JPEG, WebP or GIF image." });
+  const video = Boolean(VIDEO_TYPES[contentType]);
+  if (video) {
+    const { data: me } = await db.from("profiles").select("is_staff").eq("id", auth.user.id).maybeSingle();
+    if (me?.is_staff !== true) return res.status(400).json({ error: "Please choose a PNG, JPEG, WebP or GIF image." });
+  } else if (!TYPES[contentType]) return res.status(400).json({ error: "Please choose a PNG, JPEG, WebP or GIF image." });
   if (!Number.isInteger(size) || size <= 0) return res.status(400).json({ error: "That file looks empty." });
-  if (size > MAX_BYTES) return res.status(400).json({ error: "That photo is over 10 MB — please choose a smaller file." });
+  if (size > (video ? MAX_VIDEO_BYTES : MAX_BYTES))
+    return res.status(400).json({ error: video ? "That video is over 50 MB — please export a smaller one." : "That photo is over 10 MB — please choose a smaller file." });
 
   const { data: allowed } = await db.rpc("media_upload_allowed", { p_user: auth.user.id, p_event: eventId });
   if (allowed !== true) return res.status(404).json({ error: "We couldn’t find that event." });
 
-  const key = `events/${eventId.toLowerCase()}/${randomUUID()}.${TYPES[contentType]}`;
+  const key = `events/${eventId.toLowerCase()}/${randomUUID()}.${TYPES[contentType] ?? VIDEO_TYPES[contentType]}`;
   const { error: limit } = await db.rpc("claim_upload", { p_user: auth.user.id, p_event: eventId, p_bytes: size, p_key: key });
   if (limit) {
     const m = limit.message;

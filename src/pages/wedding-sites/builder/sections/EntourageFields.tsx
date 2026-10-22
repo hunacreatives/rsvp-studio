@@ -6,7 +6,7 @@ import { FormField, inputStyle } from "../components/FormField";
 // and the motif colours shown with the dress code. Starting points for Filipino occasions.
 
 const PRESETS: Record<string, string[]> = {
-  Wedding: ["Principal Sponsors", "Secondary Sponsors: Candle", "Secondary Sponsors: Veil", "Secondary Sponsors: Cord", "Best Man", "Maid of Honor", "Groomsmen", "Bridesmaids", "Bearers", "Flower Girls"],
+  Wedding: ["Parents of the Bride", "Parents of the Groom", "Principal Sponsors", "Secondary Sponsors: Candle", "Secondary Sponsors: Veil", "Secondary Sponsors: Cord", "Secondary Sponsors: Coin", "Best Man", "Maid of Honor", "Groomsmen", "Bridesmaids", "Bearers", "Flower Girls"],
   Debut: ["18 Roses", "18 Candles", "18 Treasures", "Escort"],
   Christening: ["Godparents"],
   Birthday: ["Hosts"],

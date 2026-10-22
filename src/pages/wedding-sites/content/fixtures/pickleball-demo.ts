@@ -23,7 +23,18 @@ export const pickleballDemoBirthday: EventContent = {
   ],
   accommodations: [],
   travelInformation: [],
-  galleries: [],
+  // Stock photos (HONG SON on Pexels, Pexels licence; pexels.com/photo/32975180–32975184).
+  galleries: [
+    {
+      id: "pb-gal",
+      title: "Court moments",
+      items: [
+        { id: "pb-g1", order: 1, image: { id: "pb-img1", masterUrl: "/event-templates/pickleball/demo/court-1.webp", width: 800, height: 1200, alt: "Rina mid-swing", focalPoint: { x: 0.5, y: 0.35 }, createdAt: "2030-01-01T00:00:00Z" } },
+        { id: "pb-g2", order: 2, image: { id: "pb-img2", masterUrl: "/event-templates/pickleball/demo/court-2.webp", width: 1200, height: 799, alt: "Rina returning a shot", focalPoint: { x: 0.5, y: 0.45 }, createdAt: "2030-01-01T00:00:00Z" } },
+        { id: "pb-g3", order: 3, image: { id: "pb-img3", masterUrl: "/event-templates/pickleball/demo/court-3.webp", width: 1200, height: 799, alt: "Rina at the baseline", focalPoint: { x: 0.5, y: 0.45 }, createdAt: "2030-01-01T00:00:00Z" } },
+      ],
+    },
+  ],
   registryLinks: [],
   faqs: [
     { id: "pb-f1", question: "I’ve never played. Can I still come?", answer: "Yes! There’s a quick lesson at the start, and nobody is keeping score.", order: 0 },

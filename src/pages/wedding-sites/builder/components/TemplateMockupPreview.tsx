@@ -231,7 +231,8 @@ function LiveDemoPreview({ template, background }: { template: TemplateDefinitio
     };
   }, []);
 
-  const scale = boxWidth > 0 ? boxWidth / DEMO_WIDTH : 0.29;
+  const width = template.galleryWidth ?? DEMO_WIDTH;
+  const scale = boxWidth > 0 ? boxWidth / width : 0.29;
   const Component = template.component;
   return (
     <div ref={boxRef} style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative", background }}>
@@ -239,7 +240,7 @@ function LiveDemoPreview({ template, background }: { template: TemplateDefinitio
         <div
           aria-hidden
           style={{
-            width: DEMO_WIDTH,
+            width,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
             position: "absolute",
@@ -248,7 +249,7 @@ function LiveDemoPreview({ template, background }: { template: TemplateDefinitio
             pointerEvents: "none",
           }}
         >
-          <Component content={template.demoContent!} settings={template.defaultSettings} />
+          <Component content={template.demoContent!} settings={template.defaultSettings} gallery />
         </div>
       ) : null}
     </div>

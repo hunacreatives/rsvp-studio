@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
@@ -5,7 +6,7 @@ import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
 import InvitePlaceholder from "@/pages/home/components/InvitePlaceholder";
 import { Reveal } from "@/lib/Reveal";
-import { WORKS } from "./works";
+import { WORKS, type Work } from "./works";
 import { inquiryLink } from "@/pages/enquire/prefill";
 import { inquiryFor } from "./inquiry";
 import FilterTabs from "./components/FilterTabs";
@@ -154,7 +155,9 @@ export default function PortfolioPage() {
                 const card = (
                   <div>
                     <div className="relative overflow-hidden rounded-[14px]" style={{ boxShadow: "0 30px 60px -30px rgba(0,7,39,0.28)" }}>
-                      {w.thumbnail ? (
+                      {w.art ? (
+                        <MonogramTile w={w} />
+                      ) : w.thumbnail ? (
                         <img
                           src={w.thumbnail}
                           alt={w.title}
@@ -198,5 +201,58 @@ export default function PortfolioPage() {
       </main>
       <FooterSection />
     </>
+  );
+}
+
+/** A monogram as it would be finished, filling the same 3:4 frame as the site screenshots. */
+function MonogramTile({ w }: { w: Work }) {
+  const zoom = "transition-transform duration-500 group-hover:scale-[1.04]";
+  if (w.art === "cover")
+    return (
+      <div className="relative aspect-[3/4] w-full overflow-hidden">
+        <img src={w.thumbnail} alt={w.title} className={`absolute inset-0 h-full w-full object-cover ${zoom}`} />
+      </div>
+    );
+  if (w.art === "contain")
+    return (
+      <div className="relative aspect-[3/4] w-full overflow-hidden" style={{ background: "radial-gradient(120% 90% at 50% 35%, #fbf8f2 0%, #ece6db 100%)" }}>
+        <img src={w.thumbnail} alt={w.title} className={`absolute inset-[9%] h-[82%] w-[82%] object-contain drop-shadow-[0_18px_28px_rgba(60,40,20,0.22)] ${zoom}`} />
+      </div>
+    );
+  const foil = w.art === "foil";
+  const mask = { WebkitMaskImage: `url(${w.mark})`, maskImage: `url(${w.mark})`, WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "center", maskPosition: "center" } as CSSProperties;
+  return (
+    <div
+      role="img"
+      aria-label={w.title}
+      className="relative aspect-[3/4] w-full overflow-hidden"
+      style={{
+        background: foil
+          ? "radial-gradient(110% 80% at 50% 30%, #23365c 0%, #101c35 70%, #0b1427 100%)"
+          : "radial-gradient(120% 90% at 50% 30%, #fbf7f0 0%, #efe7da 100%)",
+      }}
+    >
+      {/* the mark: wrapper casts the shadow (filters run before masks), child is the masked ink/foil */}
+      <div
+        className={`absolute inset-x-[16%] inset-y-[22%] ${zoom}`}
+        style={{
+          filter: foil
+            ? "drop-shadow(0 2px 1px rgba(0,0,0,0.45)) drop-shadow(0 10px 18px rgba(0,0,0,0.35))"
+            : "drop-shadow(0 1px 0 rgba(255,255,255,0.9)) drop-shadow(0 -1px 0 rgba(60,40,25,0.25))",
+        }}
+      >
+        <div
+          className="h-full w-full"
+          style={{
+            ...mask,
+            background: foil
+              ? "linear-gradient(135deg, #a9782c 0%, #f6e2a4 28%, #b98a3b 48%, #f1d68f 68%, #9c6d27 100%)"
+              : "#4a3326",
+          }}
+        />
+        {/* light catching the foil / ink on hover — the site's single-pass glint */}
+        <span className="shine-pass shine-pass--hover shine-pass--contain" style={{ "--shine-mask": `url(${w.mark})` } as CSSProperties} aria-hidden />
+      </div>
+    </div>
   );
 }

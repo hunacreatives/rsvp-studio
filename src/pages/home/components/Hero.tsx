@@ -148,7 +148,7 @@ export default function Hero() {
                   src={src}
                   alt=""
                   loading="lazy"
-                  className="mr-4 sm:mr-5 md:mr-7 w-[150px] md:w-[230px] max-sm:h-[calc((100cqh-16px)/2)] max-sm:w-auto aspect-[3/4] rounded-[14px] object-cover opacity-60 saturate-[1.35] blur-[3px]"
+                  className="mr-4 sm:mr-5 md:mr-7 w-[150px] md:w-[230px] max-sm:h-[calc((100cqh-16px)/2)] max-sm:w-auto aspect-[4/5] rounded-[14px] object-cover opacity-80 shadow-[0_18px_40px_-24px_rgba(0,7,39,0.35)]"
                 />
               ))}
             </div>

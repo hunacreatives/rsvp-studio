@@ -13,6 +13,7 @@ import GuestPhotosAdmin from "../components/GuestPhotosAdmin";
 import { supabase } from "@/lib/supabase";
 import DiyExtras from "../components/DiyExtras";
 import DomainCard from "../components/DomainCard";
+import SaveTheDateCard from "../components/SaveTheDateCard";
 import { ActivityList, DiySiteSummary, InvoiceTable, ProjectStatusPill, TaskList, isDiy, useProjectCover, nextStepLabel } from "../components/blocks";
 import { formatDate, formatLongDate, servicesLabel } from "../format";
 import type { Project } from "../types";
@@ -149,6 +150,7 @@ export default function ProjectDetailPage() {
         </div>
       ) : tab === "website" ? (
         <>
+          <SaveTheDateCard project={project} />
           <WebsiteTab project={project} />
           {diy && site ? <DomainCard project={project} slug={site.slug} /> : null}
           {diy ? <DiyExtras project={project} /> : null}

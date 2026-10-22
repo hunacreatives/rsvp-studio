@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import SuiteUnboxing from "./stationery/components/SuiteUnboxing";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -11,7 +12,7 @@ import { goTo } from "@/lib/goTo";
 
 // /services — laid out from the "Services" frame in Figma (RSVP STUDIO For Dev, 2154:798):
 // the homepage's photo band as the hero, Milestone beside its device mockup, Monogram and Save the Date
-// as two cards, Stationery behind a "Coming soon" veil, RSVP beside the dashboard on an
+// as two cards, Stationery with the Essential suite unboxing, RSVP beside the dashboard on an
 // iPad, and the homepage's planner band. Type and buttons are the site's own.
 
 const WRAP = "mx-auto w-full max-w-[1012px]";
@@ -74,23 +75,13 @@ function MilestoneDevices() {
 
 /** A tile's words, Mesa-style: serif title, a soft line, and a quiet arrow link. */
 function TileWords({ title, line, link }: { title: string; line: string; link: { label: string; to: string } }) {
-  const navigate = useNavigate();
-  return (
-    <div>
-      <h2 className="font-display text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] md:text-[2rem]">{title}</h2>
-      <p className="mt-2.5 max-w-[30ch] text-[15.5px] leading-relaxed text-[rgba(0,7,39,0.68)]">{line}</p>
-      <button onClick={() => goTo(navigate, link.to)} className="group mt-4 inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-[var(--ink)]">
-        <span className="underline-offset-[5px] group-hover:underline">{link.label}</span>
-        <i className="ri-arrow-right-line transition-transform group-hover:translate-x-0.5" aria-hidden />
-      </button>
-    </div>
-  );
+  return <ServiceText title={title} line={line} cta={link} size="md" />;
 }
 
 function Cta({ label, to }: { label: string; to: string }) {
   const navigate = useNavigate();
   return (
-    <button className="btn btn-primary" onClick={() => goTo(navigate, to)}>
+    <button className="btn btn-primary whitespace-nowrap max-sm:px-5" onClick={() => goTo(navigate, to)}>
       {label}
     </button>
   );
@@ -144,64 +135,56 @@ export default function Services() {
           </div>
         </section>
 
-        {/* Monogram + Save the Date: two tiles in the style of Mesa's "How it works" —
-            a soft gradient, the words up top on the left, the picture rising from the bottom edge. */}
+        {/* Monogram + Save the Date: two tiles with a soft gradient, the same centred words and
+            blue button as the other services, the picture rising from the bottom edge. */}
         <section className="container-x mt-12 md:mt-14">
           <div className={`${WRAP} grid gap-4 md:grid-cols-2 md:gap-5`}>
-            <Reveal id="monogram" className="flex min-h-[470px] flex-col overflow-hidden rounded-[26px] px-7 pt-8 md:min-h-[540px] md:rounded-[30px] md:px-[30px] md:pt-[30px]" style={{ background: "linear-gradient(160deg, #f3e9ff 0%, #ffe3ee 100%)" }}>
+            <Reveal id="monogram" className="flex min-h-[400px] flex-col overflow-hidden rounded-[26px] px-7 pt-9 md:min-h-[440px] md:rounded-[30px] md:px-[30px] md:pt-10" style={{ background: "linear-gradient(160deg, #f3e9ff 0%, #ffe3ee 100%)" }}>
               <TileWords title="Monogram Design" line="A signature that belongs only to you." link={{ label: "Create your monogram", to: "/services/monogram" }} />
               {/* The seals drift a little, and a band of light sweeps across them now and then
                   (the shine is masked to the seals' own shapes, so the tile behind stays clean). */}
               <div className="mt-auto flex translate-y-[26px] justify-center pt-6">
-                <div className="svc-mono aspect-[383/454] w-[230px] md:w-[262px]">
+                <div className="svc-mono aspect-[383/454] w-[150px] md:w-[170px]" style={{ "--shine-mask": "url(/services/page/monogram.webp)" } as React.CSSProperties}>
                   <img src="/services/page/monogram.webp" alt="Monograms and crests designed by the studio" loading="lazy" className="block h-full w-full" />
                   <span className="svc-mono-shine" aria-hidden />
                 </div>
               </div>
             </Reveal>
-            <Reveal id="save-the-date" delay={0.06} className="flex min-h-[470px] flex-col overflow-hidden rounded-[26px] px-7 pt-8 md:min-h-[540px] md:rounded-[30px] md:px-[30px] md:pt-[30px]" style={{ background: "linear-gradient(160deg, #fff6d6 0%, #ffe39a 100%)" }}>
+            <Reveal id="save-the-date" delay={0.06} className="flex min-h-[400px] flex-col overflow-hidden rounded-[26px] px-7 pt-9 md:min-h-[440px] md:rounded-[30px] md:px-[30px] md:pt-10" style={{ background: "linear-gradient(160deg, #fff6d6 0%, #ffe39a 100%)" }}>
               <TileWords title="Digital Save the Date" line="The first glimpse of what’s to come." link={{ label: "Start your save the date", to: "/services/save-the-date" }} />
               {/* The homepage's "Interactive" envelope: the seal lifts and the invite rises out. */}
               <div className="mt-auto flex translate-y-[26px] justify-center pt-6">
-                <EnvelopeArt className="block aspect-[8/7] w-[290px] rounded-t-[20px] shadow-[0_30px_60px_-30px_rgba(140,100,0,0.45)] md:w-[330px]" />
+                <EnvelopeArt className="block aspect-[8/7] w-[200px] rounded-t-[18px] shadow-[0_30px_60px_-30px_rgba(140,100,0,0.45)] md:w-[220px]" />
               </div>
             </Reveal>
           </div>
         </section>
 
-        {/* Stationery: coming soon — the row is there, softly veiled. */}
-        <section id="stationery" className="relative mt-12 overflow-hidden md:mt-[18px]">
-          <h2 className="sr-only">Stationery Design: coming soon</h2>
-          <div className="container-x" aria-hidden inert>
-            {/* Phones: picture beside the words, so the veiled row stays short. */}
-            <div className={`${WRAP} grid grid-cols-[110px_1fr] items-center gap-4 py-8 md:grid-cols-2 md:gap-0 md:py-0`}>
-              <div className="flex justify-center">
-                <img src="/services/page/stationery.webp" alt="" loading="lazy" className="block aspect-[471/768] w-[110px] object-cover md:w-[324px]" />
-              </div>
+        {/* Stationery Design: the Essential suite unboxing from its envelope (the same as on
+            /services/stationery). Phones: the picture above the words, big enough to read. */}
+        <section id="stationery" className="container-x mt-12 md:mt-[18px]">
+          <div className={`${WRAP} grid items-center gap-6 py-8 md:grid-cols-2 md:gap-0 md:py-0`}>
+            <Reveal className="mx-auto w-full max-w-[340px] md:max-w-[440px]">
+              <SuiteUnboxing suite="essential" />
+            </Reveal>
+            <Reveal delay={0.08}>
               <ServiceText title="Stationery Design" line="Print-ready pieces that match your suite." cta={{ label: "Explore the suites", to: "/services/stationery" }} />
-            </div>
-          </div>
-          <div className="absolute inset-x-0 bottom-[22px] top-[17px] bg-white/50 backdrop-blur-[15px]" />
-          <div className="absolute inset-0 grid place-items-center text-center">
-            <div>
-              <p className="font-display text-[1.7rem] font-semibold leading-tight text-[var(--ink)] md:text-[1.9rem]">Coming Soon</p>
-              <p className="mt-1 text-[17px] text-[var(--ink)] md:text-[19px]">Stay tuned.</p>
-            </div>
+            </Reveal>
           </div>
         </section>
 
         {/* RSVP Management */}
         <section id="rsvp" className="mt-3 overflow-hidden py-10 md:py-7" style={{ background: CARD_BG }}>
           <div className="container-x">
-            <div className={`${WRAP} grid items-center gap-8 md:grid-cols-[492px_1fr] md:gap-0`}>
+            <div className={`${WRAP} grid items-center gap-8 md:grid-cols-2 md:gap-0`}>
               <Reveal>
                 <ServiceText title="RSVP Management" line="Seamlessly integrated into your event website." cta={{ label: "Learn more", to: "/services/rsvp" }} />
               </Reveal>
               <Reveal delay={0.08}>
-                {/* The iPad runs past the page edge on wide screens, as in the design. The screen is a
-                    2x capture of the real Guests tab (account portal, ?demo), framed in code like Milestone's. */}
-                <div className="mx-auto w-full max-w-[520px] rounded-[18px] bg-[#1b1b1e] p-[2.4%] shadow-[0_30px_60px_-30px_rgba(0,7,39,0.45)] md:mx-0 md:w-[653px] md:max-w-none md:rounded-[26px]">
-                  <img src="/services/page/rsvp-dashboard.webp" alt="The RSVP dashboard: every reply with who's coming, party size, dietary needs and messages" loading="lazy" className="block aspect-[4/3] w-full rounded-[9px] bg-white md:rounded-[14px]" />
+                {/* The screen is a 2x capture of the real Guests tab (account portal, ?demo), framed in
+                    code like Milestone's. Sized like the other rows' pictures, inside the page. */}
+                <div className="mx-auto w-full max-w-[400px] rounded-[16px] bg-[#1b1b1e] p-[2.4%] shadow-[0_30px_60px_-30px_rgba(0,7,39,0.45)] md:max-w-[460px] md:rounded-[22px]">
+                  <img src="/services/page/rsvp-dashboard.webp" alt="The RSVP dashboard: every reply with who's coming, party size, dietary needs and messages" loading="lazy" className="block aspect-[4/3] w-full rounded-[9px] bg-white md:rounded-[12px]" />
                 </div>
               </Reveal>
             </div>

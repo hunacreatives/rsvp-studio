@@ -61,6 +61,11 @@ body {
   line-height: 1.6;
 }
 
+/* No orphans anywhere: the browser keeps a lone word off the last line, and headings
+   balance their lines. A per-element text-balance / textWrap still wins where it's set. */
+p, li, dd, figcaption, blockquote { text-wrap: pretty; }
+h1, h2, h3, h4 { text-wrap: balance; }
+
 /* Lenis smooth-scroll wiring */
 html.lenis,
 html.lenis body {
@@ -460,17 +465,36 @@ html.lenis body {
   pointer-events: none;
   background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.65) 50%, transparent 62%) no-repeat;
   background-size: 260% 100%;
-  -webkit-mask: url(/services/page/monogram.webp) center / 100% 100% no-repeat;
-  mask: url(/services/page/monogram.webp) center / 100% 100% no-repeat;
+  /* masked to the artwork's own shape — set --shine-mask: url(...) per use */
+  -webkit-mask: var(--shine-mask) center / 100% 100% no-repeat;
+  mask: var(--shine-mask) center / 100% 100% no-repeat;
   animation: svc-mono-shine 4.8s ease-in-out infinite 1s;
 }
 @keyframes svc-mono-shine {
   0% { background-position: 130% 0; }
   45%, 100% { background-position: -30% 0; }
 }
+/* Same light band, as single passes: once when the card is revealed, again on
+   hover (separate layers, so leaving the card never replays the reveal pass). */
+.shine-pass {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* narrower band than the looping tile shine: reads as a glint on small marks */
+  background: linear-gradient(105deg, transparent 46.5%, rgba(255, 255, 255, 0.85) 50%, transparent 53.5%) no-repeat;
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  -webkit-mask: var(--shine-mask) center / 100% 100% no-repeat;
+  mask: var(--shine-mask) center / 100% 100% no-repeat;
+}
+.shine-pass--contain { -webkit-mask-size: contain; mask-size: contain; }
+[data-revealed="true"] .shine-pass--reveal { animation: shine-pass 1.5s ease-in-out var(--shine-delay, 0.5s) 1 both; }
+.group:hover .shine-pass--hover { animation: shine-pass-hover 1.1s ease-in-out 1 both; }
+@keyframes shine-pass { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+@keyframes shine-pass-hover { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 @media (prefers-reduced-motion: reduce) {
   .svc-mono, .svc-mono-shine { animation: none; }
-  .svc-mono-shine { display: none; }
+  .svc-mono-shine, .shine-pass { display: none; }
 }
 
 /* Reveal-on-scroll — GSAP toggles [data-revealed] */
@@ -514,3 +538,25 @@ html.lenis body {
   outline: 2px solid var(--acc-blue, #1862dd) !important;
   outline-offset: 2px;
 }
+
+
+/* Milestone "Designed to be shared" — typing dots in the conversation. */
+.share-typing-dot { animation: share-typing 1s ease-in-out infinite; }
+@keyframes share-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .share-typing-dot { animation: none; }
+}
+
+/* Monogram "brought to life" — centre caption fades in on each change. */
+.mono-caption { animation: mono-caption 0.3s ease-out; }
+@keyframes mono-caption {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mono-caption { animation: none; }
+}
+

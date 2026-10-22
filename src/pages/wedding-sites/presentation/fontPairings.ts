@@ -75,6 +75,20 @@ export const fontPairings: FontPairingOption[] = [
     displayFont: '"Great Vibes", cursive',
     bodyFont: '"Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
+  {
+    // Open Play: bold condensed sport type with a plain sans for the text.
+    id: "barlow-condensed",
+    label: "Barlow Condensed & Barlow",
+    displayFont: '"Barlow Condensed", "Arial Narrow", sans-serif',
+    bodyFont: '"Barlow", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  },
+  {
+    // Capiz: a high-contrast Bodoni for the names and titles, Newsreader for the text.
+    id: "bodoni-newsreader",
+    label: "Bodoni Moda & Newsreader",
+    displayFont: '"Bodoni Moda", Didot, "Bodoni 72", Georgia, serif',
+    bodyFont: '"Newsreader", Georgia, serif',
+  },
 ];
 
 export const defaultFontPairingId = fontPairings[0].id;

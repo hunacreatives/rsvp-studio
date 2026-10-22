@@ -1,3 +1,4 @@
+import type { SaveTheDate } from "@/pages/wedding-sites/content/saveTheDate";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { notify } from "@/pages/account/portal/api";
@@ -674,4 +675,18 @@ export async function savePromoCode(p: { code: string; percent_off: number; note
 export async function setPromoActive(code: string, active: boolean) {
   const { error } = await supabase.from("promo_codes").update({ active }).eq("code", code);
   if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
+// Save the Date links (supabase/save-the-date.sql)
+
+/** Create or update a project's Save the Date; `live` decides whether its link shows it. Returns the slug. */
+export async function saveSaveTheDate(eventId: string, std: SaveTheDate, live: boolean, baseSlug: string, draft: unknown) {
+  const { data, error } = await supabase.rpc("studio_save_the_date", { p_event: eventId, p_std: std, p_live: live, p_base_slug: baseSlug, p_draft: draft });
+  if (error) {
+    if (error.code === "PGRST202") throw new Error("Run supabase/save-the-date.sql on the database first.");
+    if (/STD_IMAGE/.test(error.message)) throw new Error("Upload the card image before going live.");
+    throw new Error(error.message);
+  }
+  return data as string;
 }

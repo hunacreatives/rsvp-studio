@@ -7,6 +7,8 @@ import { sparseDraft } from "../content/fixtures/sparse-draft";
 import { scrapbookDemoWedding } from "../content/fixtures/scrapbook-demo";
 import { cinematicDemoBirthday } from "../content/fixtures/cinematic-demo";
 import { pickleballDemoBirthday } from "../content/fixtures/pickleball-demo";
+import { openPlayDemo } from "../content/fixtures/open-play-demo";
+import { capizDemo } from "../content/fixtures/capiz-demo";
 import { debutDemo } from "../content/fixtures/debut-demo";
 import { loveLetterDemo } from "../content/fixtures/love-letter-demo";
 import { promenadeDemo } from "../content/fixtures/promenade-demo";
@@ -44,6 +46,8 @@ const fixtures: Record<string, unknown> = {
   "scrapbook-demo": scrapbookDemoWedding,
   "cinematic-demo": cinematicDemoBirthday,
   "pickleball-demo": pickleballDemoBirthday,
+  "open-play-demo": openPlayDemo,
+  "capiz-demo": capizDemo,
   "debut-demo": debutDemo,
   "love-letter-demo": loveLetterDemo,
   "promenade-demo": promenadeDemo,
@@ -194,7 +198,7 @@ export default function PreviewHarnessPage() {
         <HarnessEditor key={`${templateId}:${fixtureId}`} initial={content} templateId={templateId} />
       ) : resolved ? (
         <div style={{ width: previewWidth ?? "100%", maxWidth: "100%", margin: "0 auto" }}>
-          <resolved.definition.component content={content} settings={resolved.settings} editorPreview={editorPreview} live={searchParams.get("live") === "1"} />
+          <resolved.definition.component content={content} settings={resolved.settings} editorPreview={editorPreview} live={searchParams.get("live") === "1"} demo={searchParams.get("demo") === "1"} gallery={searchParams.get("gallery") === "1"} />
         </div>
       ) : (
         <div style={{ padding: 48, textAlign: "center", color: "#868697" }}>
