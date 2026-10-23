@@ -19,6 +19,10 @@
       "destination": "/api/pay-checkout?op=domain-search"
     },
     {
+      "source": "/og/:slug.jpg",
+      "destination": "/api/invite-page?op=og&slug=:slug"
+    },
+    {
       "source": "/qr/:slug.png",
       "destination": "/api/invite-page?op=qr&slug=:slug"
     },

@@ -57,6 +57,40 @@ function describe(c: Content, ended: boolean) {
 }
 
 /** The photo guests see first: the design's cover photo, else the first photo in the couple's order. */
+/** A short, stable fingerprint of a URL (for cache-busting the preview photo). */
+function shortHash(s: string) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * /og/<slug>.jpg: the site's preview photo (its cover, or the live Save the Date card),
+ * fetched from wherever it's stored and passed on with headers link previews accept.
+ */
+async function ogImage(req: VercelRequest, res: VercelResponse) {
+  const slug = String(req.query.slug ?? "").toLowerCase().replace(/\.jpg$/, "");
+  const fail = () => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.status(302).setHeader("Location", "https://thersvpstudio.com/og-default.jpg").end();
+  };
+  if (!/^[a-z0-9-]{1,80}$/.test(slug)) return fail();
+  const { data } = await db.rpc("get_public_site", { p_slug: slug });
+  const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: Presentation; std?: Std | null; std_live?: boolean } | null;
+  if (!row || row.state === "ended") return fail();
+  const url = row.std_live && row.std?.image?.url ? row.std.image.url : row.published_content ? coverOf(row.published_content, row.published_presentation)?.masterUrl : undefined;
+  if (!url || !/^https:\/\//.test(url)) return fail();
+  const r = await fetch(url).catch(() => null);
+  const type = r?.headers.get("content-type") ?? "";
+  if (!r?.ok || !type.startsWith("image/")) return fail();
+  const body = Buffer.from(await r.arrayBuffer());
+  if (body.length > 8_000_000) return fail(); // Facebook's limit
+  res.setHeader("Content-Type", type);
+  res.setHeader("Content-Length", String(body.length));
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800");
+  res.status(200).send(body);
+}
+
 function coverOf(c: Content, pres: Presentation | undefined): Img | undefined {
   const hero = pres?.byTemplate?.[pres.activeTemplateId ?? ""]?.heroImage;
   if (hero?.masterUrl) return hero;
@@ -78,6 +112,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.query.op === "sitemap") return sitemap(db, res);
   // /qr/<slug>.png: the photo page's QR code for the hosts' emails.
   if (req.query.op === "qr") return qrHandler(req, res);
+  // /og/<slug>.jpg: the link preview's photo, from our own domain (see ogImage).
+  if (req.query.op === "og") return ogImage(req, res);
   const host = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "");
   const origin = `https://${host}`;
   let slug = String(req.query.slug ?? "").toLowerCase();
@@ -126,7 +162,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `<meta property="og:type" content="website" />`,
         `<meta property="og:site_name" content="The RSVP Studio" />`,
         `<meta property="og:url" content="${esc(req.query.domain === "1" ? origin : `${origin}/invite/${slug}`)}" />`,
-        image ? `<meta property="og:image" content="${esc(image.masterUrl!)}" />` : "",
+        // Served from thersvpstudio.com (/og/<slug>.jpg), not the storage host: Supabase storage
+        // answers "x-robots-tag: none, private" and Messenger skips images like that. ?v= changes
+        // with the photo, so a new cover gets a new preview instead of Facebook's cached one.
+        image ? `<meta property="og:image" content="${esc(`https://thersvpstudio.com/og/${slug}.jpg?v=${shortHash(image.masterUrl!)}`)}" />` : "",
+        image ? `<meta property="og:image:type" content="image/jpeg" />` : "",
         // Its size, so Messenger and Facebook show the photo the first time a link is shared.
         image?.width && image.height ? `<meta property="og:image:width" content="${Math.round(image.width)}" />` : "",
         image?.width && image.height ? `<meta property="og:image:height" content="${Math.round(image.height)}" />` : "",

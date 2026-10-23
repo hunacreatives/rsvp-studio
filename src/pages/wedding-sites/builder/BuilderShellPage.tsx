@@ -268,7 +268,7 @@ export default function BuilderShellPage() {
         </SiteCreditProvider>
         {/* Add, drop, adjust and replace photos on the page itself. */}
         <PreviewSectionTools root={previewContentRef} scroller={previewScrollRef} definition={activeDefinition} order={resolved.settings.sectionOrder} content={content} setContent={setContent} />
-        <PreviewPhotoTools root={previewContentRef} scroller={previewScrollRef} eventId={eventId} content={content} setContent={setContent} presentation={presentation} setPresentation={setPresentation} />
+        <PreviewPhotoTools root={previewContentRef} scroller={previewScrollRef} eventId={eventId} content={content} setContent={setContent} presentation={presentation} setPresentation={setPresentation} galleryLimit={activeDefinition?.galleryLimit} />
         </PageEditProvider>
       </PreviewCanvas>
     ) : (

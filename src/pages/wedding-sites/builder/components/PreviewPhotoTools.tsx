@@ -65,6 +65,7 @@ export default function PreviewPhotoTools({
   setContent,
   presentation,
   setPresentation,
+  galleryLimit,
 }: {
   root: RefObject<HTMLElement | null>;
   scroller: RefObject<HTMLElement | null>;
@@ -73,6 +74,8 @@ export default function PreviewPhotoTools({
   setContent: Dispatch<SetStateAction<EventContent>>;
   presentation: PresentationState;
   setPresentation: Dispatch<SetStateAction<PresentationState>>;
+  /** The design shows only this many photos (TemplateDefinition.galleryLimit). */
+  galleryLimit?: number;
 }) {
   const edit = usePageEdit();
   const latest = useRef({ content, presentation });
@@ -81,10 +84,14 @@ export default function PreviewPhotoTools({
   const [adjust, setAdjust] = useState<Target | null>(null);
   const [drop, setDrop] = useState<HTMLElement | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Where the photo is going (an empty frame, or the photo being replaced) and what it looks
+  // like, shown there straight away, faded, while it uploads.
+  const [pending, setPending] = useState<{ el: HTMLElement; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0); // re-measure on scroll/resize
   const fileRef = useRef<HTMLInputElement>(null);
   const pickFor = useRef<Target | null>(null); // Replace: which photo; null = add new
+  const pickInto = useRef<HTMLElement | null>(null); // Add: the empty frame clicked
   const hideTimer = useRef(0);
   // First visit: say that the page itself is what you edit. Gone after the first click on it.
   const [hint, setHint] = useState(() => {
@@ -158,9 +165,12 @@ export default function PreviewPhotoTools({
   };
 
   const upload = useCallback(
-    async (files: File[], replace: Target | null) => {
+    async (files: File[], replace: Target | null, into?: HTMLElement | null) => {
       if (!eventId || !files.length) return;
       setError(null);
+      const spot = replace?.frame ?? into ?? null;
+      const local = spot && files[0].type.startsWith("image/") && !/hei[cf]/.test(files[0].type) ? URL.createObjectURL(files[0]) : null;
+      if (spot && local) setPending({ el: spot, url: local });
       const done: ImageAsset[] = [];
       let failed = "";
       for (let i = 0; i < files.length; i++) {
@@ -172,6 +182,8 @@ export default function PreviewPhotoTools({
         }
       }
       setBusy(null);
+      setPending(null);
+      if (local) URL.revokeObjectURL(local);
       if (failed) setError(failed);
       if (!done.length) return;
       edit?.checkpoint();
@@ -191,8 +203,11 @@ export default function PreviewPhotoTools({
           ];
           return { ...c, galleries: [{ ...g, items }, ...c.galleries.slice(1)] };
         });
+      // A design that shows a set number of photos: say so when there are more than it shows.
+      const total = latest.current.content.galleries.reduce((n, g) => n + g.items.length, 0) + add.length;
+      if (galleryLimit && add.length && total > galleryLimit) edit?.notify(`This design shows ${galleryLimit} photos. Remove one to make room for another.`, false);
     },
-    [eventId, write, setContent, edit],
+    [eventId, write, setContent, edit, galleryLimit],
   );
 
   // Hover, click and drop on the page.
@@ -220,10 +235,11 @@ export default function PreviewPhotoTools({
     };
     const onClick = (e: MouseEvent) => {
       if (hint) dismissHint();
-      const slot = (e.target as Element).closest?.("[data-add-photo]");
+      const slot = (e.target as Element).closest?.("[data-add-photo]") as HTMLElement | null;
       if (slot && r.contains(slot)) {
         e.preventDefault();
         pickFor.current = null;
+        pickInto.current = slot;
         fileRef.current?.click();
         return;
       }
@@ -254,8 +270,8 @@ export default function PreviewPhotoTools({
       e.preventDefault();
       setDrop(null);
       const files = [...(e.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith("image/"));
-      const slot = (document.elementFromPoint(e.clientX, e.clientY) as Element | null)?.closest?.("[data-add-photo]");
-      void upload(files, slot ? null : photoAt(e.clientX, e.clientY));
+      const slot = (document.elementFromPoint(e.clientX, e.clientY) as Element | null)?.closest?.("[data-add-photo]") as HTMLElement | null;
+      void upload(files, slot ? null : photoAt(e.clientX, e.clientY), slot);
     };
     r.addEventListener("pointermove", onMove);
     r.addEventListener("pointerleave", onLeave);
@@ -315,7 +331,8 @@ export default function PreviewPhotoTools({
           const files = [...(e.target.files ?? [])];
           e.target.value = "";
           const t = pickFor.current;
-          void upload(t ? files.slice(0, 1) : files, t);
+          void upload(t ? files.slice(0, 1) : files, t, t ? null : pickInto.current);
+          pickInto.current = null;
         }}
       />
       {drop ? <Outline el={drop} label={drop === root.current ? "Drop to add to your photos" : drop.matches("[data-add-photo]") ? "Drop to add" : "Drop to replace"} pane={paneRect} /> : null}
@@ -346,7 +363,8 @@ export default function PreviewPhotoTools({
           </button>
         </div>
       ) : null}
-      {busy || error ? (
+      {pending && pending.el.isConnected ? <Pending el={pending.el} url={pending.url} label={busy ?? "Uploading…"} pane={paneRect} /> : null}
+      {(busy && !pending) || error ? (
         <div role="status" style={{ ...chip, position: "fixed", left: (paneRect?.left ?? 0) + 16, bottom: 16, zIndex: 60, background: error ? "#7a1f1f" : "var(--ink)", color: "#fff", pointerEvents: error ? "auto" : "none" }}>
           {busy ?? error}
           {error && !busy ? (
@@ -368,6 +386,20 @@ const toolBtn: CSSProperties = { minHeight: 34, padding: "0 12px", border: 0, bo
 function clipTo(r: DOMRect, pane?: DOMRect) {
   if (!pane) return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
   return { left: Math.max(r.left, pane.left), top: Math.max(r.top, pane.top), right: Math.min(r.right, pane.right), bottom: Math.min(r.bottom, pane.bottom) };
+}
+
+/** The photo on its way: shown in its frame straight away, faded, until it's uploaded. */
+function Pending({ el, url, label, pane }: { el: HTMLElement; url: string; label: string; pane?: DOMRect }) {
+  const r = el.getBoundingClientRect();
+  const c = clipTo(r, pane);
+  if (c.right <= c.left || c.bottom <= c.top) return null;
+  const cs = getComputedStyle(el);
+  return (
+    <div aria-live="polite" style={{ position: "fixed", left: r.left, top: r.top, width: r.width, height: r.height, zIndex: 54, pointerEvents: "none", overflow: "hidden", borderRadius: cs.borderRadius, background: "#f1efea", clipPath: pane ? `inset(${c.top - r.top}px ${r.right - c.right}px ${r.bottom - c.bottom}px ${c.left - r.left}px)` : undefined }}>
+      <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.55, filter: "saturate(.8)" }} />
+      <span style={{ ...chip, position: "absolute", left: "50%", top: "50%", translate: "-50% -50%", background: "rgba(0,7,39,.8)", color: "#fff", whiteSpace: "nowrap" }}>{label}</span>
+    </div>
+  );
 }
 
 function Outline({ el, label, pane }: { el: HTMLElement; label: string; pane?: DOMRect }) {

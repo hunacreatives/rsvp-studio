@@ -249,24 +249,24 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
           </>
         ) : step.kind === "pay" ? (
           <>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Publish your site</h2>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Ready to go live</h2>
             <p style={{ margin: "10px 0 0", fontSize: 15, lineHeight: 1.6, color: "#55556a" }}>
               {step.tier === "premium" ? (
                 <>
-                  Premium templates are a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>, and include Premium: an email for every RSVP, guest confirmations and reminders sent in your names, and guest photo sharing.
+                  This design comes with Premium: an email for every reply, reminders in your names, and your guests’ photos in one place.
                 </>
               ) : (
-                <>
-                  Publishing a site with a Standard template is a one-time <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>.
-                </>
-              )}{" "}
-              Pay with GCash, Maya, card or QR Ph — your site goes live as soon as it’s paid, and you can keep editing it afterwards.
+                <>One payment puts your site live.</>
+              )}
+            </p>
+            <p style={{ margin: "12px 0 0", fontSize: 13, color: "#55556a" }}>
+              <strong style={{ color: "#000727" }}>{peso(step.amount)}</strong>, one time · GCash, Maya, card or QR Ph · Keep editing after it’s live
             </p>
             <DiscountNote eventId={flow.eventId} refreshKey={step.amount} />
             <ReferralCode eventId={flow.eventId} onApplied={flow.requote} />
             <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
               <button onClick={flow.pay} style={btn(true)}>
-                Pay {peso(step.amount)} and publish
+                Pay and go live
               </button>
               <button onClick={flow.close} style={btn(false)}>
                 Not now

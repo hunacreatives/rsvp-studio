@@ -48,6 +48,24 @@ async function uploadToR2(file: File, eventId: string): Promise<string | null> {
   return out.publicUrl;
 }
 
+/** Fetch and decode an image into the browser's cache (up to 8s). */
+function warm(url: string): Promise<void> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const done = () => resolve();
+    const t = window.setTimeout(done, 8000);
+    img.onload = () => {
+      window.clearTimeout(t);
+      (img.decode ? img.decode().catch(() => undefined) : Promise.resolve()).then(done);
+    };
+    img.onerror = () => {
+      window.clearTimeout(t);
+      done();
+    };
+    img.src = url;
+  });
+}
+
 export async function uploadEventImage(original: File, eventId: string): Promise<ImageAsset> {
   // The picker accepts image/* (so phones open their photo library); the real
   // type check happens here, after phone photos are shrunk to ≤2400px JPEGs.
@@ -79,6 +97,10 @@ export async function uploadEventImage(original: File, eventId: string): Promise
     if (uploadError) throw new UploadEventImageError(uploadError.message);
     masterUrl = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   }
+
+  // Download it once before handing it back, so it appears whole instead of a blank
+  // frame while it loads (bounded: a slow link still gets its photo).
+  await warm(masterUrl);
 
   return {
     id,

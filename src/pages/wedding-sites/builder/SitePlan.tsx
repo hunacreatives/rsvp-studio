@@ -132,7 +132,7 @@ export function UpgradeDialog({ flow, plan, onSettings }: { flow: ReturnType<typ
               ))}
             </ul>
             <p style={{ margin: "14px 0 0", fontSize: 15, color: "#55556a" }}>
-              A one-time <strong style={{ color: "#000727" }}>{peso(price)}</strong>, paid with GCash, Maya, card or QR Ph.
+              <strong style={{ color: "#000727" }}>{peso(price)}</strong>, one time · GCash, Maya, card or QR Ph
             </p>
             <DiscountNote eventId={flow.eventId} refreshKey={price} />
             <ReferralCode eventId={flow.eventId} onApplied={flow.reload} />
