@@ -1,8 +1,10 @@
+import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePortal } from "../PortalContext";
-import { formatDate, formatMoney, servicesLabel, timeAgo } from "../format";
+import { countdown, daysUntil, formatDate, formatMoney, servicesLabel, timeAgo } from "../format";
+import type { GuestStats } from "../guestStats";
 import type { Activity, ActivityKind, Invoice, Project, Task } from "../types";
-import { Cover, Panel, PrimaryButton, ProgressBar, StatusPill } from "../ui";
+import { Cover, Panel, PillButton, PrimaryButton, ProgressBar, StatusPill } from "../ui";
 
 /** Best cover for a project: studio-set cover, else the site builder's hero. */
 export function useProjectCover() {
@@ -52,35 +54,6 @@ export function InvoicePill({ invoice }: { invoice: Invoice }) {
 /** "Your turn" when the client has to act, "We're working on" when the studio does. */
 export const nextStepLabel = (p: Pick<Project, "next_step_owner">) => (p.next_step_owner === "client" ? "Your turn" : p.next_step_owner === "studio" ? "We’re working on" : "Next step");
 
-/** Home grid card (design: Home → "Your Projects"). */
-export function ProjectCard({ project }: { project: Project }) {
-  const cover = useProjectCover();
-  return (
-    <Link
-      to={`/account/projects/${project.id}`}
-      className="group flex flex-col overflow-hidden rounded-[24px] bg-[var(--paper)] transition-shadow hover:shadow-[0_18px_40px_-24px_rgba(0,7,39,0.35)]"
-    >
-      <Cover url={cover(project)} name={project.name} className="aspect-[16/12] rounded-[24px] sm:aspect-[4/3]">
-        <span className="absolute bottom-4 left-4">
-          <ProjectStatusPill project={project} />
-        </span>
-      </Cover>
-      <div className="flex flex-1 flex-col px-4 pb-5 pt-4">
-        <p className="text-[19px] font-semibold text-[var(--ink)] group-hover:underline">{project.name}</p>
-        <p className="mt-0.5 text-[15px] leading-snug text-[var(--ink)]">{servicesLabel(project.services, project.event_type)}</p>
-        <div className="mt-3 border-t border-[#dcdce0] pt-3 text-[12.5px] text-[var(--ink)]">
-          <p>Last updated {formatDate(project.updated_at)}</p>
-          {project.project_status !== "completed" && project.next_step ? (
-            <p className="font-semibold">
-              {nextStepLabel(project)}: {project.next_step}
-            </p>
-          ) : null}
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 /** For DIY sites, in place of studio progress / next step: where the website is at. */
 export function DiySiteSummary({ project }: { project: Project }) {
   const { sites } = usePortal();
@@ -112,47 +85,31 @@ export function DiySiteSummary({ project }: { project: Project }) {
   );
 }
 
-/** Full-width card with progress (design: Projects page). */
-export function ProjectRow({ project }: { project: Project }) {
-  const cover = useProjectCover();
-  const done = project.project_status === "completed";
+/** "Share your link with your guests", as the button that does it. */
+export function CopyLink({ url, label = "Copy your link to share", pill = false }: { url: string; label?: string; /** Sized like the PillButtons beside it. */ pill?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () =>
+    navigator.clipboard?.writeText(url).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      },
+      () => window.prompt("Copy your link:", url),
+    );
+  if (pill)
+    return (
+      <PillButton onClick={copy}>
+        <i className={copied ? "ri-check-line" : "ri-link"} /> {copied ? "Copied" : label}
+      </PillButton>
+    );
   return (
-    <Link to={`/account/projects/${project.id}`} className="group block overflow-hidden rounded-[24px] bg-[var(--paper)]">
-      <Cover url={cover(project)} name={project.name} className="h-[150px] rounded-[24px] md:h-[184px]">
-        <span className="absolute bottom-4 left-5">
-          <ProjectStatusPill project={project} />
-        </span>
-      </Cover>
-      <div className="px-5 pb-5 pt-5 md:px-6">
-        <p className="text-[20px] font-semibold text-[var(--ink)] group-hover:underline">{project.name}</p>
-        <p className="text-[15px] text-[var(--ink)]">{servicesLabel(project.services, project.event_type)}</p>
-        {isDiy(project) ? (
-          <DiySiteSummary project={project} />
-        ) : (
-          <>
-        <div className="mt-6 flex items-center justify-between text-[13px]">
-          <span className="text-[var(--ink)]">Project progress</span>
-          <span className="text-[var(--slate)]">{project.progress}%</span>
-        </div>
-        <div className="mt-3">
-          <ProgressBar value={project.progress} />
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#dcdce0] pt-4 text-[13px]">
-          <div>
-            <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Status" : nextStepLabel(project)}</p>
-            <p className="text-[var(--ink)]">{done ? "Project Complete" : project.next_step || "We’ll post your next step soon"}</p>
-          </div>
-          <div>
-            <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Completed" : "Due"}</p>
-            <p className="text-[var(--ink)]">
-              {done ? formatDate(project.completed_at) || "—" : formatDate(project.next_step_due) || "—"}
-            </p>
-          </div>
-        </div>
-          </>
-        )}
-      </div>
-    </Link>
+    <button
+      type="button"
+      onClick={copy}
+      className="mt-1 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[rgba(0,7,39,0.22)] bg-white px-3.5 text-[13px] font-medium text-[var(--ink)] hover:border-[var(--ink)]"
+    >
+      <i className={copied ? "ri-check-line" : "ri-link"} /> {copied ? "Copied" : label}
+    </button>
   );
 }
 
@@ -211,14 +168,14 @@ const ACTIVITY_ICON: Record<ActivityKind, string> = {
   rsvp: "ri-group-line",
 };
 
-export function ActivityList({ items, showProject = true }: { items: Activity[]; showProject?: boolean }) {
+export function ActivityList({ items, showProject = true, emptyText = "Updates from the studio will show up here." }: { items: Activity[]; showProject?: boolean; emptyText?: string }) {
   const { projects } = usePortal();
   const cover = useProjectCover();
   if (!items.length) {
     return (
       <Panel className="px-6 py-10 text-center text-[15px] text-[var(--slate)]">
         <i className="ri-time-line mb-1 block text-2xl" />
-        Updates from the studio will show up here.
+        {emptyText}
       </Panel>
     );
   }
@@ -229,7 +186,7 @@ export function ActivityList({ items, showProject = true }: { items: Activity[];
           const project = projects.find((p) => p.id === a.event_id);
           return (
             <li key={a.id} className={`flex items-center gap-3 py-4 sm:gap-4 ${i ? "border-t border-[#dcdce0]" : ""}`}>
-              <Cover url={project ? cover(project) : null} name={project?.name ?? ""} className="h-11 w-11 shrink-0 rounded-xl sm:h-12 sm:w-[78px]">
+              <Cover url={project ? cover(project) : null} name={project?.name ?? ""} initials={false} className="h-11 w-11 shrink-0 rounded-xl sm:h-12 sm:w-[78px]">
                 <span className="absolute inset-0 grid place-items-center bg-[rgba(0,7,39,0.28)] text-lg text-white">
                   <i className={ACTIVITY_ICON[a.kind]} />
                 </span>
@@ -310,19 +267,118 @@ export function InvoiceTable({ invoices, empty = "No invoices here yet.", payabl
   );
 }
 
-export function PlanningBanner() {
-  const navigate = useNavigate();
+
+/** Upcoming first (soonest first, undated after), then past events (latest first). */
+export function byWhen(a: Project, b: Project) {
+  const da = daysUntil(a.event_date);
+  const db = daysUntil(b.event_date);
+  const pa = isPast(a);
+  const pb = isPast(b);
+  if (pa !== pb) return Number(pa) - Number(pb);
+  if (pa) return (db ?? 0) - (da ?? 0);
+  return (da ?? 1e6) - (db ?? 1e6) || b.updated_at.localeCompare(a.updated_at);
+}
+
+/** The event is over (its date passed, or the studio marked it done). */
+export const isPast = (p: Project) => p.project_status === "completed" || (daysUntil(p.event_date) ?? 0) < 0;
+
+/**
+ * Events as one list of compact rows (Home, Projects), like Billing's: what it is and when, then
+ * the number hosts open the dashboard for (who's replied), then the next thing to do. The whole
+ * row opens the event; its buttons sit above that link.
+ */
+export function EventList({ projects, stats }: { projects: Project[]; stats: Record<string, GuestStats> }) {
   return (
-    <div className="relative overflow-hidden rounded-[22px]">
-      <img src="/account/balloons.webp" alt="" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-[rgba(0,7,39,0.12)]" />
-      <div className="relative px-6 py-16 text-center text-white md:py-24">
-        <p className="font-display text-[2rem] font-semibold leading-tight drop-shadow md:text-[2.8rem]">Planning another event?</p>
-        <p className="mx-auto mt-3 max-w-xl text-[16px] drop-shadow md:text-[20px]">Create a new project for a beautiful, seamless experience.</p>
-        <PrimaryButton className="mt-8" onClick={() => navigate("/enquire#start")}>
-          Start an Inquiry
-        </PrimaryButton>
+    <ul className="divide-y divide-[rgba(0,7,39,0.1)] overflow-hidden rounded-[22px] border border-[rgba(0,7,39,0.14)] bg-white">
+      {projects.map((p) => (
+        <EventRow key={p.id} project={p} stats={stats[p.id]} />
+      ))}
+    </ul>
+  );
+}
+
+function EventRow({ project, stats }: { project: Project; stats?: GuestStats }) {
+  const { sites } = usePortal();
+  const navigate = useNavigate();
+  const cover = useProjectCover();
+  const site = sites[project.id];
+  const diy = isDiy(project);
+  const live = !!site?.publishedAt && !site?.ended;
+  const past = isPast(project);
+  const href = `/account/projects/${project.id}`;
+  const when = [formatDate(project.event_date), !past ? countdown(project.event_date) : ""].filter(Boolean).join(" · ");
+
+  // The middle: guest numbers once a site can take replies; studio progress otherwise.
+  let middle: ReactNode = null;
+  if (diy || stats?.replies) {
+    if (diy && !site?.publishedAt) middle = <p className="text-[14px] text-[var(--slate)]">Not published yet</p>;
+    else if (stats) {
+      const of = stats.invited - stats.waiting;
+      middle = (
+        <div>
+          {stats.invited ? (
+            <div className="mb-1.5 h-[5px] w-full overflow-hidden rounded-full bg-[#e6e6ea]" role="progressbar" aria-valuenow={of} aria-valuemin={0} aria-valuemax={stats.invited} aria-label="Replied">
+              <div className="h-full rounded-full bg-[var(--ink)]" style={{ width: `${(of / stats.invited) * 100}%` }} />
+            </div>
+          ) : null}
+          <p className="text-[14px] text-[var(--ink)]">
+            {stats.invited ? (
+              <>
+                <b className="font-semibold">{of}</b> of {stats.invited} replied
+              </>
+            ) : stats.replies ? (
+              <>
+                <b className="font-semibold">{stats.replies}</b> {stats.replies === 1 ? "reply" : "replies"}
+              </>
+            ) : (
+              <span className="text-[var(--slate)]">No replies yet</span>
+            )}
+            {stats.coming ? <span className="text-[var(--slate)]"> · {stats.coming} coming</span> : null}
+          </p>
+        </div>
+      );
+    } else middle = <p className="text-[14px] text-[var(--slate)]">&nbsp;</p>;
+  } else if (!diy) {
+    middle = (
+      <div>
+        <div className="mb-1.5">
+          <ProgressBar value={project.progress} />
+        </div>
+        <p className="truncate text-[14px] text-[var(--ink)]">
+          {past ? "Complete" : project.next_step ? `${nextStepLabel(project)}: ${project.next_step}` : `${project.progress}% done`}
+        </p>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <li className="relative grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-3 px-4 py-4 transition-colors hover:bg-[var(--paper)] md:grid-cols-[auto_minmax(0,1.3fr)_minmax(0,1fr)_auto] md:gap-x-6 md:px-6">
+      <Cover url={cover(project)} name={project.name} small className="h-14 w-[76px] shrink-0 rounded-xl md:h-16 md:w-[88px]" />
+      <div className="min-w-0">
+        <Link to={href} className="flex flex-wrap items-center gap-x-2.5 gap-y-1 after:absolute after:inset-0 after:content-['']">
+          <span className="truncate text-[17px] font-semibold text-[var(--ink)]">{project.name}</span>
+          <ProjectStatusPill project={project} />
+        </Link>
+        <p className="mt-0.5 truncate text-[14px] text-[var(--slate)]" title={servicesLabel(project.services, project.event_type)}>
+          {/* When first: it's what matters at a glance; the kind of event can run off the end. */}
+          {[when || "Date not set", servicesLabel(project.services, project.event_type)].join(" · ")}
+        </p>
+      </div>
+      <div className="col-span-2 min-w-0 md:col-span-1">{middle}</div>
+      <div className="relative z-[1] col-span-2 flex flex-wrap items-center gap-2 md:col-span-1 md:justify-end">
+        {diy && live ? <CopyLink url={`${window.location.origin}/invite/${site!.slug}`} label="Copy link" /> : null}
+        {diy && live ? (
+          <button type="button" onClick={() => navigate(`${href}?tab=guests`)} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[rgba(0,7,39,0.22)] bg-white px-3.5 text-[13px] font-medium text-[var(--ink)] hover:border-[var(--ink)]">
+            <i className="ri-group-line" /> Guests
+          </button>
+        ) : null}
+        {diy && !site?.publishedAt && !past ? (
+          <button type="button" onClick={() => navigate(`/account/events/${project.id}/site-builder${site ? "/edit" : ""}`)} className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--ink)] px-3.5 text-[13px] font-medium text-white hover:opacity-90">
+            <i className="ri-edit-2-line" /> {site ? "Continue building" : "Pick a design"}
+          </button>
+        ) : null}
+        {!diy ? <i className="ri-arrow-right-s-line hidden text-[20px] text-[var(--slate)] md:block" aria-hidden /> : null}
+      </div>
+    </li>
   );
 }

@@ -12,10 +12,11 @@ import InviteList from "../components/InviteList";
 import GuestPhotosAdmin from "../components/GuestPhotosAdmin";
 import { supabase } from "@/lib/supabase";
 import DiyExtras from "../components/DiyExtras";
+import EventOverview from "../components/EventOverview";
 import DomainCard from "../components/DomainCard";
 import SaveTheDateCard from "../components/SaveTheDateCard";
-import { ActivityList, DiySiteSummary, InvoiceTable, ProjectStatusPill, TaskList, isDiy, useProjectCover, nextStepLabel } from "../components/blocks";
-import { formatDate, formatLongDate, servicesLabel } from "../format";
+import { ActivityList, CopyLink, DiySiteSummary, InvoiceTable, ProjectStatusPill, TaskList, isDiy, useProjectCover, nextStepLabel } from "../components/blocks";
+import { countdown, formatDate, formatLongDate, servicesLabel } from "../format";
 import type { Project } from "../types";
 import { Cover, FilterTabs, OutlineCard, Panel, PillButton, ProgressBar, SectionTitle } from "../ui";
 
@@ -35,6 +36,16 @@ export default function ProjectDetailPage() {
     return t === "website" || t === "guests" ? t : "overview";
   });
   const project = projects.find((p) => p.id === projectId);
+  // Overview → "Invite list →" / "All replies →": the Guests tab, on that list (GuestsTab reads ?list).
+  const openGuests = (list: "replies" | "invites") => {
+    const q = new URLSearchParams(window.location.search);
+    q.set("tab", "guests");
+    if (list === "invites") q.set("list", "invites");
+    else q.delete("list");
+    navigate({ search: q.toString() }, { replace: true });
+    setTab("guests");
+    window.scrollTo({ top: 0 });
+  };
 
   if (!project) return <Navigate to="/account/projects" replace />;
 
@@ -50,30 +61,27 @@ export default function ProjectDetailPage() {
   return (
     <>
       <Link to="/account/projects" className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
-        <i className="ri-arrow-left-line" /> All projects
+        <i className="ri-arrow-left-line" /> All events
       </Link>
 
-      <div className="overflow-hidden rounded-[24px] bg-[var(--paper)]">
-        <Cover url={cover(project)} name={project.name} className="h-[170px] rounded-[24px] md:h-[220px]">
-          <span className="absolute bottom-4 left-5">
-            <ProjectStatusPill project={project} />
-          </span>
-        </Cover>
-        <div className="px-5 pb-6 pt-5 md:px-7">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* The event at a glance: a small cover (not a banner), what and when, and what to do. */}
+      <div className="rounded-[24px] bg-[var(--paper)] p-4 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-5">
+          <div className="flex min-w-0 flex-1 items-center gap-4 md:gap-5">
+            <Cover url={cover(project)} name={project.name} small className="h-[72px] w-[96px] shrink-0 rounded-2xl md:h-[88px] md:w-[118px]" />
             <div className="min-w-0">
-              <h1 className="font-display text-[2.1rem] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)] md:text-[2.6rem]">
-                {project.name}
-              </h1>
-              <p className="text-[16px] text-[var(--ink)]">{servicesLabel(project.services, project.event_type)}</p>
-              {project.event_date ? (
-                <p className="mt-1 flex items-center gap-1.5 text-[14px] text-[var(--slate)]">
-                  <i className="ri-calendar-event-line" /> {formatLongDate(project.event_date)}
-                </p>
-              ) : null}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h1 className="font-display text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)] md:text-[2.2rem]">{project.name}</h1>
+                <ProjectStatusPill project={project} />
+              </div>
+              <p className="mt-1 text-[14px] text-[var(--slate)] md:text-[15px]">
+                {[project.event_date ? formatLongDate(project.event_date) : "Date not set", !done && project.event_date ? countdown(project.event_date) : "", servicesLabel(project.services, project.event_type)].filter(Boolean).join(" · ")}
+              </p>
             </div>
+          </div>
             {diy ? (
               <div className="flex flex-wrap gap-2">
+                {site?.publishedAt && !site.ended ? <CopyLink url={`${window.location.origin}/invite/${site.slug}`} label="Copy link" pill /> : null}
                 {site?.publishedAt ? (
                   <PillButton onClick={() => window.open(`/invite/${site.slug}`, "_blank", "noopener")}>
                     <i className="ri-external-link-line" /> View site
@@ -91,7 +99,8 @@ export default function ProjectDetailPage() {
           </div>
 
           {diy ? (
-            <DiySiteSummary project={project} />
+            // Only when there's something to say that the header doesn't (an ended site's guest list).
+            site?.ended ? <DiySiteSummary project={project} /> : null
           ) : (
             <>
           <div className="mt-6 flex items-center justify-between text-[13px]">
@@ -113,10 +122,9 @@ export default function ProjectDetailPage() {
           </div>
             </>
           )}
-        </div>
       </div>
 
-      <div className="mb-8 mt-8">
+      <div className="mb-8 mt-6">
         <FilterTabs<Tab>
           fill
           value={tab}
@@ -129,24 +137,42 @@ export default function ProjectDetailPage() {
         />
       </div>
 
-      {tab === "overview" ? (
+      {tab === "overview" && diy ? (
+        // A site the host runs themselves: the guest summary (EventOverview), then invoices once
+        // they've paid for something.
         <div className="space-y-12">
-          <div className="grid gap-10 xl:grid-cols-2 xl:gap-6">
+          <EventOverview project={project} openGuests={openGuests} />
+          {projectInvoices.length ? (
             <section className="min-w-0">
-              <SectionTitle>Tasks</SectionTitle>
-              <TaskList tasks={projectTasks} showProject={false} emptyText="Nothing needs your attention right now." />
+              <SectionTitle action={<Link to="/account/billing" className="inline-flex min-h-[44px] items-center text-[14px] font-medium text-[var(--acc-blue)] hover:underline md:min-h-0">All billing →</Link>}>
+                Invoices
+              </SectionTitle>
+              <InvoiceTable invoices={projectInvoices} payable />
             </section>
+          ) : null}
+        </div>
+      ) : tab === "overview" ? (
+        <div className="space-y-12">
+          <div className={`grid gap-10 xl:gap-6 ${!diy || projectTasks.length ? "xl:grid-cols-2" : ""}`}>
+            {!diy || projectTasks.length ? (
+              <section className="min-w-0">
+                <SectionTitle>Tasks</SectionTitle>
+                <TaskList tasks={projectTasks} showProject={false} emptyText="Nothing needs your attention right now." />
+              </section>
+            ) : null}
             <section className="min-w-0">
               <SectionTitle>Activity</SectionTitle>
-              <ActivityList items={projectActivity} showProject={false} />
+              <ActivityList items={projectActivity} showProject={false} emptyText={diy ? "New replies will show up here." : undefined} />
             </section>
           </div>
-          <section className="min-w-0">
-            <SectionTitle action={<Link to="/account/billing" className="inline-flex min-h-[44px] items-center text-[14px] font-medium text-[var(--acc-blue)] hover:underline md:min-h-0">All billing →</Link>}>
-              Invoices
-            </SectionTitle>
-            <InvoiceTable invoices={projectInvoices} payable />
-          </section>
+          {!diy || projectInvoices.length ? (
+            <section className="min-w-0">
+              <SectionTitle action={<Link to="/account/billing" className="inline-flex min-h-[44px] items-center text-[14px] font-medium text-[var(--acc-blue)] hover:underline md:min-h-0">All billing →</Link>}>
+                Invoices
+              </SectionTitle>
+              <InvoiceTable invoices={projectInvoices} payable />
+            </section>
+          ) : null}
         </div>
       ) : tab === "website" ? (
         <>
@@ -197,9 +223,6 @@ function WebsiteTab({ project }: { project: Project }) {
               </p>
             ) : null}
           </div>
-          <span className={`rounded-full px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.06em] ${site.publishedAt && !site.ended ? "bg-[#ecfbcc] text-[#3d5a12]" : "bg-[#ececec] text-[#55556a]"}`}>
-            {site.ended ? "Ended" : site.publishedAt ? "Live" : "Draft"}
-          </span>
         </div>
         {site.publishedAt ? (
           <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl bg-[var(--paper)] px-4 py-3">
@@ -267,7 +290,8 @@ const DEMO_GUESTS: api.Guest[] = [
 function GuestsTab({ project }: { project: Project }) {
   const { demo, sites } = usePortal();
   const [guests, setGuests] = useState<api.Guest[] | null>(null);
-  const [view, setView] = useState<"replies" | "invites">("replies");
+  // ?list=invites (from Home's "haven't replied"): straight to the invite list.
+  const [view, setView] = useState<"replies" | "invites">(() => (new URLSearchParams(window.location.search).get("list") === "invites" ? "invites" : "replies"));
   const [deadline, setDeadline] = useState<string | null>(null);
   // Adding or fixing a reply by hand (null = closed; "new" = add).
   const [editing, setEditing] = useState<api.Guest | "new" | null>(null);

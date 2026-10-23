@@ -46,6 +46,8 @@ const BURST_MAX = 200; // RSVPs (new or updated) per event per window (a link po
 const UPDATE_MAX = 5; // changes per guest per hour
 const GUEST_EMAILS_PER_DAY = 60; // confirmation emails per event per day
 const LEGACY_TABLE = /^[a-z0-9_]+_rsvps$/;
+// Skipped when matching a name to an invitee ("Tita Lorna" = "Lorna Reyes").
+const HONORIFICS = new Set(["tita", "tito", "ate", "kuya", "lola", "lolo", "ninang", "ninong", "manang", "manong", "mr", "mrs", "ms", "miss", "dr", "atty", "engr", "sir", "maam"]);
 
 interface PublishedContentForEmail {
   hosts?: { name?: string }[];
@@ -152,17 +154,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // A personal link (?g=…, supabase/guest-links.sql): the reply belongs to that guest.
   // Premium: their party size is a seat limit, and an invite-only site needs the link.
   const token = clean(body.g, 40);
-  type Invitee = { id: string; party_size: number | null };
+  type Invitee = { id: string; name: string; party_size: number | null };
   let invitee: Invitee | null = null;
   if (token && !legacy) {
-    const { data } = await supabaseAdmin.from("invitees").select("id, party_size").eq("event_id", eventId!).eq("token", token).maybeSingle();
+    const { data } = await supabaseAdmin.from("invitees").select("id, name, party_size").eq("event_id", eventId!).eq("token", token).maybeSingle();
     invitee = (data as Invitee | null) ?? null;
   }
   if (premium && !legacy && site.invite_only === true && !invitee) {
     res.status(403).json({ error: "RSVPs for this event are by personal invitation. Please use the link the hosts sent you." });
     return;
   }
-  if (invitee && premium && invitee.party_size && guestCount) guestCount = Math.min(guestCount, invitee.party_size);
 
   // Answers to the hosts' own questions (content.rsvpQuestions; just the first on free
   // sites), kept by question label so they read back even if a question is edited later.
@@ -208,10 +209,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return a === b || a.split(" ")[0] === b.split(" ")[0] || a.includes(b) || b.includes(a);
   };
   let prior: Prior | undefined;
-  // A personal link updates that guest's own reply.
+  // A personal link updates the reply of whoever is answering on it. A forwarded link (someone
+  // else's name) is a party member on that invitation: their own reply, sharing its seats.
+  // "Tita Lorna" on the list and "Lorna Reyes" on the form are the same person.
   if (invitee) {
-    const { data } = await supabaseAdmin.from(table).select(cols).eq("event_id", eventId!).eq("invitee_id", invitee.id).limit(1);
-    prior = ((data ?? []) as unknown as Prior[])[0];
+    const firstName = (s: string | null | undefined) =>
+      nameKey(s)
+        .split(" ")
+        .filter((w) => !HONORIFICS.has(w))[0] ?? "";
+    const me = firstName(name);
+    const onLink = (other: string | null | undefined) => samePerson(other) || (!!me && firstName(other) === me);
+    const { data } = await supabaseAdmin.from(table).select(`${cols}, guest_count, attending`).eq("event_id", eventId!).eq("invitee_id", invitee.id).limit(20);
+    const rows = (data ?? []) as unknown as (Prior & { guest_count: number | null; attending: boolean | null })[];
+    prior = rows.find((r) => onLink(r.name));
+    if (premium && invitee.party_size && guestCount) {
+      const taken = rows.filter((r) => r.id !== prior?.id && r.attending !== false).reduce((n, r) => n + (r.guest_count ?? 1), 0);
+      const left = invitee.party_size - taken;
+      if (left <= 0 && site.invite_only === true) {
+        res.status(409).json({ error: `All ${invitee.party_size} ${invitee.party_size === 1 ? "seat" : "seats"} on this invitation have been taken. Please message the hosts.` });
+        return;
+      }
+      // No seats left on an open site: an ordinary reply, not part of this invitation.
+      if (left <= 0) invitee = null;
+      else guestCount = Math.min(guestCount, left);
+    }
   }
   if (!prior && email) {
     let q = supabaseAdmin.from(table).select(cols).ilike("email", email.replace(/[%_\\]/g, "\\$&")).limit(20);
@@ -284,7 +305,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Branded (support-mail.ts layout); the reply as a small card.
       html: layout(
         `${prior ? "Updated RSVP" : "New RSVP"} from ${safeName}`,
-        `${prior ? `${safeName} changed their reply` : `${safeName} just replied`} to <strong>${hostNames}</strong>.
+        `${prior ? `${safeName} changed their reply` : `${safeName} just replied`}${invitee && !samePerson(invitee.name) ? ` on ${esc(invitee.name)}’s invitation` : ""} to <strong>${hostNames}</strong>.
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 0;"><tr><td bgcolor="#fbfaf6" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:16px;padding:18px 20px;">
 ${[
   attending === null ? "" : `<p style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:${attending ? "#3d7a12" : "#6b6658"} !important;">${attending ? `Coming${guestCount ? ` · ${guestCount} ${guestCount === 1 ? "guest" : "guests"}${kidCount ? ` (${kidCount} ${kidCount === 1 ? "kid" : "kids"})` : ""}` : ""}` : "Can’t make it"}</p>`,

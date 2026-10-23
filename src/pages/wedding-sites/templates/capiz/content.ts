@@ -55,6 +55,8 @@ export type EntKind = "principal" | "secondary" | "honour" | "party" | "little" 
 export interface EntCell {
   id: string;
   title: string;
+  /** The group's own title, as typed (edited on the page). */
+  raw: string;
   people: string[];
 }
 export interface EntRow {
@@ -84,10 +86,12 @@ function cellTitle(title: string, kind: EntKind): string {
   return /sponsor/i.test(rest) ? rest : `${rest} sponsors`;
 }
 
-export function splitEntourage(content: EventContent): { parents: EntourageGroup[]; rows: EntRow[] } {
+/** `editor` (the builder): empty groups and names stay, at their own places, so a group or name
+ *  just added can be typed into on the page. */
+export function splitEntourage(content: EventContent, editor = false): { parents: EntourageGroup[]; rows: EntRow[] } {
   const groups = (content.entourage ?? [])
-    .map((g) => ({ ...g, people: g.people.map((p) => p.trim()).filter(Boolean) }))
-    .filter((g) => g.people.length);
+    .map((g) => (editor ? g : { ...g, people: g.people.map((p) => p.trim()).filter(Boolean) }))
+    .filter((g) => editor || g.people.length);
   const parents: EntourageGroup[] = [];
   const byKind = new Map<EntKind, EntCell[]>();
   for (const g of groups) {
@@ -96,7 +100,7 @@ export function splitEntourage(content: EventContent): { parents: EntourageGroup
       parents.push(g);
       continue;
     }
-    byKind.set(k, [...(byKind.get(k) ?? []), { id: g.id, title: cellTitle(g.title, k), people: g.people }]);
+    byKind.set(k, [...(byKind.get(k) ?? []), { id: g.id, title: cellTitle(g.title, k), raw: g.title, people: g.people }]);
   }
   const rows: EntRow[] = [];
   for (const kind of ORDER) {

@@ -140,16 +140,17 @@ export function Avatar({ name, url, size = 40, seed }: { name: string | null | u
 }
 
 /** Project cover: real image if we have one, otherwise a soft branded block. */
-export function Cover({ url, name, className = "", children }: { url?: string | null; name: string; className?: string; children?: ReactNode }) {
+/** `initials={false}`: small tiles that carry their own icon (no room for letters). */
+export function Cover({ url, name, className = "", children, initials: showInitials = true, small = false }: { url?: string | null; name: string; className?: string; children?: ReactNode; initials?: boolean; /** A thumbnail: smaller initials. */ small?: boolean }) {
   // A photo that's gone (removed after a site ended) falls back to the initials.
   const [broken, setBroken] = useState<string | null>(null);
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ background: "linear-gradient(135deg,#dfe4f2,#c9d2ea)" }}>
       {url && broken !== url ? (
         <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" onError={() => setBroken(url)} />
-      ) : (
-        <span className="absolute inset-0 grid place-items-center font-display text-[2.2rem] italic text-white/80">{initials(name)}</span>
-      )}
+      ) : showInitials ? (
+        <span className={`absolute inset-0 grid place-items-center font-display italic text-white/85 ${small ? "text-[1.15rem]" : "text-[2.2rem]"}`}>{initials(name)}</span>
+      ) : null}
       {children}
     </div>
   );

@@ -145,6 +145,8 @@ export const CAPIZ_CSS = `
 .cz-whisper{margin:0 0 10px;font-style:italic;font-size:clamp(16px,1.6cqw,18px);color:var(--cz-muted)}
 .cz-small{margin:6px 0;font-size:14px;line-height:1.5;color:var(--cz-muted)}
 .cz-hint{opacity:.55}
+/* builder only (shared/siteEdit AddItem) */
+.cz-add{margin-top:14px}.cz-add--center{display:flex;width:max-content;margin:24px auto 0}.cz-adds{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:24px}.cz-cell .cz-add,.cz-parents .site-add{min-height:32px;padding:4px 12px;margin-top:10px;font-size:.8em}
 
 .cz-btn{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 32px;border:1px solid var(--cz-ink);border-radius:2px;background:var(--cz-ink);color:var(--cz-bg);font:500 17px/1.1 var(--cz-body);letter-spacing:.02em;text-decoration:none;cursor:pointer;transition:background-color .25s,color .25s}
 .cz-btn:hover{background:transparent;color:var(--cz-ink)}
@@ -182,6 +184,8 @@ export const CAPIZ_CSS = `
 .cz-recess--arch{aspect-ratio:3/4.5;border-radius:50% 50% 2px 2px/33% 33% 2px 2px}
 .cz-recess--low{aspect-ratio:4/5;margin-bottom:clamp(-40px,-4cqw,-16px)}
 .cz-recess.photo-slot--empty{display:grid;place-items:center}
+.cz-root .photo-slot__label{display:grid;justify-items:center;gap:8px;padding:0 12px;font:600 13px/1.3 var(--cz-body);letter-spacing:.04em;text-align:center}
+.cz-band .photo-slot--empty{display:grid;place-items:center;width:100%;height:100%;min-height:180px;background:#e9e1d2;color:#5c4b3a}
 
 /* the entourage, in a great lit capiz screen */
 .cz-ent{max-width:1040px}

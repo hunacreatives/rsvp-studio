@@ -3,21 +3,15 @@ import { supabase } from "@/lib/supabase";
 import type { Guest } from "../../components/GuestTable";
 import { PillButton } from "../ui";
 import { downloadCsv } from "@/lib/csv";
+import { matchInvitees, phoneKey, reminderMessage, sameGuest } from "../inviteMatch";
 
 // Guests → Invite list (supabase/guest-features.sql → invitees): the hosts' own list,
 // matched against the RSVPs that came in, so they can see who hasn't replied yet and
 // copy a friendly nudge to send by Messenger or Viber.
-// A reply matches an invitee by email, by mobile number, or by the same name.
+// Matching replies to invitees: ../inviteMatch.ts.
 
 /** `source`: "save_the_date" = they asked for the invitation on the Save the Date link (supabase/save-the-date.sql). */
 export type Invitee = { id: string; name: string; contact: string | null; party_size: number | null; created_at: string; token?: string; table_label?: string | null; source?: string | null };
-
-const nameKey = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
-const phoneKey = (s: string | null | undefined) => {
-  const d = (s ?? "").replace(/\D/g, "");
-  return d.length >= 10 ? d.slice(-10) : "";
-};
-const emailKey = (s: string | null | undefined) => (s && s.includes("@") ? s.trim().toLowerCase() : "");
 
 /** "Maria Santos, maria@email.com, 2, Table 5" — name, then (optional, any order) an email
  *  or mobile, a party size, and a table. */
@@ -35,14 +29,23 @@ export function parseInviteLines(text: string) {
     });
 }
 
-type Status = { reply: Guest | null };
+/** `reply`: the invitee's own (or first) reply. `others`: people who replied on their
+ *  forwarded personal link, sharing the invitation's seats. */
+type Status = { reply: Guest | null; others: Guest[] };
 
-export default function InviteList({ eventId, guests, eventName, siteUrl, deadline, demo }: { eventId: string; guests: Guest[]; eventName: string; siteUrl: string | null; deadline?: string | null; demo?: boolean }) {
+export default function InviteList({ eventId, guests: loaded, eventName, siteUrl, deadline, demo }: { eventId: string; guests: Guest[]; eventName: string; siteUrl: string | null; deadline?: string | null; demo?: boolean }) {
   const [list, setList] = useState<Invitee[] | null | undefined>(undefined);
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  // Replies moved onto the kept copy by a merge (invitee id → kept id), until the page reloads.
+  const [moved, setMoved] = useState<Record<string, string>>({});
+  const guests = useMemo(
+    () => loaded.map((g) => (g.invitee_id && moved[g.invitee_id] ? { ...g, invitee_id: moved[g.invitee_id] } : g)),
+    [loaded, moved],
+  );
   const [filter, setFilter] = useState<"all" | "waiting" | "replied">("all");
   const [copied, setCopied] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -71,27 +74,26 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
       .then(({ data, error: e }) => setList(e ? null : ((data ?? []) as Invitee[])));
   }, [eventId, demo]);
 
-  // Which reply (if any) belongs to each invitee. Each reply is used once.
-  const rows = useMemo(() => {
+  // Which replies belong to each invitee (../inviteMatch.ts).
+  const rows = useMemo(() => (list ? (matchInvitees(list, guests) as ({ inv: Invitee } & Status)[]) : []), [list, guests]);
+  // Guests on the list more than once (added before repeats were skipped). Kept: the copy whose
+  // link someone has replied on, else the first one added.
+  const repeats = useMemo(() => {
     if (!list) return [];
-    const used = new Set<string>();
-    const find = (inv: Invitee) => {
-      const e = emailKey(inv.contact);
-      const p = phoneKey(inv.contact);
-      const n = nameKey(inv.name);
-      return (
-        // Replied from their own personal link: certain.
-        guests.find((g) => !used.has(g.id) && g.invitee_id === inv.id) ??
-        guests.find((g) => !used.has(g.id) && ((e && emailKey(g.email) === e) || (p && phoneKey(g.phone) === p))) ??
-        guests.find((g) => !used.has(g.id) && n && nameKey(g.name) === n) ??
-        null
-      );
-    };
-    return list.map((inv) => {
-      const reply = find(inv);
-      if (reply) used.add(reply.id);
-      return { inv, reply } as { inv: Invitee } & Status;
-    });
+    const linked = new Set(guests.map((g) => g.invitee_id).filter(Boolean));
+    const seen: Invitee[] = [];
+    const groups: { keep: Invitee; drop: Invitee[] }[] = [];
+    const byAge = [...list].sort((a, b) => Number(linked.has(b.id)) - Number(linked.has(a.id)) || a.created_at.localeCompare(b.created_at));
+    for (const inv of byAge) {
+      const match = seen.find((s) => sameGuest(s, inv));
+      if (!match) seen.push(inv);
+      else {
+        const g = groups.find((x) => x.keep === match);
+        if (g) g.drop.push(inv);
+        else groups.push({ keep: match, drop: [inv] });
+      }
+    }
+    return groups;
   }, [list, guests]);
 
   if (list === null) return null; // guest-features.sql not run yet
@@ -107,15 +109,76 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
     if (demo) return setError("This is a preview: adding guests is turned off.");
     setBusy(true);
     setError(null);
-    const { data, error: e } = await supabase
-      .from("invitees")
-      .insert(parsed.map((p) => ({ ...p, event_id: eventId })))
-      .select("*");
+    setNotice(null);
+    // Someone already on the list (or twice in the paste) isn't added again: one guest, one
+    // link. Details they didn't have yet (seats, table, contact) are filled in.
+    const fresh: typeof parsed = [];
+    const fills = new Map<string, Partial<Invitee>>();
+    for (const p of parsed) {
+      if (fresh.some((f) => sameGuest(f, p))) continue;
+      const have = list.find((i) => sameGuest(i, p));
+      if (!have) {
+        fresh.push(p);
+        continue;
+      }
+      const fill: Partial<Invitee> = {
+        ...(!have.contact && p.contact ? { contact: p.contact } : {}),
+        ...(!have.party_size && p.party_size ? { party_size: p.party_size } : {}),
+        ...(!have.table_label && p.table_label ? { table_label: p.table_label } : {}),
+      };
+      if (Object.keys(fill).length) fills.set(have.id, { ...fills.get(have.id), ...fill });
+    }
+    const skipped = parsed.length - fresh.length;
+    let added: Invitee[] = [];
+    if (fresh.length) {
+      const { data, error: e } = await supabase
+        .from("invitees")
+        .insert(fresh.map((p) => ({ ...p, event_id: eventId })))
+        .select("*");
+      if (e) {
+        setBusy(false);
+        return setError(/INVITE_LIMIT/.test(e.message) ? "You can have up to 1,000 guests on your list." : "Couldn’t add them. Please try again.");
+      }
+      added = (data ?? []) as Invitee[];
+    }
+    await Promise.all([...fills].map(([id, patch]) => supabase.from("invitees").update(patch).eq("id", id)));
     setBusy(false);
-    if (e) return setError(/INVITE_LIMIT/.test(e.message) ? "You can have up to 1,000 guests on your list." : "Couldn’t add them. Please try again.");
-    setList([...(list ?? []), ...((data ?? []) as Invitee[])].sort((a, b) => a.name.localeCompare(b.name)));
+    setList(
+      [...list.map((i) => (fills.has(i.id) ? { ...i, ...fills.get(i.id) } : i)), ...added].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    if (skipped)
+      setNotice(
+        `${added.length ? `Added ${added.length}. ` : ""}${skipped === 1 ? "1 was" : `${skipped} were`} already on your list${fills.size ? "; we filled in what was new" : ""}.`,
+      );
     setText("");
     setAdding(false);
+  };
+  // Folds each repeat into the copy that's kept: replies on the extra copy's link move over
+  // (as party members, sharing its seats), and details only the extra had are kept.
+  const merge = async () => {
+    if (demo) return;
+    setBusy(true);
+    setError(null);
+    let next = list;
+    for (const { keep, drop } of repeats) {
+      const patch: Partial<Invitee> = {};
+      for (const d of drop) {
+        if (!keep.contact && !patch.contact && d.contact) patch.contact = d.contact;
+        if (!keep.party_size && !patch.party_size && d.party_size) patch.party_size = d.party_size;
+        if (!keep.table_label && !patch.table_label && d.table_label) patch.table_label = d.table_label;
+      }
+      const ids = drop.map((d) => d.id);
+      const moved = await supabase.from("rsvps").update({ invitee_id: keep.id }).in("invitee_id", ids);
+      if (moved.error) break;
+      const gone = await supabase.from("invitees").delete().in("id", ids);
+      if (gone.error) break;
+      if (Object.keys(patch).length) await supabase.from("invitees").update(patch).eq("id", keep.id);
+      next = next.filter((i) => !ids.includes(i.id)).map((i) => (i.id === keep.id ? { ...i, ...patch } : i));
+      setMoved((m) => ({ ...m, ...Object.fromEntries(ids.map((id) => [id, keep.id])) }));
+    }
+    setBusy(false);
+    if (next.length + repeats.reduce((n, g) => n + g.drop.length, 0) !== list.length) setError("Couldn’t merge them all. Please try again.");
+    setList(next);
   };
   const remove = async (inv: Invitee) => {
     if (demo || !window.confirm(`Remove ${inv.name} from your invite list?`)) return;
@@ -128,10 +191,7 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
     }
   };
   const nudge = () => {
-    const by = deadline
-      ? ` by ${new Date(`${deadline}T12:00:00+08:00`).toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric", timeZone: "Asia/Manila" })}`
-      : "";
-    const msg = `Hi! Just a friendly reminder to RSVP for ${eventName}${by}. Everything’s here: ${siteUrl ?? ""}`.trim();
+    const msg = reminderMessage(eventName, siteUrl, deadline);
     navigator.clipboard?.writeText(msg).then(
       () => {
         setCopied(true);
@@ -191,6 +251,19 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
         </PillButton>
       </div>
 
+      {repeats.length && !adding ? (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3">
+          <p className="min-w-0 flex-1 text-[14px] text-[var(--ink)]">
+            {repeats.length === 1 ? `${repeats[0].keep.name} is on your list ${repeats[0].drop.length === 1 ? "twice" : `${repeats[0].drop.length + 1} times`}.` : `${repeats.length} guests are on your list more than once.`}
+            <span className="text-[var(--slate)]"> Merging keeps the link they’ve used.</span>
+          </p>
+          <PillButton onClick={merge} disabled={busy}>
+            {busy ? "Merging…" : repeats.length === 1 ? "Merge" : "Merge them"}
+          </PillButton>
+        </div>
+      ) : null}
+      {notice && !adding ? <p className="mb-5 text-[14px] text-[var(--slate)]">{notice}</p> : null}
+
       {adding ? (
         <div className="mb-6 rounded-2xl border border-[var(--line)] bg-white p-4">
           <label htmlFor="invite-lines" className="text-[14px] font-semibold text-[var(--ink)]">
@@ -228,22 +301,33 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
             ))}
           </div>
           <ul className="divide-y divide-[var(--line)] rounded-2xl border border-[var(--line)] bg-white">
-            {shown.map(({ inv, reply }) => (
+            {shown.map(({ inv, reply, others }) => {
+              const coming = [reply, ...others].filter((g): g is Guest => !!g && g.attending !== false);
+              const seats = coming.reduce((n, g) => n + (g.guest_count ?? 1), 0);
+              return (
               <li key={inv.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-medium text-[var(--ink)]">{inv.name}</p>
-                  {inv.contact || inv.party_size || inv.table_label || inv.source === "save_the_date" ? (
+                  {inv.contact || inv.party_size || inv.table_label || inv.source === "save_the_date" || others.length ? (
                     <p className="truncate text-[13px] text-[var(--slate)]">
-                      {[inv.contact, inv.party_size ? `${inv.party_size} ${inv.party_size === 1 ? "seat" : "seats"}` : "", inv.table_label ? `Table ${inv.table_label}` : "", inv.source === "save_the_date" ? "From your Save the Date" : ""].filter(Boolean).join(" · ")}
+                      {[
+                        others.length ? `With ${others.map((g) => g.name).join(", ")}` : "",
+                        inv.contact,
+                        inv.party_size ? `${inv.party_size} ${inv.party_size === 1 ? "seat" : "seats"}` : "",
+                        inv.table_label ? `Table ${inv.table_label}` : "",
+                        inv.source === "save_the_date" ? "From your Save the Date" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   ) : null}
                 </div>
                 {reply ? (
-                  reply.attending === false ? (
+                  !coming.length ? (
                     <span className="shrink-0 rounded-full bg-[#ececec] px-2.5 py-1 text-[12px] font-semibold text-[#55556a]">Can’t make it</span>
                   ) : (
                     <span className="shrink-0 rounded-full bg-[#ecfbcc] px-2.5 py-1 text-[12px] font-semibold text-[#3d5a12]">
-                      Coming{reply.guest_count && reply.guest_count > 1 ? ` · ${reply.guest_count}` : ""}
+                      Coming{seats > 1 ? ` · ${seats}` : ""}
                     </span>
                   )
                 ) : (
@@ -261,7 +345,8 @@ export default function InviteList({ eventId, guests, eventName, siteUrl, deadli
                   <i className="ri-close-line text-[18px]" aria-hidden />
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
           {error && !adding ? <p className="mt-3 text-[13px] text-[#c2412d]">{error}</p> : null}
           <p className="mt-3 text-[13px] text-[var(--slate)]">

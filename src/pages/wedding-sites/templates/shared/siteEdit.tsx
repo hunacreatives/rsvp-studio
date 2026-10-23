@@ -35,6 +35,7 @@ export function Field({
   placeholder,
   editor,
   multiline,
+  fallback,
   className,
   style,
   children,
@@ -46,6 +47,9 @@ export function Field({
   placeholder: string;
   editor?: boolean;
   multiline?: boolean;
+  /** The design's own wording while the field is empty ("Our story"): shown as-is everywhere,
+   *  and the text editing starts from. */
+  fallback?: string;
   className?: string;
   style?: CSSProperties;
   /** What to show instead of the plain value (the value still decides empty/placeholder). */
@@ -53,12 +57,22 @@ export function Field({
   /** Anything else goes on the element (data-reveal, style delays…). */
   [attr: string]: unknown;
 }) {
-  const empty = !(value ?? "").trim();
-  if (!editor) return empty ? null : createElement(as, { className, style, ...rest }, children ?? value);
+  const own = !!(value ?? "").trim();
+  const shown = own ? (children ?? value) : fallback;
+  const empty = !own && !fallback;
+  if (!editor) return empty ? null : createElement(as, { className, style, ...rest }, shown);
   return createElement(
     as,
-    { className, style, ...rest, "data-site-field": path, "data-site-empty": empty ? "" : undefined, "data-site-multiline": multiline ? "" : undefined },
-    empty ? placeholder : (children ?? value),
+    {
+      className,
+      style,
+      ...rest,
+      "data-site-field": path,
+      "data-site-empty": empty ? "" : undefined,
+      "data-site-default": !own && fallback ? fallback : undefined,
+      "data-site-multiline": multiline ? "" : undefined,
+    },
+    empty ? placeholder : shown,
   );
 }
 

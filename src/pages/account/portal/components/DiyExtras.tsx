@@ -41,21 +41,20 @@ export default function DiyExtras({ project }: { project: Project }) {
   ];
 
   return (
-    <OutlineCard className="mt-5 p-5 sm:p-6 md:p-8">
+    <OutlineCard className="mt-5 p-5 sm:p-6">
       <p className="eyebrow">From the studio</p>
-      <ul className="mt-3 divide-y divide-[var(--line)]">
+      <p className="mt-1 text-[13px] text-[var(--slate)]">Each one opens a quote request with your event filled in.</p>
+      {/* Tiles, not rows: each is the link, so there's no "Get a quote" repeated four times. */}
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {rows.map((r) => (
-          <li key={r.title} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4 first:pt-2 last:pb-0">
-            <i className={`${r.icon} text-xl text-[var(--ink)]`} aria-hidden />
-            <div className="min-w-0 flex-1 basis-[200px]">
-              <p className="text-[15px] font-semibold text-[var(--ink)]">{r.title}</p>
-              <p className="text-[14px] text-[var(--slate)]">{r.body}</p>
-            </div>
-            <Link
-              to={r.to}
-              className="inline-flex min-h-[44px] shrink-0 items-center rounded-full border border-[var(--line)] px-4 text-[14px] font-medium text-[var(--ink)] hover:border-[var(--ink)] md:min-h-[38px]"
-            >
-              Get a quote
+          <li key={r.title}>
+            <Link to={r.to} className="group flex h-full items-start gap-3 rounded-2xl border border-[var(--line)] px-4 py-3 transition-colors hover:border-[var(--ink)]">
+              <i className={`${r.icon} mt-0.5 text-[19px] text-[var(--ink)]`} aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-semibold text-[var(--ink)]">{r.title}</span>
+                <span className="block text-[13.5px] leading-snug text-[var(--slate)]">{r.body}</span>
+              </span>
+              <i className="ri-arrow-right-up-line mt-0.5 text-[var(--slate)] group-hover:text-[var(--ink)]" aria-hidden />
             </Link>
           </li>
         ))}

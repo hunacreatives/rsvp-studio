@@ -7,6 +7,8 @@ export type SiteInfo = {
   publishedAt: string | null;
   templateId: string | null;
   heroUrl: string | null;
+  /** "Replies close on" (content.rsvpDeadline), YYYY-MM-DD. */
+  deadline?: string | null;
   /** DIY sites (supabase/project-lifecycle.sql): online until this date; null = no end set. */
   liveUntil?: string | null;
   /** The site went offline after its event. */
@@ -65,7 +67,7 @@ type SiteRow = {
   published_at: string | null;
   std?: SaveTheDate | null;
   std_live?: boolean;
-  draft_content: { galleries?: { items?: { image?: { masterUrl?: string } }[] }[] } | null;
+  draft_content: { galleries?: { items?: { image?: { masterUrl?: string } }[] }[]; rsvpDeadline?: string } | null;
   draft_presentation: {
     activeTemplateId?: string;
     byTemplate?: Record<string, { heroImage?: { masterUrl?: string } }>;
@@ -78,7 +80,8 @@ function siteInfo(row: SiteRow): SiteInfo {
     (templateId && row.draft_presentation?.byTemplate?.[templateId]?.heroImage?.masterUrl) ||
     row.draft_content?.galleries?.[0]?.items?.[0]?.image?.masterUrl ||
     null;
-  return { slug: row.slug, publishedAt: row.published_at, templateId, heroUrl: hero, std: row.std ?? null, stdLive: row.std_live === true };
+  const deadline = row.draft_content?.rsvpDeadline;
+  return { slug: row.slug, publishedAt: row.published_at, templateId, heroUrl: hero, deadline: deadline && /^\d{4}-\d{2}-\d{2}$/.test(deadline) ? deadline : null, std: row.std ?? null, stdLive: row.std_live === true };
 }
 
 /** Projects the user can see. Staff see every project (RLS allows it). */

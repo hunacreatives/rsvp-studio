@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { getTemplateDefinition } from "../engine/registry";
 import { useTemplateCatalog } from "../engine/catalog";
 import { resolveTemplate } from "../engine/render";
 import { editorGroups } from "./ContentEditor";
 import DetailsPanel, { openPanelPage } from "./DetailsPanel";
 import GuestSettings from "./GuestSettings";
+import EventTypeSetting from "./EventTypeSetting";
+import CreateEventModal from "@/pages/account/components/CreateEventModal";
 import PreviewCanvas from "./components/PreviewCanvas";
 import { usePreviewClickToEdit, usePreviewFollow, type SiteOps } from "./components/usePreviewFollow";
 import PreviewPhotoTools from "./components/PreviewPhotoTools";
@@ -49,7 +51,11 @@ export default function BuilderShellPage() {
     canUndo,
     canRedo,
     checkpoint,
+    eventType,
+    changeEventType,
   } = useEventSiteDraft(eventId);
+  const navigate = useNavigate();
+  const [startingAnother, setStartingAnother] = useState(false);
   // Phones start on the phone preview (a scaled-down desktop page is unreadable there).
   const [device, setDevice] = useState<"desktop" | "phone">(() => (isPhoneNow() ? "phone" : "desktop"));
   const isPhone = useIsPhone();
@@ -219,13 +225,27 @@ export default function BuilderShellPage() {
           eventId={eventId}
           onShowSection={resolved ? hideSection : undefined}
           onClose={() => (isPhone ? setTab("preview") : setEditorCollapsed(true))}
-          settings={<GuestSettings eventId={eventId} slug={slug} premium={!!plan?.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} price={canUpgrade ? peso(plan!.upgradeCentavos) : undefined} />}
+          settings={
+            <>
+              {/* Studio projects: the Studio sets the event type. */}
+              {plan && !plan.managed ? (
+                <EventTypeSetting
+                  eventType={eventType}
+                  design={activeDefinition}
+                  onChange={changeEventType}
+                  onPickDesign={() => void save().then(() => navigate(`/account/events/${eventId}/site-builder`))}
+                />
+              ) : null}
+              <GuestSettings eventId={eventId} slug={slug} premium={!!plan?.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} price={canUpgrade ? peso(plan!.upgradeCentavos) : undefined} />
+            </>
+          }
         />
       </div>
     </PageEditProvider>
   );
   const dialogs = (
     <>
+      {startingAnother ? <CreateEventModal onClose={() => setStartingAnother(false)} /> : null}
       <PublishDialog flow={flow} slug={slug} upsell={canUpgrade ? { price: peso(plan!.upgradeCentavos), open: upgrade.open } : null} />
       <UpgradeDialog
         flow={upgrade}
@@ -294,6 +314,11 @@ export default function BuilderShellPage() {
     <button type="button" role="menuitem" onClick={() => { closeMoreMenu(); void save(); }} style={menuItem}>
       Save now
     </button>
+    {plan && !plan.managed ? (
+      <button type="button" role="menuitem" onClick={() => { closeMoreMenu(); void save(); setStartingAnother(true); }} style={menuItem}>
+        Start another event
+      </button>
+    ) : null}
     {offerDesign ? (
       <Link role="menuitem" to={designForMe} onClick={closeMoreMenu} style={{ ...menuItem, textDecoration: "none" }}>
         Have us design it &rarr;

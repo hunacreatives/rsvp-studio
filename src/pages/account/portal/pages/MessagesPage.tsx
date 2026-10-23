@@ -315,7 +315,7 @@ function NewMessageModal({ projectId, onClose, onCreated }: { projectId: string 
         — you’ll get a request number and a reply within 1 business day.
       </p>
       <div className="space-y-4">
-        <Field label="Project">
+        <Field label="Event">
           <Select
             value={eventId}
             onChange={(e) => {

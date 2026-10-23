@@ -21,7 +21,7 @@ export interface CashGiftsLook {
 
 export const hasCashGifts = (c: EventContent) => (c.cashGifts ?? []).some((g) => g.label || g.accountNumber || g.qrUrl);
 
-export function CashGifts({ content, look, editor }: { content: EventContent; look: CashGiftsLook; /** The builder: edited on the page, "+ Add" item. */ editor?: boolean }) {
+export function CashGifts({ content, look, editor, note = true }: { content: EventContent; look: CashGiftsLook; /** The builder: edited on the page, "+ Add" item. */ editor?: boolean; /** false: the design shows cashGiftNote itself. */ note?: boolean }) {
   const ed = siteEdit(editor);
   const gifts = (content.cashGifts ?? []).filter((g) => editor || g.label || g.accountNumber || g.qrUrl);
   const [copied, setCopied] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export function CashGifts({ content, look, editor }: { content: EventContent; lo
 
   return (
     <div style={{ marginTop: 28, textAlign: center ? "center" : "left" }}>
-      {content.cashGiftNote || (editor && gifts.length) ? (
+      {note && (content.cashGiftNote || (editor && gifts.length)) ? (
         <Field as="p" path="cashGiftNote" value={content.cashGiftNote} placeholder="A note above them (optional)" editor={editor} multiline style={{ fontFamily: look.bodyFont, fontSize: 16, lineHeight: 1.6, color: look.muted, margin: "0 auto 18px", maxWidth: 520 }} />
       ) : null}
       <div {...ed.list("cashGifts")} style={{ display: "flex", flexWrap: "wrap", justifyContent: center ? "center" : "flex-start", gap: 14 }}>

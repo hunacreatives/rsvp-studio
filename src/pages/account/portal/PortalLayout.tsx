@@ -3,18 +3,16 @@ import { createPortal } from "react-dom";
 import PageLoading from "@/components/PageLoading";
 import CharacterLoader from "@/components/CharacterLoader";
 import type { ReactNode } from "react";
-import { Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import Navbar from "@/pages/home/components/Navbar";
-import FooterSection from "@/pages/home/components/FooterSection";
 import { PortalProvider, usePortal } from "./PortalContext";
 import NewProjectModal from "./components/NewProjectModal";
-import { firstName } from "./format";
+import { defaultAvatar, firstName } from "./format";
 import * as api from "./api";
 
 const NAV = [
   { to: "/account", label: "Home", icon: "ri-home-4-line", end: true },
-  { to: "/account/projects", label: "Projects", icon: "ri-folder-3-line" },
+  { to: "/account/projects", label: "Events", icon: "ri-folder-3-line" },
   { to: "/account/billing", label: "Billing", icon: "ri-file-list-3-line" },
   { to: "/account/settings", label: "Account", icon: "ri-user-3-line" },
   { to: "/account/messages", label: "Messages", icon: "ri-inbox-2-line" },
@@ -66,7 +64,7 @@ function Shell() {
   return (
     // Phones: room at the bottom for the fixed tab bar (+ the iPhone home indicator).
     <div className="min-h-screen pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-0" style={{ background: "#fff" }}>
-      <Navbar />
+      <AppHeader onNewProject={() => setNewProjectOpen(true)} />
       {demo ? (
         <div className="bg-[var(--acc-yellow)] px-4 py-1.5 text-center text-[12px] font-medium text-[var(--ink)]">
           Demo data (dev only) — <a className="underline" href="?demo=off">exit demo</a>
@@ -91,11 +89,9 @@ function Shell() {
         <div className="flex flex-col gap-6 lg:flex-row lg:gap-5">
           {/* Sidebar (desktop). Phones get the bottom tab bar instead, so pages start at the top. */}
           <aside className="hidden lg:block lg:w-[232px] lg:shrink-0">
-            <div className="rounded-[22px] bg-[var(--paper)] p-4 lg:sticky lg:top-24 lg:min-h-[630px] lg:p-5">
-              <p className="px-1 font-display text-[2.1rem] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] lg:text-[2.6rem]">
-                Hi, {firstName(profile.full_name, "there")}.
-              </p>
-              <nav className="-mx-1 mt-4 flex flex-wrap gap-1 lg:mx-0 lg:mt-6 lg:flex-col lg:flex-nowrap">
+            {/* Just the way around: the greeting is Home's title (phones don't see this sidebar). */}
+            <div className="rounded-[22px] bg-[var(--paper)] p-3 lg:sticky lg:top-24">
+              <nav className="flex flex-col gap-1">
                 {NAV.map((item) => (
                   <SideLink key={item.to} to={item.to} end={item.end} icon={item.icon}>
                     {item.label}
@@ -128,9 +124,6 @@ function Shell() {
 
           {/* Main column */}
           <main className="min-w-0 flex-1 lg:pl-3">
-            <div className="mb-6 hidden gap-6 lg:flex">
-              <QuickAction icon="ri-folder-3-line" label="New Project" onClick={() => setNewProjectOpen(true)} />
-            </div>
             <Suspense fallback={<PageLoading />}>
               <Outlet />
             </Suspense>
@@ -138,7 +131,6 @@ function Shell() {
         </div>
       </div>
 
-      <FooterSection />
       <MobileTabBar unread={unread} isPartner={isPartner} onNewProject={() => setNewProjectOpen(true)} onSignOut={signOut} />
       <NewProjectModal open={newProjectOpen} onClose={() => setNewProjectOpen(false)} />
     </div>
@@ -162,21 +154,36 @@ function SideLink({ to, end, icon, children }: { to: string; end?: boolean; icon
   );
 }
 
-function QuickAction({ icon, label, onClick, badge = 0 }: { icon: string; label: string; onClick: () => void; badge?: number }) {
+/**
+ * The dashboard's own header: the logo (back to the website), "New event" and the account.
+ * Not the marketing site's menu and footer: signed in, people are here to manage their events.
+ */
+function AppHeader({ onNewProject }: { onNewProject: () => void }) {
+  const { profile } = usePortal();
   return (
-    <button onClick={onClick} className="group flex flex-col items-center gap-1.5">
-      <span className="relative grid h-[58px] w-[58px] place-items-center rounded-full bg-[var(--paper)] text-[var(--ink)] transition-colors group-hover:bg-[#e8e8ea]">
-        <i className={`${icon} text-[24px]`} />
-        {badge > 0 ? <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[var(--acc-blue)] ring-2 ring-white" /> : null}
-      </span>
-      <span className="text-[13px] text-[var(--ink)]">{label}</span>
-    </button>
+    <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-white/95 backdrop-blur">
+      <div className="container-x flex h-16 items-center gap-3">
+        <Link to="/" className="flex min-h-11 shrink-0 items-center" aria-label="The RSVP Studio website">
+          <img src="/brand/logotype-dark.png" alt="The RSVP Studio" className="h-8 w-auto md:h-9" />
+        </Link>
+        <span className="flex-1" />
+        <button
+          onClick={onNewProject}
+          className="hidden min-h-10 items-center gap-1.5 rounded-full bg-[var(--ink)] px-4 text-[14px] font-medium text-white transition-colors hover:bg-[#1b2148] lg:inline-flex"
+        >
+          <i className="ri-add-line text-[17px]" /> New event
+        </button>
+        <Link to="/account/settings" aria-label="Your account" title={profile.full_name ?? "Your account"} className="grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-black/5">
+          <img src={profile.avatar_url || defaultAvatar(profile.full_name)} alt="" className="h-9 w-9 rounded-full object-cover ring-1 ring-[rgba(0,7,39,0.1)]" />
+        </Link>
+      </div>
+    </header>
   );
 }
 
 const TABS = [
   { to: "/account", label: "Home", icon: "ri-home-4-line", end: true },
-  { to: "/account/projects", label: "Projects", icon: "ri-folder-3-line" },
+  { to: "/account/projects", label: "Events", icon: "ri-folder-3-line" },
   { to: "/account/messages", label: "Messages", icon: "ri-inbox-2-line" },
   { to: "/account/billing", label: "Billing", icon: "ri-file-list-3-line" },
 ];
@@ -251,7 +258,7 @@ function MobileTabBar({ unread, isPartner, onNewProject, onSignOut }: { unread: 
                     ...(isPartner ? [{ label: "Partner", icon: "ri-hand-heart-line", onClick: () => navigate("/account/partner") }] : []),
                     { label: "Account", icon: "ri-user-3-line", onClick: () => navigate("/account/settings") },
                     { label: "Help & Support", icon: "ri-question-line", onClick: () => navigate("/account/help") },
-                    { label: "New Project", icon: "ri-folder-add-line", onClick: () => { setMoreOpen(false); onNewProject(); } },
+                    { label: "New event", icon: "ri-folder-add-line", onClick: () => { setMoreOpen(false); onNewProject(); } },
                     { label: "Log out", icon: "ri-logout-box-r-line", onClick: () => { setMoreOpen(false); onSignOut(); }, muted: true },
                   ].map((it) => (
                     <li key={it.label}>

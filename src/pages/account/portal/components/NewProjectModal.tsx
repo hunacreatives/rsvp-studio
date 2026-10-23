@@ -20,7 +20,7 @@ export default function NewProjectModal({ open, onClose }: { open: boolean; onCl
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Start a new project" width={560}>
+    <Modal open={open} onClose={onClose} title="Start a new event" width={560}>
       <div className="grid gap-3">
         <Choice
           icon="ri-sparkling-2-line"
@@ -37,7 +37,7 @@ export default function NewProjectModal({ open, onClose }: { open: boolean; onCl
         <Choice
           icon="ri-key-2-line"
           title="I have an invite code"
-          body="Link a project our team already set up for you."
+          body="Link an event our team already set up for you."
           onClick={() => go("/account/onboarding")}
         />
       </div>

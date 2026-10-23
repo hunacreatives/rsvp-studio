@@ -104,11 +104,11 @@ export default function AccountPage() {
         <SectionTitle>Notifications</SectionTitle>
         <OutlineCard>
           <Row
-            title="Project updates"
+            title="Event updates"
             sub="Emails when we message you, post an update or add a task — and about new RSVPs (right away on Premium sites, or one summary a day on free sites)."
             action={
               <Toggle
-                label="Project updates"
+                label="Event updates"
                 checked={profile.notify_project_updates}
                 onChange={(v) => saveProfile({ notify_project_updates: v })}
               />
@@ -145,7 +145,7 @@ export default function AccountPage() {
         <SectionTitle>Account Management</SectionTitle>
         <div className="px-1 md:px-8">
           <p className="text-[16px] text-[var(--ink)]">Need help with your account?</p>
-          <p className="text-[13px] text-[var(--slate)]">Our team is here to help with account or project concerns.</p>
+          <p className="text-[13px] text-[var(--slate)]">Our team is here to help with account or event questions.</p>
           <PillButton className="mt-4" onClick={() => navigate("/account/help/contact")}>Contact Support</PillButton>
         </div>
       </section>

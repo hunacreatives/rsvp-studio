@@ -80,6 +80,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
   const [status, setStatus] = useState<DraftStatus>("loading");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [eventType, setEventType] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,6 +112,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
         .maybeSingle();
 
       if (cancelled) return;
+      setEventType(event.event_type);
 
       if (existing) {
         setSiteId(existing.id);
@@ -367,6 +369,24 @@ export function useEventSiteDraft(eventId: string | undefined) {
   const undo = useCallback(() => go(past, future), [go]);
   const redo = useCallback(() => go(future, past), [go]);
 
+  // The kind of event (Details → Settings, supabase/event-type-change.sql). It decides
+  // content.occasion, so undo steps get the new one too: undoing never brings the old back.
+  const changeEventType = useCallback(
+    async (type: string) => {
+      if (!eventId) return false;
+      const { error } = await supabase.rpc("set_event_type", { p_event: eventId, p_type: type });
+      if (error) return false;
+      const occasion = asOccasion(type);
+      const swap = (s: Snap): Snap => [{ ...s[0], occasion }, s[1]];
+      past.current = past.current.map(swap);
+      future.current = future.current.map(swap);
+      setEventType(type);
+      setContent((c) => ({ ...c, occasion }));
+      return true;
+    },
+    [eventId],
+  );
+
   // Edits not yet on the live site (compared with what was last published).
   const hasUnpublishedChanges = !!live && live !== JSON.stringify([{ ...content, slug: slug || content.slug }, presentation]);
 
@@ -390,5 +410,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
     unpublish,
     hasUnpublishedChanges,
     unsaved,
+    eventType,
+    changeEventType,
   };
 }

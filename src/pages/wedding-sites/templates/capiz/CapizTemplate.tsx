@@ -16,6 +16,7 @@ import { dateWords, eventIsOver, firstNames, monogram, receptionMap, splitEntour
 import RsvpSill from "./RsvpSill";
 import { CAPIZ_CSS } from "./styles";
 import { photoFit } from "../shared/photoFit";
+import { AddItem, Field, HiddenSection, siteEdit } from "../shared/siteEdit";
 
 /**
  * Capiz (wedding, Premium): a walk through an old Filipino house.
@@ -178,11 +179,17 @@ export default function CapizTemplate({ content, settings, editorPreview = false
   const schedule = [...content.schedule].sort((a, b) => a.startTime.localeCompare(b.startTime));
   const dress = customValue(content, "dressCode");
   const swatches = (content.motifColors ?? []).filter((c) => /^#[0-9a-f]{3,8}$/i.test(c));
-  const { parents, rows } = splitEntourage(content);
-  const faqs = [...content.faqs].sort((a, b) => a.order - b.order).filter((f) => f.question.trim());
-  const travel = content.travelInformation.filter((t) => t.title.trim() || t.body.trim());
-  const stay = content.accommodations.filter((a) => a.name.trim());
+  // The builder keeps empty items on the page (so one just added can be typed into) and every
+  // section with its "+ Add …", in the house's fixed order: its rooms can be hidden, not moved.
+  const ed = siteEdit(editorPreview);
+  const { parents, rows } = splitEntourage(content, editorPreview);
+  const faqs = [...content.faqs].sort((a, b) => a.order - b.order).filter((f) => editorPreview || f.question.trim());
+  const travel = content.travelInformation.filter((t) => editorPreview || t.title.trim() || t.body.trim());
+  const stay = content.accommodations.filter((a) => editorPreview || a.name.trim());
   const cash = hasCashGifts(content);
+  const itemOf = new Map(photos.map((p) => [p.image, p.id]));
+  const bandSlots = editorPreview && photos.length < 12 ? [...bandImgs, null] : bandImgs;
+  const hosts = content.hosts.map((h) => ({ id: h.id, full: h.name, first: h.name.trim().split(/\s+/)[0] ?? "" })).filter((h) => editorPreview || h.first);
   const gifts = content.registryLinks.length > 0 || cash;
   const over = !editorPreview && eventIsOver(content.eventDate);
   const vis = settings.sectionVisibility;
@@ -194,11 +201,12 @@ export default function CapizTemplate({ content, settings, editorPreview = false
   const showEnt = vis.entourage !== false && !!(rows.length || editorPreview);
   const showDay = vis.schedule !== false && !!(schedule.length || editorPreview);
   const showDress = vis.dress !== false && !!(dress || swatches.length || editorPreview);
-  const showBand = vis.gallery !== false && bandImgs.length > 0;
-  const showFaq = vis.faqs !== false && faqs.length > 0;
-  const showTravel = vis.travelInformation !== false && travel.length > 0;
-  const showStay = vis.accommodations !== false && stay.length > 0;
-  const showGifts = vis.registry !== false && gifts;
+  const showBand = vis.gallery !== false && bandSlots.length > 0;
+  const showFaq = vis.faqs !== false && (faqs.length > 0 || editorPreview);
+  const showTravel = vis.travelInformation !== false && (travel.length > 0 || editorPreview);
+  const showStay = vis.accommodations !== false && (stay.length > 0 || editorPreview);
+  const showGifts = vis.registry !== false && (gifts || editorPreview);
+  const KNOW = ["faqs", "travelInformation", "accommodations"];
   const showRsvp = !over && vis.rsvp !== false;
 
   const toRsvp = () => document.getElementById("rsvp")?.scrollIntoView({ behavior: motion ? "smooth" : "auto", block: "start" });
@@ -224,26 +232,27 @@ export default function CapizTemplate({ content, settings, editorPreview = false
     <div className="cz-full__words">
       {vis.parents !== false && parents.length ? (
         <>
-          <p className="cz-whisper">{customValue(content, "parentsLine") || "Together with our parents"}</p>
-          <div className="cz-parents">
+          <Field as="p" className="cz-whisper" path="custom.parentsLine" value={customValue(content, "parentsLine")} fallback="Together with our parents" placeholder="" editor={editorPreview} />
+          <div className="cz-parents" {...ed.list("entourage")}>
             {parents.map((g, i) => (
-              <div key={g.id}>
+              <div key={g.id} {...ed.item(g.id)}>
                 {i > 0 ? <span className="cz-parents__and">and</span> : null}
                 {g.people.map((p, j) => (
-                  <p key={j}>{p}</p>
+                  <Field key={j} as="p" path={`people.${j}`} value={p} placeholder="Name" editor={editorPreview} />
                 ))}
+                <AddItem list={`entourage:${g.id}:people`} label="Add a name" editor={editorPreview} />
               </div>
             ))}
           </div>
         </>
       ) : null}
-      <p className="cz-full__line">{customValue(content, "invitation") || "we request the honour of your presence at our wedding"}</p>
+      <Field as="p" className="cz-full__line" path="custom.invitation" value={customValue(content, "invitation")} fallback="we request the honour of your presence at our wedding" placeholder="" editor={editorPreview} multiline />
       {when ? <p className="cz-full__date">{when}</p> : editorPreview ? <p className="cz-full__date cz-hint">Your date</p> : null}
       {words || venue ? <p className="cz-full__at">{[words, venue].filter(Boolean).join(", at ")}</p> : null}
       {vis.countdown !== false && content.eventDate && !over ? <Countdown iso={content.eventDate} live={live || demo || editorPreview} prefix="cz" /> : null}
       {showRsvp ? (
-        <button type="button" className="cz-btn cz-btn--light" onClick={toRsvp}>
-          {customValue(content, "replyButton") || "Kindly reply"}
+        <button type="button" className="cz-btn cz-btn--light" onClick={ed.on ? undefined : toRsvp}>
+          <Field path="custom.replyButton" value={customValue(content, "replyButton")} fallback="Kindly reply" placeholder="" editor={editorPreview} />
         </button>
       ) : null}
     </div>
@@ -303,22 +312,18 @@ export default function CapizTemplate({ content, settings, editorPreview = false
                   <>
                     <span className="cz-sill cz-wood" aria-hidden />
                     <div className="cz-room__words">
-                      {customValue(content, "heroLine") ? (
-                        <p className="cz-whisper cz-rise" style={{ ["--d" as string]: "2.3s" }}>
-                          {customValue(content, "heroLine")}
-                        </p>
-                      ) : null}
-                      <h1 className={`cz-names cz-rise${names.length ? "" : " cz-hint"}`} style={{ ["--d" as string]: "2.4s" }}>
-                        {names.length
-                          ? names.map((n, i) => (
-                              <span key={i}>
-                                {i > 0 ? <span className="cz-amp">{i === names.length - 1 ? "&" : ","}</span> : null}
-                                <span className="cz-name">{n}</span>
+                      <Field as="p" className="cz-whisper cz-rise" style={{ ["--d" as string]: "2.3s" }} path="custom.heroLine" value={customValue(content, "heroLine")} placeholder="A small line above your names" editor={editorPreview} />
+                      <h1 className={`cz-names cz-rise${hosts.length ? "" : " cz-hint"}`} style={{ ["--d" as string]: "2.4s" }} {...ed.list("hosts")}>
+                        {hosts.length
+                          ? hosts.map((h, i) => (
+                              <span key={h.id} {...ed.item(h.id)}>
+                                {i > 0 ? <span className="cz-amp">{i === hosts.length - 1 ? "&" : ","}</span> : null}
+                                <Field className="cz-name" path="name" value={h.full} placeholder="Name" editor={editorPreview}>
+                                  {h.first}
+                                </Field>
                               </span>
                             ))
-                          : editorPreview
-                            ? "Your names"
-                            : null}
+                          : null}
                       </h1>
                       {town ? (
                         <p className="cz-room__town cz-rise" style={{ ["--d" as string]: "2.8s" }}>
@@ -353,8 +358,8 @@ export default function CapizTemplate({ content, settings, editorPreview = false
                   <article className="cz-venue" data-reveal>
                     <Niche arched seed={3} />
                     <p className="cz-whisper">The ceremony</p>
-                    <h3 className={`cz-venue__name${venue ? "" : " cz-hint"}`}>{venue || "Your church or venue"}</h3>
-                    {address ? <p className="cz-venue__addr">{address}</p> : null}
+                    <Field as="h3" className="cz-venue__name" path="primaryLocation.name" value={venue} placeholder="Your church or venue" editor={editorPreview} />
+                    <Field as="p" className="cz-venue__addr" path="primaryLocation.addressLine" value={address} placeholder="Address" editor={editorPreview} />
                     {words ? <p className="cz-venue__time">{words}</p> : null}
                     <VenueLinks content={content} font="var(--cz-body)" color="var(--cz-ink)" size={15} />
                   </article>
@@ -362,9 +367,9 @@ export default function CapizTemplate({ content, settings, editorPreview = false
                     <article className="cz-venue" data-reveal style={{ ["--i" as string]: 1 }}>
                       <Niche seed={4} />
                       <p className="cz-whisper">The reception</p>
-                      <h3 className={`cz-venue__name${recName ? "" : " cz-hint"}`}>{recName || "Add your reception in the Capiz details"}</h3>
-                      {recAddress ? <p className="cz-venue__addr">{recAddress}</p> : null}
-                      {recTime ? <p className="cz-venue__time">{recTime}</p> : null}
+                      <Field as="h3" className="cz-venue__name" path="custom.receptionName" value={recName} placeholder="Reception venue, if it’s elsewhere" editor={editorPreview} />
+                      <Field as="p" className="cz-venue__addr" path="custom.receptionAddress" value={recAddress} placeholder="Address" editor={editorPreview} />
+                      <Field as="p" className="cz-venue__time" path="custom.receptionTime" value={recTime} placeholder="Time, e.g. half past four" editor={editorPreview} />
                       {recMap ? (
                         <a className="cz-venue__map" href={recMap} target="_blank" rel="noopener noreferrer">
                           Open in Maps
@@ -376,7 +381,7 @@ export default function CapizTemplate({ content, settings, editorPreview = false
               ) : null}
 
               {showStory ? (
-                <section className="cz-sec cz-story">
+                <section className="cz-sec cz-story" {...ed.section("hostIntro")}>
                   {storyImgs.length || editorPreview ? (
                     <div className="cz-story__photos" data-reveal>
                       <PhotoSlot image={storyImgs[0]} editorPreview={editorPreview} className="cz-recess cz-recess--arch" />
@@ -384,18 +389,16 @@ export default function CapizTemplate({ content, settings, editorPreview = false
                     </div>
                   ) : null}
                   <div className="cz-story__text" data-reveal style={{ ["--i" as string]: 1 }}>
-                    <h2 className="cz-title cz-title--left">{customValue(content, "storyTitle") || "Our story"}</h2>
+                    <Field as="h2" className="cz-title cz-title--left" path="custom.storyTitle" value={customValue(content, "storyTitle")} fallback="Our story" placeholder="" editor={editorPreview} />
                     {paragraphs.length ? (
-                      paragraphs.map((p, i) => (
-                        <p key={i} className={`cz-text${i === 0 ? " cz-text--lead" : ""}`}>
-                          {p}
-                        </p>
-                      ))
+                      paragraphs.map((p, i) => <Field key={i} as="p" className={`cz-text${i === 0 ? " cz-text--lead" : ""}`} path={`story#${i}`} value={p} placeholder="" editor={editorPreview} multiline />)
                     ) : (
-                      <p className="cz-text cz-hint">Your story, or a note to your guests, goes here.</p>
+                      <Field as="p" className="cz-text cz-text--lead" path="story#0" value="" placeholder="Your story, or a note to your guests, in your own words." editor={editorPreview} multiline />
                     )}
                   </div>
                 </section>
+              ) : vis.hostIntro === false ? (
+                <HiddenSection k="hostIntro" label="Our story" editor={editorPreview} />
               ) : null}
             </div>
           ) : null}
@@ -403,69 +406,66 @@ export default function CapizTemplate({ content, settings, editorPreview = false
           {/* Night: the entourage in a great lit capiz screen */}
           {showEnt ? (
             <div className="cz-night-room">
-              <section className="cz-sec cz-ent">
-                <h2 className="cz-title" data-reveal>
-                  {customValue(content, "entourageTitle") || "The entourage"}
-                </h2>
+              <section className="cz-sec cz-ent" {...ed.section("entourage")}>
+                <Field as="h2" className="cz-title" data-reveal path="custom.entourageTitle" value={customValue(content, "entourageTitle")} fallback="The entourage" placeholder="" editor={editorPreview} />
                 {rows.length ? (
-                  <div className="cz-grid cz-wood" data-reveal>
+                  <div className="cz-grid cz-wood" data-reveal {...ed.list("entourage")}>
                     <span className="cz-grid__flicker" aria-hidden />
                     {rows.map((row, r) => (
                       <div key={r} className={`cz-grid__row cz-grid__row--${row.kind}`} style={{ ["--n" as string]: row.cells.length }}>
                         {row.cells.map((c, i) => (
-                          <div key={c.id} className="cz-cell" style={{ ["--i" as string]: r * 2 + i, ["--x" as string]: `${(r * 97 + i * 53) % 320}px`, ["--y" as string]: `${(r * 61 + i * 113) % 320}px` }}>
-                            <p className="cz-cell__t">{c.title}</p>
+                          <div key={c.id} {...ed.item(c.id)} className="cz-cell" style={{ ["--i" as string]: r * 2 + i, ["--x" as string]: `${(r * 97 + i * 53) % 320}px`, ["--y" as string]: `${(r * 61 + i * 113) % 320}px` }}>
+                            <Field as="p" className="cz-cell__t" path="title" value={c.raw} placeholder="Group, e.g. Principal Sponsors" editor={editorPreview}>
+                              {c.title}
+                            </Field>
                             <ul className={`cz-cell__names${row.kind === "principal" && c.people.length > 3 ? " cz-cell__names--cols" : ""}`}>
                               {c.people.map((p, j) => (
-                                <li key={j}>{p}</li>
+                                <Field key={j} as="li" path={`people.${j}`} value={p} placeholder="Name" editor={editorPreview} />
                               ))}
                             </ul>
+                            <AddItem list={`entourage:${c.id}:people`} label="Add a name" editor={editorPreview} className="cz-add" />
                           </div>
                         ))}
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="cz-text cz-hint" style={{ textAlign: "center" }}>
-                    Add your sponsors and entourage under Entourage &amp; motif. Parents go in the invitation; everyone else is set here.
-                  </p>
-                )}
+                ) : null}
+                <AddItem list="entourage" label={rows.length ? "Add a group" : "Add your sponsors and entourage"} editor={editorPreview} className="cz-add cz-add--center" />
               </section>
             </div>
+          ) : vis.entourage === false ? (
+            <HiddenSection k="entourage" label="Entourage" editor={editorPreview} />
           ) : null}
 
           {/* Day: the day, what to wear */}
-          {showDay || showDress ? (
+          {showDay || showDress || ed.on ? (
             <div className="cz-day-room">
               {showDay ? (
-                <section className="cz-sec cz-schedule">
-                  <h2 className="cz-title" data-reveal>
-                    {customValue(content, "dayTitle") || "The day"}
-                  </h2>
+                <section className="cz-sec cz-schedule" {...ed.section("schedule")}>
+                  <Field as="h2" className="cz-title" data-reveal path="custom.dayTitle" value={customValue(content, "dayTitle")} fallback="The day" placeholder="" editor={editorPreview} />
                   {schedule.length ? (
-                    <ol className="cz-dayline">
+                    <ol className="cz-dayline" {...ed.list("schedule")}>
                       {schedule.map((s, i) => (
-                        <li key={s.id} data-reveal style={{ ["--i" as string]: i }}>
-                          <span className="cz-dayline__t">{timeOf(s.startTime)}</span>
+                        <li key={s.id} {...ed.item(s.id)} data-reveal style={{ ["--i" as string]: i }}>
+                          <span className="cz-dayline__t">{timeOf(s.startTime) || (editorPreview ? "Time" : "")}</span>
                           <span className="cz-dayline__w">
-                            {s.label}
-                            {s.description ? <em>{s.description}</em> : null}
+                            <Field path="label" value={s.label} placeholder="What’s happening" editor={editorPreview} />
+                            {s.description ? <Field as="em" path="description" value={s.description} placeholder="" editor={editorPreview} multiline /> : null}
                           </span>
                         </li>
                       ))}
                     </ol>
-                  ) : (
-                    <p className="cz-text cz-hint" style={{ textAlign: "center" }}>
-                      Add the order of the day under Schedule.
-                    </p>
-                  )}
+                  ) : null}
+                  <AddItem list="schedule" label={schedule.length ? "Add to the day" : "Add the order of the day"} editor={editorPreview} className="cz-add cz-add--center" />
                 </section>
+              ) : vis.schedule === false ? (
+                <HiddenSection k="schedule" label="The day" editor={editorPreview} />
               ) : null}
 
               {showDress ? (
-                <section className="cz-sec cz-narrow cz-attire" data-reveal>
+                <section className="cz-sec cz-narrow cz-attire" data-reveal {...ed.section("dress")}>
                   <h2 className="cz-title">What to wear</h2>
-                  {dress ? <p className="cz-text">{dress}</p> : <p className="cz-text cz-hint">Add your dress code in the Capiz details. Your motif colours show as tinted panes.</p>}
+                  <Field as="p" className="cz-text" path="custom.dressCode" value={dress} placeholder="Your dress code. Your motif colours show as tinted panes." editor={editorPreview} multiline />
                   {swatches.length ? (
                     <div className="cz-motif cz-wood" role="img" aria-label="Motif colours">
                       {swatches.map((c, i) => (
@@ -474,99 +474,136 @@ export default function CapizTemplate({ content, settings, editorPreview = false
                     </div>
                   ) : null}
                 </section>
+              ) : vis.dress === false ? (
+                <HiddenSection k="dress" label="What to wear" editor={editorPreview} />
               ) : null}
             </div>
           ) : null}
 
           {/* The photos, edge to edge in a narra lattice */}
           {showBand ? (
-            <section className="cz-band cz-wood" aria-label={content.galleries[0]?.title?.trim() || "Photos"}>
-              {bandImgs.map((img, i) => (
-                <div key={img.id ?? i} className={`cz-band__pane${wideD.has(i) ? " is-wide-d" : ""}${wideM.has(i) ? " is-wide-m" : ""}`} data-reveal style={{ ["--i" as string]: i % 4, ["--x" as string]: `${(i * 89) % 320}px`, ["--y" as string]: `${(i * 137) % 320}px` }}>
-                  <PhotoSlot image={img} className="cz-band__photo" />
+            <section className="cz-band cz-wood" aria-label={content.galleries[0]?.title?.trim() || "Photos"} {...ed.section("gallery")} {...ed.list("gallery")}>
+              {bandSlots.map((img, i) => (
+                <div
+                  key={img?.id ?? `add-${i}`}
+                  {...(img && itemOf.get(img) ? ed.item(itemOf.get(img)!) : {})}
+                  className={`cz-band__pane${wideD.has(i) ? " is-wide-d" : ""}${wideM.has(i) ? " is-wide-m" : ""}`}
+                  data-reveal
+                  style={{ ["--i" as string]: i % 4, ["--x" as string]: `${(i * 89) % 320}px`, ["--y" as string]: `${(i * 137) % 320}px` }}
+                >
+                  <PhotoSlot image={img} editorPreview={editorPreview} className="cz-band__photo" />
                 </div>
               ))}
             </section>
+          ) : vis.gallery === false ? (
+            <HiddenSection k="gallery" label="Photos" editor={editorPreview} />
           ) : null}
 
           {/* Day: good to know */}
           {showFaq || showTravel || showStay ? (
             <div className="cz-day-room">
-              <section className="cz-sec cz-know">
+              <section className="cz-sec cz-know" {...ed.section("faqs", KNOW)}>
                 <h2 className="cz-title" data-reveal>
                   Good to know
                 </h2>
                 <div className="cz-know__grid">
-                  {showFaq
-                    ? faqs.map((f) => (
-                        <div key={f.id} className="cz-item" data-reveal>
-                          <p className="cz-item__q">{f.question}</p>
-                          <p className="cz-text">{f.answer}</p>
+                  {showFaq ? (
+                    <div {...ed.list("faqs")} style={{ display: "contents" }}>
+                      {faqs.map((f) => (
+                        <div key={f.id} {...ed.item(f.id)} className="cz-item" data-reveal>
+                          <Field as="p" className="cz-item__q" path="question" value={f.question} placeholder="A question guests ask" editor={editorPreview} />
+                          <Field as="p" className="cz-text" path="answer" value={f.answer} placeholder="The answer" editor={editorPreview} multiline />
                         </div>
-                      ))
-                    : null}
-                  {showTravel
-                    ? travel.map((t) => (
-                        <div key={t.id} className="cz-item" data-reveal>
-                          {t.title ? <p className="cz-item__q">{t.title}</p> : null}
-                          <p className="cz-text">{t.body}</p>
+                      ))}
+                    </div>
+                  ) : null}
+                  {showTravel ? (
+                    <div {...ed.list("travelInformation")} style={{ display: "contents" }}>
+                      {travel.map((t) => (
+                        <div key={t.id} {...ed.item(t.id)} className="cz-item" data-reveal>
+                          <Field as="p" className="cz-item__q" path="title" value={t.title} placeholder="By car, by plane…" editor={editorPreview} />
+                          <Field as="p" className="cz-text" path="body" value={t.body} placeholder="How to get there" editor={editorPreview} multiline />
                         </div>
-                      ))
-                    : null}
-                  {showStay
-                    ? stay.map((a) => (
-                        <div key={a.id} className="cz-item" data-reveal>
+                      ))}
+                    </div>
+                  ) : null}
+                  {showStay ? (
+                    <div {...ed.list("accommodations")} style={{ display: "contents" }}>
+                      {stay.map((a) => (
+                        <div key={a.id} {...ed.item(a.id)} className="cz-item" data-reveal>
                           <p className="cz-item__q">
-                            {a.bookingUrl ? (
+                            {a.bookingUrl && !ed.on ? (
                               <a href={a.bookingUrl} target="_blank" rel="noopener noreferrer">
                                 {a.name}
                               </a>
                             ) : (
-                              a.name
+                              <Field path="name" value={a.name} placeholder="Where to stay" editor={editorPreview} />
                             )}
                           </p>
-                          {a.addressLine ? <p className="cz-text">{a.addressLine}</p> : null}
-                          {a.notes ? <p className="cz-text cz-soft">{a.notes}</p> : null}
+                          <Field as="p" className="cz-text" path="addressLine" value={a.addressLine} placeholder="Address" editor={editorPreview} />
+                          {a.notes ? <Field as="p" className="cz-text cz-soft" path="notes" value={a.notes} placeholder="" editor={editorPreview} multiline /> : null}
                         </div>
-                      ))
-                    : null}
-                </div>
-              </section>
-            </div>
-          ) : null}
-
-          {/* Night: gifts and the reply card on the sill */}
-          {showGifts || showRsvp || over ? (
-            <div className="cz-night-room">
-              {showGifts ? (
-                <section className="cz-sec cz-narrow cz-gifts" data-reveal>
-                  <h2 className="cz-title">Gifts</h2>
-                  <p className="cz-text">{content.cashGiftNote?.trim() || "Your presence is the greatest gift. Should you wish to give, here’s how."}</p>
-                  {content.registryLinks.length ? (
-                    <div className="cz-links">
-                      {content.registryLinks.map((r) => (
-                        <a key={r.id} className="cz-btn cz-btn--line" href={r.url || undefined} target="_blank" rel="noopener noreferrer">
-                          {r.storeName}
-                        </a>
                       ))}
                     </div>
                   ) : null}
-                  {cash ? (
-                    <div className={`cz-gift${giftsOpen ? " is-open" : ""}`}>
+                </div>
+                {ed.on ? (
+                  <div className="cz-adds">
+                    {showFaq ? <AddItem list="faqs" label="Add a question" editor className="cz-add" /> : null}
+                    {showTravel ? <AddItem list="travelInformation" label="Add how to get there" editor className="cz-add" /> : null}
+                    {showStay ? <AddItem list="accommodations" label="Add a place to stay" editor className="cz-add" /> : null}
+                  </div>
+                ) : null}
+              </section>
+            </div>
+          ) : ed.on ? (
+            <HiddenSection k="faqs" vis={KNOW} label="Good to know" editor />
+          ) : null}
+
+          {/* Night: gifts and the reply card on the sill */}
+          {showGifts || showRsvp || over || ed.on ? (
+            <div className="cz-night-room">
+              {showGifts ? (
+                <section className="cz-sec cz-narrow cz-gifts" data-reveal {...ed.section("registry")}>
+                  <h2 className="cz-title">Gifts</h2>
+                  <Field as="p" className="cz-text" path="cashGiftNote" value={content.cashGiftNote?.trim()} fallback="Your presence is the greatest gift. Should you wish to give, here’s how." placeholder="" editor={editorPreview} multiline />
+                  {content.registryLinks.length || ed.on ? (
+                    <div className="cz-links" {...ed.list("registryLinks")}>
+                      {content.registryLinks.map((r) => (
+                        <a key={r.id} {...ed.item(r.id)} className="cz-btn cz-btn--line" href={ed.on ? undefined : r.url || undefined} target="_blank" rel="noopener noreferrer">
+                          <Field path="storeName" value={r.storeName} placeholder="Store or fund name" editor={editorPreview} />
+                        </a>
+                      ))}
+                      <AddItem list="registryLinks" label="Add a gift link" editor={editorPreview} className="cz-add" />
+                    </div>
+                  ) : null}
+                  {/* In the builder the window stays open, so the gifts inside can be edited. */}
+                  {cash || (ed.on && (content.cashGifts ?? []).length) ? (
+                    <div className={`cz-gift${giftsOpen || ed.on ? " is-open" : ""}`}>
                       <div className="cz-gift__frame">
-                        <div className="cz-gift__inside" inert={!giftsOpen}>
-                          <CashGifts content={{ ...content, cashGiftNote: "" }} look={{ ink: "#2a211b", muted: "#6f6253", surface: "#fbf8f1", line: "rgba(42,33,27,.18)", bodyFont: "var(--cz-body)", displayFont: "var(--cz-body)", radius: 2 }} />
+                        <div className="cz-gift__inside" inert={!giftsOpen && !ed.on}>
+                          <CashGifts content={content} note={false} editor={editorPreview} look={{ ink: "#2a211b", muted: "#6f6253", surface: "#fbf8f1", line: "rgba(42,33,27,.18)", bodyFont: "var(--cz-body)", displayFont: "var(--cz-body)", radius: 2 }} />
                         </div>
                         <div className="cz-gift__sash cz-wood" aria-hidden>
                           <Panes cols={5} rows={4} seed={7} />
                         </div>
                       </div>
-                      <button type="button" className="cz-btn cz-btn--line cz-gift__btn" aria-expanded={giftsOpen} onClick={() => setGiftsOpen((o) => !o)}>
-                        {giftsOpen ? "Close" : customValue(content, "giftButton") || "View gift details"}
-                      </button>
+                      {ed.on ? (
+                        <p className="cz-gift__btn">
+                          <Field className="cz-btn cz-btn--line" path="custom.giftButton" value={customValue(content, "giftButton")} fallback="View gift details" placeholder="" editor />
+                        </p>
+                      ) : (
+                        <button type="button" className="cz-btn cz-btn--line cz-gift__btn" aria-expanded={giftsOpen} onClick={() => setGiftsOpen((o) => !o)}>
+                          {giftsOpen ? "Close" : customValue(content, "giftButton") || "View gift details"}
+                        </button>
+                      )}
                     </div>
-                  ) : null}
+                  ) : (
+                    <AddItem list="cashGifts" label="Add GCash, Maya or bank" editor={editorPreview} className="cz-add" />
+                  )}
                 </section>
+              ) : vis.registry === false ? (
+                <HiddenSection k="registry" label="Gifts" editor={editorPreview} />
               ) : null}
 
               {over ? (
@@ -586,8 +623,8 @@ export default function CapizTemplate({ content, settings, editorPreview = false
 
         {/* The stone base */}
         <footer className="cz-base">
-          <p className="cz-whisper">{customValue(content, "closing") || "Hanggang sa muli"}</p>
-          {mono ? <p className="cz-mono">{mono}</p> : null}
+          <Field as="p" className="cz-whisper" path="custom.closing" value={customValue(content, "closing")} fallback="Hanggang sa muli" placeholder="" editor={editorPreview} />
+          <Field as="p" className="cz-mono" path="custom.monogram" value={customValue(content, "monogram")} fallback={mono} placeholder="" editor={editorPreview} />
           <Sampaguita size={22} />
           {credit.show ? (
             <p className="cz-credit">

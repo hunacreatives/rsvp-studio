@@ -56,7 +56,7 @@ export default function ProjectDangerZone({ project }: { project: Project }) {
                 <i className="ri-download-2-line" /> Download guest list
               </PillButton>
               <PillButton tone="danger" onClick={() => run(() => api.deleteProject(project.id))} disabled={step.kind === "working"}>
-                {step.kind === "working" ? "Deleting…" : "Delete project"}
+                {step.kind === "working" ? "Deleting…" : "Delete event"}
               </PillButton>
               <PillButton onClick={() => setStep({ kind: "idle" })} disabled={step.kind === "working"}>
                 Cancel
@@ -69,7 +69,7 @@ export default function ProjectDangerZone({ project }: { project: Project }) {
             <p className="mt-1 text-[14px] text-[var(--slate)]">You won’t see it in your dashboard anymore. The owner keeps it.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <PillButton tone="danger" onClick={() => run(() => api.leaveProject(project.id))} disabled={step.kind === "working"}>
-                {step.kind === "working" ? "Leaving…" : "Leave project"}
+                {step.kind === "working" ? "Leaving…" : "Leave event"}
               </PillButton>
               <PillButton onClick={() => setStep({ kind: "idle" })} disabled={step.kind === "working"}>
                 Cancel
@@ -80,14 +80,14 @@ export default function ProjectDangerZone({ project }: { project: Project }) {
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[15px] font-semibold text-[var(--ink)]">{owner ? "Delete this project" : "Leave this project"}</p>
+            <p className="text-[15px] font-semibold text-[var(--ink)]">{owner ? "Delete this event" : "Leave this event"}</p>
             <p className="text-[14px] text-[var(--slate)] md:text-[13px]">
               {owner ? "Takes your website offline. Guest RSVPs and photos are removed after 30 days." : "Removes it from your dashboard. The owner keeps it."}
             </p>
             {step.kind === "error" ? <p className="mt-1 text-[13px] text-[#c2412d]">{step.text}</p> : null}
           </div>
           <PillButton tone="danger" onClick={owner ? askDelete : () => setStep({ kind: "confirm", paid: 0 })}>
-            {owner ? "Delete project" : "Leave project"}
+            {owner ? "Delete event" : "Leave event"}
           </PillButton>
         </div>
       )}

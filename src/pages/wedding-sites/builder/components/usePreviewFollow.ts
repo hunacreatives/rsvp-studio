@@ -346,13 +346,15 @@ function editSiteField(el: HTMLElement, site: SiteOps, fresh = false) {
   const list = itemEl?.closest<HTMLElement>("[data-site-list]")?.dataset.siteList ?? null;
   const id = itemEl?.dataset.siteItem ?? null;
   const path = el.dataset.siteField!;
-  const initial = site.get(list, id, path);
+  const saved = site.get(list, id, path);
+  // An empty field showing the design's own wording (Field `fallback`) starts from that wording.
+  const initial = saved || el.dataset.siteDefault || "";
   site.begin();
   editInPlace(el, {
     initial,
     multiline: el.hasAttribute("data-site-multiline"),
     write: (v) => site.set(list, id, path, v),
-    revert: () => site.set(list, id, path, initial),
+    revert: () => site.set(list, id, path, saved),
     onDone: (value) => {
       if (fresh && !value && list && id && !/\.\d+$/.test(path)) site.remove(list, id);
       // a cleared name in a group of names ("people.2") is removed by set("") itself

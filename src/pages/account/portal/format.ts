@@ -21,6 +21,20 @@ export const formatLongDate = (value: string | null | undefined) =>
 export const formatTime = (value: string) =>
   new Date(value).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
+/** Whole days from today (Manila) to a date: 0 today, negative once it's passed. */
+export function daysUntil(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
+  return Math.round((Date.parse(`${value.slice(0, 10)}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
+}
+
+/** "113 days to go", "Tomorrow", "Today", "Past". */
+export function countdown(value: string | null | undefined): string {
+  const d = daysUntil(value);
+  if (d === null) return "";
+  return d < 0 ? "Past" : d === 0 ? "Today" : d === 1 ? "Tomorrow" : `${d} days to go`;
+}
+
 export function timeAgo(value: string) {
   const diff = Date.now() - new Date(value).getTime();
   const min = Math.round(diff / 60000);
@@ -46,13 +60,17 @@ export function inboxStamp(value: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+/** "Bea & Paolo" → "B&P" (a couple), "Lola Ising’s 80th" → "LI", "Gel Lim" → "GL". */
 export function initials(name: string | null | undefined) {
+  const first = (s: string) => s.match(/\p{L}/u)?.[0]?.toUpperCase() ?? "";
+  const pair = (name ?? "").split(/\s+(?:&|and|\+)\s+/i).filter((s) => s.trim());
+  if (pair.length === 2 && first(pair[0]) && first(pair[1])) return `${first(pair[0])}&${first(pair[1])}`;
   return (
     (name ?? "")
       .split(/\s+/)
-      .filter(Boolean)
+      .filter((w) => /^\p{L}/u.test(w))
       .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase())
+      .map(first)
       .join("") || "?"
   );
 }

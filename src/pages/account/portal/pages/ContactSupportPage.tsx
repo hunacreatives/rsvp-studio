@@ -119,7 +119,7 @@ export default function ContactSupportPage() {
             ) : null}
             <Field label="Project (optional)">
               <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-                <option value="">Select a project</option>
+                <option value="">Select an event</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}

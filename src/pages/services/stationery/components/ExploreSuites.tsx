@@ -135,12 +135,12 @@ const ADDITIONS = [
   {
     title: "Save the Dates",
     copy: "Create anticipation before the celebration begins.",
-    img: "/services/stationery/add-save-the-date.jpg",
+    img: "/services/stationery/add-save-the-date.webp",
   },
   {
     title: "Welcome Signage",
     copy: "A first impression worth remembering.",
-    img: "/services/stationery/add-welcome-signage.jpg",
+    img: "/services/stationery/add-welcome-signage.webp",
   },
   {
     title: "Menus & Day-of Details",

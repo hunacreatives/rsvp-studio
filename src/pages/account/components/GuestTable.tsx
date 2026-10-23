@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { PillButton } from "../portal/ui";
 
 export type Guest = {
   id: string;
@@ -98,6 +99,13 @@ export default function GuestTable({ guests, manage, onToggleWall }: { guests: G
   const dietaryNotes = coming.filter((g) => g.dietary).length;
 
   const exportCsv = () => downloadGuestCsv(filtered, hasDetails);
+  // A column nobody filled in is just a row of dashes.
+  const anyDietary = guests.some((g) => g.dietary?.trim());
+  // "Oct 24" this year, "Oct 24, 2025" before.
+  const short = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-PH", { month: "short", day: "numeric", ...(d.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" }) });
+  };
   // Totals for the hosts' questions with a few set answers (e.g. 42 Beef · 18 Fish).
   const tallies = useMemo(() => {
     const by: Record<string, Record<string, number>> = {};
@@ -116,10 +124,10 @@ export default function GuestTable({ guests, manage, onToggleWall }: { guests: G
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <input
           type="text"
-          placeholder="Search name, email or mobile…"
+          placeholder="Search guests…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full flex-1 rounded-xl px-4 py-3 text-[16px] outline-none sm:w-auto sm:min-w-[220px] md:text-[15px]"
+          className="w-full flex-1 rounded-xl px-4 py-3 text-[16px] outline-none sm:w-auto sm:min-w-[170px] md:text-[15px]"
           style={{ background: "#fff", border: "1px solid rgba(0,7,39,0.16)" }}
         />
         {/* Phones: the filters share one full-width row (no buttons cut off at the edge). */}
@@ -137,20 +145,17 @@ export default function GuestTable({ guests, manage, onToggleWall }: { guests: G
                 color: filter === f ? "#fff" : "var(--slate)",
               }}
             >
-              {f === "all" ? "All" : f === "with" ? "With Message" : f === "without" ? "No Message" : f === "coming" ? "Coming" : "Declined"}
+              {f === "all" ? "All" : f === "with" ? "With a message" : f === "without" ? "No message" : f === "coming" ? "Coming" : "Declined"}
             </button>
           ))}
         </div>
-        <span className="text-[13px]" style={{ color: "var(--slate)" }}>
-          {filtered.length} records
-        </span>
-        <button onClick={exportCsv} className="btn btn-ghost !py-3 !px-5 !text-[12px]">
-          Export CSV
-        </button>
+        <PillButton onClick={exportCsv}>
+          <i className="ri-download-2-line" /> Export CSV
+        </PillButton>
         {manage ? (
-          <button onClick={manage.onAdd} className="btn btn-dark !py-3 !px-5 !text-[12px]">
-            Add a reply
-          </button>
+          <PillButton tone="dark" onClick={manage.onAdd}>
+            <i className="ri-add-line" /> Add a reply
+          </PillButton>
         ) : null}
       </div>
 
@@ -216,7 +221,7 @@ export default function GuestTable({ guests, manage, onToggleWall }: { guests: G
             ) : null}
             {g.created_at ? (
               <p className="mt-2 text-[12px]" style={{ color: "var(--slate)" }}>
-                {new Date(g.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                {short(g.created_at)}
               </p>
             ) : null}
             {manage ? (
@@ -238,32 +243,32 @@ export default function GuestTable({ guests, manage, onToggleWall }: { guests: G
         <table className="w-full text-left text-[14px]">
           <thead>
             <tr style={{ background: "var(--paper)", color: "var(--slate)" }}>
-              <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Name</th>
-              <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Contact</th>
+              <th className="px-4 py-3 font-medium text-[12px] uppercase tracking-wide">Name</th>
+              <th className="px-4 py-3 font-medium text-[12px] uppercase tracking-wide">Contact</th>
               {hasDetails ? (
                 <>
-                  <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Coming?</th>
-                  <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Party</th>
-                  <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Dietary</th>
+                  <th className="px-4 py-3 font-medium text-[12px] uppercase tracking-wide">Coming</th>
+                  <th className="px-4 py-3 font-medium text-[12px] uppercase tracking-wide">Party</th>
+                  {anyDietary ? <th className="px-4 py-3 font-medium text-[12px] uppercase tracking-wide">Dietary</th> : null}
                 </>
               ) : null}
-              <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">{tallies.length || guests.some((g) => g.answers && Object.keys(g.answers).length) ? "Answers & message" : "Message"}</th>
-              <th className="px-5 py-3 font-medium text-[12px] uppercase tracking-wide">Submitted</th>
-              {manage ? <th className="px-5 py-3" /> : null}
+              <th className="px-4 py-3 font-medium text-[12px] uppercase tracking-wide">{tallies.length || guests.some((g) => g.answers && Object.keys(g.answers).length) ? "Answers & message" : "Message"}</th>
+              <th className="px-4 py-3 font-medium text-[12px] uppercase tracking-wide">Submitted</th>
+              {manage ? <th className="px-4 py-3" /> : null}
             </tr>
           </thead>
           <tbody>
             {filtered.map((g) => (
               <tr key={g.id} style={{ borderTop: "1px solid var(--line)" }}>
-                <td className="px-5 py-3">{g.name}</td>
-                <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
+                <td className="min-w-[170px] px-4 py-3 font-medium">{g.name}</td>
+                <td className="whitespace-nowrap px-4 py-3" style={{ color: "var(--slate)" }}>
                   {g.email}
                   {g.email && g.phone ? <br /> : null}
                   {g.phone}
                 </td>
                 {hasDetails ? (
                   <>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-3">
                       {g.attending === true ? (
                         <span className="rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#ecfbcc", color: "#3d5a12" }}>Yes</span>
                       ) : g.attending === false ? (
@@ -272,14 +277,14 @@ export default function GuestTable({ guests, manage, onToggleWall }: { guests: G
                         "—"
                       )}
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-3">
                       {g.attending ? g.guest_count ?? 1 : "—"}
                       {g.attending && g.kid_count ? <span style={{ color: "var(--slate)" }}>{` (${g.kid_count} ${g.kid_count === 1 ? "kid" : "kids"})`}</span> : null}
                     </td>
-                    <td className="px-5 py-3" style={{ color: "var(--slate)" }}>{g.dietary || "—"}</td>
+                    {anyDietary ? <td className="px-4 py-3" style={{ color: "var(--slate)" }}>{g.dietary || "—"}</td> : null}
                   </>
                 ) : null}
-                <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
+                <td className="px-4 py-3" style={{ color: "var(--slate)" }}>
                   {Object.entries(g.answers ?? {}).map(([q, ans]) => (
                     <span key={q} className="block not-italic">
                       {q}: <span style={{ color: "var(--ink)" }}>{ans}</span>
@@ -288,20 +293,24 @@ export default function GuestTable({ guests, manage, onToggleWall }: { guests: G
                   <span className="italic">{g.message || (g.answers && Object.keys(g.answers).length ? "" : "—")}</span>
                   <WallSwitch g={g} onToggle={onToggleWall} />
                 </td>
-                <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
-                  {g.created_at ? new Date(g.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                <td className="whitespace-nowrap px-4 py-3" style={{ color: "var(--slate)" }}>
+                  {g.created_at ? short(g.created_at) : "—"}
                 </td>
                 {manage ? (
-                  <td className="whitespace-nowrap px-5 py-3 text-right">
-                    <button onClick={() => manage.onEdit(g)} className="mr-3 text-[13px] font-medium text-[var(--acc-blue)] hover:underline">Edit</button>
-                    <button onClick={() => manage.onDelete(g)} className="text-[13px] font-medium text-[#c2412d] hover:underline">Remove</button>
+                  <td className="whitespace-nowrap py-1.5 pl-2 pr-3 text-right">
+                    <button onClick={() => manage.onEdit(g)} aria-label={`Edit ${g.name}’s reply`} title="Edit" className="inline-grid h-9 w-9 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)] hover:text-[var(--ink)]">
+                      <i className="ri-pencil-line text-[17px]" />
+                    </button>
+                    <button onClick={() => manage.onDelete(g)} aria-label={`Remove ${g.name}’s reply`} title="Remove" className="inline-grid h-9 w-9 place-items-center rounded-full text-[var(--slate)] hover:bg-[#fff3f0] hover:text-[#c2412d]">
+                      <i className="ri-close-line text-[18px]" />
+                    </button>
                   </td>
                 ) : null}
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={(hasDetails ? 7 : 4) + (manage ? 1 : 0)} className="px-5 py-8 text-center" style={{ color: "var(--slate)" }}>
+                <td colSpan={(hasDetails ? (anyDietary ? 7 : 6) : 4) + (manage ? 1 : 0)} className="px-5 py-8 text-center" style={{ color: "var(--slate)" }}>
                   No RSVPs match.
                 </td>
               </tr>

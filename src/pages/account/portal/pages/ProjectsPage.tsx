@@ -2,60 +2,53 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
-import { ProjectRow } from "../components/blocks";
+import { byWhen, EventList, isPast } from "../components/blocks";
+import { useGuestStats } from "../guestStats";
 import { FilterTabs, Panel, PrimaryButton } from "../ui";
 import NewProjectModal from "../components/NewProjectModal";
 
-type Filter = "all" | "in_progress" | "completed";
+type Filter = "all" | "upcoming" | "past";
 
 export default function ProjectsPage() {
-  const { projects } = usePortal();
+  const { projects, demo } = usePortal();
+  const stats = useGuestStats(projects, demo);
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>("all");
   // The same "New project" choice as Home (inquiry, build it yourself, or an invite code).
   const [newOpen, setNewOpen] = useState(false);
 
-  const visible = projects
-    .filter((p) => filter === "all" || p.project_status === filter)
-    .sort(
-      (a, b) =>
-        Number(a.project_status === "completed") - Number(b.project_status === "completed") ||
-        b.updated_at.localeCompare(a.updated_at),
-    );
+  const visible = projects.filter((p) => filter === "all" || (filter === "past") === isPast(p)).sort(byWhen);
 
   return (
     <>
-      <PageHeader title="Your Projects" sub="View your projects, track progress, and see what’s coming next." />
+      <PageHeader title="Your events" />
       <div className="-mt-3 mb-7">
         <FilterTabs<Filter>
           value={filter}
           onChange={setFilter}
           options={[
             { value: "all", label: "All" },
-            { value: "in_progress", label: "In Progress" },
-            { value: "completed", label: "Completed" },
+            { value: "upcoming", label: "Upcoming" },
+            { value: "past", label: "Past" },
           ]}
         />
       </div>
 
       <div className="space-y-5">
-        {visible.map((p) => (
-          <ProjectRow key={p.id} project={p} />
-        ))}
+        {visible.length ? <EventList projects={visible} stats={stats} /> : null}
         {visible.length === 0 && projects.length > 0 ? (
-          <Panel className="px-6 py-10 text-center text-[15px] text-[var(--slate)]">No projects in this view.</Panel>
+          <Panel className="px-6 py-10 text-center text-[15px] text-[var(--slate)]">No events here.</Panel>
         ) : null}
 
-        <Panel className="px-6 py-14 text-center">
-          <i className="ri-add-line text-2xl text-[var(--ink)]" />
-          <p className="mt-6 text-[20px] font-semibold text-[var(--ink)]">Planning another event?</p>
-          <p className="mx-auto mt-2 max-w-xs text-[15px] text-[var(--ink)]">
-            Have us make it, or build it yourself.
-          </p>
-          <PrimaryButton className="mt-8" onClick={() => setNewOpen(true)}>
-            Start a Project
-          </PrimaryButton>
-        </Panel>
+        {projects.length === 0 ? (
+          <Panel className="px-6 py-12 text-center">
+            <p className="text-[20px] font-semibold text-[var(--ink)]">No events yet</p>
+            <p className="mx-auto mt-2 max-w-xs text-[15px] text-[var(--ink)]">Have us make it, or build it yourself.</p>
+            <PrimaryButton className="mt-6" onClick={() => setNewOpen(true)}>
+              Start an event
+            </PrimaryButton>
+          </Panel>
+        ) : null}
       </div>
       <NewProjectModal open={newOpen} onClose={() => setNewOpen(false)} />
     </>
