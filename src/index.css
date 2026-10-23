@@ -509,6 +509,36 @@ html.lenis body {
   opacity: 1;
   transform: none;
 }
+/* Event-site templates where the reveal is off (the builder, reduced motion): always shown,
+   including sections added after the page rendered (templates/shared/reveal.ts). */
+:where(.rv-off) [data-reveal] {
+  /* :where keeps this as weak as the hiding rule above, so a design's own tilt or opacity on
+     these elements still applies. */
+  opacity: 1;
+  transform: none;
+}
+
+/* Editing the page in the builder (templates/shared/siteEdit.tsx). These elements and
+   attributes only exist in the builder's preview, never on a published site. */
+[data-site-field] { cursor: text; border-radius: 2px; }
+[data-site-field]:hover { outline: 1px dashed rgba(47, 97, 213, 0.55); outline-offset: 4px; }
+[data-site-empty] { opacity: 0.42; }
+.site-add {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 18px;
+  border: 1px dashed currentColor; border-radius: 6px; background: transparent; color: inherit;
+  font: inherit; font-size: 0.92em; opacity: 0.5; cursor: pointer; transition: opacity 0.2s;
+}
+.site-add:hover, .site-add:focus-visible { opacity: 0.9; }
+.site-hidden { position: relative; display: flex; justify-content: center; padding: 14px 16px; }
+.site-hidden::before { content: ""; position: absolute; left: 16px; right: 16px; top: 50%; border-top: 1px dashed rgba(0, 7, 39, 0.22); }
+.site-hidden > span {
+  position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 4px 6px 4px 14px; border: 1px solid rgba(0, 7, 39, 0.14);
+  border-radius: 999px; background: #fff; color: #4b5064; font: 500 12.5px/1.2 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none;
+}
+.site-hidden button {
+  min-height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: #000727; color: #fff;
+  font: 600 12px/1 Inter, system-ui, sans-serif; cursor: pointer;
+}
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] {
     opacity: 1 !important;

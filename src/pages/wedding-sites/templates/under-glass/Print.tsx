@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { dateStamp, deckle, eraOf, type Print } from "./content";
+import { photoFit } from "../shared/photoFit";
 
 // A print, in the look of its era, and turning one over: tap a print and it slides out from
 // under the glass, lifts, and turns to show its back, the handwriting (GalleryItem.back, else
@@ -12,7 +13,7 @@ function Front({ p, seed, eager }: { p: Print; seed: number; eager?: boolean }) 
   return (
     <figure className={`ug-print ug-print--${era}`} style={era === "deckle" ? { clipPath: deckle(seed) } : undefined}>
       <span className="ug-print__photo" style={{ aspectRatio: era === "seventies" ? "1 / 1" : ratio }}>
-        <img src={p.image.masterUrl} alt={p.image.alt || p.label || ""} loading={eager ? "eager" : "lazy"} decoding="async" style={{ objectPosition: `${(p.image.focalPoint?.x ?? 0.5) * 100}% ${(p.image.focalPoint?.y ?? 0.4) * 100}%` }} />
+        <img src={p.image.masterUrl} alt={p.image.alt || p.label || ""} loading={eager ? "eager" : "lazy"} decoding="async" style={{ ...photoFit(p.image, 0.5, 0.4) }} />
         {era === "gloss" && p.year ? <span className="ug-stamp">{dateStamp(p.year, seed)}</span> : null}
       </span>
     </figure>

@@ -1,7 +1,7 @@
 import type { ScheduleItem, EventContent } from "../../content/types";
-import { createId } from "../../content/id";
 import { FormField, inputStyle, textareaStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
+import { LISTS } from "../pageEdit";
 
 interface ScheduleFieldsProps {
   content: EventContent;
@@ -19,10 +19,13 @@ function toDatetimeLocalValue(iso: string): string {
 
 export default function ScheduleFields({ content, onChange }: ScheduleFieldsProps) {
   return (
+    <>
+    {content.schedule.length > 1 ? <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--slate)" }}>Your site lists these in time order.</p> : null}
     <ListEditor<ScheduleItem>
       items={content.schedule}
       onChange={(schedule) => onChange({ ...content, schedule })}
-      createItem={() => ({ id: createId("schedule"), startTime: "", label: "" })}
+      list="schedule"
+      createItem={() => LISTS.schedule.create(content) as never}
       addLabel="Add schedule item"
       emptyLabel="No schedule items yet."
       renderItem={(item, update) => (
@@ -65,5 +68,6 @@ export default function ScheduleFields({ content, onChange }: ScheduleFieldsProp
         </div>
       )}
     />
+    </>
   );
 }

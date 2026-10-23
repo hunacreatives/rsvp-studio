@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { Fragment, useRef } from "react";
 import type { TemplateProps } from "../../engine/registry";
 import { mutedText, resolveEventTheme } from "../../engine/theme";
 import type { EditorialFormalSettings } from "./index";
@@ -10,9 +10,11 @@ import { Countdown } from "../shared/Countdown";
 import VenueLinks from "../shared/VenueLinks";
 import RsvpForm from "../shared/RsvpForm";
 import { photosOf, useReveal } from "../shared/reveal";
-import { PhotoSlot } from "../shared/PhotoSlot";
+import { PhotoSlot, withAddSlots } from "../shared/PhotoSlot";
 import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
 import { EF_CSS } from "./styles";
+import { EF_SECTIONS } from "./sections";
+import { AddItem, Field, HiddenSection, inOrder, siteEdit } from "../shared/siteEdit";
 
 // Editorial Formal: formal stationery, made for a phone. An arched portrait for the hero
 // (the couple's photo, slowly drifting) with the names set large and a countdown; the story
@@ -37,17 +39,16 @@ const timeOf = (iso: string) => {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 };
 
-function Names({ content }: { content: EventContent }) {
-  const names = content.hosts.map((h) => h.name.trim()).filter(Boolean);
-  if (!names.length) return <h1 className="ef-names">Our celebration</h1>;
+function Names({ content, editor }: { content: EventContent; editor?: boolean }) {
+  const ed = siteEdit(editor);
+  const hosts = editor ? content.hosts : content.hosts.filter((h) => h.name.trim());
+  if (!hosts.length) return <h1 className="ef-names">Our celebration</h1>;
   return (
-    <h1 className="ef-names" aria-label={names.join(" & ")}>
-      {names.map((n, i) => (
-        <span key={i} className="ef-names__row">
+    <h1 className="ef-names" aria-label={hosts.map((h) => h.name.trim()).join(" & ")} {...ed.list("hosts")}>
+      {hosts.map((h, i) => (
+        <span key={h.id} className="ef-names__row" {...ed.item(h.id)}>
           {i > 0 ? <span className="ef-amp">&amp;</span> : null}
-          <span className="ef-names__n" style={{ animationDelay: `${0.35 + i * 0.25}s` }}>
-            {n}
-          </span>
+          <Field path="name" value={h.name.trim()} placeholder="Name" editor={editor} className="ef-names__n" style={{ animationDelay: `${0.35 + i * 0.25}s` }} />
         </span>
       ))}
     </h1>
@@ -86,12 +87,207 @@ export default function EditorialFormalTemplate({ content, settings, editorPrevi
   const story = (content.story ?? "").split("\n\n").map((p) => p.trim()).filter(Boolean);
   const loc = content.primaryLocation;
   const hasVenue = Boolean(loc.name || loc.addressLine);
-  // Each photo is shown once: the hero, then two beside the story, the rest in the gallery.
+  // Each photo is shown once: the hero, then two beside the story (when it shows), the rest in the gallery.
   const rest = photos.filter((p) => p.image !== hero);
-  const storyA = rest[0]?.image ?? null;
-  const storyB = rest[1]?.image ?? null;
-  const gallery = rest.slice(2);
+  const storyShown = v.hostIntro && story.length > 0;
+  const storyA = storyShown ? (rest[0]?.image ?? null) : null;
+  const storyB = storyShown ? (rest[1]?.image ?? null) : null;
+  const gallery = rest.slice(storyShown ? 2 : 0);
   useReveal(root, !editorPreview, [content.schedule.length, photos.length]);
+
+
+  // The movable sections (EF_SECTIONS). In the builder each one also shows when it's still
+  // empty, with its "+ Add …" item, so it can be filled in on the page.
+  const ed = siteEdit(editorPreview);
+  const people = content.keyPeople;
+  const stays = v.accommodations ? content.accommodations : [];
+  const travel = v.travelInformation ? content.travelInformation : [];
+  const faqs = [...content.faqs].sort((a, b) => a.order - b.order);
+  const blocks: Record<string, () => React.ReactNode> = {
+    hostIntro: () =>
+      story.length || people.length || ed.on ? (
+        <section className="ef-sec" {...ed.section("hostIntro")}>
+          {story.length || ed.on ? (
+            <div className="ef-story">
+              {story.length ? (
+                <div className={`ef-story__photos ${storyA || editorPreview ? "" : "is-empty"}`} data-reveal>
+                  <PhotoSlot image={storyA} editorPreview={editorPreview} className="ef-story__a" />
+                  <PhotoSlot image={storyB} editorPreview={editorPreview} className="ef-story__b" label="Add" />
+                </div>
+              ) : null}
+              <div className="ef-story__text">
+                <Title kicker={wedding ? "How it began" : "About"}>Our story</Title>
+                {(story.length ? story : [""]).map((p, i) => (
+                  <Field key={i} as="p" path={`story#${i}`} value={p} placeholder="A few lines in your own words: how it began, what the day means to you." editor={editorPreview} multiline className={i === 0 ? "ef-lede" : ""} data-reveal />
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {people.length || ed.on ? (
+            <div className="ef-people">
+              <p className="ef-kicker" data-reveal>
+                Standing beside us
+              </p>
+              <ul {...ed.list("keyPeople")}>
+                {people.map((p, i) => (
+                  <li key={p.id} {...ed.item(p.id)} data-reveal style={{ transitionDelay: `${i * 70}ms` }}>
+                    {p.photo ? <PhotoSlot image={p.photo} className="ef-people__photo" /> : null}
+                    <Field as="b" path="name" value={p.name} placeholder="Name" editor={editorPreview} />
+                    <Field as="span" path="role" value={p.role} placeholder="Role" editor={editorPreview} />
+                  </li>
+                ))}
+              </ul>
+              <AddItem list="keyPeople" label={people.length ? "Add a person" : "Add the people standing beside you"} editor={editorPreview} style={{ marginTop: 24 }} />
+            </div>
+          ) : null}
+        </section>
+      ) : null,
+
+    schedule: () =>
+      content.schedule.length || ed.on ? (
+        <section className="ef-sec ef-sec--tint" {...ed.section("schedule")}>
+          <Title kicker={w ? `${w.weekday}, ${w.day} ${w.month}` : undefined}>The day</Title>
+          <ol className="ef-timeline" data-reveal {...ed.list("schedule")}>
+            {content.schedule.map((s, i) => (
+              <li key={s.id} {...ed.item(s.id)} data-reveal style={{ transitionDelay: `${i * 90}ms` }}>
+                <time>
+                  {timeOf(s.startTime)}
+                  {s.endTime ? ` – ${timeOf(s.endTime)}` : ""}
+                </time>
+                <span className="ef-timeline__dot" />
+                <div>
+                  <Field as="b" path="label" value={s.label} placeholder="What’s happening" editor={editorPreview} />
+                  {s.description ? <Field as="p" path="description" value={s.description} placeholder="" editor={editorPreview} multiline /> : null}
+                  {s.location?.name ? <p className="ef-small">{s.location.name}</p> : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="ef-center">
+            <AddItem list="schedule" label={content.schedule.length ? "Add to the schedule" : "Add your schedule"} editor={editorPreview} />
+          </p>
+        </section>
+      ) : null,
+
+    venue: () =>
+      hasVenue || ed.on ? (
+        <section className="ef-sec" {...ed.section("venue")}>
+          <Title kicker="Where">The venue</Title>
+          <div className="ef-venue" data-reveal>
+            {loc.photo ? <PhotoSlot image={loc.photo} className="ef-venue__photo" /> : null}
+            <Field as="p" className="ef-venue__name" path="primaryLocation.name" value={loc.name} placeholder="Venue name" editor={editorPreview} />
+            <Field as="p" className="ef-venue__addr" path="primaryLocation.addressLine" value={loc.addressLine} placeholder="Address" editor={editorPreview} />
+            <VenueLinks content={content} font={theme.bodyFont} color={theme.ink} style={{ marginTop: 14 }} />
+          </div>
+        </section>
+      ) : null,
+
+    stay: () =>
+      stays.length || travel.length || ed.on ? (
+        <section className="ef-sec ef-sec--tint" {...ed.section("stay", ["accommodations", "travelInformation"])}>
+          <Title kicker="Getting there">Travel &amp; stay</Title>
+          <div className="ef-cols">
+            <div {...ed.list("accommodations")} style={{ display: "contents" }}>
+              {stays.map((a, i) => (
+                <div key={a.id} {...ed.item(a.id)} className="ef-card" data-reveal style={{ transitionDelay: `${i * 80}ms` }}>
+                  <p className="ef-kicker">Where to stay</p>
+                  <Field as="b" path="name" value={a.name} placeholder="Hotel name" editor={editorPreview} />
+                  <Field as="p" path="addressLine" value={a.addressLine} placeholder="Address" editor={editorPreview} />
+                  {a.notes ? <Field as="p" className="ef-small" path="notes" value={a.notes} placeholder="" editor={editorPreview} multiline /> : null}
+                  {a.bookingUrl ? (
+                    <a href={a.bookingUrl} target="_blank" rel="noopener noreferrer" className="ef-link">
+                      Book a room →
+                    </a>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <div {...ed.list("travelInformation")} style={{ display: "contents" }}>
+              {travel.map((t, i) => (
+                <div key={t.id} {...ed.item(t.id)} className="ef-card" data-reveal style={{ transitionDelay: `${i * 80}ms` }}>
+                  <p className="ef-kicker">Getting there</p>
+                  <Field as="b" path="title" value={t.title} placeholder="By car, by plane…" editor={editorPreview} />
+                  <Field as="p" path="body" value={t.body} placeholder="How to get there" editor={editorPreview} multiline />
+                </div>
+              ))}
+            </div>
+          </div>
+          {ed.on ? (
+            <p className="ef-center ef-adds">
+              {v.accommodations ? <AddItem list="accommodations" label="Add a place to stay" editor /> : null}
+              {v.travelInformation ? <AddItem list="travelInformation" label="Add travel info" editor /> : null}
+            </p>
+          ) : null}
+        </section>
+      ) : null,
+
+    entourage: () =>
+      hasEntourage(content) || ed.on ? (
+        <section className="ef-sec" data-reveal {...ed.section("entourage")}>
+          <EntourageBlock content={content} ink={theme.ink} muted={theme.muted} displayFont={theme.displayFont} bodyFont={theme.bodyFont} editor={editorPreview} />
+        </section>
+      ) : null,
+
+    gallery: () =>
+      gallery.length || editorPreview ? (
+        <section className="ef-sec ef-sec--wide" {...ed.section("gallery")}>
+          <Title kicker="Moments">{content.galleries.find((g) => g.title)?.title || "Gallery"}</Title>
+          <div className={`ef-gallery ${gallery.length >= 7 ? "ef-gallery--many" : ""}`} {...ed.list("gallery")}>
+            {withAddSlots(gallery, editorPreview, 4).map((g, i) => (
+              <figure
+                key={g?.id ?? i}
+                {...(g ? ed.item(g.id) : {})}
+                className="ef-gallery__item"
+                data-reveal
+                style={{ transitionDelay: `${(i % 3) * 90}ms`, aspectRatio: g?.image ? `${g.image.width || 4} / ${g.image.height || 5}` : ["4 / 5", "1", "3 / 4", "4 / 3"][i % 4] }}
+              >
+                <PhotoSlot image={g?.image} editorPreview={editorPreview} className="ef-gallery__img" />
+                {g?.caption ? <Field as="figcaption" path="caption" value={g.caption} placeholder="" editor={editorPreview} /> : null}
+              </figure>
+            ))}
+          </div>
+        </section>
+      ) : null,
+
+    registry: () =>
+      content.registryLinks.length || hasCashGifts(content) || ed.on ? (
+        <section className="ef-sec ef-sec--tint" {...ed.section("registry")}>
+          <Title kicker="With love">Gifts</Title>
+          <div className="ef-center" data-reveal>
+            <div className="ef-pills" {...ed.list("registryLinks")}>
+              {content.registryLinks.map((r) => (
+                <a key={r.id} {...ed.item(r.id)} href={ed.on ? undefined : r.url} target="_blank" rel="noopener noreferrer" className="ef-pill">
+                  <Field path="storeName" value={r.storeName} placeholder="Store or fund name" editor={editorPreview} />
+                </a>
+              ))}
+            </div>
+            <AddItem list="registryLinks" label="Add a gift link" editor={editorPreview} style={{ marginTop: 14 }} />
+            <CashGifts content={content} editor={editorPreview} look={{ ink: theme.ink, muted: mutedText(theme), surface: theme.background, line: `${theme.muted}55`, bodyFont: theme.bodyFont, displayFont: theme.displayFont }} />
+          </div>
+        </section>
+      ) : null,
+
+    faqs: () =>
+      faqs.length || ed.on ? (
+        <section className="ef-sec" {...ed.section("faqs")}>
+          <Title kicker="Good to know">Questions</Title>
+          <div className="ef-faq" {...ed.list("faqs")}>
+            {faqs.map((f, i) => (
+              <details key={f.id} {...ed.item(f.id)} open={ed.on || undefined} data-reveal style={{ transitionDelay: `${i * 60}ms` }}>
+                <summary>
+                  <Field path="question" value={f.question} placeholder="A question guests ask" editor={editorPreview} />
+                  <span className="ef-faq__plus" aria-hidden />
+                </summary>
+                <Field as="p" path="answer" value={f.answer} placeholder="The answer" editor={editorPreview} multiline />
+              </details>
+            ))}
+          </div>
+          <p className="ef-center" style={{ marginTop: 22 }}>
+            <AddItem list="faqs" label={faqs.length ? "Add a question" : "Add your first question"} editor={editorPreview} />
+          </p>
+        </section>
+      ) : null,
+  };
 
   const vars = {
     "--ef-bg": theme.background,
@@ -122,7 +318,7 @@ export default function EditorialFormalTemplate({ content, settings, editorPrevi
             <p className="ef-kicker ef-in" style={{ animationDelay: "0.15s" }}>
               {wedding ? "Together with their families" : "You’re invited to celebrate"}
             </p>
-            <Names content={content} />
+            <Names content={content} editor={editorPreview} />
             {w ? (
               <p className="ef-when ef-in" style={{ animationDelay: "0.9s" }}>
                 {w.weekday}
@@ -136,11 +332,7 @@ export default function EditorialFormalTemplate({ content, settings, editorPrevi
                 ) : null}
               </p>
             ) : null}
-            {loc.name ? (
-              <p className="ef-where ef-in" style={{ animationDelay: "1.05s" }}>
-                {loc.name}
-              </p>
-            ) : null}
+            {loc.name ? <Field as="p" className="ef-where ef-in" style={{ animationDelay: "1.05s" }} path="primaryLocation.name" value={loc.name} placeholder="" editor={editorPreview} /> : null}
             {content.eventDate ? (
               <div className="ef-in" style={{ animationDelay: "1.25s" }}>
                 <Countdown iso={content.eventDate} live={!editorPreview} prefix="ef" />
@@ -155,168 +347,12 @@ export default function EditorialFormalTemplate({ content, settings, editorPrevi
         </header>
       ) : null}
 
-      {v.hostIntro && (story.length || content.keyPeople.length) ? (
-        <section className="ef-sec">
-          {story.length ? (
-            <div className="ef-story">
-              <div className={`ef-story__photos ${storyA || editorPreview ? "" : "is-empty"}`} data-reveal>
-                <PhotoSlot image={storyA} editorPreview={editorPreview} className="ef-story__a" />
-                <PhotoSlot image={storyB} editorPreview={editorPreview} className="ef-story__b" label="Add" />
-              </div>
-              <div className="ef-story__text">
-                <Title kicker={wedding ? "How it began" : "About"}>Our story</Title>
-                {story.map((p, i) => (
-                  <p key={i} className={i === 0 ? "ef-lede" : ""} data-reveal>
-                    {p}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          {content.keyPeople.length ? (
-            <div className="ef-people">
-              <p className="ef-kicker" data-reveal>
-                Standing beside us
-              </p>
-              <ul>
-                {content.keyPeople.map((p, i) => (
-                  <li key={p.id} data-reveal style={{ transitionDelay: `${i * 70}ms` }}>
-                    {p.photo ? <PhotoSlot image={p.photo} className="ef-people__photo" /> : null}
-                    <b>{p.name}</b>
-                    {p.role ? <span>{p.role}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {v.schedule && content.schedule.length ? (
-        <section className="ef-sec ef-sec--tint">
-          <Title kicker={w ? `${w.weekday}, ${w.day} ${w.month}` : undefined}>The day</Title>
-          <ol className="ef-timeline" data-reveal>
-            {content.schedule.map((s, i) => (
-              <li key={s.id} data-reveal style={{ transitionDelay: `${i * 90}ms` }}>
-                <time>
-                  {timeOf(s.startTime)}
-                  {s.endTime ? ` – ${timeOf(s.endTime)}` : ""}
-                </time>
-                <span className="ef-timeline__dot" />
-                <div>
-                  <b>{s.label}</b>
-                  {s.description ? <p>{s.description}</p> : null}
-                  {s.location?.name ? <p className="ef-small">{s.location.name}</p> : null}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
-
-      {v.venue && hasVenue ? (
-        <section className="ef-sec">
-          <Title kicker="Where">The venue</Title>
-          <div className="ef-venue" data-reveal>
-            {loc.photo ? <PhotoSlot image={loc.photo} className="ef-venue__photo" /> : null}
-            <p className="ef-venue__name">{loc.name}</p>
-            {loc.addressLine ? <p className="ef-venue__addr">{loc.addressLine}</p> : null}
-            <VenueLinks content={content} font={theme.bodyFont} color={theme.ink} style={{ marginTop: 14 }} />
-          </div>
-        </section>
-      ) : null}
-
-      {(v.accommodations && content.accommodations.length) || (v.travelInformation && content.travelInformation.length) ? (
-        <section className="ef-sec ef-sec--tint">
-          <Title kicker="Getting there">Travel &amp; stay</Title>
-          <div className="ef-cols">
-            {v.accommodations
-              ? content.accommodations.map((a, i) => (
-                  <div key={a.id} className="ef-card" data-reveal style={{ transitionDelay: `${i * 80}ms` }}>
-                    <p className="ef-kicker">Where to stay</p>
-                    <b>{a.name}</b>
-                    <p>{a.addressLine}</p>
-                    {a.notes ? <p className="ef-small">{a.notes}</p> : null}
-                    {a.bookingUrl ? (
-                      <a href={a.bookingUrl} target="_blank" rel="noopener noreferrer" className="ef-link">
-                        Book a room →
-                      </a>
-                    ) : null}
-                  </div>
-                ))
-              : null}
-            {v.travelInformation
-              ? content.travelInformation.map((t, i) => (
-                  <div key={t.id} className="ef-card" data-reveal style={{ transitionDelay: `${i * 80}ms` }}>
-                    <p className="ef-kicker">Getting there</p>
-                    <b>{t.title}</b>
-                    <p>{t.body}</p>
-                  </div>
-                ))
-              : null}
-          </div>
-        </section>
-      ) : null}
-
-      {hasEntourage(content) ? (
-        <section className="ef-sec" data-reveal>
-          <EntourageBlock content={content} ink={theme.ink} muted={theme.muted} displayFont={theme.displayFont} bodyFont={theme.bodyFont} />
-        </section>
-      ) : null}
-
-      {v.gallery && (gallery.length || editorPreview) ? (
-        <section className="ef-sec ef-sec--wide">
-          <Title kicker="Moments">{content.galleries.find((g) => g.title)?.title || "Gallery"}</Title>
-          <div className={`ef-gallery ${gallery.length >= 7 ? "ef-gallery--many" : ""}`}>
-            {(gallery.length ? gallery : [null, null, null, null]).map((g, i) => (
-              <figure
-                key={g?.id ?? i}
-                className="ef-gallery__item"
-                data-reveal
-                style={{ transitionDelay: `${(i % 3) * 90}ms`, aspectRatio: g?.image ? `${g.image.width || 4} / ${g.image.height || 5}` : ["4 / 5", "1", "3 / 4", "4 / 3"][i % 4] }}
-              >
-                <PhotoSlot image={g?.image} editorPreview={editorPreview} className="ef-gallery__img" />
-                {g?.caption ? <figcaption>{g.caption}</figcaption> : null}
-              </figure>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {v.registry && (content.registryLinks.length || hasCashGifts(content)) ? (
-        <section className="ef-sec ef-sec--tint">
-          <Title kicker="With love">Gifts</Title>
-          <div className="ef-center" data-reveal>
-            <div className="ef-pills">
-              {content.registryLinks.map((r) => (
-                <a key={r.id} href={r.url} target="_blank" rel="noopener noreferrer" className="ef-pill">
-                  {r.storeName}
-                </a>
-              ))}
-            </div>
-            <CashGifts content={content} look={{ ink: theme.ink, muted: mutedText(theme), surface: theme.background, line: `${theme.muted}55`, bodyFont: theme.bodyFont, displayFont: theme.displayFont }} />
-          </div>
-        </section>
-      ) : null}
-
-      {v.faqs && content.faqs.length ? (
-        <section className="ef-sec">
-          <Title kicker="Good to know">Questions</Title>
-          <div className="ef-faq">
-            {[...content.faqs]
-              .sort((a, b) => a.order - b.order)
-              .map((f, i) => (
-                <details key={f.id} data-reveal style={{ transitionDelay: `${i * 60}ms` }}>
-                  <summary>
-                    {f.question}
-                    <span className="ef-faq__plus" aria-hidden />
-                  </summary>
-                  <p>{f.answer}</p>
-                </details>
-              ))}
-          </div>
-        </section>
-      ) : null}
+      {inOrder(EF_SECTIONS.map((x) => x.key), settings.sectionOrder).map((k) => {
+        const def = EF_SECTIONS.find((x) => x.key === k)!;
+        const vis = def.vis ?? [k];
+        const on = vis.some((x) => v[x] !== false);
+        return <Fragment key={k}>{on ? blocks[k]() : <HiddenSection k={k} vis={vis} label={def.label} editor={editorPreview} />}</Fragment>;
+      })}
 
       {v.rsvp ? (
         <section id="rsvp" className="ef-sec ef-sec--tint">

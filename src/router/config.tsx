@@ -53,6 +53,7 @@ const StudioTemplateNew = lazy(() => import("../pages/studio/templates/TemplateN
 const StudioTemplateDetail = lazy(() => import("../pages/studio/templates/TemplateDetailPage"));
 const StudioTemplateImport = lazy(() => import("../pages/studio/templates/TemplateImportPage"));
 const PreviewHarnessPage = lazy(() => import("../pages/wedding-sites/preview/PreviewHarnessPage"));
+const PanelMockPage = lazy(() => import("../pages/wedding-sites/builder/mock/PanelMockPage"));
 const PublicEventSitePage = lazy(() => import("../pages/wedding-sites/public/PublicEventSitePage"));
 const FindTablePage = lazy(() => import("../pages/wedding-sites/public/FindTablePage"));
 const GuestPhotosPage = lazy(() => import("../pages/wedding-sites/public/GuestPhotosPage"));
@@ -135,7 +136,10 @@ const routes: RouteObject[] = [
   // Dev-only harness for building/QA-ing event-site templates against
   // fixture content — never shipped to production.
   ...(import.meta.env.DEV
-    ? [{ path: "/internal/event-site-preview", element: <PreviewHarnessPage /> }]
+    ? [
+        { path: "/internal/event-site-preview", element: <PreviewHarnessPage /> },
+        { path: "/internal/panel-mock", element: <PanelMockPage /> },
+      ]
     : []),
   { path: "*", element: <NotFound /> },
 ];

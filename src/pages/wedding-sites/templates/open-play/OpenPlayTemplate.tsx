@@ -321,7 +321,7 @@ export default function OpenPlayTemplate({ content, settings, editorPreview = fa
           </>
         ) : null}
 
-        {hasEntourage(content) ? (
+        {v.entourage !== false && hasEntourage(content) ? (
           <Zone>
             <div data-reveal>
               <EntourageBlock content={content} ink={theme.ink} muted={theme.muted} displayFont={theme.displayFont} bodyFont={theme.bodyFont} />

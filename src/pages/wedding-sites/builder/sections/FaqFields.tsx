@@ -1,7 +1,7 @@
 import type { FAQ, EventContent } from "../../content/types";
-import { createId } from "../../content/id";
 import { FormField, inputStyle, textareaStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
+import { LISTS } from "../pageEdit";
 
 interface FaqFieldsProps {
   content: EventContent;
@@ -13,7 +13,8 @@ export default function FaqFields({ content, onChange }: FaqFieldsProps) {
     <ListEditor<FAQ>
       items={content.faqs}
       onChange={(faqs) => onChange({ ...content, faqs })}
-      createItem={() => ({ id: createId("faq"), question: "", answer: "", order: content.faqs.length + 1 })}
+      list="faqs"
+      createItem={() => LISTS.faqs.create(content) as never}
       addLabel="Add FAQ"
       emptyLabel="No FAQs yet."
       renderItem={(item, update) => (

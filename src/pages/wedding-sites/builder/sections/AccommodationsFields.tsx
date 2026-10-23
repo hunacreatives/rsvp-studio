@@ -1,7 +1,7 @@
 import type { Accommodation, EventContent } from "../../content/types";
-import { createId } from "../../content/id";
 import { FormField, inputStyle, textareaStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
+import { LISTS } from "../pageEdit";
 
 interface AccommodationsFieldsProps {
   content: EventContent;
@@ -13,7 +13,8 @@ export default function AccommodationsFields({ content, onChange }: Accommodatio
     <ListEditor<Accommodation>
       items={content.accommodations}
       onChange={(accommodations) => onChange({ ...content, accommodations })}
-      createItem={() => ({ id: createId("accommodation"), name: "", addressLine: "" })}
+      list="accommodations"
+      createItem={() => LISTS.accommodations.create(content) as never}
       addLabel="Add accommodation"
       emptyLabel="No accommodations listed yet."
       renderItem={(item, update) => (

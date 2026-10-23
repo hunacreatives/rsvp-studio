@@ -1,5 +1,6 @@
 import type { EntourageGroup, EventContent } from "../../content/types";
 import { createId } from "../../content/id";
+import { usePageEdit } from "../pageEdit";
 import { FormField, inputStyle } from "../components/FormField";
 
 // Builder → Entourage & motif: sponsors, entourage, 18 roses… in groups (one name per line),
@@ -14,6 +15,7 @@ const PRESETS: Record<string, string[]> = {
 };
 
 export default function EntourageFields({ content, onChange }: { content: EventContent; onChange: (next: EventContent) => void }) {
+  const edit = usePageEdit();
   const groups = content.entourage ?? [];
   const colors = content.motifColors ?? [];
   const set = (next: EntourageGroup[]) => onChange({ ...content, entourage: next });
@@ -46,7 +48,7 @@ export default function EntourageFields({ content, onChange }: { content: EventC
             onChange={(e) => patch(i, { people: e.target.value.split("\n").slice(0, 60) })}
             onBlur={(e) => patch(i, { people: e.target.value.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 60) })}
           />
-          <button type="button" onClick={() => set(groups.filter((_, j) => j !== i))} style={{ justifySelf: "end", minHeight: 36, border: "none", background: "none", color: "#c2412d", fontSize: 13, cursor: "pointer" }}>
+          <button type="button" onClick={() => { edit?.checkpoint(); set(groups.filter((_, j) => j !== i)); edit?.notify(`Removed ${g.title.trim() || "a group"}`); }} style={{ justifySelf: "end", minHeight: 36, border: "none", background: "none", color: "#c2412d", fontSize: 13, cursor: "pointer" }}>
             Remove group
           </button>
         </div>

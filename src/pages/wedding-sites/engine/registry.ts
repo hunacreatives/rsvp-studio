@@ -131,6 +131,12 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
    * Missing = Look & Feel's general list.
    */
   hideable?: { key: string; label: string }[];
+  /**
+   * Sections the host can move on the page, in the design's own order. `key` is what the
+   * design marks with siteEdit().section; `vis` the SectionVisibility keys that show it (the
+   * key itself when left out). Designs without it can't be reordered.
+   */
+  sections?: { key: string; label: string; vis?: string[] }[];
 }
 
 export type StandardSection = "story" | "dateVenue" | "schedule" | "accommodations" | "travel" | "gallery" | "keyPeople" | "registry" | "faqs";

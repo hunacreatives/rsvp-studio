@@ -1,4 +1,5 @@
 import type { GalleryItem } from "../../../content/types";
+import { photoFit } from "../../shared/photoFit";
 
 // The two tilted polaroids with the party hat and heart stickers. The
 // reference baked its photos into the frame images; here the frames are cut
@@ -43,7 +44,7 @@ function Polaroid({ side, item, editorPreview }: { side: "left" | "right"; item?
             <img
               src={img.masterUrl}
               alt={img.alt || item?.caption || ""}
-              style={{ objectPosition: `${img.focalPoint.x * 100}% ${img.focalPoint.y * 100}%` }}
+              style={{ ...photoFit(img) }}
             />
           ) : editorPreview ? (
             <span className="cn-pol__empty">Add a photo</span>

@@ -37,6 +37,7 @@ export const openPlayTemplateDefinition: TemplateDefinition<BaseTemplateSettings
     { key: "wear", label: "What to wear" },
     { key: "bring", label: "What to bring" },
     { key: "gallery", label: "Photos" },
+    { key: "entourage", label: "Entourage" },
     { key: "registry", label: "Gifts" },
     { key: "roster", label: "Who’s playing (guests’ first names on the paddle rack)" },
     { key: "rsvp", label: "RSVP" },

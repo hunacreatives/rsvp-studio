@@ -125,6 +125,19 @@ export default function BuildLandingPage() {
   }, [signedIn]);
 
   const shown = useMemo(() => templates.filter((t) => tier === "all" || t.tier === tier), [templates, tier]);
+  // Nine at a time (three rows of three; eight on two-across phones, so no card sits alone),
+  // the rest in a drawer that slides open underneath.
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const on = () => setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  const first = wide ? 9 : 8;
+  const [drawer, setDrawer] = useState(false);
+  useEffect(() => setDrawer(false), [tier]);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const premiumPrice = prices.premium;
   const faqs = (FAQ_CATEGORIES.find((c) => c.slug === "build")?.items ?? []).slice(0, 5);
   const hasPremium = templates.some((t) => t.tier === "premium");
@@ -168,10 +181,7 @@ export default function BuildLandingPage() {
 
           <div id="designs" className="scroll-mt-24 pt-10 sm:pt-14">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
-              <p className="text-[15px] font-medium text-[var(--ink)]">
-                {templates.length ? `${templates.length} designs` : "Our designs"}
-                <span className="font-normal text-[var(--slate)]"> · tap one to see it in full</span>
-              </p>
+              <h2 className="text-[17px] font-semibold text-[var(--ink)]">Choose a design</h2>
               {hasPremium ? (
                 <div role="group" aria-label="Filter designs" className="flex gap-2">
                   {(["all", "free", "premium"] as Tier[]).map((x) => (
@@ -202,11 +212,47 @@ export default function BuildLandingPage() {
                 ))}
               </ul>
             ) : (
-              <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3">
-                {shown.map((t) => (
-                  <DesignCard key={t.id} t={t} price={prices[t.tier]} />
-                ))}
-              </ul>
+              <>
+                <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3">
+                  {shown.slice(0, first).map((t) => (
+                    <DesignCard key={t.id} t={t} price={prices[t.tier]} />
+                  ))}
+                </ul>
+                {shown.length > first ? (
+                  <>
+                    {/* The drawer: the rest of the designs, sliding open (grid rows 0fr → 1fr). */}
+                    <div
+                      ref={drawerRef}
+                      className="grid transition-[grid-template-rows,opacity] duration-500 ease-out motion-reduce:transition-none"
+                      style={{ gridTemplateRows: drawer ? "1fr" : "0fr", opacity: drawer ? 1 : 0 }}
+                      aria-hidden={!drawer}
+                      inert={!drawer}
+                    >
+                      <div className="min-h-0 overflow-hidden">
+                        <ul className="grid grid-cols-2 gap-x-3 gap-y-6 pt-6 sm:gap-x-6 sm:gap-y-10 sm:pt-10 lg:grid-cols-3">
+                          {shown.slice(first).map((t) => (
+                            <DesignCard key={t.id} t={t} price={prices[t.tier]} />
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="mt-8 text-center sm:mt-10">
+                      <button
+                        type="button"
+                        aria-expanded={drawer}
+                        onClick={() => {
+                          if (drawer) document.getElementById("designs")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          setDrawer((d) => !d);
+                        }}
+                        className="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-[var(--ink)] bg-white px-6 text-[15px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--ink)] hover:text-white"
+                      >
+                        {drawer ? "Show fewer" : `See all ${shown.length} designs`}
+                        <i className={`ri-arrow-down-s-line text-[18px] transition-transform duration-300 ${drawer ? "rotate-180" : ""}`} aria-hidden />
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+              </>
             )}
             <p className="mt-6 text-[14px] text-[var(--slate)]">Switch designs anytime. Your details and photos carry over.</p>
           </div>

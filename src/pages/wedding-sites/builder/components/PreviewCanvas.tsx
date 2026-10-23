@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 const DESKTOP_WIDTH = 1024;
 const GUTTER = 24;
@@ -23,13 +23,20 @@ export default function PreviewCanvas({
   children,
   deviceWidth = DESKTOP_WIDTH,
   gutter = GUTTER,
+  scrollRef,
+  contentRefOut,
 }: {
   children: ReactNode;
   deviceWidth?: number | "fill";
   gutter?: number;
+  /** The scrolling pane and the rendered page, for the builder's follow-the-field scroll. */
+  scrollRef?: RefObject<HTMLDivElement | null>;
+  contentRefOut?: RefObject<HTMLDivElement | null>;
 }) {
-  const outerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const ownOuter = useRef<HTMLDivElement>(null);
+  const ownContent = useRef<HTMLDivElement>(null);
+  const outerRef = scrollRef ?? ownOuter;
+  const contentRef = contentRefOut ?? ownContent;
   const [scale, setScale] = useState(1);
   const [scaledHeight, setScaledHeight] = useState(0);
   const [fillWidth, setFillWidth] = useState(() => (typeof window === "undefined" ? 390 : Math.max(window.innerWidth - gutter * 2, 240)));

@@ -1,6 +1,7 @@
 import type { EventContent } from "../../../content/types";
 import type { EventTheme } from "../../../engine/theme";
 import { LeafDivider } from "../Ornament";
+import { photoFit } from "../../shared/photoFit";
 
 interface GallerySectionProps {
   content: EventContent;
@@ -47,7 +48,7 @@ export default function GallerySection({ content, theme }: GallerySectionProps) 
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
-                  objectPosition: `${item.image.focalPoint.x * 100}% ${item.image.focalPoint.y * 100}%`,
+                  ...photoFit(item.image),
                 }}
               />
             </div>

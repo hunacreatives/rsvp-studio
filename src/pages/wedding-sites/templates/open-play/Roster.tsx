@@ -34,7 +34,7 @@ function useRoster(content: EventContent, live: boolean, enabled: boolean) {
   return [names, setNames] as const;
 }
 
-function Rack({ names, label, note, joined }: { names: string[]; label: string; note?: string; joined: string | null }) {
+function Rack({ names, label, note, joined, sample }: { names: string[]; label: string; note?: string; joined: string | null; /** The builder: say these are stand-ins. */ sample?: boolean }) {
   const shown = names.slice(0, RACK);
   const more = names.length - shown.length;
   const empties = Math.max(0, 6 - shown.length);
@@ -65,6 +65,7 @@ function Rack({ names, label, note, joined }: { names: string[]; label: string; 
       </div>
       </div>
       {note ? <p className="op-small">{note}</p> : null}
+      {sample ? <p className="op-small" style={{ opacity: 0.75 }}>Sample names for now. Guests who say yes take their place.</p> : null}
     </div>
   );
 }
@@ -100,7 +101,7 @@ export default function Roster({ content, editorPreview, live, rackOn }: { conte
 
   return (
     <div className="op-roster">
-      {rackOn && names ? <Rack names={names} label={customValue(content, "rackLabel") || "Who’s playing"} note={customValue(content, "paddleNote") || undefined} joined={joined} /> : null}
+      {rackOn && names ? <Rack names={names} label={customValue(content, "rackLabel") || "Who’s playing"} note={customValue(content, "paddleNote") || undefined} joined={joined} sample={editorPreview} /> : null}
 
       <section id="rsvp" className="op-rsvp" data-reveal>
         {done ? (

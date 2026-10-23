@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { EventContent } from "../../content/types";
+import { AddItem, Field, siteEdit } from "./siteEdit";
 
 // The entourage (sponsors, 18 roses, godparents…) and motif colours (content.entourage,
 // content.motifColors), in whichever design: each template passes its own fonts and colours.
@@ -18,6 +19,7 @@ export default function EntourageBlock({
   bodyFont,
   heading = true,
   headingStyle,
+  editor,
 }: {
   content: EventContent;
   ink: string;
@@ -26,29 +28,32 @@ export default function EntourageBlock({
   bodyFont: string;
   heading?: boolean;
   headingStyle?: CSSProperties;
+  /** The builder: every group (empty ones too), names edited on the page, "+ Add" items. */
+  editor?: boolean;
 }) {
-  const groups = (content.entourage ?? []).filter((g) => g.people.length);
+  const ed = siteEdit(editor);
+  const groups = (content.entourage ?? []).filter((g) => editor || g.people.length);
   const colors = content.motifColors ?? [];
-  if (!groups.length && !colors.length) return null;
+  if (!groups.length && !colors.length && !editor) return null;
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", textAlign: "center", fontFamily: bodyFont, color: ink }}>
-      {heading && groups.length ? (
+      {heading && (groups.length || editor) ? (
         <h2 style={{ margin: "0 0 clamp(24px, 4vw, 40px)", fontFamily: displayFont, fontWeight: 400, fontSize: "clamp(28px, 4.5vw, 44px)", lineHeight: 1.15, ...headingStyle }}>{entourageTitle(content)}</h2>
       ) : null}
       {groups.length ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "clamp(22px, 3vw, 36px) clamp(16px, 3vw, 32px)" }}>
+        <div {...ed.list("entourage")} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "clamp(22px, 3vw, 36px) clamp(16px, 3vw, 32px)" }}>
           {groups.map((g) => (
-            <div key={g.id}>
-              {g.title ? <p style={{ margin: "0 0 8px", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: muted }}>{g.title}</p> : null}
+            <div key={g.id} {...ed.item(g.id)}>
+              <Field as="p" path="title" value={g.title} placeholder="Group, e.g. Principal Sponsors" editor={editor} style={{ margin: "0 0 8px", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: muted }} />
               {g.people.map((p, i) => (
-                <p key={i} style={{ margin: "3px 0", fontSize: 16, lineHeight: 1.5 }}>
-                  {p}
-                </p>
+                <Field key={i} as="p" path={`people.${i}`} value={p} placeholder="Name" editor={editor} style={{ margin: "3px 0", fontSize: 16, lineHeight: 1.5 }} />
               ))}
+              <AddItem list={`entourage:${g.id}:people`} label="Add a name" editor={editor} style={{ marginTop: 8, minHeight: 36, padding: "4px 14px" }} />
             </div>
           ))}
         </div>
       ) : null}
+      <AddItem list="entourage" label={groups.length ? "Add a group" : "Add your entourage"} editor={editor} style={{ marginTop: 24 }} />
       {colors.length ? (
         <div style={{ marginTop: groups.length ? "clamp(32px, 5vw, 52px)" : 0 }}>
           <p style={{ margin: "0 0 12px", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: muted }}>Motif</p>

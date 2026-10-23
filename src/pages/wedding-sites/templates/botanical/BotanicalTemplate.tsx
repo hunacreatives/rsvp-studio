@@ -31,7 +31,7 @@ export default function BotanicalTemplate({ content, settings, editorPreview = f
       {visibility.venue || visibility.accommodations || visibility.travelInformation ? (
         <VenueSection content={content} theme={theme} />
       ) : null}
-      {hasEntourage(content) ? (
+      {visibility.entourage !== false && hasEntourage(content) ? (
         <section style={{ padding: "clamp(56px, 9vw, 104px) 24px", background: theme.background }}>
           <EntourageBlock content={content} ink={theme.ink} muted={theme.muted} displayFont={theme.displayFont} bodyFont={theme.bodyFont} />
         </section>

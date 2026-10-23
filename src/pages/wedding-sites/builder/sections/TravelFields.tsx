@@ -1,7 +1,7 @@
 import type { TravelInformation, EventContent } from "../../content/types";
-import { createId } from "../../content/id";
 import { FormField, inputStyle, textareaStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
+import { LISTS } from "../pageEdit";
 
 interface TravelFieldsProps {
   content: EventContent;
@@ -13,7 +13,8 @@ export default function TravelFields({ content, onChange }: TravelFieldsProps) {
     <ListEditor<TravelInformation>
       items={content.travelInformation}
       onChange={(travelInformation) => onChange({ ...content, travelInformation })}
-      createItem={() => ({ id: createId("travel"), title: "", body: "" })}
+      list="travelInformation"
+      createItem={() => LISTS.travelInformation.create(content) as never}
       addLabel="Add travel info"
       emptyLabel="No travel information yet."
       renderItem={(item, update) => (

@@ -21,11 +21,9 @@ export function FormField({ label, htmlFor, children, hint }: FormFieldProps) {
           htmlFor={htmlFor}
           style={{
             display: "block",
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            color: "var(--slate)",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "var(--ink)",
             marginBottom: 6,
           }}
         >
@@ -42,9 +40,10 @@ export function FormField({ label, htmlFor, children, hint }: FormFieldProps) {
 
 export const inputStyle: CSSProperties = {
   width: "100%",
-  padding: "10px 12px",
+  minHeight: 40,
+  padding: "9px 12px",
   borderRadius: 8,
-  border: "1px solid var(--line)",
+  border: "1px solid var(--line-strong, #d6d6ce)",
   // 14px on desktop, 16px on phones so iOS doesn't zoom in (builder.css).
   fontSize: "var(--rb-field-font, 14px)",
   fontFamily: "inherit",

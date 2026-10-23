@@ -1,7 +1,7 @@
 import type { EventContent, Person } from "../../content/types";
-import { createId } from "../../content/id";
 import { FormField, inputStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
+import { LISTS } from "../pageEdit";
 
 interface KeyPeopleFieldsProps {
   content: EventContent;
@@ -13,7 +13,8 @@ export default function KeyPeopleFields({ content, onChange }: KeyPeopleFieldsPr
     <ListEditor<Person>
       items={content.keyPeople}
       onChange={(keyPeople) => onChange({ ...content, keyPeople })}
-      createItem={() => ({ id: createId("person"), name: "" })}
+      list="keyPeople"
+      createItem={() => LISTS.keyPeople.create(content) as never}
       addLabel="Add person"
       emptyLabel="No key people added yet."
       renderItem={(item, update) => (

@@ -1,7 +1,7 @@
 import type { EventContent, Person } from "../../content/types";
-import { createId } from "../../content/id";
 import { FormField, inputStyle, textareaStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
+import { LISTS } from "../pageEdit";
 
 interface HostsFieldsProps {
   content: EventContent;
@@ -22,7 +22,8 @@ export default function HostsFields({ content, onChange, hideStory, storyLabel, 
       <ListEditor<Person>
         items={content.hosts}
         onChange={(hosts) => onChange({ ...content, hosts })}
-        createItem={() => ({ id: createId("host"), name: "" })}
+        list="hosts"
+      createItem={() => LISTS.hosts.create(content) as never}
         addLabel="Add a name"
         emptyLabel="Who is this celebration for? Add each name (the couple, or the birthday celebrant)."
         renderItem={(host, update) => (

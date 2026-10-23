@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { FormField, inputStyle } from "./components/FormField";
+import { PREMIUM_FEATURES } from "./SitePlan";
 
 // Builder → "Privacy & guests" (supabase/guest-features.sql). These are site settings,
 // not content: they save on their own and apply to the live site straight away.
@@ -11,7 +12,7 @@ import { FormField, inputStyle } from "./components/FormField";
 // invite_only / table_finder: supabase/guest-links.sql (missing until it runs: those switches hide).
 type Row = { site_password: string | null; guest_reminders: boolean; photo_sharing: boolean; invite_only?: boolean; table_finder?: boolean };
 
-export default function GuestSettings({ eventId, slug, premium, onUpgrade }: { eventId: string | undefined; slug: string; premium: boolean; onUpgrade?: () => void }) {
+export default function GuestSettings({ eventId, slug, premium, onUpgrade, price }: { eventId: string | undefined; slug: string; premium: boolean; onUpgrade?: () => void; /** The upgrade price, e.g. "₱449". */ price?: string }) {
   const [row, setRow] = useState<Row | null | undefined>(undefined);
   const [password, setPassword] = useState("");
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -55,70 +56,93 @@ export default function GuestSettings({ eventId, slug, premium, onUpgrade }: { e
   const passwordOn = row.site_password !== null;
   const cleanPass = password.trim();
 
-  const toggle = (label: string, checked: boolean, onChange: (v: boolean) => void, disabled = false) => (
-    <label style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, fontSize: 15, color: "var(--ink)", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.55 : 1 }}>
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} style={{ width: 20, height: 20 }} />
-      {label}
-    </label>
+  const lock = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--slate)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flex: "none" }}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
   );
-  const premiumNote = (
-    <p style={{ margin: "2px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>
-      Premium.{" "}
-      {onUpgrade ? (
-        <button type="button" onClick={onUpgrade} style={{ padding: 0, border: "none", background: "none", color: "#2f61d5", textDecoration: "underline", textUnderlineOffset: 3, fontSize: 13, cursor: "pointer" }}>
-          Upgrade this site
-        </button>
-      ) : null}
-    </p>
-  );
+  /** A switch row. Locked (free plan): what it does, and a tap opens the upgrade. */
+  const toggle = (label: string, checked: boolean, onChange: (v: boolean) => void, locked = false, detail?: string) =>
+    locked ? (
+      <button type="button" onClick={onUpgrade} disabled={!onUpgrade} className="dp-row" style={{ display: "flex", alignItems: "center", gap: 12, width: "calc(100% + 20px)", minHeight: 52, margin: "0 -10px", padding: "6px 10px", border: 0, borderRadius: 8, background: "transparent", textAlign: "left", cursor: onUpgrade ? "pointer" : "default", fontFamily: "inherit" }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 14, color: "var(--ink)" }}>{label}</span>
+          {detail ? <span style={{ display: "block", marginTop: 2, fontSize: 12.5, lineHeight: 1.45, color: "var(--slate)" }}>{detail}</span> : null}
+        </span>
+        {lock}
+      </button>
+    ) : (
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 44 }}>
+        <span style={{ flex: 1, fontSize: 14, color: "var(--ink)" }}>{label}</span>
+        <Switch on={checked} onChange={onChange} label={label} />
+      </div>
+    );
+  const detailOf = (title: string) => PREMIUM_FEATURES.find((f) => f.title === title)?.detail;
+  const note = (text: ReactNode) => <div style={{ margin: "-4px 0 6px", fontSize: 13, lineHeight: 1.5, color: "var(--slate)" }}>{text}</div>;
 
   return (
-    <details style={{ borderBottom: "1px solid var(--line)", marginTop: 8 }}>
-      <summary style={{ padding: "14px 4px", cursor: "pointer", fontWeight: 600, fontSize: 14, color: "var(--ink)" }}>Privacy &amp; guests</summary>
-      <div style={{ padding: "4px 4px 20px", display: "grid", gap: 14 }}>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--slate)" }}>These save on their own and apply to your live website right away.</p>
+    <div style={{ display: "grid", gap: 4 }}>
+      <p style={{ margin: "0 0 8px", fontSize: 13, lineHeight: 1.5, color: "var(--slate)" }}>These apply to your live site right away.</p>
 
-        <div>
-          {toggle("Ask guests for a password", passwordOn, (v) => {
-            // On: show the field (nothing changes until they save a password). Off: remove it.
-            if (v) return setRow({ ...row, site_password: row.site_password ?? "" });
-            setPassword("");
-            save({ site_password: null });
-          })}
-          {passwordOn ? (
-            <FormField label="Password" hint="Share it with your guests along with the link. Capital letters don’t matter.">
-              <div style={{ display: "flex", gap: 8 }}>
-                <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={password} maxLength={40} onChange={(e) => (setPassword(e.target.value), setState("idle"))} placeholder="e.g. mateo2027" />
-                <button
-                  type="button"
-                  disabled={cleanPass.length < 4 || cleanPass === row.site_password}
-                  onClick={() => save({ site_password: cleanPass })}
-                  style={{ minHeight: 44, padding: "0 16px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-                >
-                  Save
-                </button>
-              </div>
-              {cleanPass && cleanPass.length < 4 ? <p style={{ margin: "6px 0 0", fontSize: 13, color: "#c2412d" }}>At least 4 characters.</p> : null}
-              {!row.site_password ? <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--slate)" }}>Not on yet. Your site opens without a password until you save one.</p> : null}
-            </FormField>
-          ) : null}
+      {toggle("Ask guests for a password", passwordOn, (v) => {
+        // On: show the field (nothing changes until they save a password). Off: remove it.
+        if (v) return setRow({ ...row, site_password: row.site_password ?? "" });
+        setPassword("");
+        save({ site_password: null });
+      })}
+      {passwordOn ? (
+        <FormField label="Password" hint="Share it with your guests along with the link. Capital letters don’t matter.">
+          <div style={{ display: "flex", gap: 8 }}>
+            <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={password} maxLength={40} onChange={(e) => (setPassword(e.target.value), setState("idle"))} placeholder="e.g. mateo2027" />
+            <button
+              type="button"
+              disabled={cleanPass.length < 4 || cleanPass === row.site_password}
+              onClick={() => save({ site_password: cleanPass })}
+              style={{ minHeight: 40, padding: "0 16px", borderRadius: 8, border: "1px solid var(--line-strong)", background: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+            >
+              Save
+            </button>
+          </div>
+          {cleanPass && cleanPass.length < 4 ? <p style={{ margin: "6px 0 0", fontSize: 13, color: "#c2412d" }}>At least 4 characters.</p> : null}
+          {!row.site_password ? <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--slate)" }}>Not on yet. Your site opens without a password until you save one.</p> : null}
+        </FormField>
+      ) : null}
+
+      {/* Premium: one card that says what it adds and what it costs; the locked switches say
+          what each does and open the upgrade. Once paid, the card says so and they switch on. */}
+      {premium ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 4px", padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 10, background: "#fff" }}>
+          <span style={{ width: 20, height: 20, flex: "none", display: "grid", placeItems: "center", borderRadius: 999, background: "var(--ink)" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="m6 12.5 4 4 8-9" />
+            </svg>
+          </span>
+          <span style={{ fontSize: 13.5, lineHeight: 1.45, color: "var(--ink)" }}>
+            <b style={{ fontWeight: 600 }}>Premium is on.</b> Switch on whatever you’d like guests to have.
+          </span>
         </div>
-
-        <div>
-          {toggle("Remind guests 2 days before", premium && row.guest_reminders, (v) => save({ guest_reminders: v }), !premium)}
-          {premium ? (
-            <p style={{ margin: "2px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>Guests who said yes get an email with the time, venue and map, sent in your names.</p>
-          ) : (
-            premiumNote
-          )}
+      ) : onUpgrade ? (
+        <div style={{ margin: "18px 0 6px", padding: 16, border: "1px solid var(--line)", borderRadius: 12, background: "#fff" }}>
+          <p style={{ margin: 0, fontFamily: "Lora, Georgia, serif", fontSize: 18, fontWeight: 500, color: "var(--ink)" }}>Hear every yes as it happens</p>
+          <p style={{ margin: "6px 0 14px", fontSize: 13, lineHeight: 1.5, color: "var(--slate)" }}>
+            Premium sends the reminders, gathers the photos and shows guests to their seats, so you don’t have to.
+          </p>
+          <button type="button" onClick={onUpgrade} style={{ minHeight: 36, padding: "0 16px", border: 0, borderRadius: 8, background: "var(--ink)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            Go Premium{price ? ` · ${price}, one time` : ""}
+          </button>
         </div>
+      ) : (
+        <p style={{ margin: "18px 0 0", fontSize: 12, fontWeight: 500, color: "var(--slate)" }}>Premium</p>
+      )}
 
-        <div>
-          {toggle("Let guests share their photos", premium && row.photo_sharing, (v) => save({ photo_sharing: v }), !premium)}
-          {!premium ? (
-            premiumNote
-          ) : row.photo_sharing ? (
-            <div style={{ margin: "6px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>
+      {toggle("Remind guests 2 days before", premium && row.guest_reminders, (v) => save({ guest_reminders: v }), !premium, detailOf("A reminder two days before"))}
+      {premium ? note("Guests who said yes get an email with the time, venue and map, sent in your names.") : null}
+
+      {toggle("Let guests share their photos", premium && row.photo_sharing, (v) => save({ photo_sharing: v }), !premium, detailOf("Everyone’s photos in one place"))}
+      {premium && row.photo_sharing
+        ? note(
+            <>
               <p style={{ margin: 0 }}>
                 Guests add photos at{" "}
                 <a href={photosUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#2f61d5", wordBreak: "break-all" }}>
@@ -135,42 +159,38 @@ export default function GuestSettings({ eventId, slug, premium, onUpgrade }: { e
                 </div>
               ) : null}
               <p style={{ margin: "8px 0 0" }}>See and remove photos under your project’s Guests tab.</p>
-            </div>
-          ) : (
-            <p style={{ margin: "2px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>A page where guests add the photos they took. You can remove any of them.</p>
-          )}
-        </div>
+            </>,
+          )
+        : premium
+          ? note("A page where guests add the photos they took. You can remove any of them.")
+          : null}
 
-        {row.invite_only !== undefined ? (
-          <div>
-            {toggle("Only guests with a personal link can RSVP", premium && !!row.invite_only, (v) => save({ invite_only: v }), !premium)}
-            {premium ? (
-              <p style={{ margin: "2px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>
-                Anyone can still see your website. Send links from your invite list (Guests tab): each guest’s seats are the most they can bring.
-              </p>
-            ) : (
-              premiumNote
-            )}
-          </div>
-        ) : null}
+      {row.invite_only !== undefined ? (
+        <>
+          {toggle("Only guests with a personal link can RSVP", premium && !!row.invite_only, (v) => save({ invite_only: v }), !premium, detailOf("Invited guests only"))}
+          {premium ? note("Anyone can still see your website. Send links from your invite list (Guests tab): each guest’s seats are the most they can bring.") : null}
+        </>
+      ) : null}
 
-        {row.table_finder !== undefined ? (
-          <div>
-            {toggle("Let guests find their table", premium && !!row.table_finder, (v) => save({ table_finder: v }), !premium)}
-            {premium ? (
-              <p style={{ margin: "2px 0 0 30px", fontSize: 13, color: "var(--slate)" }}>
-                Guests type their name and see their table. Assign tables in your invite list. It’s linked at the bottom of your website.
-              </p>
-            ) : (
-              premiumNote
-            )}
-          </div>
-        ) : null}
+      {row.table_finder !== undefined ? (
+        <>
+          {toggle("Let guests find their table", premium && !!row.table_finder, (v) => save({ table_finder: v }), !premium, detailOf("Find your table"))}
+          {premium ? note("Guests type their name and see their table. Assign tables in your invite list. It’s linked at the bottom of your website.") : null}
+        </>
+      ) : null}
 
-        {state === "saving" ? <p style={{ margin: 0, fontSize: 13, color: "var(--slate)" }}>Saving…</p> : null}
-        {state === "saved" ? <p style={{ margin: 0, fontSize: 13, color: "#3d7a12" }}>Saved.</p> : null}
-        {state === "error" ? <p style={{ margin: 0, fontSize: 13, color: "#c2412d" }}>Couldn’t save. Check your connection and try again.</p> : null}
-      </div>
-    </details>
+      <p aria-live="polite" style={{ margin: "8px 0 0", minHeight: 18, fontSize: 13, color: state === "error" ? "#c2412d" : state === "saved" ? "#3d7a12" : "var(--slate)" }}>
+        {state === "saving" ? "Saving…" : state === "saved" ? "Saved." : state === "error" ? "Couldn’t save. Check your connection and try again." : ""}
+      </p>
+    </div>
+  );
+}
+
+/** An on/off switch (the panel's, everywhere). */
+export function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)} style={{ width: 36, height: 22, padding: 2, border: 0, borderRadius: 999, background: on ? "var(--ink)" : "var(--line-strong)", cursor: "pointer", flex: "none", transition: "background .15s" }}>
+      <span style={{ display: "block", width: 18, height: 18, borderRadius: 999, background: "#fff", boxShadow: "0 1px 2px rgba(0,7,39,.2)", transform: on ? "translateX(14px)" : "none", transition: "transform .15s" }} />
+    </button>
   );
 }

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { inputStyle } from "./FormField";
 import { uploadEventImage, UploadEventImageError } from "../../content/uploadEventImage";
 import type { ImageAsset } from "../../content/types";
 import { useIsPhone } from "../useIsPhone";
@@ -7,21 +6,19 @@ import { useIsPhone } from "../useIsPhone";
 interface ImageUploadFieldProps {
   eventId: string | undefined;
   masterUrl: string;
-  onUrlChange: (url: string) => void;
+  /** Kept for callers; there's no link box any more (photos are uploaded, never pasted). */
+  onUrlChange?: (url: string) => void;
   onUploaded: (image: ImageAsset) => void;
+  /** The caller shows the photo itself (e.g. a Reposition frame): just this button, no thumbnail. */
+  replaceLabel?: string;
 }
 
 /**
- * Pasting an already-hosted URL and uploading a file both land on the
- * same field: masterUrl. Upload is the common path now that
- * uploadEventImage()/the event-site-images bucket exist (see
- * supabase/event-site-images-storage.sql) — URL paste stays for anyone
- * who already has the photo hosted elsewhere.
- *
- * Phones: a full-width "Upload photo" button comes first (the link field is
- * secondary), and the chosen photo shows straight away while it uploads.
+ * One photo: "Upload a photo" when there's none, else the photo with a Replace button. The
+ * chosen photo shows straight away (faded) while it uploads. No link box: hosts upload from
+ * their phone or computer, and the address it's stored at is never their concern.
  */
-export function ImageUploadField({ eventId, masterUrl, onUrlChange, onUploaded }: ImageUploadFieldProps) {
+export function ImageUploadField({ eventId, masterUrl, onUploaded, replaceLabel }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +33,7 @@ export function ImageUploadField({ eventId, masterUrl, onUrlChange, onUploaded }
     if (!file || !eventId) return;
     setUploading(true);
     setError(null);
-    if (isPhone) setLocalPreview(URL.createObjectURL(file));
+    setLocalPreview(URL.createObjectURL(file));
     try {
       const image = await uploadEventImage(file, eventId);
       onUploaded(image);
@@ -49,89 +46,43 @@ export function ImageUploadField({ eventId, masterUrl, onUrlChange, onUploaded }
   }
 
   const disabled = !eventId || uploading;
-  const uploadButton = (
-    <button
-      type="button"
-      onClick={() => inputRef.current?.click()}
-      disabled={disabled}
-      style={{
-        padding: "10px 14px",
-        borderRadius: 8,
-        border: "1px solid var(--line)",
-        background: "#fff",
-        fontSize: isPhone ? 15 : 13,
-        fontWeight: 600,
-        color: "var(--ink)",
-        cursor: disabled ? "default" : "pointer",
-        opacity: disabled ? 0.6 : 1,
-        whiteSpace: "nowrap",
-        ...(isPhone ? { width: "100%", minHeight: 48 } : null),
-      }}
-    >
-      {uploading ? "Uploading…" : "Upload photo"}
-    </button>
-  );
-  const urlInput = (
-    <input
-      style={{ ...inputStyle, flex: 1 }}
-      placeholder="https://…"
-      aria-label="Photo link"
-      value={masterUrl}
-      onChange={(e) => onUrlChange(e.target.value)}
-    />
-  );
-  const fileInput = (
-    <input
-      ref={inputRef}
-      type="file"
-      accept="image/*"
-      style={{ display: "none" }}
-      onChange={(e) => {
-        void handleFile(e.target.files?.[0]);
-        e.target.value = "";
-      }}
-    />
-  );
-
+  const shown = localPreview || masterUrl;
   return (
     <div>
-      {isPhone ? (
-        <>
-          {uploadButton}
-          {fileInput}
-          <p style={{ fontSize: 12, color: "var(--slate)", margin: "10px 0 6px" }}>Or paste a link to a photo:</p>
-          {urlInput}
-        </>
-      ) : (
-        <>
-          <div style={{ display: "flex", gap: 8 }}>
-            {urlInput}
-            {uploadButton}
-            {fileInput}
-          </div>
-          <p style={{ fontSize: 12, color: "var(--slate)", marginTop: 4 }}>
-            Upload a photo from your phone or computer — or paste a link to one.
-          </p>
-        </>
-      )}
-      {error ? <p style={{ fontSize: 12, color: "#b3382c", marginTop: 4 }}>{error}</p> : null}
-      {localPreview ? (
-        <div style={{ position: "relative", marginTop: 8, display: "inline-block" }}>
-          <img src={localPreview} alt="" style={{ maxHeight: 120, maxWidth: "100%", borderRadius: 8, display: "block", opacity: 0.55 }} />
-          <span
-            style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}
-            aria-live="polite"
-          >
-            Uploading…
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          void handleFile(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+      {replaceLabel && !localPreview ? (
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={disabled} style={{ minHeight: 44, padding: "0 14px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 14, fontWeight: 600, color: "var(--ink)", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1 }}>
+          {uploading ? "Uploading…" : replaceLabel}
+        </button>
+      ) : shown ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ position: "relative", display: "inline-block", lineHeight: 0 }}>
+            <img src={shown} alt="" style={{ maxHeight: 96, maxWidth: 160, borderRadius: 8, display: "block", opacity: uploading ? 0.55 : 1 }} />
+            {uploading ? (
+              <span aria-live="polite" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.2 }}>
+                Uploading…
+              </span>
+            ) : null}
           </span>
+          <button type="button" onClick={() => inputRef.current?.click()} disabled={disabled} style={{ minHeight: 44, padding: "0 14px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 14, fontWeight: 600, color: "var(--ink)", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1 }}>
+            {uploading ? "Uploading…" : "Replace"}
+          </button>
         </div>
-      ) : masterUrl ? (
-        <img
-          src={masterUrl}
-          alt=""
-          style={{ marginTop: 8, maxHeight: 120, borderRadius: 8, display: "block" }}
-        />
-      ) : null}
+      ) : (
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={disabled} style={{ width: isPhone ? "100%" : undefined, minHeight: 48, padding: "0 18px", borderRadius: 8, border: "1px dashed var(--line)", background: "#fff", fontSize: 15, fontWeight: 600, color: "var(--ink)", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1 }}>
+          {uploading ? "Uploading…" : "Upload a photo"}
+        </button>
+      )}
+      {error ? <p style={{ fontSize: 12, color: "#b3382c", marginTop: 6 }}>{error}</p> : null}
     </div>
   );
 }

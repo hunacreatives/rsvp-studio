@@ -12,6 +12,7 @@ import { Cross, Hoop, Skein, StitchedName } from "./art";
 import { babyEvent, eventIsOver, godparents, initials, longDate, nameLines, receptionMap, streamTimes, timeOf, timeWords, townOf, wordsFor } from "./content";
 import RsvpCard from "./RsvpCard";
 import { CALADO_CSS } from "./styles";
+import { photoFit } from "../shared/photoFit";
 
 /**
  * Calado (baby: christening, first birthday, both, or a dedication; the host picks which).
@@ -254,7 +255,7 @@ export default function CaladoTemplate({ content, settings, editorPreview = fals
                     <li key={p.id} className={`cl-wall__item cl-wall__item--${HOOP_SIZES[i % HOOP_SIZES.length]}`} data-reveal style={{ ["--i" as string]: i % 3 } as CSSProperties}>
                       <button type="button" className="cl-mini" onClick={() => !editorPreview && setZoom(i)} aria-label={p.caption ? `Open the ${p.caption} photo` : "Open the photo"}>
                         <span className="cl-mini__ring" aria-hidden />
-                        <img src={p.image.masterUrl} alt={p.image.alt || p.caption || ""} loading="lazy" decoding="async" style={{ objectPosition: `${(p.image.focalPoint?.x ?? 0.5) * 100}% ${(p.image.focalPoint?.y ?? 0.4) * 100}%` }} />
+                        <img src={p.image.masterUrl} alt={p.image.alt || p.caption || ""} loading="lazy" decoding="async" style={{ ...photoFit(p.image, 0.5, 0.4) }} />
                       </button>
                       {p.caption ? <span className="cl-wall__cap">{p.caption}</span> : null}
                     </li>

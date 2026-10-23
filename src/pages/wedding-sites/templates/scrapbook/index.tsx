@@ -3,6 +3,7 @@ import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
 import ScrapbookTemplate from "./ScrapbookTemplate";
 import { scrapbookDemoWedding } from "../../content/fixtures/scrapbook-demo";
+import { SB_SECTIONS } from "./sections";
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "maroon-linen",
@@ -19,6 +20,21 @@ export const scrapbookTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   cardImage: "/event-templates/cards/scrapbook.webp",
   component: ScrapbookTemplate,
   defaultSettings,
+  // Sections that can be moved on the page.
+  sections: SB_SECTIONS,
+  // Sections that can be switched off, in page order.
+  hideable: [
+    { key: "hostIntro", label: "Your story" },
+    { key: "schedule", label: "Schedule" },
+    { key: "venue", label: "Venue" },
+    { key: "accommodations", label: "Where to stay" },
+    { key: "travelInformation", label: "Getting there" },
+    { key: "entourage", label: "Entourage" },
+    { key: "gallery", label: "Photos" },
+    { key: "registry", label: "Gifts" },
+    { key: "faqs", label: "FAQs" },
+    { key: "rsvp", label: "RSVP form" },
+  ],
   tier: "premium",
   demoContent: scrapbookDemoWedding,
 };

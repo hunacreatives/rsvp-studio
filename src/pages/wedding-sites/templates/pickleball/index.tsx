@@ -40,6 +40,7 @@ export const pickleballTemplateDefinition: TemplateDefinition<BaseTemplateSettin
     { key: "bring", label: "What to Bring" },
     { key: "registry", label: "Gift Ideas" },
     { key: "faqs", label: "Good to Know (FAQs)" },
+    { key: "entourage", label: "Entourage" },
     { key: "rsvp", label: "RSVP" },
   ],
   customFields: [

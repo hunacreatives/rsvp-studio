@@ -4,7 +4,7 @@ import { createId } from "../../content/id";
 import { uploadEventImage, UploadEventImageError } from "../../content/uploadEventImage";
 import { FormField, inputStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
-import { ImageUploadField } from "../components/ImageUploadField";
+import Reposition from "../components/Reposition";
 
 interface GalleryFieldsProps {
   content: EventContent;
@@ -82,115 +82,109 @@ export default function GalleryFields({ content, onChange, eventId, limit, backs
       <AddPhotosButton eventId={eventId} onUploaded={appendUploaded} />
 
       <ListEditor<GalleryItem>
+        list="gallery"
         items={gallery.items}
         onChange={(items) => updateGallery({ items })}
         createItem={() => newGalleryItem(gallery.items.length + 1)}
-        addLabel="Add photo"
+        addLabel=""
         emptyLabel="No photos yet."
         renderItem={(item, update) => (
-          <div>
-            <FormField label="Photo">
-              <ImageUploadField
-                eventId={eventId}
-                masterUrl={item.image.masterUrl}
-                onUrlChange={(masterUrl) => update({ image: { ...item.image, masterUrl } })}
-                onUploaded={(uploaded) =>
-                  update({
-                    image: {
-                      ...item.image,
-                      masterUrl: uploaded.masterUrl,
-                      width: uploaded.width,
-                      height: uploaded.height,
-                    },
-                  })
-                }
-              />
-            </FormField>
-            <FormField label="Describe this photo" hint="Helps guests who use screen readers. E.g. “Us at Taal Lake”.">
+          <div style={{ paddingTop: 30 }}>
+            {item.image.masterUrl ? (
+              <>
+                <Reposition
+                  url={item.image.masterUrl}
+                  width={item.image.width}
+                  height={item.image.height}
+                  aspect={item.image.width >= item.image.height ? "4 / 3" : "4 / 5"}
+                  focus={item.image.focalPoint}
+                  onChange={(focalPoint) => update({ image: { ...item.image, focalPoint } })}
+                  zoom={item.image.zoom ?? 1}
+                  onZoom={(zoom) => update({ image: { ...item.image, zoom } })}
+                  style={{ marginBottom: 12 }}
+                />
+              </>
+            ) : null}
+            <FormField label="" hint={backs ? "Start with the year to place it in its decade, e.g. “1968 — Our wedding day”." : undefined}>
               <input
                 style={inputStyle}
-                value={item.image.alt}
-                onChange={(e) => update({ image: { ...item.image, alt: e.target.value } })}
-              />
-            </FormField>
-            <FormField label="Caption (optional)" hint={backs ? "Start with the year to place it in its decade, e.g. “1968 — Our wedding day”." : undefined}>
-              <input
-                style={inputStyle}
+                aria-label="Caption"
                 value={item.caption ?? ""}
-                placeholder={backs ? "1968 — Our wedding day" : undefined}
-                onChange={(e) => update({ caption: e.target.value || undefined })}
+                placeholder={backs ? "1968 — Our wedding day" : "Caption (optional)"}
+                onChange={(e) => {
+                  // The screen-reader description follows the caption until the host writes their own.
+                  const follows = !item.image.alt || item.image.alt === (item.caption ?? "");
+                  update({ caption: e.target.value || undefined, ...(follows ? { image: { ...item.image, alt: e.target.value } } : {}) });
+                }}
               />
             </FormField>
             {backs ? (
-              <FormField label="Written on the back (optional)" hint="Guests tap the photo to turn it over and read this, in handwriting.">
+              <FormField label="" hint="Guests tap the photo to turn it over and read this, in handwriting.">
                 <textarea
                   style={{ ...inputStyle, minHeight: 64, resize: "vertical" }}
+                  aria-label="Written on the back"
                   maxLength={160}
-                  placeholder="Baguio, June 1968. Kasama si Ben at si Nena."
+                  placeholder="Written on the back (optional), e.g. “Baguio, June 1968. Kasama si Ben.”"
                   value={item.back ?? ""}
                   onChange={(e) => update({ back: e.target.value || undefined })}
                 />
               </FormField>
             ) : null}
-            {item.image.masterUrl ? (
-              <FormField label="What should stay in view?" hint="Tap the most important part of the photo — it stays visible when the photo is cropped.">
-                <FocusPicker
-                  url={item.image.masterUrl}
-                  focus={item.image.focalPoint}
-                  onChange={(focalPoint) => update({ image: { ...item.image, focalPoint } })}
-                />
-              </FormField>
-            ) : null}
-            <details style={{ marginTop: 8 }}>
-              <summary className="rb-summary-tap" style={{ fontSize: 12, color: "var(--slate)", cursor: "pointer" }}>More options</summary>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
-              <FormField label="Focus across (0–1)">
-                <input
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  style={inputStyle}
-                  value={item.image.focalPoint.x}
-                  onChange={(e) =>
-                    update({ image: { ...item.image, focalPoint: { ...item.image.focalPoint, x: Number(e.target.value) } } })
-                  }
-                />
-              </FormField>
-              <FormField label="Focus down (0–1)">
-                <input
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  style={inputStyle}
-                  value={item.image.focalPoint.y}
-                  onChange={(e) =>
-                    update({ image: { ...item.image, focalPoint: { ...item.image.focalPoint, y: Number(e.target.value) } } })
-                  }
-                />
-              </FormField>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+              <ReplacePhoto eventId={eventId} has={!!item.image.masterUrl} onUploaded={(u) => update({ image: { ...item.image, masterUrl: u.masterUrl, width: u.width, height: u.height, focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 } })} />
+              <details style={{ flex: "1 1 200px" }}>
+                <summary className="rb-summary-tap" style={{ fontSize: 13, color: "var(--slate)", cursor: "pointer" }}>More</summary>
+                <FormField label="Describe it for screen readers" hint="Leave empty to use the caption.">
+                  <input style={inputStyle} placeholder={item.caption || "Us at Taal Lake"} value={item.image.alt} onChange={(e) => update({ image: { ...item.image, alt: e.target.value } })} />
+                </FormField>
+                <FormField label="Photo shape">
+                  <select style={inputStyle} value={item.layoutHint ?? ""} onChange={(e) => update({ layoutHint: (e.target.value || undefined) as GalleryItem["layoutHint"] })}>
+                    <option value="">Standard</option>
+                    <option value="wide">Wide</option>
+                    <option value="portrait">Portrait</option>
+                  </select>
+                </FormField>
+              </details>
             </div>
-            <FormField label="Photo shape (optional)">
-              <select
-                style={inputStyle}
-                value={item.layoutHint ?? ""}
-                onChange={(e) =>
-                  update({
-                    layoutHint: (e.target.value || undefined) as GalleryItem["layoutHint"],
-                  })
-                }
-              >
-                <option value="">Standard</option>
-                <option value="wide">Wide</option>
-                <option value="portrait">Portrait</option>
-              </select>
-            </FormField>
-            </details>
           </div>
         )}
       />
     </div>
+  );
+}
+
+/** Replace one photo (or upload it, for an old empty slot). */
+function ReplacePhoto({ eventId, has, onUploaded }: { eventId: string | undefined; has: boolean; onUploaded: (image: ImageAsset) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <span>
+      <button type="button" disabled={!eventId || busy} onClick={() => ref.current?.click()} style={{ minHeight: 44, padding: "0 14px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 14, fontWeight: 600, color: "var(--ink)", cursor: busy ? "default" : "pointer" }}>
+        {busy ? "Uploading…" : has ? "Replace photo" : "Upload photo"}
+      </button>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f || !eventId) return;
+          setBusy(true);
+          setError(null);
+          try {
+            onUploaded(await uploadEventImage(f, eventId));
+          } catch (err) {
+            setError(err instanceof UploadEventImageError ? err.message : "Upload failed — please try again.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+      {error ? <span style={{ display: "block", fontSize: 12, color: "#b3382c", marginTop: 4 }}>{error}</span> : null}
+    </span>
   );
 }
 
@@ -257,42 +251,6 @@ function AddPhotosButton({ eventId, onUploaded }: { eventId: string | undefined;
         {busy ? "Keep this page open until it finishes." : "Pick several at once from your phone or computer."}
       </p>
       {error ? <p style={{ fontSize: 12, color: "#b3382c", margin: "4px 0 0" }}>{error}</p> : null}
-    </div>
-  );
-}
-
-/** Tap a point on the photo to set its focus (what stays visible when cropped). */
-function FocusPicker({ url, focus, onChange }: { url: string; focus: { x: number; y: number }; onChange: (f: { x: number; y: number }) => void }) {
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label="Set the photo’s focus point"
-      onClick={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        const round = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 100) / 100;
-        onChange({ x: round((e.clientX - r.left) / r.width), y: round((e.clientY - r.top) / r.height) });
-      }}
-      className="rb-focus"
-      style={{ position: "relative", cursor: "crosshair", borderRadius: 10, overflow: "hidden", lineHeight: 0 }}
-    >
-      <img src={url} alt="" style={{ width: "100%", display: "block" }} />
-      <span
-        aria-hidden
-        style={{
-          position: "absolute",
-          left: `${focus.x * 100}%`,
-          top: `${focus.y * 100}%`,
-          width: 22,
-          height: 22,
-          marginLeft: -11,
-          marginTop: -11,
-          borderRadius: 999,
-          border: "3px solid #fff",
-          boxShadow: "0 0 0 2px rgba(0,7,39,.6)",
-          background: "rgba(24,98,221,.5)",
-        }}
-      />
     </div>
   );
 }

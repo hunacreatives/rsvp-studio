@@ -1,7 +1,7 @@
 import type { CashGift, RegistryLink, EventContent } from "../../content/types";
-import { createId } from "../../content/id";
 import { FormField, inputStyle } from "../components/FormField";
 import { ListEditor } from "../components/ListEditor";
+import { LISTS } from "../pageEdit";
 import { ImageUploadField } from "../components/ImageUploadField";
 
 interface RegistryFieldsProps {
@@ -16,7 +16,8 @@ export default function RegistryFields({ content, onChange, eventId }: RegistryF
       <ListEditor<RegistryLink>
         items={content.registryLinks}
         onChange={(registryLinks) => onChange({ ...content, registryLinks })}
-        createItem={() => ({ id: createId("registry"), storeName: "", url: "" })}
+        list="registryLinks"
+        createItem={() => LISTS.registryLinks.create(content) as never}
         addLabel="Add registry link"
         emptyLabel="No registry links yet."
         renderItem={(item, update) => (
@@ -50,7 +51,8 @@ export default function RegistryFields({ content, onChange, eventId }: RegistryF
       <ListEditor<CashGift>
         items={content.cashGifts ?? []}
         onChange={(cashGifts) => onChange({ ...content, cashGifts })}
-        createItem={() => ({ id: createId("gift"), label: "GCash", accountName: "", accountNumber: "" })}
+        list="cashGifts"
+        createItem={() => LISTS.cashGifts.create(content) as never}
         addLabel="Add GCash, Maya or bank"
         emptyLabel="No cash gift details yet."
         renderItem={(item, update) => (

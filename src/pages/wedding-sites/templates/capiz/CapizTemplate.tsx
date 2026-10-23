@@ -15,6 +15,7 @@ import { CAPIZ, FLAKE, Motes, Niche, Panes, Sampaguita, STONE } from "./art";
 import { dateWords, eventIsOver, firstNames, monogram, receptionMap, splitEntourage, timeOf, timeWords, townOf } from "./content";
 import RsvpSill from "./RsvpSill";
 import { CAPIZ_CSS } from "./styles";
+import { photoFit } from "../shared/photoFit";
 
 /**
  * Capiz (wedding, Premium): a walk through an old Filipino house.
@@ -266,7 +267,7 @@ export default function CapizTemplate({ content, settings, editorPreview = false
                   alt={heroImg.alt || ""}
                   loading="eager"
                   decoding="async"
-                  style={{ objectPosition: `${(heroImg.focalPoint?.x ?? 0.5) * 100}% ${(heroImg.focalPoint?.y ?? 0.45) * 100}%` }}
+                  style={{ ...photoFit(heroImg, 0.5, 0.45) }}
                 />
               ) : editorPreview ? (
                 <PhotoSlot image={null} editorPreview className="cz-photo__img cz-photo__img--empty" label="Add your photo" />
@@ -337,7 +338,7 @@ export default function CapizTemplate({ content, settings, editorPreview = false
         {/* Without the scroll (builder, gallery card, less motion): the invitation on the photo, as its own section */}
         {!play ? (
           <section className="cz-full">
-            {heroImg?.masterUrl ? <img className="cz-full__photo" src={heroImg.masterUrl} alt="" aria-hidden decoding="async" style={{ objectPosition: `${(heroImg.focalPoint?.x ?? 0.5) * 100}% ${(heroImg.focalPoint?.y ?? 0.45) * 100}%` }} /> : null}
+            {heroImg?.masterUrl ? <img className="cz-full__photo" src={heroImg.masterUrl} alt="" aria-hidden decoding="async" style={{ ...photoFit(heroImg, 0.5, 0.45) }} /> : null}
             <span className="cz-full__shade" aria-hidden />
             <div data-reveal>{invitation}</div>
           </section>

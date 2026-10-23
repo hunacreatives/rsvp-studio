@@ -4,6 +4,7 @@ import { customValue } from "../../../content/custom";
 import { parseEventDate } from "../../../content/parseEventDate";
 import { CashGifts, hasCashGifts } from "../../shared/CashGifts";
 import EntourageBlock, { entourageTitle } from "../../shared/Entourage";
+import { photoFit } from "../../shared/photoFit";
 
 // In Bloom's garden party, below the hero: the evening as place cards, what to wear (the
 // motif as watercolor petals), a polaroid wall pinned with washi tape, gifts, good to know.
@@ -96,7 +97,7 @@ export default function Garden({ content, editorPreview, photos, vis }: { conten
             {photos.map((img, i) => (
               <figure key={img.id ?? i} className="cn-snap" style={{ ["--tilt" as string]: `${TILTS[(i + 3) % TILTS.length]}deg`, ["--i" as string]: i } as CSSProperties}>
                 <span className={`cn-tape cn-tape--${i % 3}`} aria-hidden />
-                <img src={img.masterUrl} alt={img.alt || ""} loading="lazy" decoding="async" style={{ objectPosition: `${(img.focalPoint?.x ?? 0.5) * 100}% ${(img.focalPoint?.y ?? 0.4) * 100}%` }} />
+                <img src={img.masterUrl} alt={img.alt || ""} loading="lazy" decoding="async" style={{ ...photoFit(img, 0.5, 0.4) }} />
               </figure>
             ))}
           </div>

@@ -23,6 +23,8 @@ export interface ImageAsset {
   /** Normalized 0..1 focal point. Templates derive their own crop via
    *  CSS object-position from this — never store a destructive crop. */
   focalPoint: { x: number; y: number };
+  /** How far the host zoomed in on it (1 = not at all, up to 3); templates use photoFit(). */
+  zoom?: number;
   createdAt: string; // ISO datetime
 }
 

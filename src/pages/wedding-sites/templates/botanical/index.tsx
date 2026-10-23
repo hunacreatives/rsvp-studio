@@ -20,6 +20,19 @@ export const botanicalTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   previewThumbnailUrl: "/event-templates/botanical/thumbnail.jpg",
   component: BotanicalTemplate,
   defaultSettings,
+  // Sections that can be switched off, in page order.
+  hideable: [
+    { key: "hostIntro", label: "Your story" },
+    { key: "schedule", label: "Schedule" },
+    { key: "venue", label: "Venue" },
+    { key: "accommodations", label: "Where to stay" },
+    { key: "travelInformation", label: "Getting there" },
+    { key: "entourage", label: "Entourage" },
+    { key: "gallery", label: "Photos" },
+    { key: "registry", label: "Gifts" },
+    { key: "faqs", label: "FAQs" },
+    { key: "rsvp", label: "RSVP form" },
+  ],
   tier: "premium",
   // Hidden from the gallery (Studio → Templates); existing Botanical sites still render.
   offered: false,

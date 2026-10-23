@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 import { supabase } from "@/lib/supabase";
 import { normalizeEventContent } from "../content/normalize";
 import { slugify } from "../content/slugify";
@@ -301,6 +301,72 @@ export function useEventSiteDraft(eventId: string | undefined) {
     return !error;
   }, [siteId]);
 
+  // ---- Undo / redo ----
+  // Every edit made through the returned setters is recorded: a step is the [content,
+  // presentation] pair from before it. Changes within 900ms of each other (typing, dragging a
+  // photo) join one step; checkpoint() makes the next change its own step (a click: hide a
+  // section, remove a photo). What loading sets isn't recorded (the raw setters above).
+  type Snap = [EventContent, PresentationState];
+  const now = useRef<Snap>([content, presentation]);
+  now.current = [content, presentation];
+  const past = useRef<Snap[]>([]);
+  const future = useRef<Snap[]>([]);
+  const lastAt = useRef(0);
+  const fresh = useRef(true);
+  const [, setHistoryTick] = useState(0);
+  useEffect(() => {
+    if (status !== "ready") return;
+    past.current = [];
+    future.current = [];
+    fresh.current = true;
+    setHistoryTick((n) => n + 1);
+  }, [status]);
+  const record = useCallback(() => {
+    const t = Date.now();
+    if (fresh.current || t - lastAt.current > 900) {
+      past.current.push(now.current);
+      if (past.current.length > 100) past.current.shift();
+      fresh.current = false;
+      setHistoryTick((n) => n + 1);
+    }
+    if (future.current.length) {
+      future.current = [];
+      setHistoryTick((n) => n + 1);
+    }
+    lastAt.current = t;
+  }, []);
+  const editContent = useCallback(
+    (u: SetStateAction<EventContent>) => {
+      if (u === now.current[0]) return;
+      record();
+      setContent(u);
+    },
+    [record],
+  );
+  const editPresentation = useCallback(
+    (u: SetStateAction<PresentationState>) => {
+      if (u === now.current[1]) return;
+      record();
+      setPresentation(u);
+    },
+    [record],
+  );
+  const checkpoint = useCallback(() => {
+    fresh.current = true;
+  }, []);
+  const go = useCallback((from: { current: Snap[] }, to: { current: Snap[] }) => {
+    const snap = from.current.pop();
+    if (!snap) return;
+    to.current.push(now.current);
+    now.current = snap;
+    setContent(snap[0]);
+    setPresentation(snap[1]);
+    fresh.current = true;
+    setHistoryTick((n) => n + 1);
+  }, []);
+  const undo = useCallback(() => go(past, future), [go]);
+  const redo = useCallback(() => go(future, past), [go]);
+
   // Edits not yet on the live site (compared with what was last published).
   const hasUnpublishedChanges = !!live && live !== JSON.stringify([{ ...content, slug: slug || content.slug }, presentation]);
 
@@ -311,9 +377,14 @@ export function useEventSiteDraft(eventId: string | undefined) {
     slug,
     publishedAt,
     content,
-    setContent,
+    setContent: editContent,
     presentation,
-    setPresentation,
+    setPresentation: editPresentation,
+    undo,
+    redo,
+    canUndo: past.current.length > 0,
+    canRedo: future.current.length > 0,
+    checkpoint,
     save,
     publish,
     unpublish,

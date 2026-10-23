@@ -79,13 +79,22 @@ export function useUpgradeFlow(eventId: string | undefined, reload: () => Promis
   return { step, eventId, reload, open: () => setStep({ kind: "offer" }), pay, close: () => setStep({ kind: "closed" }) };
 }
 
-export const PREMIUM_PERKS = [
-  "An email the moment each guest RSVPs, instead of one summary a day",
-  "Guest confirmation emails sent in your names",
-  "A reminder email to guests 2 days before your event",
-  "Guests share their photos on your website",
-  "Any Premium template, at no extra cost",
+/**
+ * What Premium adds, in one list (the upgrade dialog, its "You're on Premium" step, and the
+ * builder's Settings tab). `on: true` works by itself once paid; the rest are switches the
+ * host turns on in Settings (or, for questions, adds on the RSVP page).
+ */
+export const PREMIUM_FEATURES: { title: string; detail: string; on?: boolean }[] = [
+  { title: "Know the moment someone says yes", detail: "An email for every reply, not one summary a day.", on: true },
+  { title: "Confirmations in your names", detail: "Guests hear from you, not from us.", on: true },
+  { title: "Every Premium design", detail: "Switch to any of them, no extra cost.", on: true },
+  { title: "A reminder two days before", detail: "Guests who said yes get the time, venue and map." },
+  { title: "Everyone’s photos in one place", detail: "Guests add what they took. You keep what you like." },
+  { title: "Invited guests only", detail: "Only the people you sent a link to can reply." },
+  { title: "Find your table", detail: "Guests type their name and find their seat." },
+  { title: "Up to five RSVP questions", detail: "Meal choice, song requests, whatever you need to know." },
 ];
+export const PREMIUM_PERKS = PREMIUM_FEATURES.map((f) => f.title);
 
 /** Header badge: "Premium", or "Free plan · Upgrade". Studio projects show nothing. */
 export function PlanBadge({ plan, onUpgrade }: { plan: SitePlan | null; onUpgrade: () => void }) {
@@ -105,7 +114,7 @@ export function PlanBadge({ plan, onUpgrade }: { plan: SitePlan | null; onUpgrad
   );
 }
 
-export function UpgradeDialog({ flow, plan }: { flow: ReturnType<typeof useUpgradeFlow>; plan: SitePlan | null }) {
+export function UpgradeDialog({ flow, plan, onSettings }: { flow: ReturnType<typeof useUpgradeFlow>; plan: SitePlan | null; /** After paying: open the builder's Settings, where the new switches are. */ onSettings?: () => void }) {
   const { step } = flow;
   if (step.kind === "closed") return null;
   const price = plan?.upgradeCentavos ?? 0;
@@ -139,12 +148,34 @@ export function UpgradeDialog({ flow, plan }: { flow: ReturnType<typeof useUpgra
         ) : step.kind === "done" ? (
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>You’re on Premium</h2>
-            <p style={{ margin: "10px 0 0", fontSize: 15, lineHeight: 1.6, color: "#55556a" }}>
-              You’ll get an email for every new RSVP, your guests’ confirmations come from you, and every Premium template is yours to use.
-            </p>
-            <button onClick={flow.close} style={{ ...btn(true), marginTop: 18 }}>
-              Done
-            </button>
+            <p style={{ margin: "14px 0 4px", fontSize: 13, fontWeight: 600, color: "#55556a" }}>Already on</p>
+            <ul style={perkList}>
+              {PREMIUM_FEATURES.filter((f) => f.on).map((f) => (
+                <li key={f.title}>{f.title}</li>
+              ))}
+            </ul>
+            <p style={{ margin: "14px 0 4px", fontSize: 13, fontWeight: 600, color: "#55556a" }}>Turn on when you want them, in Settings</p>
+            <ul style={perkList}>
+              {PREMIUM_FEATURES.filter((f) => !f.on).map((f) => (
+                <li key={f.title}>{f.title}</li>
+              ))}
+            </ul>
+            <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+              {onSettings ? (
+                <button
+                  onClick={() => {
+                    flow.close();
+                    onSettings();
+                  }}
+                  style={btn(true)}
+                >
+                  Open Settings
+                </button>
+              ) : null}
+              <button onClick={flow.close} style={btn(!onSettings)}>
+                Done
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -158,6 +189,8 @@ export function UpgradeDialog({ flow, plan }: { flow: ReturnType<typeof useUpgra
     </div>
   );
 }
+
+const perkList: React.CSSProperties = { margin: 0, paddingLeft: 20, fontSize: 15, lineHeight: 1.7, color: "#55556a" };
 
 function btn(primary: boolean): React.CSSProperties {
   return {

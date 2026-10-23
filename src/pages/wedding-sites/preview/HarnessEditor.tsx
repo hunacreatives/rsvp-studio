@@ -8,9 +8,14 @@ import LookAndFeel from "../builder/LookAndFeel";
 // Dev harness (&panel=1): the real builder panels (content editor + Look & Feel)
 // beside the template, on local state — to try a template's fields and section
 // switches without a signed-in account or a draft row. Nothing is saved.
-export default function HarnessEditor({ initial, templateId }: { initial: EventContent; templateId: string }) {
+/** `cover`: start with the fixture's first photo as the cover photo (&cover=1), to try Look & Feel's cover tools. */
+export default function HarnessEditor({ initial, templateId, cover = false }: { initial: EventContent; templateId: string; cover?: boolean }) {
   const [content, setContent] = useState(initial);
-  const [presentation, setPresentation] = useState<PresentationState>({ activeTemplateId: templateId, byTemplate: {} });
+  const [presentation, setPresentation] = useState<PresentationState>(() => {
+    const first = cover ? initial.galleries[0]?.items[0]?.image : undefined;
+    const def = resolveTemplate({ activeTemplateId: templateId, byTemplate: {} })?.settings;
+    return { activeTemplateId: templateId, byTemplate: first && def ? { [templateId]: { ...def, heroImage: first } } : {} };
+  });
   const resolved = resolveTemplate(presentation);
   if (!resolved) return null;
   const Template = resolved.definition.component;
@@ -19,7 +24,7 @@ export default function HarnessEditor({ initial, templateId }: { initial: EventC
       <aside data-harness-panel style={{ position: "sticky", top: 44, maxHeight: "calc(100vh - 44px)", overflowY: "auto", padding: "8px 16px 40px", background: "#fffff9", borderRight: "1px solid #e5e5ea" }}>
         <details>
           <summary style={{ padding: "14px 4px", cursor: "pointer", fontWeight: 600, fontSize: 14 }}>Look &amp; feel</summary>
-          <LookAndFeel presentation={presentation} onChange={setPresentation} eventId={undefined} loadFontPreviews={false} />
+          <>{(["cover", "colours", "fonts"] as const).map((part) => <LookAndFeel key={part} part={part} presentation={presentation} onChange={setPresentation} eventId={undefined} loadFontPreviews={false} />)}</>
         </details>
         <ContentEditor
           content={content}

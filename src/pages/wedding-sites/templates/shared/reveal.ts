@@ -8,6 +8,13 @@ import type { EventContent, GalleryItem } from "../../content/types";
 //     couple edits. A safety timer reveals anything still hidden after a while.
 //   photosOf: the couple's photos in order (PhotoSlot.tsx shows one).
 
+/** Mark an element shown: our class, plus the site-wide reveal attribute (src/index.css hides
+ *  every [data-reveal] until it's set), so nothing stays invisible where the animation is off. */
+const show = (n: HTMLElement) => {
+  n.classList.add("is-in");
+  n.setAttribute("data-revealed", "true");
+};
+
 export function useReveal(root: RefObject<HTMLElement | null>, enabled: boolean, deps: unknown[] = []) {
   useEffect(() => {
     const el = root.current;
@@ -15,22 +22,27 @@ export function useReveal(root: RefObject<HTMLElement | null>, enabled: boolean,
     const all = () => [...el.querySelectorAll<HTMLElement>("[data-reveal]:not(.is-in)")];
     const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (!enabled || reduce || typeof IntersectionObserver === "undefined") {
-      all().forEach((n) => n.classList.add("is-in"));
+      // Everything shown, including sections added later while the host edits (src/index.css
+      // .rv-off overrides the site-wide [data-reveal] hiding for the whole subtree).
+      el.classList.remove("rv-on");
+      el.classList.add("rv-off");
+      all().forEach(show);
       return;
     }
+    el.classList.remove("rv-off");
     el.classList.add("rv-on");
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (!e.isIntersecting) continue;
-          e.target.classList.add("is-in");
+          show(e.target as HTMLElement);
           io.unobserve(e.target);
         }
       },
       { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
     );
     all().forEach((n) => io.observe(n));
-    const safety = window.setTimeout(() => all().forEach((n) => n.classList.add("is-in")), 6000);
+    const safety = window.setTimeout(() => all().forEach(show), 6000);
     return () => {
       io.disconnect();
       window.clearTimeout(safety);

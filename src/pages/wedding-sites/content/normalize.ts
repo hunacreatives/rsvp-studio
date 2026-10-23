@@ -59,6 +59,7 @@ function normalizeImageAsset(raw: unknown): ImageAsset | undefined {
     height: asNumber(r.height),
     alt: asString(r.alt),
     focalPoint: { x: asNumber(focal.x, 0.5), y: asNumber(focal.y, 0.5) },
+    ...(typeof r.zoom === "number" && r.zoom > 1 ? { zoom: Math.min(3, r.zoom) } : {}),
     createdAt: asString(r.createdAt, new Date(0).toISOString()),
   };
 }

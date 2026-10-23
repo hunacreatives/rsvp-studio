@@ -202,7 +202,7 @@ export default function PreviewHarnessPage() {
           <ul>{parsed.errors.map((e) => <li key={e}>{e}</li>)}</ul>
         </div>
       ) : resolved && !specDefinition && searchParams.get("panel") === "1" ? (
-        <HarnessEditor key={`${templateId}:${fixtureId}`} initial={content} templateId={templateId} />
+        <HarnessEditor key={`${templateId}:${fixtureId}`} initial={content} templateId={templateId} cover={searchParams.get("cover") === "1"} />
       ) : resolved ? (
         <div data-harness-render data-gallery-width={resolved.definition.galleryWidth ?? 1100} style={{ width: previewWidth ?? "100%", maxWidth: "100%", margin: "0 auto" }}>
           <resolved.definition.component content={content} settings={resolved.settings} editorPreview={editorPreview} live={searchParams.get("live") === "1"} demo={searchParams.get("demo") === "1"} gallery={searchParams.get("gallery") === "1"} />

@@ -62,6 +62,8 @@ export interface BaseTemplateSettings {
   /** Per-template hero image swap. Focal point lives on the ImageAsset
    *  itself, so switching templates never requires re-cropping. */
   heroImage?: ImageAsset;
+  /** The host's order for the design's movable sections (TemplateDefinition.sections). */
+  sectionOrder?: string[];
 }
 
 /**

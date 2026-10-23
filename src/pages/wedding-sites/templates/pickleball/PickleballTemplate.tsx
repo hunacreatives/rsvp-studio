@@ -386,7 +386,7 @@ export default function PickleballTemplate({ content, settings, editorPreview = 
                 </Card>
               ) : null}
 
-              {(content.entourage ?? []).some((g) => g.people.length) ? (
+              {vis.entourage !== false && (content.entourage ?? []).some((g) => g.people.length) ? (
                 <Card title={entourageTitle(content)} reveal={reveal}>
                   <EntourageBlock content={{ ...content, motifColors: [] }} heading={false} ink="var(--pb-ink)" muted="var(--pb-soft)" displayFont="var(--pb-sans)" bodyFont="var(--pb-sans)" />
                 </Card>

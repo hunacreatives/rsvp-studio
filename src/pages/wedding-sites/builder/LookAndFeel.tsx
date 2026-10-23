@@ -4,129 +4,133 @@ import { defaultBaseTemplateSettings } from "../engine/render";
 import { fontPairings } from "../presentation/fontPairings";
 import { loadPairingFonts } from "../presentation/loadFonts";
 import { palettes } from "../presentation/palettes";
-import { defaultSectionVisibility, type BaseTemplateSettings, type PresentationState, type SectionVisibility } from "../presentation/types";
+import type { BaseTemplateSettings, PresentationState } from "../presentation/types";
 import { ImageUploadField } from "./components/ImageUploadField";
+import Reposition from "./components/Reposition";
 import "./builder.css";
 
-// "Look & feel" in the builder: cover photo, colours, fonts, and which sections
-// show. Settings are saved per template (switching templates keeps each one's).
-// Uploaded (spec) designs bring their own colours and fonts, so only the cover
-// photo and sections apply to them.
+// The Details panel's Style pages: cover photo, colours, fonts. Settings are saved per
+// template (switching templates keeps each one's). Uploaded (spec) designs bring their own
+// colours and fonts, so only the cover photo applies to them.
 
-const SECTIONS: { key: keyof SectionVisibility; label: string }[] = [
-  { key: "hostIntro", label: "Your story" },
-  { key: "schedule", label: "Schedule" },
-  { key: "venue", label: "Venue" },
-  { key: "gallery", label: "Photos" },
-  { key: "accommodations", label: "Where to stay" },
-  { key: "travelInformation", label: "Getting there" },
-  { key: "registry", label: "Gifts" },
-  { key: "faqs", label: "FAQs" },
-  { key: "rsvp", label: "RSVP form" },
-];
+export type StylePart = "cover" | "colours" | "fonts";
+
+/** What the Style tab's rows say: the current palette and fonts, and whether colours/fonts apply. */
+export function styleSummary(presentation: PresentationState) {
+  const id = presentation.activeTemplateId;
+  const def = getTemplateDefinition(id);
+  const settings = { ...defaultBaseTemplateSettings(), ...def?.defaultSettings, ...presentation.byTemplate[id] } as BaseTemplateSettings;
+  return {
+    own: getCatalogEntry(id)?.kind === "spec",
+    cover: settings.heroImage?.masterUrl,
+    palette: palettes.find((p) => p.id === settings.paletteId)?.label ?? "",
+    fonts: fontPairings.find((f) => f.id === settings.fontPairingId)?.label ?? "",
+  };
+}
 
 export default function LookAndFeel({
+  part,
   presentation,
   onChange,
   eventId,
   loadFontPreviews = true,
 }: {
+  part: StylePart;
   presentation: PresentationState;
   onChange: (next: PresentationState) => void;
   eventId: string | undefined;
-  /** False while the panel is collapsed: the "Aa" samples would download every pairing's fonts. */
+  /** False until the Fonts page opens: the "Aa" samples would download every pairing's fonts. */
   loadFontPreviews?: boolean;
 }) {
   const id = presentation.activeTemplateId;
   const def = getTemplateDefinition(id);
   if (!def) return <p style={{ fontSize: 13, color: "var(--slate)" }}>Pick a template first.</p>;
-  const isSpec = getCatalogEntry(id)?.kind === "spec";
   const settings: BaseTemplateSettings = { ...defaultBaseTemplateSettings(), ...def.defaultSettings, ...presentation.byTemplate[id] };
-  const visibility = { ...defaultSectionVisibility, ...settings.sectionVisibility };
-  const sections = def.hideable ?? SECTIONS;
   const set = (patch: Partial<BaseTemplateSettings>) => onChange({ ...presentation, byTemplate: { ...presentation.byTemplate, [id]: { ...settings, ...patch } } });
 
-  return (
-    <div style={{ display: "grid", gap: 18 }}>
+  if (part === "cover")
+    return (
       <div>
-        <p style={label}>Cover photo</p>
-        <ImageUploadField
-          eventId={eventId}
-          masterUrl={settings.heroImage?.masterUrl ?? ""}
-          onUrlChange={(masterUrl) => set({ heroImage: masterUrl ? { ...(settings.heroImage ?? blankImage()), masterUrl } : undefined })}
-          onUploaded={(u) => set({ heroImage: { ...(settings.heroImage ?? blankImage()), masterUrl: u.masterUrl, width: u.width, height: u.height } })}
-        />
         {settings.heroImage?.masterUrl ? (
-          <button type="button" onClick={() => set({ heroImage: undefined })} style={linkBtn}>
-            Use the template’s own image
-          </button>
+          <Reposition
+            url={settings.heroImage.masterUrl}
+            width={settings.heroImage.width}
+            height={settings.heroImage.height}
+            focus={settings.heroImage.focalPoint ?? { x: 0.5, y: 0.5 }}
+            onChange={(focalPoint) => set({ heroImage: { ...settings.heroImage!, focalPoint } })}
+            zoom={settings.heroImage.zoom ?? 1}
+            onZoom={(zoom) => set({ heroImage: { ...settings.heroImage!, zoom } })}
+            style={{ marginBottom: 12 }}
+          />
         ) : (
-          <p style={hint}>Shown at the top of your site. Leave empty to keep the template’s design.</p>
+          <p style={hint}>Shown at the top of your site. Leave it empty to keep the design’s own image, or drop a photo on the page.</p>
         )}
-      </div>
-
-      {!isSpec ? (
-        <>
-          <div>
-            <p style={label}>Colours</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {palettes.map((p) => (
-                <button key={p.id} type="button" className="rb-tap44" onClick={() => set({ paletteId: p.id })} aria-pressed={settings.paletteId === p.id} style={choice(settings.paletteId === p.id)}>
-                  <span style={{ display: "flex", gap: 3 }}>
-                    {p.swatches.slice(0, 3).map((c) => (
-                      <span key={c} style={{ width: 14, height: 14, borderRadius: 999, background: c, border: "1px solid rgba(0,0,0,.12)" }} />
-                    ))}
-                  </span>
-                  <span style={{ fontSize: 12 }}>{p.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p style={label}>Fonts</p>
-            <div style={{ display: "grid", gap: 8 }}>
-              {fontPairings.map((f) => {
-                if (loadFontPreviews) loadPairingFonts(f.id);
-                return (
-                  <button key={f.id} type="button" onClick={() => set({ fontPairingId: f.id })} aria-pressed={settings.fontPairingId === f.id} style={{ ...choice(settings.fontPairingId === f.id), justifyContent: "space-between" }}>
-                    <span style={{ fontFamily: f.displayFont, fontSize: 18 }}>Aa</span>
-                    <span style={{ fontFamily: f.bodyFont, fontSize: 13 }}>{f.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      ) : null}
-
-      <div>
-        <p style={label}>Sections to show</p>
-        <div style={{ display: "grid", gap: 6 }}>
-          {sections.map((s) => (
-            <label key={s.key} className="rb-check-row" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--ink)" }}>
-              <input type="checkbox" className="rb-check" checked={visibility[s.key] !== false} onChange={(e) => set({ sectionVisibility: { ...visibility, [s.key]: e.target.checked } })} />
-              {s.label}
-              {s.key === "rsvp" && !visibility.rsvp ? <span style={{ fontSize: 12, color: "#8a5a00" }}>— guests won’t be able to reply</span> : null}
-            </label>
-          ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 10 }}>
+          <ImageUploadField
+            eventId={eventId}
+            masterUrl=""
+            replaceLabel={settings.heroImage?.masterUrl ? "Replace" : undefined}
+            onUploaded={(u) => set({ heroImage: { ...(settings.heroImage ?? blankImage()), masterUrl: u.masterUrl, width: u.width, height: u.height, focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 } })}
+          />
+          {settings.heroImage?.masterUrl ? (
+            <button type="button" onClick={() => set({ heroImage: undefined })} style={linkBtn}>
+              Use the design’s own image
+            </button>
+          ) : null}
         </div>
       </div>
+    );
+
+  if (part === "colours")
+    return (
+      <div>
+        <p style={hint}>Pick a palette. Your fonts stay as they are.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px 8px", marginTop: 14 }}>
+          {palettes.map((p) => {
+            const on = settings.paletteId === p.id;
+            return (
+              <button key={p.id} type="button" onClick={() => set({ paletteId: p.id })} aria-pressed={on} style={{ display: "grid", gap: 6, padding: 0, border: 0, background: "none", cursor: "pointer", textAlign: "left", minWidth: 0 }}>
+                <span style={{ display: "flex", height: 48, borderRadius: 8, overflow: "hidden", outline: on ? "2px solid var(--ink)" : "1px solid var(--line)", outlineOffset: on ? 2 : -1 }}>
+                  {p.swatches.slice(0, 3).map((c, i) => (
+                    <span key={`${c}${i}`} style={{ flex: 1, background: c }} />
+                  ))}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink)", lineHeight: 1.25 }}>{p.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+
+  return (
+    <div style={{ display: "grid", gap: 2 }}>
+      {fontPairings.map((f) => {
+        if (loadFontPreviews) loadPairingFonts(f.id);
+        const on = settings.fontPairingId === f.id;
+        return (
+          <button
+            key={f.id}
+            type="button"
+            className="dp-row"
+            onClick={() => set({ fontPairingId: f.id })}
+            aria-pressed={on}
+            style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 52, padding: "0 10px", margin: "0 -10px", border: 0, borderRadius: 8, background: on ? "var(--paper)" : "transparent", cursor: "pointer", textAlign: "left" }}
+          >
+            <span style={{ width: 36, fontFamily: f.displayFont, fontSize: 22, color: "var(--ink)" }}>Aa</span>
+            <span style={{ flex: 1, fontFamily: f.bodyFont, fontSize: 14, color: "var(--ink)" }}>{f.label}</span>
+            {on ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="m6 12.5 4 4 8-9" />
+              </svg>
+            ) : null}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 const blankImage = () => ({ id: `cover-${Date.now()}`, masterUrl: "", width: 1600, height: 1000, alt: "", focalPoint: { x: 0.5, y: 0.5 }, createdAt: new Date().toISOString() });
-const label: CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--ink)", margin: "0 0 8px" };
-const hint: CSSProperties = { fontSize: 12, color: "var(--slate)", margin: "6px 0 0" };
-const linkBtn: CSSProperties = { marginTop: 6, border: "none", background: "none", padding: 0, fontSize: 12, color: "var(--slate)", textDecoration: "underline", cursor: "pointer" };
-const choice = (on: boolean): CSSProperties => ({
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 10px",
-  borderRadius: 10,
-  border: on ? "2px solid var(--ink)" : "1px solid var(--line)",
-  background: "#fff",
-  cursor: "pointer",
-  textAlign: "left",
-});
+const hint: CSSProperties = { fontSize: 13, lineHeight: 1.5, color: "var(--slate)", margin: 0 };
+const linkBtn: CSSProperties = { border: "none", background: "none", padding: 0, fontSize: 13, color: "var(--slate)", textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" };

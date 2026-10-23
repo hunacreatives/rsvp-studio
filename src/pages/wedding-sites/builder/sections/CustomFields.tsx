@@ -55,7 +55,7 @@ export default function CustomFields({
         const on = visibility?.[s.key] !== false;
         const own = fields.filter((f) => f.section === s.key);
         return (
-          <div key={s.key} style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+          <div key={s.key} data-edit-section={s.key} style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
             <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{s.label}</p>
             {onShowSection ? <ShowSection on={on} onChange={(v) => onShowSection(s.key, v)} /> : null}
             <div style={{ opacity: on ? 1 : 0.55 }}>{own.map((f) => field(f, own.length === 1))}</div>
