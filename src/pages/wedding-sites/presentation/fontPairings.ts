@@ -89,6 +89,21 @@ export const fontPairings: FontPairingOption[] = [
     displayFont: '"Bodoni Moda", Didot, "Bodoni 72", Georgia, serif',
     bodyFont: '"Newsreader", Georgia, serif',
   },
+  {
+    // Calado: a flowing script for the stitched name, EB Garamond for everything else.
+    id: "pinyon-garamond",
+    label: "Pinyon Script & EB Garamond",
+    displayFont: '"Pinyon Script", cursive',
+    bodyFont: '"EB Garamond", Garamond, Georgia, serif',
+  },
+  {
+    // Under Glass: Bodoni for the name and the foil numeral, EB Garamond for the text (it also
+    // loads Caveat for handwritten slips and Courier Prime for the typed program).
+    id: "bodoni-garamond",
+    label: "Bodoni Moda & EB Garamond",
+    displayFont: '"Bodoni Moda", Didot, "Bodoni 72", Georgia, serif',
+    bodyFont: '"EB Garamond", Garamond, Georgia, serif',
+  },
 ];
 
 export const defaultFontPairingId = fontPairings[0].id;

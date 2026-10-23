@@ -84,6 +84,10 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
           attending,
           // No "are you coming?" question in the design: a reply means yes.
           guests: attending === "no" ? 0 : Math.min(maxGuests, Number(values.guests ?? 1) || 1),
+          // Designs that ask how many of the party are kids (Calado): sent only then.
+          ...(values.kids !== undefined && attending !== "no" ? { kids: Math.max(0, Number(values.kids) || 0) } : {}),
+          // Designs with a message wall: whether the guest wants their message shown there.
+          ...(values.share !== undefined ? { share: values.share === "1" } : {}),
           dietary: attending !== "no" ? values.dietary ?? "" : "",
           // A personal link ties the reply to that guest.
           g: invitee?.token ?? "",

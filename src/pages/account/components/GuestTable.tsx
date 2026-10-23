@@ -10,6 +10,12 @@ export type Guest = {
   created_at: string | null;
   bringing?: string | null;
   guest_count?: number | null;
+  /** The guest asked for their message to show on the site's message wall (Under Glass). */
+  message_public?: boolean | null;
+  /** The host hid it from the wall. */
+  message_hidden?: boolean | null;
+  /** Of guest_count, how many are kids (designs that ask, e.g. Calado). */
+  kid_count?: number | null;
   attending?: boolean | null;
   dietary?: string | null;
   answers?: Record<string, string> | null;
@@ -19,7 +25,8 @@ export type Guest = {
 /** Save a guest list as a CSV (opens in Excel/Sheets). Also used before deleting a project. */
 export function downloadGuestCsv(rows: Guest[], hasDetails = rows.some((g) => g.attending !== undefined && g.attending !== null), fileName = "rsvps.csv") {
   const questions = [...new Set(rows.flatMap((g) => Object.keys(g.answers ?? {})))];
-  const header = ["Name", "Email", "Mobile", ...(hasDetails ? ["Coming", "Party size", "Dietary"] : []), ...questions, "Bringing", "Message", "Submitted"];
+  const kids = rows.some((g) => g.kid_count != null);
+  const header = ["Name", "Email", "Mobile", ...(hasDetails ? ["Coming", "Party size", ...(kids ? ["Kids"] : []), "Dietary"] : []), ...questions, "Bringing", "Message", "Submitted"];
   // Every cell quoted with its quotes doubled; a leading = + - @ is neutralised so a
   // name can't run as a spreadsheet formula.
   const cell = (v: string) => `"${(/^[=+\-@]/.test(v) ? `'${v}` : v).replace(/"/g, '""')}"`;
@@ -28,7 +35,7 @@ export function downloadGuestCsv(rows: Guest[], hasDetails = rows.some((g) => g.
     g.email ?? "",
     g.phone ?? "",
     ...(hasDetails
-      ? [g.attending === true ? "Yes" : g.attending === false ? "No" : "", g.attending ? String(g.guest_count ?? 1) : "", g.dietary ?? ""]
+      ? [g.attending === true ? "Yes" : g.attending === false ? "No" : "", g.attending ? String(g.guest_count ?? 1) : "", ...(kids ? [g.attending ? String(g.kid_count ?? 0) : ""] : []), g.dietary ?? ""]
       : []),
     ...questions.map((q) => g.answers?.[q] ?? ""),
     g.bringing ?? "",
@@ -49,7 +56,22 @@ export function downloadGuestCsv(rows: Guest[], hasDetails = rows.some((g) => g.
 /** `manage`: DIY projects — add a reply by hand, edit or remove one (supabase/host-rsvps.sql). */
 export type GuestManage = { onAdd: () => void; onEdit: (g: Guest) => void; onDelete: (g: Guest) => void };
 
-export default function GuestTable({ guests, manage }: { guests: Guest[]; manage?: GuestManage }) {
+/** A message the guest shared to the wall: whether it shows, and the host's switch. */
+function WallSwitch({ g, onToggle }: { g: Guest; onToggle?: (g: Guest) => void }) {
+  if (!g.message_public || !g.message) return null;
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[12.5px] not-italic" style={{ color: "var(--slate)" }}>
+      {g.message_hidden ? "Hidden from your website" : "On your website’s message wall"}
+      {onToggle ? (
+        <button type="button" onClick={() => onToggle(g)} className="min-h-[36px] font-medium text-[var(--acc-blue)] hover:underline">
+          {g.message_hidden ? "Show it" : "Hide it"}
+        </button>
+      ) : null}
+    </span>
+  );
+}
+
+export default function GuestTable({ guests, manage, onToggleWall }: { guests: Guest[]; manage?: GuestManage; onToggleWall?: (g: Guest) => void }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "with" | "without" | "coming" | "declined">("all");
   // Only newer RSVP forms ask whether guests are coming; older event
@@ -72,6 +94,7 @@ export default function GuestTable({ guests, manage }: { guests: Guest[]; manage
   const coming = guests.filter((g) => g.attending === true);
   const declined = guests.filter((g) => g.attending === false).length;
   const headcount = coming.reduce((n, g) => n + (g.guest_count ?? 1), 0);
+  const kidcount = coming.reduce((n, g) => n + (g.kid_count ?? 0), 0);
   const dietaryNotes = coming.filter((g) => g.dietary).length;
 
   const exportCsv = () => downloadGuestCsv(filtered, hasDetails);
@@ -156,6 +179,7 @@ export default function GuestTable({ guests, manage }: { guests: Guest[]; manage
               {hasDetails && g.attending === true ? (
                 <span className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#ecfbcc", color: "#3d5a12" }}>
                   Coming{g.guest_count && g.guest_count > 1 ? ` · ${g.guest_count}` : ""}
+                  {g.kid_count ? ` (${g.kid_count} ${g.kid_count === 1 ? "kid" : "kids"})` : ""}
                 </span>
               ) : hasDetails && g.attending === false ? (
                 <span className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#ececec", color: "#55556a" }}>Not coming</span>
@@ -185,7 +209,10 @@ export default function GuestTable({ guests, manage }: { guests: Guest[]; manage
               </p>
             ) : null}
             {g.message ? (
-              <p className="mt-2 text-[14px] italic" style={{ color: "var(--slate)" }}>“{g.message}”</p>
+              <p className="mt-2 text-[14px] italic" style={{ color: "var(--slate)" }}>
+                “{g.message}”
+                <WallSwitch g={g} onToggle={onToggleWall} />
+              </p>
             ) : null}
             {g.created_at ? (
               <p className="mt-2 text-[12px]" style={{ color: "var(--slate)" }}>
@@ -245,7 +272,10 @@ export default function GuestTable({ guests, manage }: { guests: Guest[]; manage
                         "—"
                       )}
                     </td>
-                    <td className="px-5 py-3">{g.attending ? g.guest_count ?? 1 : "—"}</td>
+                    <td className="px-5 py-3">
+                      {g.attending ? g.guest_count ?? 1 : "—"}
+                      {g.attending && g.kid_count ? <span style={{ color: "var(--slate)" }}>{` (${g.kid_count} ${g.kid_count === 1 ? "kid" : "kids"})`}</span> : null}
+                    </td>
                     <td className="px-5 py-3" style={{ color: "var(--slate)" }}>{g.dietary || "—"}</td>
                   </>
                 ) : null}
@@ -256,6 +286,7 @@ export default function GuestTable({ guests, manage }: { guests: Guest[]; manage
                     </span>
                   ))}
                   <span className="italic">{g.message || (g.answers && Object.keys(g.answers).length ? "" : "—")}</span>
+                  <WallSwitch g={g} onToggle={onToggleWall} />
                 </td>
                 <td className="px-5 py-3" style={{ color: "var(--slate)" }}>
                   {g.created_at ? new Date(g.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
@@ -281,7 +312,7 @@ export default function GuestTable({ guests, manage }: { guests: Guest[]; manage
 
       <p className="mt-3 text-[13px]" style={{ color: "var(--slate)" }}>
         {hasDetails
-          ? `${coming.length} coming (${headcount} ${headcount === 1 ? "person" : "people"} in total) · ${declined} can’t make it${dietaryNotes ? ` · ${dietaryNotes} with dietary needs` : ""} · ${withMessage} left a message.`
+          ? `${coming.length} coming (${headcount} ${headcount === 1 ? "person" : "people"} in total${kidcount ? `, ${kidcount} ${kidcount === 1 ? "kid" : "kids"}` : ""}) · ${declined} can’t make it${dietaryNotes ? ` · ${dietaryNotes} with dietary needs` : ""} · ${withMessage} left a message.`
           : `${withMessage} of ${guests.length} left a message.`}
       </p>
     </div>

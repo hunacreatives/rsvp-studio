@@ -318,7 +318,20 @@ function GuestsTab({ project }: { project: Project }) {
       ) : null}
     </Panel>
   ) : (
-    <GuestTable guests={guests} manage={manage} />
+    <GuestTable
+      guests={guests}
+      manage={manage}
+      onToggleWall={
+        demo
+          ? undefined
+          : async (g) => {
+              const next = !g.message_hidden;
+              const { error } = await supabase.from("rsvps").update({ message_hidden: next }).eq("id", g.id);
+              if (error) return window.alert("Couldn’t change it. Please try again.");
+              setGuests((cur) => cur?.map((x) => (x.id === g.id ? { ...x, message_hidden: next } : x)) ?? cur);
+            }
+      }
+    />
   );
   const editor = editing ? (
     <GuestEditor

@@ -17,7 +17,7 @@ import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.BASE ?? "http://localhost:5173";
-const ALL = ["editorial-formal", "modern-minimal", "scrapbook", "cinematic", "pickleball", "open-play", "debut", "love-letter", "capiz", "promenade"];
+const ALL = ["editorial-formal", "modern-minimal", "scrapbook", "cinematic", "pickleball", "open-play", "debut", "love-letter", "capiz", "promenade", "calado", "under-glass"];
 const ids = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const OUT = process.env.OUT_DIR ? new URL(`file://${process.env.OUT_DIR.replace(/\/?$/, "/")}`) : new URL("../public/event-templates/cards/", import.meta.url);
 mkdirSync(OUT, { recursive: true });
@@ -37,7 +37,9 @@ for (const id of ids) {
   await page.waitForTimeout(2500); // entrance animations settle
   const box = await page.evaluate(() => {
     const r = document.querySelector("[data-harness-render]").getBoundingClientRect();
-    return { x: r.left + scrollX, y: r.top + scrollY };
+    // Whole pixels, a little inside the top edge: a fraction above it would catch a line of
+    // the harness bar above the render (a faint dark line along the top of the card).
+    return { x: Math.round(r.left + scrollX), y: Math.ceil(r.top + scrollY) + 2 };
   });
   const cdp = await page.context().newCDPSession(page);
   const { data } = await cdp.send("Page.captureScreenshot", {

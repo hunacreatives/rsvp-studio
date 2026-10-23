@@ -50,15 +50,17 @@ export default function TemplatePreviewPage() {
         <Link to="/build#designs" className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 text-[14px] text-[var(--slate)] hover:text-[var(--ink)]">
           <i className="ri-arrow-left-line text-[18px]" aria-hidden /> <span className="hidden sm:inline">All designs</span><span className="sr-only sm:hidden">All designs</span>
         </Link>
-        <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[var(--ink)]">
-          {definition.label}
-          <span className={`ml-2 rounded-full px-2 py-0.5 align-middle text-[11px] font-semibold ${definition.tier === "premium" ? "bg-[var(--acc-yellow)] text-[var(--ink)]" : "bg-[var(--paper)] text-[var(--slate)]"}`}>
+        <p className="flex min-w-0 flex-1 items-center text-[15px] font-semibold text-[var(--ink)]">
+          <span className="truncate">{definition.label}</span>
+          <span className={`ml-2 shrink-0 rounded-full px-2 py-0.5 align-middle text-[11px] font-semibold ${definition.tier === "premium" ? "bg-[var(--acc-yellow)] text-[var(--ink)]" : "bg-[var(--paper)] text-[var(--slate)]"}`}>
             {definition.tier === "premium" ? "Premium" : "Free"}
           </span>
-          <span className="ml-2 hidden text-[13px] font-normal text-[var(--slate)] md:inline">A sample. Your names, photos and details go in its place.</span>
+          <span className="ml-2 hidden truncate text-[13px] font-normal text-[var(--slate)] md:inline">A sample. Your names, photos and details go in its place.</span>
         </p>
         <button onClick={() => navigate(`/build?start=${encodeURIComponent(templateId)}`)} className="btn btn-primary !px-5 !py-2.5 !text-[12px]">
-          Use this design
+          {/* Narrow phones: shorter, so the design's name and badge keep their room. */}
+          <span className="hidden min-[380px]:inline">Use this design</span>
+          <span className="min-[380px]:hidden">Use design</span>
         </button>
       </div>
       <SiteCreditProvider value={{ show: true }}>

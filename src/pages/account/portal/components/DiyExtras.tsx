@@ -9,7 +9,7 @@ import { OutlineCard } from "../ui";
 // enquiry form already filled in with this project (date, names, occasion), and
 // Studio → Leads shows which DIY project it came from. One list, inline actions.
 
-const OCCASION: Record<string, string> = { wedding: "wedding", birthday: "birthday", anniversary: "anniversary" };
+const OCCASION: Record<string, string> = { wedding: "wedding", birthday: "birthday", anniversary: "anniversary", baby: "christening" };
 
 export default function DiyExtras({ project }: { project: Project }) {
   const { sites } = usePortal();

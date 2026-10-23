@@ -34,7 +34,10 @@ export function ListEditor<T>({ items, onChange, createItem, renderItem, addLabe
     if (to < 0 || to >= items.length) return;
     const next = items.slice();
     [next[index], next[to]] = [next[to], next[index]];
-    onChange(next);
+    // Lists whose items carry their own `order` (photos, FAQs): sites sort by it, so a move
+    // has to renumber it too, or the site would put them straight back.
+    const ordered = next.every((it) => typeof (it as { order?: unknown }).order === "number");
+    onChange(ordered ? next.map((it, i) => ({ ...it, order: i })) : next);
   }
 
   function add() {

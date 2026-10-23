@@ -19,8 +19,9 @@ const GUEST_CHOICES = [
   { value: "no", label: "Sorry, I can't make it" },
 ];
 
-/** `reveal`: fade in when scrolled to (published page). Otherwise it's simply there. */
-export default function RsvpSection({ content, editorPreview, reveal }: { content: EventContent; editorPreview: boolean; reveal: boolean }) {
+/** `reveal`: fade in when scrolled to (published page). Otherwise it's simply there.
+ *  `dress`: show the dress code above the button (off when the page has its own What to wear). */
+export default function RsvpSection({ content, editorPreview, reveal, dress: withDress = true }: { content: EventContent; editorPreview: boolean; reveal: boolean; dress?: boolean }) {
   const ref = useRef<HTMLElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(!reveal);
@@ -29,7 +30,7 @@ export default function RsvpSection({ content, editorPreview, reveal }: { conten
   const form = useRsvpForm(content, editorPreview, { asksAttending: true });
   const id = useId();
   const plural = isPlural(content);
-  const dress = customValue(content, "dressCode");
+  const dress = withDress ? customValue(content, "dressCode") : "";
   const title = customValue(content, "rsvpTitle") || "Will You Join Us?";
   const note = customValue(content, "rsvpNote") || `${plural ? "We" : "I"} would love to celebrate with you!`;
   const thanks = customValue(content, "thankYou") || `See you on ${plural ? "our" : "my"} special day!`;
@@ -72,7 +73,7 @@ export default function RsvpSection({ content, editorPreview, reveal }: { conten
     <section id="rsvp" ref={ref} className="cn-rsvp">
       <div className="cn-rsvp__fade" />
       <div className={`cn-rsvp__inner${visible ? " is-on" : ""}`}>
-        {!done && (dress || editorPreview) ? (
+        {!done && (dress || (editorPreview && withDress)) ? (
           <div className={`cn-dress${visible ? " is-on" : ""}`}>
             <p className="cn-script">Dress Code</p>
             <p className={`cn-hand cn-hand--note${dress ? "" : " cn-hint"}`}>{dress || "Add a dress code in this template’s details, or leave it empty to hide it."}</p>

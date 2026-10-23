@@ -9,26 +9,34 @@ import { CINEMATIC_CSS } from "./styles";
 import { useParticles } from "./useParticles";
 import { useScrollScrubVideo } from "./useScrollScrubVideo";
 import { formatWhen, headlineLines, venueLine } from "./content";
+import { customValue } from "../../content/custom";
 import Polaroids from "./sections/Polaroids";
 import RsvpSection from "./sections/RsvpSection";
 import { Heart } from "./sections/Heart";
-import { CashGifts, hasCashGifts } from "../shared/CashGifts";
-import EntourageBlock, { entourageTitle, hasEntourage } from "../shared/Entourage";
+import VenueLinks from "../shared/VenueLinks";
+import { useReveal } from "../shared/reveal";
+import { PAPER_GRAIN } from "../shared/stationery";
+import Garden, { Bloom } from "./sections/Garden";
 
 /**
- * The "gel-at-30" design, rebuilt 1:1 from the real site
+ * In Bloom (id "cinematic"). The hero is the "gel-at-30" design, rebuilt 1:1 from the real site
  * (~/angelica-birthday-website): a watercolor floral background that stays
  * put (a scroll-scrubbed blooming video on phones), the headline shown
  * full-screen first and then the page revealing in stages, two tilted
  * polaroids with stickers, handwritten details, and a frosted RSVP card.
  *
- * Template-only fields (index.tsx): headline, dress code, RSVP card wording.
+ * Below it the page turns to cream paper for the garden party (sections/Garden.tsx): the
+ * evening as place cards, what to wear, a polaroid wall, gifts, good to know, and the RSVP.
+ * Watercolor blooms cut from the background painting open at the sections' edges as they
+ * scroll in (published page and design preview only).
+ *
+ * Template-only fields (index.tsx): headline, dress code, evening heading, RSVP card wording.
  */
 
 // The reference's reveal timeline, in ms from page load.
 const T = { fade: 2200, headline: 3000, message: 3800, details: 4600 };
 
-export default function CinematicTemplate({ content, settings, editorPreview = false, live = false }: TemplateProps<BaseTemplateSettings>) {
+export default function CinematicTemplate({ content, settings, editorPreview = false, live = false, demo = false }: TemplateProps<BaseTemplateSettings>) {
   const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
   const reduced = usePrefersReducedMotion();
@@ -68,6 +76,13 @@ export default function CinematicTemplate({ content, settings, editorPreview = f
   const venue = venueLine(content);
   const paragraphs = (content.story ?? "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   const photos = content.galleries[0]?.items ?? [];
+  // The hero's two polaroids, then the wall.
+  const wall = content.galleries.flatMap((g) => [...g.items].sort((a, b) => a.order - b.order)).filter((i) => i.image?.masterUrl).slice(2).map((i) => i.image);
+  const vis = settings.sectionVisibility;
+  const hasDress = vis.dress !== false && !!(customValue(content, "dressCode") || (content.motifColors ?? []).length || editorPreview);
+  // The garden's reveals (blooms opening, cards dropping in): published page and design preview.
+  const paperRef = useRef<HTMLDivElement>(null);
+  useReveal(paperRef, (live || demo) && !reduced && !editorPreview, [wall.length, content.schedule.length]);
   const on = (n: number) => (stage >= n ? " is-on" : "");
 
   // Colours the reference hard-codes, taken from the theme so Look & Feel can recolour them.
@@ -162,6 +177,7 @@ export default function CinematicTemplate({ content, settings, editorPreview = f
               ) : editorPreview ? (
                 <p className="cn-hand cn-hand--venue cn-hint">Venue</p>
               ) : null}
+              <VenueLinks content={content} font="var(--cn-sans)" color="var(--cn-sage-strong)" size={14} style={{ marginTop: 10 }} />
             </div>
           ) : null}
 
@@ -175,38 +191,19 @@ export default function CinematicTemplate({ content, settings, editorPreview = f
         </div>
       </main>
 
-      {settings.sectionVisibility.rsvp !== false ? <RsvpSection content={content} editorPreview={editorPreview} reveal={animate} /> : null}
-
-      {/* Entourage after the RSVP card: the dress code above the card tucks up into whatever comes before it. */}
-      {hasEntourage(content) ? (
-        <section className="cn-rsvp" style={{ textAlign: "center" }}>
-          <p className="cn-hand" style={{ fontSize: "clamp(1.8rem, 6cqw, 2.4rem)", marginBottom: "1.2rem" }}>
-            {entourageTitle(content)}
-          </p>
-          <EntourageBlock content={content} heading={false} ink="currentColor" muted="#8a8580" displayFont="inherit" bodyFont="inherit" />
-        </section>
-      ) : null}
-      {/* Gifts: only when the host adds registry links or cash gifts (the original design has none). */}
-      {content.registryLinks.length || hasCashGifts(content) ? (
-        <section className="cn-rsvp" style={{ textAlign: "center" }}>
-          <p className="cn-hand" style={{ fontSize: "clamp(1.8rem, 6cqw, 2.4rem)" }}>Gifts</p>
-          {content.registryLinks.length ? (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 14 }}>
-              {content.registryLinks.map((r) => (
-                <a key={r.id} href={r.url || undefined} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--cn-sage) 45%, transparent)", color: "var(--cn-sage-strong)", fontFamily: "var(--cn-sans)", fontSize: 15, textDecoration: "none", background: "rgba(255,255,255,0.6)" }}>
-                  {r.storeName}
-                </a>
-              ))}
+      {/* The garden party, on cream paper the hero's watercolor melts into. */}
+      <div ref={paperRef} className="cn-paper" style={{ ["--grain" as string]: `url("${PAPER_GRAIN}")` }}>
+        <Garden content={content} editorPreview={editorPreview} photos={wall} vis={vis} />
+        {vis.rsvp !== false ? (
+          <div className="cn-sec cn-sec--rsvp" data-reveal>
+            <Bloom name="pinksmall" side="l" top="3rem" size="clamp(80px, 12cqw, 150px)" turn={14} />
+            <Bloom name="bud" side="r" top="8rem" size="clamp(64px, 9cqw, 110px)" turn={-12} delay={0.25} />
+            <div className="cn-sec__in">
+              <RsvpSection content={content} editorPreview={editorPreview} reveal={animate} dress={!hasDress} />
             </div>
-          ) : null}
-          <div style={{ maxWidth: 560, margin: "0 auto" }}>
-            <CashGifts
-              content={content}
-              look={{ ink: "var(--cn-sage-strong)", muted: "var(--cn-sage-strong)", surface: "rgba(255,255,255,0.7)", line: "color-mix(in srgb, var(--cn-sage) 35%, transparent)", bodyFont: "var(--cn-sans)", displayFont: "var(--cn-hand)", radius: 18 }}
-            />
           </div>
-        </section>
-      ) : null}
+        ) : null}
+      </div>
 
       {credit.show ? (
         <footer className="cn-footer">

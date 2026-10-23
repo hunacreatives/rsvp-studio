@@ -9,6 +9,8 @@ import { cinematicDemoBirthday } from "../content/fixtures/cinematic-demo";
 import { pickleballDemoBirthday } from "../content/fixtures/pickleball-demo";
 import { openPlayDemo } from "../content/fixtures/open-play-demo";
 import { capizDemo } from "../content/fixtures/capiz-demo";
+import { caladoDemo } from "../content/fixtures/calado-demo";
+import { underGlassDemo } from "../content/fixtures/under-glass-demo";
 import { debutDemo } from "../content/fixtures/debut-demo";
 import { loveLetterDemo } from "../content/fixtures/love-letter-demo";
 import { promenadeDemo } from "../content/fixtures/promenade-demo";
@@ -48,6 +50,10 @@ const fixtures: Record<string, unknown> = {
   "pickleball-demo": pickleballDemoBirthday,
   "open-play-demo": openPlayDemo,
   "capiz-demo": capizDemo,
+  "calado-demo": caladoDemo,
+  "under-glass-demo": underGlassDemo,
+  // The same design for a 50th anniversary.
+  "under-glass-anniversary": { ...underGlassDemo, occasion: "anniversary", hosts: [{ id: "a1", name: "Ramon Reyes" }, { id: "a2", name: "Elena Reyes" }], custom: { ...underGlassDemo.custom, honoree: "", milestone: "50" } },
   "debut-demo": debutDemo,
   "love-letter-demo": loveLetterDemo,
   "promenade-demo": promenadeDemo,

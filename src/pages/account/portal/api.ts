@@ -40,6 +40,11 @@ export type Guest = {
   created_at: string | null;
   bringing?: string | null;
   guest_count?: number | null;
+  /** Of guest_count, how many are kids (supabase/baby-events.sql). */
+  kid_count?: number | null;
+  /** Shared to the site's message wall, and whether the host hid it (supabase/under-glass.sql). */
+  message_public?: boolean | null;
+  message_hidden?: boolean | null;
   attending?: boolean | null;
   dietary?: string | null;
   /** Answers to the hosts' own questions, by question (supabase/guest-links.sql). */

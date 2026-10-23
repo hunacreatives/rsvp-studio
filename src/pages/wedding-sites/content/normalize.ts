@@ -158,6 +158,7 @@ function normalizeGalleryItem(raw: unknown, index: number): GalleryItem | undefi
     id: asString(r.id),
     image,
     caption: asOptionalString(r.caption),
+    back: asOptionalString(r.back),
     order: asNumber(r.order, index),
     layoutHint:
       layoutHint === "wide" || layoutHint === "portrait" || layoutHint === "standard"
@@ -230,7 +231,7 @@ export function normalizeEventContent(raw: unknown): EventContent {
     faqs,
     keyPeople: asArray<unknown>(r.keyPeople).map(normalizePerson),
     rsvpTableName: asString(r.rsvpTableName),
-    occasion: (["wedding", "birthday", "anniversary", "other"] as const).find((o) => o === r.occasion),
+    occasion: (["wedding", "birthday", "anniversary", "baby", "other"] as const).find((o) => o === r.occasion),
     custom: normalizeCustom(r.custom),
   };
 }

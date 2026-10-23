@@ -109,6 +109,8 @@ export interface GalleryItem {
   id: string;
   image: ImageAsset;
   caption?: string;
+  /** What's written on the back of the print (designs that turn photos over, e.g. Under Glass). */
+  back?: string;
   order: number;
   /** Optional hint only. A template MAY use this to decide pairing/
    *  emphasis; a simpler template is free to ignore it entirely and
@@ -123,7 +125,8 @@ export interface Gallery {
   items: GalleryItem[];
 }
 
-export type Occasion = "wedding" | "birthday" | "anniversary" | "other";
+/** "baby": a christening, first birthday or dedication (the design asks which). */
+export type Occasion = "wedding" | "birthday" | "anniversary" | "baby" | "other";
 
 /** A host's own RSVP question. */
 export interface RsvpQuestion {

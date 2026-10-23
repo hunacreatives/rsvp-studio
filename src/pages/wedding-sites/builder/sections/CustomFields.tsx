@@ -31,7 +31,15 @@ export default function CustomFields({
   // `bare`: the field is its section's only one, so the section's name already labels it.
   const field = (f: CustomField, bare = false) => (
     <FormField key={f.key} label={bare ? "" : f.label} hint={f.hint}>
-      {f.multiline ? (
+      {f.options ? (
+        <select style={inputStyle} value={content.custom?.[f.key] || f.options[0]?.value} onChange={(e) => set(f.key, e.target.value === f.options![0]?.value ? "" : e.target.value)}>
+          {f.options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      ) : f.multiline ? (
         <textarea style={{ ...textareaStyle, minHeight: 72 }} placeholder={f.placeholder} maxLength={f.maxLength} value={content.custom?.[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} />
       ) : (
         <input style={inputStyle} placeholder={f.placeholder} maxLength={f.maxLength} value={content.custom?.[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} />

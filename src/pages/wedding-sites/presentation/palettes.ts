@@ -111,6 +111,30 @@ export const palettes: PaletteOption[] = [
     label: "Candlelight",
     swatches: ["#1f1a16", "#efe6d6", "#a99b88"],
   },
+  {
+    // Calado: unbleached cotton and charcoal ink; the thread (blue) is set by the template.
+    id: "calado-cotton",
+    label: "Cotton & Blue Thread",
+    swatches: ["#f3eee5", "#2e3439", "#857f74"],
+  },
+  {
+    // Calado's second scheme: the same cotton with rose thread.
+    id: "calado-rose",
+    label: "Cotton & Rose Thread",
+    swatches: ["#f5efe9", "#3a302d", "#8f8078"],
+  },
+  {
+    // Under Glass: warm cream paper and dark narra ink (the foil follows the milestone).
+    id: "under-glass",
+    label: "Cream & Narra",
+    swatches: ["#f4efe6", "#2a211c", "#7d7064"],
+  },
+  {
+    // Under Glass's second scheme: a rosier paper.
+    id: "under-glass-rose",
+    label: "Rose & Walnut",
+    swatches: ["#f6efea", "#33211d", "#81665d"],
+  },
 ];
 
 export const defaultPaletteId = palettes[0].id;

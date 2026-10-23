@@ -23,9 +23,12 @@ type Content = {
   occasion?: string;
   primaryLocation?: { name?: string; addressLine?: string };
   galleries?: { items?: { order?: number; image?: Img }[] }[];
+  custom?: Record<string, string>;
 };
 
 const KIND: Record<string, string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary" };
+// Baby sites say which day it is themselves (custom "babyEvent": christening, first birthday…).
+const BABY: Record<string, string> = { christening: "Christening", birthday: "First birthday", both: "Christening & first birthday", dedication: "Dedication" };
 
 /** "Ana & Ben", or "Ana, Ben & Cy". */
 const joinNames = (n: string[]) => (n.length > 2 ? `${n.slice(0, -1).join(", ")} & ${n[n.length - 1]}` : n.join(" & "));
@@ -47,7 +50,8 @@ function describe(c: Content, ended: boolean) {
   const parts = (loc?.addressLine ?? "").split(",").map((p) => p.trim()).filter(Boolean);
   const town = parts.length >= 3 ? parts[parts.length - 1] : parts[0] ?? "";
   const where = loc?.name?.trim() ? (town && !loc.name.includes(town) ? `${loc.name.trim()}, ${town}` : loc.name.trim()) : loc?.addressLine?.trim() ?? "";
-  const facts = [c.occasion ? KIND[c.occasion] ?? "" : "", longDate(c.eventDate), where].filter(Boolean).join(" · ");
+  const kind = c.occasion === "baby" ? BABY[c.custom?.babyEvent ?? ""] ?? "Christening" : c.occasion ? KIND[c.occasion] ?? "" : "";
+  const facts = [kind, longDate(c.eventDate), where].filter(Boolean).join(" · ");
   const ask = ended ? "Thank you for celebrating with us." : "Tap for the details and to RSVP.";
   return { title, description: facts ? `${facts}. ${ask}` : ask };
 }

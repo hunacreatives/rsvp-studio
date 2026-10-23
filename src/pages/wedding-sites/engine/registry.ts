@@ -12,6 +12,8 @@ import { loveLetterTemplateDefinition } from "../templates/love-letter";
 import { promenadeTemplateDefinition } from "../templates/promenade";
 import { openPlayTemplateDefinition } from "../templates/open-play";
 import { capizTemplateDefinition } from "../templates/capiz";
+import { caladoTemplateDefinition } from "../templates/calado";
+import { underGlassTemplateDefinition } from "../templates/under-glass";
 
 // Template contract + registry.
 //
@@ -110,6 +112,9 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
   galleryWidth?: number;
   /** How many gallery photos the design shows (the builder says so). */
   galleryLimit?: number;
+  /** The design turns photos over to show their back: the builder asks what's written there,
+   *  and that captions start with the year. */
+  photoBacks?: boolean;
   /** What this design calls the "story" (e.g. "Invitation message"). */
   storyLabel?: string;
   storyHint?: string;
@@ -139,6 +144,8 @@ export interface CustomField {
   placeholder?: string;
   multiline?: boolean;
   maxLength?: number;
+  /** A fixed choice instead of free text: shown as a dropdown; the first option is the default. */
+  options?: { value: string; label: string }[];
   /** The design's own section this field belongs to (a key in `hideable`): the editor groups
    *  these fields under that section's name with its "Show on website" switch. */
   section?: string;
@@ -160,6 +167,8 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   promenade: promenadeTemplateDefinition,
   "open-play": openPlayTemplateDefinition,
   capiz: capizTemplateDefinition,
+  calado: caladoTemplateDefinition,
+  "under-glass": underGlassTemplateDefinition,
 };
 
 // ---------------------------------------------------------------------------

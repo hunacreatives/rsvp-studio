@@ -11,6 +11,8 @@ export function occasionWords(content: Pick<EventContent, "occasion">) {
       return { invitation: "Wedding Invitation", about: "About the Wedding", tagline: "We’re finally getting married" };
     case "birthday":
       return { invitation: "Birthday Invitation", about: "About the Party", tagline: "Come celebrate with us" };
+    case "baby":
+      return { invitation: "You’re Invited", about: "About the Day", tagline: "Come celebrate with us" };
     case "anniversary":
       return { invitation: "Anniversary Invitation", about: "About the Celebration", tagline: "Come celebrate with us" };
     default:

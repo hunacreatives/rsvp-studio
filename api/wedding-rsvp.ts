@@ -75,6 +75,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = isEmail(emailRaw) ? emailRaw : "";
   const phone = normalizePhone(contact && !contact.includes("@") ? contact : body.phone);
   const message = clean(body.message, 1000);
+  // "Show my message on the website" (designs with a message wall, e.g. Under Glass; the
+  // column is from supabase/under-glass.sql). Sent only by those designs.
+  const sharePublic = body.share === true ? true : body.share === false ? false : null;
   // Optional RSVP details (sent by the newer forms; older templates omit them).
   const attendingRaw = body.attending;
   const attending: boolean | null =
@@ -82,6 +85,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const guestsNum = Number(body.guests);
   let guestCount = attending === false ? 0 : Number.isInteger(guestsNum) && guestsNum >= 1 && guestsNum <= 20 ? guestsNum : attending ? 1 : null;
   const dietary = attending === false ? "" : clean(body.dietary, 300);
+  // How many of those coming are kids (sent only by designs that ask, e.g. Calado; the column is
+  // from supabase/baby-events.sql). Never more than the party itself.
+  const kidsNum = Number(body.kids);
+  const kidCount = body.kids === undefined || body.kids === null || attending === false ? null : Number.isInteger(kidsNum) && kidsNum >= 0 && kidsNum <= 20 ? kidsNum : null;
 
   if (!slug || !/^[a-z0-9-]+$/.test(slug) || !name) {
     res.status(400).json({ error: "Please enter your name." });
@@ -225,7 +232,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // The shared table stores the details in their own columns. Legacy
   // per-event tables don't have them, so the details ride along in message.
   const details = [
-    attending === null ? "" : attending ? `Attending${guestCount ? ` (${guestCount})` : ""}` : "Not attending",
+    attending === null ? "" : attending ? `Attending${guestCount ? ` (${guestCount}${kidCount ? `, ${kidCount} ${kidCount === 1 ? "kid" : "kids"}` : ""})` : ""}` : "Not attending",
     dietary ? `Dietary: ${dietary}` : "",
   ]
     .filter(Boolean)
@@ -235,6 +242,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : {
         attending,
         guest_count: guestCount,
+        ...(kidCount !== null ? { kid_count: Math.min(kidCount, guestCount ?? kidCount) } : {}),
+        ...(sharePublic !== null ? { message_public: sharePublic && !!message } : {}),
         dietary: dietary || null,
         ...(email ? { email } : {}),
         ...(phone ? { phone } : {}),
@@ -278,7 +287,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `${prior ? `${safeName} changed their reply` : `${safeName} just replied`} to <strong>${hostNames}</strong>.
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 0;"><tr><td bgcolor="#fbfaf6" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:16px;padding:18px 20px;">
 ${[
-  attending === null ? "" : `<p style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:${attending ? "#3d7a12" : "#6b6658"} !important;">${attending ? `Coming${guestCount ? ` · ${guestCount} ${guestCount === 1 ? "guest" : "guests"}` : ""}` : "Can’t make it"}</p>`,
+  attending === null ? "" : `<p style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:${attending ? "#3d7a12" : "#6b6658"} !important;">${attending ? `Coming${guestCount ? ` · ${guestCount} ${guestCount === 1 ? "guest" : "guests"}${kidCount ? ` (${kidCount} ${kidCount === 1 ? "kid" : "kids"})` : ""}` : ""}` : "Can’t make it"}</p>`,
   `<p style="margin:0;font-size:14px;color:#3c3d57 !important;"><strong>${safeName}</strong>${safeContact ? ` · ${safeContact}` : ""}</p>`,
   safeDietary ? `<p style="margin:8px 0 0;font-size:14px;color:#3c3d57 !important;">Dietary: ${safeDietary}</p>` : "",
   ...Object.entries(answers).map(([q, a]) => `<p style="margin:8px 0 0;font-size:14px;color:#3c3d57 !important;">${esc(q)}: <strong>${esc(a)}</strong></p>`),

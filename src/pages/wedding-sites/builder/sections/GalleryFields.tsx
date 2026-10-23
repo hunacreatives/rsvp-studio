@@ -12,6 +12,8 @@ interface GalleryFieldsProps {
   eventId: string | undefined;
   /** The template shows only this many photos (and no gallery title). */
   limit?: number;
+  /** The design shows the back of each photo (TemplateDefinition.photoBacks). */
+  backs?: boolean;
 }
 
 // V1 simplification: one gallery, managed here. Real upload now exists
@@ -37,7 +39,7 @@ function newGalleryItem(order: number, uploaded?: ImageAsset): GalleryItem {
   };
 }
 
-export default function GalleryFields({ content, onChange, eventId, limit }: GalleryFieldsProps) {
+export default function GalleryFields({ content, onChange, eventId, limit, backs = false }: GalleryFieldsProps) {
   const gallery = ensureGallery(content);
 
   function updateGallery(patch: Partial<Gallery>) {
@@ -111,13 +113,25 @@ export default function GalleryFields({ content, onChange, eventId, limit }: Gal
                 onChange={(e) => update({ image: { ...item.image, alt: e.target.value } })}
               />
             </FormField>
-            <FormField label="Caption (optional)">
+            <FormField label="Caption (optional)" hint={backs ? "Start with the year to place it in its decade, e.g. “1968 — Our wedding day”." : undefined}>
               <input
                 style={inputStyle}
                 value={item.caption ?? ""}
+                placeholder={backs ? "1968 — Our wedding day" : undefined}
                 onChange={(e) => update({ caption: e.target.value || undefined })}
               />
             </FormField>
+            {backs ? (
+              <FormField label="Written on the back (optional)" hint="Guests tap the photo to turn it over and read this, in handwriting.">
+                <textarea
+                  style={{ ...inputStyle, minHeight: 64, resize: "vertical" }}
+                  maxLength={160}
+                  placeholder="Baguio, June 1968. Kasama si Ben at si Nena."
+                  value={item.back ?? ""}
+                  onChange={(e) => update({ back: e.target.value || undefined })}
+                />
+              </FormField>
+            ) : null}
             {item.image.masterUrl ? (
               <FormField label="What should stay in view?" hint="Tap the most important part of the photo — it stays visible when the photo is cropped.">
                 <FocusPicker

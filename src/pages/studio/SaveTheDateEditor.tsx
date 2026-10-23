@@ -20,10 +20,11 @@ const OCCASIONS: { value: SaveTheDate["occasion"]; label: string }[] = [
   { value: "wedding", label: "Wedding" },
   { value: "birthday", label: "Birthday" },
   { value: "anniversary", label: "Anniversary" },
+  { value: "baby", label: "Christening or first birthday" },
   { value: "other", label: "Other celebration" },
 ];
 
-const asOccasion = (t: string | null): SaveTheDate["occasion"] => (t === "wedding" || t === "birthday" || t === "anniversary" ? t : "other");
+const asOccasion = (t: string | null): SaveTheDate["occasion"] => (t === "wedding" || t === "birthday" || t === "anniversary" || t === "baby" ? t : "other");
 const splitNames = (s: string) => s.split(/\s*(?:&|,|\band\b)\s*/i).map((x) => x.trim()).filter(Boolean);
 
 export default function SaveTheDateEditor({ project }: { project: Project }) {

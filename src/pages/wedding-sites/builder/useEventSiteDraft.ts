@@ -66,7 +66,7 @@ interface EventInfo {
   event_type: string | null;
 }
 
-const asOccasion = (t: string | null): Occasion => (t === "wedding" || t === "birthday" || t === "anniversary" ? t : "other");
+const asOccasion = (t: string | null): Occasion => (t === "wedding" || t === "birthday" || t === "anniversary" || t === "baby" ? t : "other");
 
 export type DraftStatus = "loading" | "ready" | "error";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";

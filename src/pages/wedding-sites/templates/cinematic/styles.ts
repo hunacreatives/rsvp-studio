@@ -1,4 +1,4 @@
-// The "gel-at-30" design (~/angelica-birthday-website), ported 1:1 from its
+// In Bloom. The hero is the "gel-at-30" design (~/angelica-birthday-website), ported 1:1 from its
 // Tailwind classes. Breakpoints are the reference's sm/md/lg/xl (640/768/
 // 1024/1280) but as CONTAINER queries on .cn-root, so the builder's scaled
 // preview (a 1024px or 390px canvas) renders exactly what guests will see.
@@ -171,6 +171,82 @@ textarea.cn-field{resize:none;}
 .cn-sign p:first-child{font-family:var(--cn-hand);font-size:.875rem;line-height:1.25rem;color:color-mix(in srgb, var(--cn-sage) 60%, transparent);margin:0;}
 .cn-sign p:last-child{font-family:var(--cn-script);font-size:1.5rem;line-height:2rem;color:var(--cn-rose);margin:.25rem 0 0;text-shadow:0 1px 10px rgba(192,96,110,.12);}
 
+/* ---------- In Bloom: the garden party, on cream paper ---------- */
+/* The hero's watercolor melts into paper; everything after sits on it. */
+.cn-paper{position:relative;z-index:10;width:100%;padding:4rem 0 3rem;--cn-paper:#fbf7f2;
+  background:linear-gradient(to bottom, transparent 0, var(--cn-paper) 9rem, var(--cn-paper) 100%);}
+/* the paper's grain, only where it's paper (it fades in with the cream) */
+.cn-paper::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:var(--grain);mix-blend-mode:multiply;opacity:.3;
+  -webkit-mask-image:linear-gradient(to bottom, transparent 4rem, #000 12rem);mask-image:linear-gradient(to bottom, transparent 4rem, #000 12rem);}
+.cn-paper .cn-rsvp{padding:0;}
+.cn-paper .cn-rsvp__fade{display:none;}
+.cn-paper .cn-card{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;border-color:color-mix(in srgb, var(--cn-sage) 18%, transparent);box-shadow:0 18px 40px -26px rgba(80,60,50,.4);}
+.cn-paper .cn-btn{background:#fff;}
+/* Each section spans the page (its blooms sit at the page's edges); its words stay in a column. */
+.cn-sec{position:relative;width:100%;padding:4.5rem 0 0;text-align:center;}
+.cn-sec__in{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:0 1.5rem;}
+.cn-sec--wide .cn-sec__in{max-width:980px;}
+@container cn (max-width: 640px){.cn-sec__in{padding:0 1.75rem;}}
+.cn-sec--rsvp{padding-top:5rem;}
+.cn-sec__title{position:relative;z-index:1;margin:0 0 1.75rem;font-family:var(--cn-script);font-weight:400;color:var(--cn-rose);font-size:clamp(1.9rem,6.5cqw,2.8rem);line-height:1.2;text-wrap:balance;}
+.cn-sec .cn-hand--note{position:relative;z-index:1;}
+.cn-body{position:relative;z-index:1;margin:0 auto;max-width:480px;font-family:var(--cn-sans);font-size:15.5px;line-height:1.7;color:color-mix(in srgb, var(--cn-sage) 55%, #3a3a3a);text-wrap:pretty;}
+
+/* the evening: tented place cards */
+.cn-cards{position:relative;z-index:1;list-style:none;margin:0 auto;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:1rem;}
+.cn-place{position:relative;width:calc(50% - .5rem);max-width:180px;padding:1.6rem 1rem 1.3rem;background:#fff;border-radius:3px;transform:rotate(var(--tilt,0deg));
+  box-shadow:0 1px 0 rgba(0,0,0,.04),0 14px 22px -16px rgba(80,60,50,.45);display:flex;flex-direction:column;gap:.15rem;}
+/* the fold of a tented card */
+.cn-place::before{content:"";position:absolute;left:0;right:0;top:0;height:.7rem;border-radius:3px 3px 0 0;background:linear-gradient(to bottom, color-mix(in srgb, var(--cn-sage) 14%, #fff), #fff);}
+.cn-place__time{font-family:var(--cn-hand);font-size:2rem;line-height:1.1;color:var(--cn-rose);}
+.cn-place__what{font-family:var(--cn-sans);font-size:15px;font-weight:600;line-height:1.35;color:var(--cn-sage-strong);}
+.cn-place__note{font-family:var(--cn-sans);font-size:13px;line-height:1.45;color:color-mix(in srgb, var(--cn-sage) 60%, #555);}
+
+/* what to wear: the motif as watercolor petals */
+.cn-petals{position:relative;z-index:1;display:flex;justify-content:center;gap:.9rem;margin-top:1.6rem;}
+.cn-petal{display:block;width:44px;height:58px;border-radius:50% 50% 50% 50% / 62% 62% 38% 38%;transform:rotate(calc(-12deg + var(--i,0) * 9deg));
+  background:radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--c) 55%, #fff) 0%, var(--c) 58%, color-mix(in srgb, var(--c) 82%, #000) 100%);
+  opacity:.92;box-shadow:inset 0 -6px 10px -6px rgba(0,0,0,.18);filter:saturate(.9);}
+
+/* the polaroid wall, pinned with washi tape */
+.cn-wall{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,1fr);gap:1.4rem 1rem;max-width:880px;margin:0 auto;}
+@container cn (min-width: 768px){.cn-wall{grid-template-columns:repeat(3,1fr);gap:2.2rem 1.6rem;}}
+.cn-snap{position:relative;margin:0;padding:.55rem .55rem 1.9rem;background:#fff;transform:rotate(var(--tilt,0deg));box-shadow:0 2px 3px rgba(0,0,0,.06),0 18px 26px -18px rgba(80,60,50,.5);}
+.cn-snap img{display:block;width:100%!important;height:auto!important;aspect-ratio:4/5;object-fit:cover;}
+.cn-tape{position:absolute;top:-.7rem;left:50%;width:4.6rem;height:1.35rem;translate:-50% 0;rotate:-4deg;opacity:.78;
+  clip-path:polygon(0 8%,6% 0,12% 10%,18% 0,24% 8%,30% 0,36% 9%,42% 0,48% 8%,54% 0,60% 10%,66% 0,72% 8%,78% 0,84% 9%,90% 0,96% 8%,100% 0,100% 92%,94% 100%,88% 90%,82% 100%,76% 92%,70% 100%,64% 91%,58% 100%,52% 92%,46% 100%,40% 90%,34% 100%,28% 92%,22% 100%,16% 91%,10% 100%,4% 92%,0 100%);}
+.cn-tape--0{background:#f3c9d1;}
+.cn-tape--1{background:#cfe0c2;rotate:5deg;}
+.cn-tape--2{background:#f6e2b0;rotate:-8deg;}
+
+.cn-links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:14px 0 4px;}
+.cn-btn--small{font-size:1.05rem;padding:.6rem 1.4rem;}
+.cn-faqs{position:relative;z-index:1;display:grid;gap:1.5rem;text-align:left;max-width:520px;margin:0 auto;}
+.cn-faq__q{margin:0 0 .25rem;font-family:var(--cn-hand);font-size:1.45rem;line-height:1.2;color:var(--cn-rose);}
+.cn-faq .cn-body{margin:0;}
+
+/* the blooms tucked at each section's edge */
+.cn-bloom{position:absolute;z-index:0;height:auto;pointer-events:none;max-width:none!important;opacity:.95;}
+.cn-bloom--l{left:-1.5%;transform-origin:0% 100%;transform:rotate(var(--turn,0deg));}
+.cn-bloom--r{right:-1.5%;transform-origin:100% 100%;transform:rotate(var(--turn,0deg));}
+/* Phones: tucked further off the edge and behind a softer wash, so they never sit on the words. */
+@container cn (max-width: 640px){.cn-bloom--l{left:-22%;}.cn-bloom--r{right:-22%;}.cn-bloom{--bo:.6;opacity:.6;}}
+
+/* reveals (useReveal adds .rv-on to .cn-paper and .is-in to each section). The site's own
+   [data-reveal] rule must not hide them. */
+.cn-root [data-reveal]{opacity:1;transform:none;transition:none;will-change:auto;}
+.rv-on .cn-sec__title,.rv-on .cn-sec .cn-body,.rv-on .cn-sec .cn-hand--note{opacity:0;transform:translateY(14px);transition:opacity 1.1s ease-out,transform 1.1s cubic-bezier(.2,.7,.2,1);}
+.rv-on .is-in .cn-sec__title,.rv-on .is-in .cn-body,.rv-on .is-in .cn-hand--note{opacity:1;transform:none;}
+.rv-on .cn-place,.rv-on .cn-snap{opacity:0;transform:translateY(-22px) rotate(calc(var(--tilt,0deg) * -2));transition:opacity .8s ease-out calc(.25s + var(--i,0) * .12s),transform 1.1s cubic-bezier(.3,1.35,.5,1) calc(.25s + var(--i,0) * .12s);}
+.rv-on .is-in .cn-place,.rv-on .is-in .cn-snap{opacity:1;transform:rotate(var(--tilt,0deg));}
+.rv-on .cn-petal{opacity:0;scale:.3;transition:opacity .9s ease-out calc(.35s + var(--i,0) * .12s),scale 1.1s cubic-bezier(.3,1.5,.5,1) calc(.35s + var(--i,0) * .12s);}
+.rv-on .is-in .cn-petal{opacity:.92;scale:1;}
+/* the signature: each bloom opens out from its stem, then sways in the breeze */
+.rv-on .cn-bloom{opacity:0;scale:.35;rotate:-28deg;transition:opacity 1.4s ease-out var(--bd,0s),scale 2.2s cubic-bezier(.2,.8,.25,1) var(--bd,0s),rotate 2.2s cubic-bezier(.2,.8,.25,1) var(--bd,0s);}
+.rv-on .cn-bloom--r{rotate:28deg;}
+.rv-on .is-in .cn-bloom{opacity:var(--bo,.95);scale:1;rotate:0deg;animation:cn-sway 7s ease-in-out calc(2.2s + var(--bd,0s)) infinite alternate;}
+@keyframes cn-sway{from{rotate:0deg;}to{rotate:-3deg;}}
+
 /* ---------- footer (Footer.tsx) ---------- */
 .cn-footer{position:relative;z-index:10;width:100%;padding:1.25rem 1rem;text-align:center;background:color-mix(in srgb, var(--cn-sage) 76%, #000);}
 .cn-footer p{font-family:var(--cn-sans);font-size:.875rem;line-height:1.25rem;color:#fff;margin:0;}
@@ -238,6 +314,7 @@ textarea.cn-field{resize:none;}
 
 @media (prefers-reduced-motion: reduce){
   .cn-root *,.cn-intro{animation:none!important;transition:none!important;}
+  .rv-on .cn-sec__title,.rv-on .cn-body,.rv-on .cn-hand--note,.rv-on .cn-place,.rv-on .cn-snap,.rv-on .cn-petal,.rv-on .cn-bloom{opacity:1!important;transform:none!important;scale:1!important;rotate:0deg!important;}
   .cn-in:not(.is-on),.cn-rsvp__inner:not(.is-on),.cn-dress:not(.is-on){opacity:1;transform:none;}
 }
 `;

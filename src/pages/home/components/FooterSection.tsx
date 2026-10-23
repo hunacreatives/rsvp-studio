@@ -48,10 +48,6 @@ export default function FooterSection() {
             <p className="mt-5 max-w-xs font-display text-[17px] italic leading-snug text-white/90">
               Your celebration is our celebration, too.
             </p>
-            <p className="mt-3 max-w-xs text-[15px] md:text-sm leading-relaxed text-white/65">
-              Interactive digital invitations and event websites for life's most
-              meaningful milestones.
-            </p>
             <a
               href="mailto:hello@thersvpstudio.com"
               className="mt-3 inline-block py-2 text-[15px] md:text-sm text-white/80 underline underline-offset-4 [overflow-wrap:anywhere] hover:text-white"

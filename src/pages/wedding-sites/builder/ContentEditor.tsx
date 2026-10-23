@@ -81,7 +81,7 @@ export default function ContentEditor({ content, onChange, eventId, template, pr
       title: template?.galleryLimit ? "Photos" : "Gallery",
       section: "gallery",
       vis: "gallery",
-      render: () => <GalleryFields content={content} onChange={onChange} eventId={eventId} limit={template?.galleryLimit} />,
+      render: () => <GalleryFields content={content} onChange={onChange} eventId={eventId} limit={template?.galleryLimit} backs={template?.photoBacks} />,
     },
     { title: "Special People", section: "keyPeople", render: () => <KeyPeopleFields content={content} onChange={onChange} /> },
     { title: "Gifts", section: "registry", vis: "registry", render: () => <RegistryFields content={content} onChange={onChange} eventId={eventId} /> },

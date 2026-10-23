@@ -15,6 +15,7 @@ const EVENT_TYPES = [
   { value: "wedding", label: "Wedding" },
   { value: "birthday", label: "Birthday" },
   { value: "anniversary", label: "Anniversary" },
+  { value: "baby", label: "Christening or first birthday" },
   { value: "other", label: "Other celebration" },
 ];
 

@@ -107,11 +107,11 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
 
       <div className="flex flex-col gap-4">
         <div>
-          <Label htmlFor="ce-host-one">{needsTwoHosts ? "Your first name" : "Who's celebrating?"}</Label>
+          <Label htmlFor="ce-host-one">{needsTwoHosts ? "Your first name" : eventType === "baby" ? "Baby’s name" : "Who's celebrating?"}</Label>
           <input
             id="ce-host-one"
             required
-            placeholder={needsTwoHosts ? "First name" : "Name"}
+            placeholder={needsTwoHosts ? "First name" : eventType === "baby" ? "e.g. Frances Jash" : "Name"}
             autoComplete={needsTwoHosts ? "given-name" : "off"}
             autoCapitalize="words"
             enterKeyHint="next"
