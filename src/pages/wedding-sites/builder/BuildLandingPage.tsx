@@ -10,7 +10,7 @@ import CreateEventModal from "@/pages/account/components/CreateEventModal";
 import { FAQ_CATEGORIES } from "@/pages/faqs/faq-data";
 import { inquiryLink } from "@/pages/enquire/prefill";
 import { useTemplateCatalog } from "../engine/catalog";
-import { getTemplateDefinition, type TemplateDefinition } from "../engine/registry";
+import { getTemplateDefinition, templateFitsEvent, type TemplateDefinition } from "../engine/registry";
 import TemplateMockupPreview from "./components/TemplateMockupPreview";
 import { trackEvent } from "@/lib/analytics";
 
@@ -21,6 +21,18 @@ import { trackEvent } from "@/lib/analytics";
 // carries the choice through sign-up into the builder).
 
 type Tier = "all" | "free" | "premium";
+
+/** The events a visitor can narrow the designs to (templates.event_types), with the words people
+ *  actually search for ("tinghon", "binyag", "18th"). Only the ones some design is for are shown. */
+const EVENTS: { id: string; label: string; words: string[] }[] = [
+  { id: "wedding", label: "Wedding", words: ["wedding", "kasal", "bride", "groom", "civil"] },
+  { id: "engagement", label: "Ting Hun", words: ["engagement", "tinghun", "tinghon", "ting hun", "tinghoon", "chinese", "betrothal", "訂婚", "proposal", "pamamanhikan"] },
+  { id: "birthday", label: "Birthday", words: ["birthday", "bday", "party", "turning"] },
+  { id: "debut", label: "Debut", words: ["debut", "18th", "eighteenth", "18 roses", "cotillion"] },
+  { id: "baby", label: "Christening & 1st birthday", words: ["christening", "binyag", "baptism", "baby", "first birthday", "1st birthday", "dedication"] },
+  { id: "anniversary", label: "Anniversary", words: ["anniversary", "renewal of vows", "vow renewal"] },
+];
+const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 const peso = (n: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(n);
 
 function usePrices() {
@@ -67,6 +79,12 @@ export default function BuildLandingPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [eventCount, setEventCount] = useState(0);
   const [tier, setTier] = useState<Tier>("all");
+  // ?event=engagement (e.g. from a Ting Hun page) opens on those designs.
+  const [eventType, setEventType] = useState<string>(() => {
+    const q = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("event");
+    return EVENTS.some((e) => e.id === q) ? q! : "all";
+  });
+  const [query, setQuery] = useState("");
   const pendingStart = useRef<string | null>(null);
   const { templates, ready } = useTemplateCatalog();
   const prices = usePrices();
@@ -125,7 +143,20 @@ export default function BuildLandingPage() {
     }
   }, [signedIn]);
 
-  const shown = useMemo(() => templates.filter((t) => tier === "all" || t.tier === tier), [templates, tier]);
+  // The events that have at least one design (no empty chips).
+  const eventChips = useMemo(() => EVENTS.filter((e) => templates.some((t) => (t.occasions ?? []).includes(e.id))), [templates]);
+  const shown = useMemo(() => {
+    const q = norm(query);
+    return templates.filter((t) => {
+      if (tier !== "all" && t.tier !== tier) return false;
+      if (eventType !== "all" && !templateFitsEvent(t, eventType)) return false;
+      if (!q) return true;
+      // A name ("porcelain"), an event ("tinghon" → engagement), or Free / Premium.
+      const events = EVENTS.filter((e) => (t.occasions ?? []).includes(e.id));
+      const hay = [t.label, t.tier, ...events.flatMap((e) => [e.label, ...e.words])].map(norm).join(" | ");
+      return q.split(" ").every((w) => hay.includes(w));
+    });
+  }, [templates, tier, eventType, query]);
   // Nine at a time (three rows of three; eight on two-across phones, so no card sits alone),
   // the rest in a drawer that slides open underneath.
   const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
@@ -137,7 +168,10 @@ export default function BuildLandingPage() {
   }, []);
   const first = wide ? 9 : 8;
   const [drawer, setDrawer] = useState(false);
-  useEffect(() => setDrawer(false), [tier]);
+  useEffect(() => setDrawer(false), [tier, eventType, query]);
+  // While filtering or searching, show every match (no drawer).
+  const filtering = eventType !== "all" || !!query.trim();
+  const firstShown = filtering ? shown.length : first;
   const drawerRef = useRef<HTMLDivElement>(null);
   const premiumPrice = prices.premium;
   const faqs = (FAQ_CATEGORIES.find((c) => c.slug === "build")?.items ?? []).slice(0, 5);
@@ -181,8 +215,19 @@ export default function BuildLandingPage() {
           </div>
 
           <div id="designs" className="scroll-mt-24 pt-10 sm:pt-14">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-[17px] font-semibold text-[var(--ink)]">Choose a design</h2>
+              <label className="relative order-3 w-full sm:order-none sm:ml-auto sm:w-[260px]">
+                <span className="sr-only">Search designs</span>
+                <i className="ri-search-line pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--slate)]" aria-hidden />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search, e.g. ting hun, debut"
+                  className="min-h-[44px] w-full rounded-full border border-[var(--line)] bg-white pl-10 pr-4 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--ink)] md:min-h-[38px] md:text-[14px]"
+                />
+              </label>
               {hasPremium ? (
                 <div role="group" aria-label="Filter designs" className="flex gap-2">
                   {(["all", "free", "premium"] as Tier[]).map((x) => (
@@ -198,7 +243,30 @@ export default function BuildLandingPage() {
                 </div>
               ) : null}
             </div>
-            {!ready && !templates.length ? (
+            {/* The kind of event: one row of chips (scrolls sideways on phones). */}
+            {eventChips.length > 1 ? (
+              <div role="group" aria-label="Filter by event" className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:mb-6 sm:flex-wrap sm:overflow-visible sm:px-0">
+                {[{ id: "all", label: "All events" }, ...eventChips].map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    aria-pressed={eventType === e.id}
+                    onClick={() => setEventType(e.id)}
+                    className={`min-h-[40px] shrink-0 whitespace-nowrap rounded-full border px-4 text-[14px] font-medium md:min-h-[34px] md:text-[13px] ${eventType === e.id ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"}`}
+                  >
+                    {e.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {ready && !shown.length ? (
+              <div className="rounded-[22px] bg-[var(--paper)] px-6 py-12 text-center">
+                <p className="text-[16px] font-medium text-[var(--ink)]">No designs match{query.trim() ? ` “${query.trim()}”` : ""}.</p>
+                <button type="button" onClick={() => (setQuery(""), setEventType("all"), setTier("all"))} className="mt-3 text-[14px] font-medium text-[var(--acc-blue)] underline underline-offset-4">
+                  Show all designs
+                </button>
+              </div>
+            ) : !ready && !templates.length ? (
               // The same grid and card height as the real cards (image, then name and price), and
               // enough of them to fill the screen, so nothing jumps when the designs arrive.
               <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3" aria-hidden>
@@ -215,11 +283,11 @@ export default function BuildLandingPage() {
             ) : (
               <>
                 <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3">
-                  {shown.slice(0, first).map((t) => (
+                  {shown.slice(0, firstShown).map((t) => (
                     <DesignCard key={t.id} t={t} price={prices[t.tier]} />
                   ))}
                 </ul>
-                {shown.length > first ? (
+                {shown.length > firstShown ? (
                   <>
                     {/* The drawer: the rest of the designs, sliding open (grid rows 0fr → 1fr). */}
                     <div
@@ -231,7 +299,7 @@ export default function BuildLandingPage() {
                     >
                       <div className="min-h-0 overflow-hidden">
                         <ul className="grid grid-cols-2 gap-x-3 gap-y-6 pt-6 sm:gap-x-6 sm:gap-y-10 sm:pt-10 lg:grid-cols-3">
-                          {shown.slice(first).map((t) => (
+                          {shown.slice(firstShown).map((t) => (
                             <DesignCard key={t.id} t={t} price={prices[t.tier]} />
                           ))}
                         </ul>
