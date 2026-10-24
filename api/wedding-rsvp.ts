@@ -286,7 +286,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const content = site.published_content as PublishedContentForEmail;
-  const hostNames = esc(formatHostNames(content));
+  const hostNames = esc(formatHostNames(content, (event.name as string | null) || "your event"));
   const safeName = esc(name);
   const safeContact = [email, phone].filter(Boolean).map((c) => esc(c!)).join(" · ");
   const safeMessage = esc(message);
@@ -301,7 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       from: FROM,
       to: recipients,
       replyTo: email || undefined,
-      subject: `${prior ? "Updated RSVP" : "New RSVP"} from ${name} — ${formatHostNames(content)}`,
+      subject: `${prior ? "Updated RSVP" : "New RSVP"} from ${name} — ${formatHostNames(content, (event.name as string | null) || "your event")}`,
       // Branded (support-mail.ts layout); the reply as a small card.
       html: layout(
         `${prior ? "Updated RSVP" : "New RSVP"} from ${safeName}`,
@@ -316,7 +316,7 @@ ${[
 ].join("")}
 </td></tr></table>`,
         { label: "See your guest list", url: `https://thersvpstudio.com/account/projects/${site.event_id}?tab=guests` },
-        "You’re receiving this because your website has RSVP emails on. Change it under Account → Notifications.",
+        "You’re receiving this because Event updates are on.<br>Turn them off under Account → Notifications.",
       ),
     }),
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
@@ -51,6 +51,13 @@ const peso = (centavos: number) => new Intl.NumberFormat("en-PH", { style: "curr
 
 export function usePublishFlow(eventId: string | undefined, publish: Publish, beforePublish: () => Promise<void>, firstPublish = false) {
   const [step, setStep] = useState<Step>({ kind: "closed" });
+  // The first time it goes live: "Your website is live" to the hosts (sent once, server-side).
+  const announced = useRef(false);
+  useEffect(() => {
+    if (step.kind !== "live" || !firstPublish || !eventId || announced.current) return;
+    announced.current = true;
+    void api.notify({ kind: "site_live", eventId });
+  }, [step.kind, firstPublish, eventId]);
   const [params, setParams] = useSearchParams();
   const [pending, setPending] = useState<PendingDomain | null>(() => readPending(eventId));
   // They saw the web-address offer and chose the free link: "Your site is live" says

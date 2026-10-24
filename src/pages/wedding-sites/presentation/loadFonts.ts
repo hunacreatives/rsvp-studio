@@ -16,6 +16,9 @@ const EXTRA: Record<string, string[]> = {
   "pinyon-garamond": ["Pinyon+Script", "EB+Garamond:ital,wght@0,400..600;1,400..600"],
   "bodoni-newsreader": ["Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700", "Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600"],
   "barlow-condensed": ["Barlow+Condensed:wght@600;700;800", "Barlow:wght@400;500;600;700", "IBM+Plex+Mono:wght@500;600"],
+  "wenkai-lora": ["LXGW+WenKai+TC:wght@400;700"],
+  "chiron-cormorant": [CORMORANT, "Chiron+Sung+HK:wght@400;600;700"],
+  "cactus-cormorant": [CORMORANT, "Cactus+Classical+Serif"],
   "yellowtail-jost": ["Yellowtail", "Jost:wght@400;500;600;700", "Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,700;1,9..144,800"],
 };
 const loaded = new Set<string>();
@@ -29,3 +32,18 @@ export function loadPairingFonts(pairingId: string | undefined) {
   link.href = `https://fonts.googleapis.com/css2?${families.map((f) => `family=${f}`).join("&")}&display=swap`;
   document.head.appendChild(link);
 }
+
+/**
+ * Fonts a design needs whatever pairing the host picks, e.g. Tinghun's Chinese serif
+ * (Noto Serif TC, with SC for simplified characters). Google serves CJK fonts in small
+ * unicode-range slices, so a page with a few dozen characters downloads only those.
+ */
+export function loadFontFamilies(key: string, families: string[]) {
+  if (loaded.has(key) || typeof document === "undefined") return;
+  loaded.add(key);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?${families.map((f) => `family=${f}`).join("&")}&display=swap`;
+  document.head.appendChild(link);
+}
+export const CHINESE_SERIF = ["Noto+Serif+TC:wght@400;600;700", "Noto+Serif+SC:wght@400;600"];

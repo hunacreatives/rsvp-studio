@@ -54,12 +54,22 @@ export const TEMPLATE_OCCASIONS = [
   { id: "birthday", label: "Birthday" },
   { id: "debut", label: "Debut" },
   { id: "baby", label: "Baby (christening, 1st birthday)" },
+  { id: "engagement", label: "Engagement / Tinghun" },
   { id: "anniversary", label: "Anniversary" },
   { id: "other", label: "Other" },
 ] as const;
 
 export async function updateTemplate(id: string, patch: Partial<Pick<TemplateRow, "label" | "tier" | "status" | "event_types" | "sort" | "thumbnail_url" | "featured">>) {
   must(await supabase.from("templates").update(patch).eq("id", id));
+}
+
+/** The gallery order (templates.sort), renumbered 10, 20, 30… in the given order. Only rows
+ *  whose number changed are written. Returns the rows with their new numbers. */
+export async function saveTemplateOrder(rows: TemplateRow[]): Promise<TemplateRow[]> {
+  const next = rows.map((r, i) => ({ ...r, sort: (i + 1) * 10 }));
+  const changed = next.filter((r, i) => r.sort !== rows[i].sort);
+  for (const r of changed) must(await supabase.from("templates").update({ sort: r.sort }).eq("id", r.id));
+  return next;
 }
 
 const slugifyId = (s: string) =>

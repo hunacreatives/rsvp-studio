@@ -36,7 +36,9 @@ export async function createCheckoutSession(opts: {
           line_items: [{ name: opts.name.slice(0, 255), amount: opts.amountCentavos, currency: "PHP", quantity: 1 }],
           payment_method_types: methods(),
           description: opts.description.slice(0, 255),
-          send_email_receipt: true,
+          // Our own branded email is the receipt for every kind of payment (paymongo-webhook.ts,
+          // billing-mail.ts, domains.ts), so PayMongo doesn't send a second one.
+          send_email_receipt: false,
           show_line_items: true,
           ...(opts.email ? { customer_email: opts.email } : {}),
           success_url: opts.successUrl,

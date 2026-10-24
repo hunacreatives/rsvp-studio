@@ -20,6 +20,7 @@ const EVENT_TYPES: { type: EventType; label: string; icon: string }[] = [
   { type: "birthday", label: "Birthday", icon: "ri-cake-2-line" },
   { type: "anniversary", label: "Anniversary", icon: "ri-calendar-event-line" },
   { type: "baby", label: "Christening & First Birthday", icon: "ri-bear-smile-line" },
+  { type: "engagement", label: "Engagement & Tinghun", icon: "ri-vip-diamond-line" },
   { type: "other", label: "Other Celebration", icon: "ri-sparkling-2-line" },
 ];
 

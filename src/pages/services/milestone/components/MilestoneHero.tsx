@@ -107,7 +107,10 @@ export default function MilestoneHero() {
           </div>
         </div>
 
-        <div className="relative z-10 mt-6 flex items-center justify-center gap-2" role="tablist" aria-label="Example websites">
+        {/* The caption sits right under the laptop's base, like a label; the dots come after. */}
+        <p className="relative z-10 mt-4 px-4 font-display text-xl text-[var(--slate)] sm:mt-5">Designed for every screen.</p>
+
+        <div className="relative z-10 mt-5 flex items-center justify-center gap-2" role="tablist" aria-label="Example websites">
           {SLIDES.map((s, i) => (
             <button
               key={s.src}
@@ -120,17 +123,13 @@ export default function MilestoneHero() {
             >
               <span
                 className={`block h-2 rounded-full transition-all duration-500 ${
-                  i === active ? "w-10 bg-[var(--ink)]/35" : "w-2 bg-[var(--ink)]/15 hover:bg-[var(--ink)]/30"
+                  i === active ? "w-10 bg-[rgba(0,7,39,0.35)]" : "w-2 bg-[rgba(0,7,39,0.15)] hover:bg-[rgba(0,7,39,0.3)]"
                 }`}
               />
             </button>
           ))}
         </div>
       </div>
-
-      <p className="relative z-10 mt-8 sm:mt-10 px-4 font-display text-xl text-[var(--slate)]">
-        Designed for every screen.
-      </p>
     </section>
   );
 }

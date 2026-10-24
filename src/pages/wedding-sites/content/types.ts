@@ -128,7 +128,8 @@ export interface Gallery {
 }
 
 /** "baby": a christening, first birthday or dedication (the design asks which). */
-export type Occasion = "wedding" | "birthday" | "anniversary" | "baby" | "other";
+/** "engagement": an engagement, including the Chinese-Filipino tinghun (betrothal). */
+export type Occasion = "wedding" | "birthday" | "anniversary" | "baby" | "engagement" | "other";
 
 /** A host's own RSVP question. */
 export interface RsvpQuestion {

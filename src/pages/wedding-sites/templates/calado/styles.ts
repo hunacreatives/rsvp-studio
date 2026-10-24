@@ -140,7 +140,7 @@ export const CALADO_CSS = `
 @container (min-width:720px){.cl-wall{grid-template-columns:repeat(4,1fr);gap:40px 28px;}}
 .cl-wall__item{display:grid;justify-items:center;gap:10px;width:100%;}
 .cl-mini{position:relative;display:block;width:var(--ms,82%);aspect-ratio:1;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;filter:drop-shadow(0 8px 10px rgba(60,44,26,.22));}
-.cl-wall__item--l .cl-mini{--ms:96%;}.cl-wall__item--m .cl-mini{--ms:84%;}.cl-wall__item--s .cl-mini{--ms:72%;}
+.cl-wall__item .cl-mini{--ms:88%;}
 .cl-mini img{position:absolute;inset:7%;width:86%;height:86%;border-radius:50%;object-fit:cover;}
 .cl-mini__ring{position:absolute;inset:0;border-radius:50%;z-index:1;
   background:conic-gradient(from 40deg,#d8b98a,#e7cfa5 15%,#caa472 30%,#dfc293 48%,#c69c66 63%,#e5cb9f 80%,#d8b98a);

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import ServiceCta from "@/components/ServiceCta";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -12,25 +13,18 @@ import { inquiryLink } from "@/pages/enquire/prefill";
 function CtaStrip() {
   const navigate = useNavigate();
   return (
-    <section className="py-20" style={{ background: "var(--paper)" }}>
-      <div className="container-x flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <Reveal>
-          <h2 className="h-section text-[var(--slate)]">
-            Make it unmistakably <span className="text-[var(--ink)]">yours.</span>
-          </h2>
-          <p className="mt-2 text-lg text-[var(--ink)] max-w-md">
-            A custom monogram designed to become part of every detail of your
-            celebration.
-          </p>
-        </Reveal>
-        <Reveal delay={0.06}>
-          <button
-            className="btn btn-primary whitespace-nowrap"
-            onClick={() => navigate(inquiryLink({ service: "monogram" }))}
-          >
-            Begin Your Monogram
-          </button>
-        </Reveal>
+    <section className="pb-14 pt-4 sm:pb-20 md:pb-28" style={{ background: "var(--paper)" }}>
+      <div className="container-x">
+        <ServiceCta
+          heading={
+            <>
+              Make it unmistakably <span className="italic text-[#e3c98a]">yours.</span>
+            </>
+          }
+          line="A custom monogram designed to become part of every detail of your celebration."
+          quote={() => navigate(inquiryLink({ service: "monogram" }))}
+          quoteLabel="Begin your monogram"
+        />
       </div>
     </section>
   );

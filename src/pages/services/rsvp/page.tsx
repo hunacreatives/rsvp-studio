@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import ServiceCta from "@/components/ServiceCta";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -75,17 +76,11 @@ function CustomCta() {
   const navigate = useNavigate();
   return (
     <section className="container-x pb-14 sm:pb-20 md:pb-28">
-      <Reveal className="rounded-[24px] bg-[var(--acc-blue)] px-6 py-11 text-center sm:rounded-[28px] sm:py-14 md:py-20">
-        <h2 className="mx-auto max-w-xl font-display font-semibold leading-tight text-white text-balance" style={{ fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)" }}>
-          Rather we chase the replies?
-        </h2>
-        <p className="mx-auto mt-3 max-w-lg text-[16px] text-white/85 text-balance">
-          With a Custom website, we follow up with your guests and send you the headcount. Custom websites from ₱8,000.
-        </p>
-        <button onClick={() => navigate(inquiryLink({ service: "website", design: "custom" }))} className="btn btn-white mt-7">
-          Get a quote
-        </button>
-      </Reveal>
+      <ServiceCta
+        heading="Rather we chase the replies?"
+        line="With a Custom website, we follow up with your guests and send you the headcount. Custom websites from ₱8,000."
+        quote={() => navigate(inquiryLink({ service: "website", design: "custom" }))}
+      />
     </section>
   );
 }

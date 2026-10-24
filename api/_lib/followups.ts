@@ -3,8 +3,9 @@ import { formatHostNames } from "./hosts.js";
 import { followupEmail, type FollowupData, type FollowupKind } from "./followup-mail.js";
 import { FROM, STUDIO_INBOX, tipsToken } from "./support-mail.js";
 
-// The daily follow-up emails (supabase/followups.sql → followups_due()): unfinished
-// drafts, 10 RSVPs on a free site, the headcount a week before, and a thank-you after.
+// The daily follow-up emails (supabase/followups.sql → followups_due(), email-additions.sql):
+// unfinished drafts, 10 RSVPs on a free site, replies closing in 3 days, the headcount a
+// week before, and a thank-you after.
 // Each is claimed in followup_log BEFORE sending (one per project, ever) and released
 // if the send fails, so it's retried tomorrow. At most one per project per day.
 // Stops near the time limit; anything left waits for tomorrow's run.
@@ -12,7 +13,7 @@ import { FROM, STUDIO_INBOX, tipsToken } from "./support-mail.js";
 type SendMail = (payload: Parameters<typeof import("./email.js").sendChecked>[1], idempotencyKey?: string) => Promise<unknown>;
 type Due = { event_id: string; kind: FollowupKind; rsvps: number; guests: number; declined: number };
 
-const PRIORITY: Record<FollowupKind, number> = { headcount: 0, after: 1, rsvp_10: 2, draft_10: 3, draft_4: 4, draft_1: 5 };
+const PRIORITY: Record<FollowupKind, number> = { deadline_3: 0, headcount: 1, after: 2, rsvp_10: 3, draft_10: 4, draft_4: 5, draft_1: 6 };
 const MAX_PER_RUN = 60;
 
 type Content = {
@@ -20,6 +21,7 @@ type Content = {
   eventDate?: string;
   primaryLocation?: { name?: string; addressLine?: string };
   galleries?: { items?: unknown[] }[];
+  rsvpDeadline?: string;
 };
 
 export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site: string, opts: { deadline: number }) {
@@ -94,6 +96,11 @@ export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site
         const { data: premium } = await db.rpc("event_is_premium", { p_event: row.event_id });
         if (sharing?.photo_sharing && premium === true && sharing.slug)
           d.photos = { url: `${site}/invite/${sharing.slug}/photos`, qr: `${site}/qr/${sharing.slug}.png` };
+      }
+      if (row.kind === "deadline_3") {
+        d.deadline = content.rsvpDeadline ?? null;
+        const { count } = await db.from("invitees").select("id", { count: "exact", head: true }).eq("event_id", row.event_id);
+        d.invited = count ?? 0;
       }
       if (row.kind === "after") {
         const { data: until } = await db.rpc("site_live_until", { p_event: row.event_id });

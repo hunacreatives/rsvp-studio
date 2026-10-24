@@ -232,7 +232,7 @@ export function normalizeEventContent(raw: unknown): EventContent {
     faqs,
     keyPeople: asArray<unknown>(r.keyPeople).map(normalizePerson),
     rsvpTableName: asString(r.rsvpTableName),
-    occasion: (["wedding", "birthday", "anniversary", "baby", "other"] as const).find((o) => o === r.occasion),
+    occasion: (["wedding", "birthday", "anniversary", "baby", "engagement", "other"] as const).find((o) => o === r.occasion),
     custom: normalizeCustom(r.custom),
   };
 }

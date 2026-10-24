@@ -13,6 +13,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   birthday: "Birthday",
   anniversary: "Anniversary",
   baby: "Christening & First Birthday",
+  engagement: "Engagement & Tinghun",
   other: "Celebration",
 };
 

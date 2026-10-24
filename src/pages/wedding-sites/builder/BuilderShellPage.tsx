@@ -78,6 +78,15 @@ export default function BuilderShellPage() {
     if (flow.step.kind === "live") reloadPlan();
   }, [flow.step.kind, reloadPlan]);
   const canUpgrade = !!plan && !plan.managed && !plan.premium && plan.upgradeCentavos > 0;
+  // ?upgrade=1 (the "What Premium adds" email's button): open the upgrade once the plan is known.
+  useEffect(() => {
+    if (!plan || new URLSearchParams(window.location.search).get("upgrade") !== "1") return;
+    const q = new URLSearchParams(window.location.search);
+    q.delete("upgrade");
+    window.history.replaceState(null, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    if (canUpgrade) upgrade.open();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan]);
 
   const catalog = useTemplateCatalog();
   // The preview follows the field being edited (components/usePreviewFollow.ts).

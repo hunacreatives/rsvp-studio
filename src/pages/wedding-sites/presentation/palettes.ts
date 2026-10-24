@@ -123,6 +123,14 @@ export const palettes: PaletteOption[] = [
     label: "Cotton & Rose Thread",
     swatches: ["#f5efe9", "#3a302d", "#8f8078"],
   },
+  // The three Tinghun (engagement) designs, two schemes each. Red, gold and the motifs are
+  // set by each template; these are the paper and the ink.
+  { id: "rice-paper", label: "Rice Paper & Vermilion", swatches: ["#faf6ef", "#1f1b18", "#8c847a"] },
+  { id: "rice-blush", label: "Blush Paper", swatches: ["#f6e9e4", "#2a1f1c", "#8c7a74"] },
+  { id: "lacquer-cinnabar", label: "Cinnabar & Leaf Gold", swatches: ["#f5eee2", "#221a16", "#8a7563"] },
+  { id: "lacquer-night", label: "Lacquer by Lamplight", swatches: ["#2a0f0c", "#f3e6d2", "#b59a7e"] },
+  { id: "porcelain-blue", label: "Blue & White Porcelain", swatches: ["#f6f3ec", "#1d2f5c", "#7f8aa3"] },
+  { id: "porcelain-celadon", label: "Celadon", swatches: ["#eef2ec", "#253a35", "#7d8f86"] },
   {
     // Under Glass: warm cream paper and dark narra ink (the foil follows the milestone).
     id: "under-glass",

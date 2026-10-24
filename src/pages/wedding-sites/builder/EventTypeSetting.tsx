@@ -11,6 +11,7 @@ const TYPES = [
   { type: "birthday", label: "Birthday", plural: "birthdays" },
   { type: "anniversary", label: "Anniversary", plural: "anniversaries" },
   { type: "baby", label: "Christening & First Birthday", plural: "christenings and first birthdays" },
+  { type: "engagement", label: "Engagement & Tinghun", plural: "engagements" },
   { type: "other", label: "Other Celebration", plural: "other celebrations" },
 ] as const;
 

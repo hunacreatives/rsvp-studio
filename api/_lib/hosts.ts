@@ -18,7 +18,22 @@ export async function hostRecipients(db: SupabaseClient, eventId: string): Promi
   return hosts.filter((p) => p.notify_project_updates !== false && p.email).map((p) => p.email as string);
 }
 
-export function formatHostNames(content: { hosts?: { name?: string }[] } | null | undefined): string {
+/** Everyone hosting the event (owner + co-hosts), whatever their notification settings: for
+ *  service notices about their own data (the site going offline, the guest list being deleted). */
+export async function eventPeopleEmails(db: SupabaseClient, eventId: string): Promise<string[]> {
+  const ids = new Set<string>();
+  const { data: ev } = await db.from("events").select("owner_id").eq("id", eventId).maybeSingle();
+  if (ev?.owner_id) ids.add(ev.owner_id);
+  const { data: members } = await db.from("event_members").select("profile_id").eq("event_id", eventId);
+  for (const m of members ?? []) ids.add(m.profile_id);
+  if (!ids.size) return [];
+  const { data: people } = await db.from("profiles").select("email, is_staff").in("id", [...ids]);
+  return (people ?? []).filter((p) => !p.is_staff && p.email).map((p) => p.email as string);
+}
+
+/** `fallback` when the site has no names yet: host emails pass the event's name, so a subject
+ *  never reads "3 new RSVPs for the host". */
+export function formatHostNames(content: { hosts?: { name?: string }[] } | null | undefined, fallback = "the host"): string {
   const names = (content?.hosts ?? []).map((h) => h.name).filter(Boolean);
-  return names.length > 0 ? names.join(" & ") : "the host";
+  return names.length > 0 ? names.join(" & ") : fallback;
 }

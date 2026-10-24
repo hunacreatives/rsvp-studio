@@ -4,7 +4,7 @@ import { slugify } from "@/pages/wedding-sites/content/slugify";
 import { emptyEventContent, defaultPresentation } from "@/pages/wedding-sites/builder/useEventSiteDraft";
 import type { EventContent } from "@/pages/wedding-sites/content/types";
 
-export type EventType = "wedding" | "birthday" | "anniversary" | "baby" | "other";
+export type EventType = "wedding" | "birthday" | "anniversary" | "baby" | "engagement" | "other";
 
 export interface CreateEventInput {
   eventType: EventType;
@@ -18,6 +18,7 @@ const EVENT_TYPE_LABEL: Record<EventType, string> = {
   birthday: "Birthday",
   anniversary: "Anniversary",
   baby: "Celebration",
+  engagement: "Engagement",
   other: "Celebration",
 };
 

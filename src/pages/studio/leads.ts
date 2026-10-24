@@ -5,7 +5,7 @@ export function projectFromLead(l: Pick<Lead, "values" | "name">) {
   const v = l.values ?? {};
   const s = (k: string) => (Array.isArray(v[k]) ? (v[k] as string[]).join(", ") : (v[k] as string) ?? "");
   const occasion = s("occasion").toLowerCase();
-  const type = /wedding|engagement|bridal/.test(occasion) ? "wedding" : /christening|baptism|binyag|dedication|1st birthday|first birthday/.test(occasion) ? "baby" : /birthday|debut/.test(occasion) ? "birthday" : /anniversary/.test(occasion) ? "anniversary" : "other";
+  const type = /engagement|tinghun|tinghon|ting hun|betrothal/.test(occasion) ? "engagement" : /wedding|bridal/.test(occasion) ? "wedding" : /christening|baptism|binyag|dedication|1st birthday|first birthday/.test(occasion) ? "baby" : /birthday|debut/.test(occasion) ? "birthday" : /anniversary/.test(occasion) ? "anniversary" : "other";
   const name = s("couple_names") || s("celebrant_name") || s("parents_names") || l.name || "";
   const date = /^\d{4}-\d{2}-\d{2}/.test(s("event_date")) ? s("event_date").slice(0, 10) : "";
   const wanted = (Array.isArray(v.services) ? (v.services as string[]) : []).concat(Array.isArray(v.addons) ? (v.addons as string[]) : []);

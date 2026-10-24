@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // "Not good" (new, or changed to it): tell the studio straight away. Never reopens the request.
   if (rating === "not_good" && (first || thread.rating !== "not_good")) {
     const { data: customer } = await supabaseAdmin.from("profiles").select("full_name, email").eq("id", thread.profile_id).maybeSingle();
-    const origin = `https://${req.headers["x-forwarded-host"] ?? req.headers.host}`;
+    const origin = "https://thersvpstudio.com"; // links in email: always the live site
     await sendMail({
       from: FROM,
       to: STUDIO_INBOX,

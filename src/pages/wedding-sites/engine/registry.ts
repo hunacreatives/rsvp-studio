@@ -14,6 +14,9 @@ import { openPlayTemplateDefinition } from "../templates/open-play";
 import { capizTemplateDefinition } from "../templates/capiz";
 import { caladoTemplateDefinition } from "../templates/calado";
 import { underGlassTemplateDefinition } from "../templates/under-glass";
+import { tinghunRiceTemplateDefinition } from "../templates/tinghun-rice";
+import { tinghunLacquerTemplateDefinition } from "../templates/tinghun-lacquer";
+import { tinghunPorcelainTemplateDefinition } from "../templates/tinghun-porcelain";
 
 // Template contract + registry.
 //
@@ -175,6 +178,9 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   capiz: capizTemplateDefinition,
   calado: caladoTemplateDefinition,
   "under-glass": underGlassTemplateDefinition,
+  "tinghun-rice": tinghunRiceTemplateDefinition,
+  "tinghun-lacquer": tinghunLacquerTemplateDefinition,
+  "tinghun-porcelain": tinghunPorcelainTemplateDefinition,
 };
 
 // ---------------------------------------------------------------------------

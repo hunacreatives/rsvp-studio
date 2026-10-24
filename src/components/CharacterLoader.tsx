@@ -189,3 +189,32 @@ export function CharacterTrio({ className = "", style }: { className?: string; s
     </div>
   );
 }
+
+/** Every character's own size (px), for drawing any of them on its own. */
+export const CHARACTER_SIZE: Record<string, [number, number]> = {
+  pink: [279, 177], blue: [217, 213], orange: [247, 194], hexagon: [187, 204], purple: [140, 224], green: [223, 160],
+};
+const ALL_POS: Record<string, { x: number; y: number; w: number }> = { ...Object.fromEntries(CHARACTER_LAYOUT.map((c) => [c.name, c])), blue: BLUE_LAYOUT };
+
+/**
+ * One character with its face (mouth, eyes that blink), sized by its container's width. For
+ * scenes (the service pages' closing card); `className`/`style` carry the scene's motion.
+ */
+export function Character({ name, className = "", style }: { name: keyof typeof CHARACTER_SIZE | string; className?: string; style?: CSSProperties }) {
+  const [w, h] = CHARACTER_SIZE[name];
+  const c = ALL_POS[name];
+  const m = CHARACTER_MOUTH[name];
+  const at = (x: number, y: number) => ({ left: `${((x - c.x) / c.w) * 100}%`, top: `${((y - c.y) / ((h / CANVAS_H) * 100)) * 100}%` });
+  return (
+    <div className={className} style={{ position: "relative", aspectRatio: `${w} / ${h}`, ...style }} aria-hidden>
+      <style>{CSS}</style>
+      <img src={img(name)} alt="" width={w} height={h} draggable={false} decoding="async" style={{ display: "block", width: "100%", height: "auto" }} />
+      <img src={img(`${name}-mouth`)} alt="" draggable={false} decoding="async" style={{ position: "absolute", ...at(m.x, m.y), width: `${(m.w / c.w) * 100}%` }} />
+      {CHARACTER_EYES[name].map((e, j) => (
+        <span key={j} style={{ position: "absolute", ...at(e.x, e.y), width: `${(e.w / c.w) * 100}%`, aspectRatio: `${e.w} / ${e.h}`, transform: "translate(-50%, -50%)" }}>
+          <span className="rs-eye" style={{ display: "block", width: "100%", height: "100%", background: "#0B0B12", borderRadius: 999, transformOrigin: "50% 50%", animation: CHARACTER_BLINK[name] }} />
+        </span>
+      ))}
+    </div>
+  );
+}

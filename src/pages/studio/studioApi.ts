@@ -43,7 +43,9 @@ export async function postUpdate(eventId: string, title: string, detail: string 
 
 export async function addTask(eventId: string, title: string, due: string | null) {
   must(await supabase.from("project_tasks").insert({ event_id: eventId, title, due_date: due }));
-  notify({ kind: "project_update", eventId, title: `New task: ${title}`, detail: due ? `Due ${due}` : null });
+  // "Due October 30", not the raw date.
+  const dueWords = due ? new Date(`${due}T12:00:00+08:00`).toLocaleDateString("en-PH", { month: "long", day: "numeric", timeZone: "Asia/Manila" }) : null;
+  notify({ kind: "project_update", eventId, title: `New task: ${title}`, detail: dueWords ? `Due ${dueWords}` : null });
 }
 
 export async function setTask(id: string, patch: { done_at?: string | null; title?: string; due_date?: string | null }) {

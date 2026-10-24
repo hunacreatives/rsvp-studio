@@ -37,7 +37,7 @@ export async function sendRsvpDigests(db: SupabaseClient, sendMail: SendMail, si
 
   for (const eventId of eventIds) {
     try {
-      const { data: ev } = await db.from("events").select("id, managed_by_studio, rsvp_digest_sent_at").eq("id", eventId).maybeSingle();
+      const { data: ev } = await db.from("events").select("id, name, managed_by_studio, rsvp_digest_sent_at").eq("id", eventId).maybeSingle();
       if (!ev || ev.managed_by_studio || (await isPremium(db, eventId))) continue;
       const { data: siteRow } = await db.from("wedding_sites").select("published_at, published_content").eq("event_id", eventId).maybeSingle();
       const since = (ev.rsvp_digest_sent_at as string | null) ?? (siteRow?.published_at as string | null) ?? new Date(Date.now() - 86_400_000).toISOString();
@@ -65,7 +65,7 @@ export async function sendRsvpDigests(db: SupabaseClient, sendMail: SendMail, si
         continue;
       }
 
-      const hosts = formatHostNames(siteRow?.published_content as { hosts?: { name?: string }[] } | null);
+      const hosts = formatHostNames(siteRow?.published_content as { hosts?: { name?: string }[] } | null, (ev?.name as string | null) || "your event");
       const fresh = replies.filter((r) => r.created_at > since);
       const changed = replies.length - fresh.length;
       const yes = replies.filter((r) => r.attending === true);
@@ -88,7 +88,7 @@ export async function sendRsvpDigests(db: SupabaseClient, sendMail: SendMail, si
       const body =
         `${fresh.length ? `Since your last summary, ${fresh.length} ${fresh.length === 1 ? "guest has" : "guests have"} replied` : "Some guests changed their reply"}${fresh.length && changed ? ` and ${changed} changed their reply` : ""}.<br><br>${tally}` +
         `<ul style="margin:16px 0 0;padding-left:18px">${list}</ul>${more}` +
-        `<p style="margin:22px 0 0;font-size:13px;color:#55556a">Want an email the moment each RSVP comes in? Upgrade your site to Premium in the website builder.</p>`;
+        `<p style="margin:22px 0 0;font-size:13px;color:#55556a">Want each RSVP the moment it arrives?<br><a href="https://thersvpstudio.com/account/events/${eventId}/site-builder/edit?upgrade=1" style="color:#55556a;text-decoration:underline">That comes with Premium.</a></p>`;
 
       await sendMail(
         {

@@ -140,6 +140,13 @@ async function alertStudio(sendMail: SendMail, subject: string, body: string) {
   );
 }
 
+/** What the customer paid for this address (our emails are the receipt; PayMongo's are off). */
+async function paidFor(db: SupabaseClient, kind: "domain" | "domain_renewal", domain: string): Promise<string> {
+  const { data } = await db.from("payments").select("amount_centavos").eq("kind", kind).eq("domain", domain).eq("status", "paid").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  return data?.amount_centavos ? `₱${(Number(data.amount_centavos) / 100).toLocaleString("en-PH")}` : "";
+}
+const longDay = (iso: string) => new Date(iso).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
+
 async function ownerEmail(db: SupabaseClient, eventId: string | null) {
   if (!eventId) return null;
   const { data: ev } = await db.from("events").select("name, owner_id").eq("id", eventId).maybeSingle();
@@ -164,9 +171,10 @@ async function fail(db: SupabaseClient, sendMail: SendMail, row: Row, why: strin
         subject: `We’re sorting out ${row.domain}`,
         html: layout(
           "Your web address needs a moment",
-          `We couldn’t finish setting up <strong>${esc(row.domain)}</strong> automatically. Our team has been told and will sort it out — a different address or a full refund, your choice. Your website stays live on its free link in the meantime.`,
+          `We couldn’t finish setting up <strong>${esc(row.domain)}</strong>.<br>We’ll sort it out with you: a new address or a full refund.<br><br>Your website stays live on its free link in the meantime.`,
           { label: "Open your dashboard", url: `${SITE}/account/projects/${row.event_id}?tab=website` },
           "You’re receiving this because you bought a web address on The RSVP Studio.",
+          { promo: false },
         ),
       },
       `domain-failed-${row.id}`,
@@ -255,6 +263,7 @@ export async function advanceDomain(db: SupabaseClient, sendMail: SendMail, row:
     const { data: done } = await db.from("site_domains").update({ status: "active", last_error: null, updated_at: now() }).eq("id", row.id).eq("status", "connecting").select("id");
     if (done?.length) {
       const owner = await ownerEmail(db, row.event_id);
+      const paid = await paidFor(db, "domain", row.domain);
       if (owner)
         await sendMail(
           {
@@ -263,7 +272,7 @@ export async function advanceDomain(db: SupabaseClient, sendMail: SendMail, row:
             subject: `Your website is live at ${row.domain}`,
             html: layout(
               `You’re live at ${esc(row.domain)}`,
-              `Your website for <strong>${esc(owner.name)}</strong> now has its own address: <a href="https://${esc(row.domain)}">${esc(row.domain)}</a>. Share it with your guests — your free link keeps working too.<br><br>It’s yours for a year, and your website stays online for as long as it is.`,
+              `Your website for <strong>${esc(owner.name)}</strong> now has its own address: <a href="https://${esc(row.domain)}">${esc(row.domain)}</a>.<br>Share it with your guests. Your free link keeps working too.<br><br>It’s yours for a year, and your website stays online for as long as it is.${paid ? `<br><br><span style="color:#868697">Paid ${paid} for ${esc(row.domain)}, one year.</span>` : ""}`,
               { label: `Open ${row.domain}`, url: `https://${row.domain}` },
               "You’re receiving this because you bought a web address on The RSVP Studio.",
             ),
@@ -290,10 +299,31 @@ export async function domainRenewalPaid(db: SupabaseClient, sendMail: SendMail, 
     return alertStudio(sendMail, `Domain renewal failed: ${row.domain}`, `The customer paid ₱${payment.amount_centavos / 100} to renew <strong>${esc(row.domain)}</strong>, but Vercel said: ${esc(r.json.message ?? String(r.status))}. Renew it by hand in Vercel or refund.`);
   }
   const base = row.expires_at && Date.parse(row.expires_at) > Date.now() ? Date.parse(row.expires_at) : Date.now();
+  const until = new Date(base + 365 * 86_400_000).toISOString();
   await db
     .from("site_domains")
-    .update({ status: "active", expires_at: new Date(base + 365 * 86_400_000).toISOString(), renew_notice_sent_at: null, last_error: null, updated_at: new Date().toISOString() })
+    .update({ status: "active", expires_at: until, renew_notice_sent_at: null, last_error: null, updated_at: new Date().toISOString() })
     .eq("id", row.id);
+  // The renewal's confirmation (and receipt): paid, and until when.
+  // Next year gets its 7-day warning too (a separate update: the column comes with email-additions.sql).
+  await db.from("site_domains").update({ final_notice_sent_at: null }).eq("id", row.id);
+  const owner = await ownerEmail(db, row.event_id);
+  if (owner)
+    await sendMail(
+      {
+        from: FROM,
+        to: owner.email,
+        subject: `${row.domain} is renewed until ${longDay(until)}`,
+        html: layout(
+          "Renewed for another year",
+          `<strong>${esc(row.domain)}</strong> is yours until <strong>${longDay(until)}</strong>.<br>Your website for <strong>${esc(owner.name)}</strong> stays on this address.<br><br><span style="color:#868697">Paid ₱${(Number(payment.amount_centavos) / 100).toLocaleString("en-PH")} for one more year.</span>`,
+          { label: "Open your dashboard", url: `${SITE}/account/projects/${row.event_id}?tab=website` },
+          "You’re receiving this because you own this web address through The RSVP Studio.",
+          { promo: false },
+        ),
+      },
+      `domain-renewed-${row.id}-${until.slice(0, 10)}`,
+    ).catch(() => {});
 }
 
 /** Daily: finish anything stuck, tell owners 30 days before expiry, mark expired ones. */
@@ -325,10 +355,10 @@ export async function domainsDaily(db: SupabaseClient, sendMail: SendMail) {
         {
           from: FROM,
           to: owner.email,
-          subject: `${row.domain} expires on ${new Date(row.expires_at!).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}`,
+          subject: `${row.domain} expires on ${new Date(row.expires_at!).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}`,
           html: layout(
             `Keep ${esc(row.domain)}?`,
-            `Your web address <strong>${esc(row.domain)}</strong> expires on ${new Date(row.expires_at!).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}. Renew it for another year for ₱${php.toLocaleString("en-PH")} to keep it — and your website — online. If you don’t, the address stops working after that date.`,
+            `Your web address <strong>${esc(row.domain)}</strong> expires on ${new Date(row.expires_at!).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}. Renew it for a year for ₱${php.toLocaleString("en-PH")}.<br>If you don’t, the address stops working after that date.`,
             { label: "Renew it", url: `${SITE}/account/projects/${row.event_id}?tab=website` },
             "You’re receiving this because you own this web address through The RSVP Studio.",
           ),
@@ -339,7 +369,64 @@ export async function domainsDaily(db: SupabaseClient, sendMail: SendMail) {
     await db.from("site_domains").update({ renew_notice_sent_at: new Date().toISOString() }).eq("id", row.id);
     report.renewNotices++;
   }
-  const { data: gone } = await db.from("site_domains").update({ status: "expired", updated_at: new Date().toISOString() }).eq("status", "active").lt("expires_at", new Date().toISOString()).select("id");
+  // A week left: the last warning (email-additions.sql adds final_notice_sent_at; until then this read fails and is skipped).
+  const { data: last, error: lastErr } = await db
+    .from("site_domains")
+    .select("*")
+    .eq("status", "active")
+    .is("final_notice_sent_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .lt("expires_at", new Date(Date.now() + 7 * 86_400_000).toISOString());
+  for (const row of lastErr ? [] : ((last ?? []) as Row[])) {
+    const owner = await ownerEmail(db, row.event_id);
+    if (owner && s) {
+      const php = pesoPrice(Number(row.renewal_usd ?? row.price_usd), s);
+      const { data: ws } = await db.from("wedding_sites").select("slug").eq("event_id", row.event_id).maybeSingle();
+      await sendMail(
+        {
+          from: FROM,
+          to: owner.email,
+          subject: `${row.domain} stops working on ${longDay(row.expires_at!)}`,
+          html: layout(
+            `${esc(row.domain)} stops working in a week`,
+            `Your web address <strong>${esc(row.domain)}</strong> expires on <strong>${longDay(row.expires_at!)}</strong>.<br>Renew it for ₱${php.toLocaleString("en-PH")} to keep it.${
+              ws?.slug ? `<br><br>If you don’t, your website stays online at its free link:<br>thersvpstudio.com/invite/${esc(ws.slug)}` : ""
+            }`,
+            { label: "Renew it", url: `${SITE}/account/projects/${row.event_id}?tab=website` },
+            "You’re receiving this because you own this web address through The RSVP Studio.",
+            { promo: false },
+          ),
+        },
+        `domain-final-${row.id}-${row.expires_at}`,
+      ).catch((e) => report.errors.push(`final notice ${row.domain}: ${e}`));
+    }
+    await db.from("site_domains").update({ final_notice_sent_at: new Date().toISOString() }).eq("id", row.id);
+    report.renewNotices++;
+  }
+  const { data: gone } = await db.from("site_domains").update({ status: "expired", updated_at: new Date().toISOString() }).eq("status", "active").lt("expires_at", new Date().toISOString()).select("id, domain, event_id");
   report.expired = gone?.length ?? 0;
+  // Gone: say so, and where the website is now.
+  for (const row of (gone ?? []) as { id: string; domain: string; event_id: string }[]) {
+    const owner = await ownerEmail(db, row.event_id);
+    if (!owner) continue;
+    const { data: ws } = await db.from("wedding_sites").select("slug").eq("event_id", row.event_id).maybeSingle();
+    await sendMail(
+      {
+        from: FROM,
+        to: owner.email,
+        subject: `${row.domain} has expired`,
+        html: layout(
+          `${esc(row.domain)} has expired`,
+          `The address <strong>${esc(row.domain)}</strong> no longer opens your website.${
+            ws?.slug ? `<br>Your website for <strong>${esc(owner.name)}</strong> is still online at its free link:<br><a href="${SITE}/invite/${esc(ws.slug)}">thersvpstudio.com/invite/${esc(ws.slug)}</a>` : ""
+          }`,
+          { label: "Open your dashboard", url: `${SITE}/account/projects/${row.event_id}?tab=website` },
+          "You’re receiving this because you owned this web address through The RSVP Studio.",
+          { promo: false },
+        ),
+      },
+      `domain-expired-${row.id}`,
+    ).catch((e) => report.errors.push(`expired notice ${row.domain}: ${e}`));
+  }
   return report;
 }

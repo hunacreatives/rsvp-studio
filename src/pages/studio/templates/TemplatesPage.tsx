@@ -4,7 +4,7 @@ import { usePortal } from "@/pages/account/portal/PortalContext";
 import { formatDate } from "@/pages/account/portal/format";
 import { ErrorText, Input, PillButton, StatusPill } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
-import { listTemplates, TEMPLATE_OCCASIONS, updateTemplate, type TemplateRow } from "../templatesApi";
+import { listTemplates, saveTemplateOrder, TEMPLATE_OCCASIONS, updateTemplate, type TemplateRow } from "../templatesApi";
 import * as studio from "../studioApi";
 import DomainsCard from "./DomainsCard";
 import PromoCodesCard from "./PromoCodesCard";
@@ -21,6 +21,50 @@ export default function TemplatesPage() {
     studio.isOwner().then(setOwner);
   }, []);
   const [error, setError] = useState<string | null>(null);
+  // The gallery order: drag a row (desktop) or use its arrows. Saved as it changes.
+  const [orderState, setOrderState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const reorder = async (next: TemplateRow[]) => {
+    const before = rows;
+    setRows(next);
+    setOrderState("saving");
+    try {
+      setRows(await saveTemplateOrder(next));
+      setOrderState("saved");
+    } catch {
+      setRows(before);
+      setOrderState("error");
+    }
+  };
+  const move = (id: string, by: -1 | 1) => {
+    if (!rows) return;
+    const i = rows.findIndex((r) => r.id === id);
+    const j = i + by;
+    if (i < 0 || j < 0 || j >= rows.length) return;
+    const next = rows.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    void reorder(next);
+  };
+  const dropOn = (targetId: string) => {
+    if (!rows || !dragId || dragId === targetId) return;
+    const next = rows.filter((r) => r.id !== dragId);
+    const at = next.findIndex((r) => r.id === targetId);
+    const from = rows.findIndex((r) => r.id === dragId);
+    const to = rows.findIndex((r) => r.id === targetId);
+    next.splice(from < to ? at + 1 : at, 0, rows.find((r) => r.id === dragId)!);
+    void reorder(next);
+  };
+  const arrows = (t: TemplateRow, i: number) => (
+    <span className="inline-flex gap-1">
+      <button type="button" onClick={() => move(t.id, -1)} disabled={i === 0 || orderState === "saving"} aria-label={`Move ${t.label} up`} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--line)] text-[var(--ink)] hover:border-[var(--ink)] disabled:opacity-30 md:h-8 md:w-8">
+        <i className="ri-arrow-up-s-line" />
+      </button>
+      <button type="button" onClick={() => move(t.id, 1)} disabled={!rows || i === rows.length - 1 || orderState === "saving"} aria-label={`Move ${t.label} down`} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--line)] text-[var(--ink)] hover:border-[var(--ink)] disabled:opacity-30 md:h-8 md:w-8">
+        <i className="ri-arrow-down-s-line" />
+      </button>
+    </span>
+  );
 
   useEffect(() => {
     if (demo) return setRows([]);
@@ -50,10 +94,18 @@ export default function TemplatesPage() {
       {!demo && owner ? <PromoCodesCard /> : null}
       {!demo ? <DomainsCard /> : null}
       {demo ? <p className="mb-4 text-[14px] text-[var(--slate)]">Templates aren’t part of demo data.</p> : null}
+      {!demo && rows?.length ? (
+        <p className="mb-3 flex flex-wrap items-center gap-x-3 text-[13px] text-[var(--slate)]">
+          <span>This is the order customers see on /build and in the design picker. Drag a row or use its arrows.</span>
+          <span aria-live="polite" className={orderState === "error" ? "text-[#c2412d]" : orderState === "saved" ? "text-[#3d7a12]" : ""}>
+            {orderState === "saving" ? "Saving…" : orderState === "saved" ? "Order saved." : orderState === "error" ? "Couldn’t save the order. Please try again." : ""}
+          </span>
+        </p>
+      ) : null}
 
       {/* Phones: one card per template. */}
       <ul className="divide-y divide-[var(--line)] rounded-[22px] border border-[var(--line)] bg-white empty:hidden md:hidden">
-        {(rows ?? []).map((t) => (
+        {(rows ?? []).map((t, i) => (
           <li key={t.id}>
             {t.kind === "spec" ? (
               <Link to={`/studio/templates/${t.id}`} className="flex items-center gap-3 px-4 pt-3.5">
@@ -65,7 +117,10 @@ export default function TemplatesPage() {
                 <TemplateCardBody t={t} />
               </div>
             )}
-            <div className="px-4 pb-3.5 pt-2">{!demo ? <TemplateTags t={t} onChange={(next) => setRows((cur) => cur?.map((r) => (r.id === t.id ? next : r)) ?? cur)} /> : null}</div>
+            <div className="flex flex-wrap items-center gap-2 px-4 pb-3.5 pt-2">
+              {!demo ? arrows(t, i) : null}
+              {!demo ? <TemplateTags t={t} onChange={(next) => setRows((cur) => cur?.map((r) => (r.id === t.id ? next : r)) ?? cur)} /> : null}
+            </div>
           </li>
         ))}
         {rows && !rows.length && !demo ? <li className="px-5 py-10 text-center text-[14px] text-[var(--slate)]">No templates yet.</li> : null}
@@ -76,6 +131,7 @@ export default function TemplatesPage() {
         <table className="w-full min-w-[720px] text-left text-[14px]">
           <thead>
             <tr className="border-b border-[var(--line)] text-[12px] uppercase tracking-[0.06em] text-[var(--slate)]">
+              <th className="w-[1%] whitespace-nowrap px-4 py-3 font-medium">Order</th>
               <th className="px-5 py-3 font-medium">Template</th>
               <th className="px-5 py-3 font-medium">Type</th>
               <th className="px-5 py-3 font-medium">Tier</th>
@@ -85,8 +141,39 @@ export default function TemplatesPage() {
             </tr>
           </thead>
           <tbody>
-            {(rows ?? []).map((t) => (
-              <tr key={t.id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--paper)]">
+            {(rows ?? []).map((t, i) => (
+              <tr
+                key={t.id}
+                draggable={!demo && orderState !== "saving"}
+                onDragStart={(e) => {
+                  setDragId(t.id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  if (!dragId) return;
+                  e.preventDefault();
+                  setOverId(t.id);
+                }}
+                onDragLeave={() => setOverId((o) => (o === t.id ? null : o))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  dropOn(t.id);
+                  setDragId(null);
+                  setOverId(null);
+                }}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setOverId(null);
+                }}
+                className={`border-b border-[var(--line)] last:border-0 hover:bg-[var(--paper)] ${dragId === t.id ? "opacity-40" : ""} ${overId === t.id && dragId !== t.id ? "shadow-[inset_0_2px_0_var(--ink)]" : ""}`}
+              >
+                <td className="whitespace-nowrap px-4 py-3">
+                  <span className="inline-flex items-center gap-2">
+                    <i className="ri-draggable cursor-grab text-[18px] text-[var(--slate)]" aria-hidden title="Drag to reorder" />
+                    <span className="w-5 text-right text-[13px] tabular-nums text-[var(--slate)]">{i + 1}</span>
+                    {!demo ? arrows(t, i) : null}
+                  </span>
+                </td>
                 <td className="px-5 py-3">
                   {t.kind === "spec" ? (
                     <Link to={`/studio/templates/${t.id}`} className="font-semibold text-[var(--ink)] hover:underline">
@@ -110,12 +197,12 @@ export default function TemplatesPage() {
             ))}
             {rows && !rows.length && !demo ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-[var(--slate)]">No templates yet.</td>
+                <td colSpan={7} className="px-5 py-10 text-center text-[var(--slate)]">No templates yet.</td>
               </tr>
             ) : null}
             {!rows && !error ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-[var(--slate)]">Loading…</td>
+                <td colSpan={7} className="px-5 py-10 text-center text-[var(--slate)]">Loading…</td>
               </tr>
             ) : null}
           </tbody>

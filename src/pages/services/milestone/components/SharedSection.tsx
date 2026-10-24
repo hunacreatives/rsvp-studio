@@ -17,12 +17,12 @@ export default function SharedSection() {
             className="font-display font-semibold tracking-[-0.02em] leading-[1.1] text-[var(--ink)] md:whitespace-nowrap"
             style={{ fontSize: "clamp(1.6rem, 3vw, 2.5rem)" }}
           >
-            Designed to be shared.
+            Made to be shared.
           </h2>
-          <p className="mt-3 text-lg text-[var(--slate)]">Beautiful on every screen.</p>
-          <p className="mt-5 max-w-md text-[var(--slate)]">
-            Share through your favorite apps and platforms, so everyone receives
-            your announcement instantly.
+          {/* "Every screen" is the hero's line; this one is about sending it. */}
+          <p className="mt-4 max-w-md text-lg text-[var(--slate)]">
+            One link on Messenger, Viber or email,
+            <br className="hidden sm:block" /> and everyone has it at once.
           </p>
           <div className="mt-8 grid max-w-sm grid-cols-4 gap-2 sm:mt-10 sm:flex sm:max-w-none sm:flex-wrap sm:gap-8">
             {CHANNELS.map((c) => (

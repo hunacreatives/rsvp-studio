@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import ServiceCta from "@/components/ServiceCta";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -10,24 +11,18 @@ import { inquiryLink } from "@/pages/enquire/prefill";
 function CtaStrip() {
   const navigate = useNavigate();
   return (
-    <section className="py-20" style={{ background: "var(--warm-white)" }}>
-      <div className="container-x flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <Reveal>
-          <h2 className="h-section text-[var(--ink)]">
-            A suite that feels <span className="text-[var(--slate)]">entirely yours.</span>
-          </h2>
-          <p className="mt-2 text-lg text-[var(--slate)]">
-            Every piece designed, illustrated, and personalised for your celebration.
-          </p>
-        </Reveal>
-        <Reveal delay={0.06}>
-          <button
-            className="btn btn-primary whitespace-nowrap"
-            onClick={() => navigate(inquiryLink({ service: "stationery" }))}
-          >
-            Start Your Suite
-          </button>
-        </Reveal>
+    <section className="pb-14 pt-4 sm:pb-20 md:pb-28" style={{ background: "var(--warm-white)" }}>
+      <div className="container-x">
+        <ServiceCta
+          heading={
+            <>
+              A suite that feels <span className="italic text-[#e3c98a]">entirely yours.</span>
+            </>
+          }
+          line="Every piece designed, illustrated, and personalised for your celebration."
+          quote={() => navigate(inquiryLink({ service: "stationery" }))}
+          quoteLabel="Start your suite"
+        />
       </div>
     </section>
   );

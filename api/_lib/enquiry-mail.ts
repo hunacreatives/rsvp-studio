@@ -1,6 +1,5 @@
 import { esc } from "./email.js";
-import { partnerLayout } from "./support-mail.js";
-import { TAGLINE } from "./support-mail.js";
+import { brandFooter, emailHead, partnerLayout, preheaderHtml } from "./support-mail.js";
 
 // The "we got it" email someone receives after sending a form (api/enquire.ts).
 //   project-inquiry → "We got your RSVP": an RSVP-style reply card with what they asked
@@ -28,13 +27,9 @@ export const CORAL = "#ff7052";
 /** The branded email: logo, an illustration, the content rows, links and a footer line.
  *  Also used by the follow-up emails (followup-mail.ts), which pass their own footer. */
 export function frame({ preheader, spot, spotAlt, content, footer = "You received this email because you sent us a message on thersvpstudio.com.", cover, tagline = true }: { preheader: string; spot: string; spotAlt: string; content: string; footer?: string; cover?: string; /** Our sign-off; off for guests' emails (those are the couple's). */ tagline?: boolean }) {
-  return `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="color-scheme" content="light" /><meta name="supported-color-schemes" content="light" />
-<style>:root{color-scheme:light only;supported-color-schemes:light only}
-@media (prefers-color-scheme: dark){.fi{color:${INK}!important}.fb{color:${BODY}!important}.fs{color:${SLATE}!important}.fw{color:#ffffff!important}.fcard{background:#ffffff!important}.fpage{background:#f3f3f5!important}.fpaper{background:#fbfaf6!important}}
-@media only screen and (max-width:520px){.pad{padding-left:28px!important;padding-right:28px!important}.col{display:block!important;width:100%!important;padding:0 0 14px!important}}</style></head>
+  return `<!doctype html><html><head>${emailHead()}</head>
 <body class="fpage" bgcolor="#f3f3f5" style="margin:0;padding:0;background:#f3f3f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${preheader}</div>
+${preheaderHtml(preheader)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f3f3f5" class="fpage" style="background:#f3f3f5;"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="#ffffff" class="fcard" style="max-width:560px;width:100%;background:#ffffff;">
 <tr><td align="center" style="padding:36px 32px 8px;"><img src="${SITE}/brand/logotype-dark.png" alt="The RSVP Studio" width="128" style="display:block;height:auto;border:0;" /></td></tr>
@@ -42,13 +37,7 @@ ${cover
   ? `<tr><td align="center" style="padding:22px 32px 4px;"><table role="presentation" align="center" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ffffff" style="background:#ffffff;padding:8px 8px 22px;border:1px solid #ece8e1;border-radius:4px;box-shadow:0 8px 20px -12px rgba(0,7,39,0.35);"><img src="${cover}" alt="${spotAlt}" width="150" style="display:block;width:150px;max-width:100%;height:auto;border:0;" /></td></tr></table></td></tr>`
   : `<tr><td align="center" style="padding:22px 32px 4px;"><img src="${SITE}/email/${spot}" alt="${spotAlt}" width="200" style="display:block;width:200px;height:auto;border:0;" /></td></tr>`}
 ${content}
-<tr><td align="center" style="padding:0 32px 36px;">
-${tagline ? TAGLINE : ""}
-<table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>
-<p class="fs" style="margin:20px 0 14px;font-size:12px;color:${SLATE}!important;"><a href="https://www.instagram.com/rsvpstudioo/" class="fs" style="color:${SLATE}!important;text-decoration:none;">Instagram</a>&nbsp;&middot;&nbsp;<a href="https://www.facebook.com/p/The-RSVP-Studio-61590604769707/" class="fs" style="color:${SLATE}!important;text-decoration:none;">Facebook</a></p>
-<p class="fs" style="margin:0 0 14px;font-size:12px;color:${SLATE}!important;"><a href="${SITE}" class="fs" style="color:${SLATE}!important;text-decoration:none;">The RSVP Studio</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE}/services" class="fs" style="color:${SLATE}!important;text-decoration:none;">Services</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE}/portfolio" class="fs" style="color:${SLATE}!important;text-decoration:none;">Our work</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE}/faqs" class="fs" style="color:${SLATE}!important;text-decoration:none;">FAQs</a></p>
-<p class="fs" style="margin:0;font-size:10px;line-height:1.6;color:#a0a0ad!important;">${footer}<br />The RSVP Studio, a Huna Creatives brand &middot; Philippines</p>
-</td></tr>
+${brandFooter(footer, { tagline })}
 </table></td></tr></table></body></html>`;
 }
 

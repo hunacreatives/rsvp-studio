@@ -16,6 +16,7 @@ const EVENT_TYPES = [
   { value: "birthday", label: "Birthday" },
   { value: "anniversary", label: "Anniversary" },
   { value: "baby", label: "Christening or first birthday" },
+  { value: "engagement", label: "Engagement & Tinghun" },
   { value: "other", label: "Other celebration" },
 ];
 
@@ -288,7 +289,7 @@ function ProgressCard({ project }: { project: Project }) {
   const { busy, error, run } = useAction();
 
   const announcement = () => {
-    if (status === "completed" && project.project_status !== "completed") return "Project completed";
+    if (status === "completed" && project.project_status !== "completed") return "All done";
     if (nextStep.trim() && nextStep.trim() !== (project.next_step ?? "")) return `${owner === "client" ? "Your turn" : owner === "studio" ? "We’re working on" : "Next step"}: ${nextStep.trim()}`;
     return undefined;
   };

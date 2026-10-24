@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { methodLabel, sendInvoiceEmail } from "./_lib/billing-mail.js";
 import { verifyPaymongoSignature } from "./_lib/paymongo.js";
@@ -95,6 +95,8 @@ export async function POST(request: Request) {
     // Never fails the webhook — problems alert the studio instead of making PayMongo retry.
     if (payment.kind === "domain") await domainPaid(db, sendMail, payment).catch((e) => console.error("domain purchase failed", e));
     if (payment.kind === "domain_renewal") await domainRenewalPaid(db, sendMail, payment).catch((e) => console.error("domain renewal failed", e));
+    // Paying to publish / going Premium: our confirmation, which is also the receipt.
+    if (payment.kind === "site_publish") await sitePublishPaid(db, sendMail, payment, amount, method).catch((e) => console.error("site publish email failed", e));
     // Heads-up for the studio, whatever was paid for.
     const { data: ev } = await db.from("events").select("name").eq("id", payment.event_id).maybeSingle();
     await sendMail({
@@ -124,4 +126,53 @@ export async function POST(request: Request) {
     await db.from("payments").update({ fulfilled: false, status: "pending" }).eq("id", payment.id);
     return new Response("retry", { status: 500 });
   }
+}
+
+/**
+ * "Premium is on" (or, for a paid publish that isn't Premium, "Payment received"): to whoever
+ * paid and the event's owner. What's on straight away, what to switch on, and the amount, so
+ * it doubles as the receipt (PayMongo's own receipts are off: api/_lib/paymongo.ts).
+ */
+async function sitePublishPaid(
+  db: SupabaseClient,
+  sendMail: ReturnType<typeof makeSendMail>,
+  payment: Record<string, any>,
+  amount: string,
+  method: string | null,
+) {
+  const { data: ev } = await db.from("events").select("name, owner_id").eq("id", payment.event_id).maybeSingle();
+  if (!ev) return;
+  const ids = [payment.profile_id, ev.owner_id].filter(Boolean) as string[];
+  const { data: people } = ids.length ? await db.from("profiles").select("id, email, full_name").in("id", ids) : { data: [] };
+  const to = [...new Set((people ?? []).map((p) => p.email as string).filter(Boolean))];
+  if (!to.length) return;
+  const payer = (people ?? []).find((p) => p.id === payment.profile_id) ?? (people ?? [])[0];
+  const first = esc(((payer?.full_name as string | null) ?? "").trim().split(/\s+/)[0] || "there");
+  const { data: premium } = await db.rpc("event_is_premium", { p_event: payment.event_id });
+  const html = sitePaidEmailHtml({ first, name: esc(ev.name as string), amount, method, premium: premium === true, builder: `${SITE}/account/events/${payment.event_id}/site-builder/edit` });
+  await sendMail(
+    { from: FROM, to, replyTo: STUDIO_INBOX, subject: premium === true ? `Premium is on for ${ev.name}` : `Payment received for ${ev.name}`, html },
+    `site-publish-paid-${payment.id}`,
+  );
+}
+
+/** The email itself (exported for previews). */
+export function sitePaidEmailHtml(o: { first: string; name: string; amount: string; method: string | null; premium: boolean; builder: string }) {
+  const paidLine = `<span style="color:#868697">Paid ${o.amount}${o.method ? ` by ${esc(methodLabel(o.method))}` : ""}. One time, for this event.</span>`;
+  const li = (t: string) => `<li style="margin:0 0 6px">${t}</li>`;
+  return o.premium
+    ? layout(
+        "Premium is on",
+        `Thank you, ${o.first}. <strong>${o.name}</strong> is on Premium.<br><br><strong>Already on</strong><ul style="margin:8px 0 14px;padding-left:18px">${li("An email the moment someone says yes")}${li("Confirmations sent in your names")}${li("Every Premium design, no extra cost")}${li("Online for a year after your event")}</ul><strong>Switch on when you want them</strong> <span style="color:#868697">(Details → Settings)</span><ul style="margin:8px 0 14px;padding-left:18px">${li("A reminder to guests two days before")}${li("Everyone’s photos in one place")}${li("Invited guests only")}${li("Find your table")}</ul>${paidLine}`,
+        { label: "Open your website", url: o.builder },
+        "You’re receiving this because you paid for this event on The RSVP Studio.",
+        { promo: false },
+      )
+    : layout(
+        "Payment received",
+        `Thank you, ${o.first}. You can publish your website for <strong>${o.name}</strong> now.<br><br>${paidLine}`,
+        { label: "Publish your website", url: o.builder },
+        "You’re receiving this because you paid for this event on The RSVP Studio.",
+        { promo: false },
+      );
 }

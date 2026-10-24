@@ -32,7 +32,6 @@ import { photoFit } from "../shared/photoFit";
 const LINEN = "/event-templates/calado/linen.webp";
 const LINEN_SOFT = "/event-templates/calado/linen-soft.webp";
 const ACCENT: Record<string, string> = { "calado-cotton": "#6f8aa0", "calado-rose": "#b4867f" };
-const HOOP_SIZES = ["l", "m", "s", "m", "s", "l", "s", "l", "m", "l", "m", "s"];
 
 export default function CaladoTemplate({ content, settings, editorPreview = false, live = false, demo = false, gallery = false }: TemplateProps<BaseTemplateSettings>) {
   const credit = useSiteCredit();
@@ -252,7 +251,7 @@ export default function CaladoTemplate({ content, settings, editorPreview = fals
               {photos.length ? (
                 <ul className="cl-wall">
                   {photos.slice(0, 12).map((p, i) => (
-                    <li key={p.id} className={`cl-wall__item cl-wall__item--${HOOP_SIZES[i % HOOP_SIZES.length]}`} data-reveal style={{ ["--i" as string]: i % 3 } as CSSProperties}>
+                    <li key={p.id} className="cl-wall__item" data-reveal style={{ ["--i" as string]: i % 3 } as CSSProperties}>
                       <button type="button" className="cl-mini" onClick={() => !editorPreview && setZoom(i)} aria-label={p.caption ? `Open the ${p.caption} photo` : "Open the photo"}>
                         <span className="cl-mini__ring" aria-hidden />
                         <img src={p.image.masterUrl} alt={p.image.alt || p.caption || ""} loading="lazy" decoding="async" style={{ ...photoFit(p.image, 0.5, 0.4) }} />

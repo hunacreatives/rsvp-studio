@@ -6,6 +6,8 @@ import { customerReplyTo, reqCode, FROM, firstName, layout, partnerLayout, makeS
 import { customerMessageEmails } from "./_lib/support-notify.js";
 import { sendInvoiceEmail } from "./_lib/billing-mail.js";
 import { captureError } from "./_lib/sentry.js";
+import { hostRecipients } from "./_lib/hosts.js";
+import { hostSender, stdInvitation, type GuestContent } from "./_lib/guest-mail.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -29,8 +31,6 @@ type Person = {
 const PERSON_COLS = "id, full_name, email, is_staff, billing_email, notify_project_updates, notify_billing_updates";
 
 const sendMail = makeSendMail(resendClient);
-// Partner links always point at the live site, even when sent from a preview or localhost.
-const SITE_ORIGIN = (origin: string) => (/localhost|vercel\.app/.test(origin) ? "https://thersvpstudio.com" : origin);
 
 async function recipientsFor(eventId: string | null, extraProfileId: string | null, pref: "notify_project_updates" | "notify_billing_updates") {
   const ids = new Set<string>();
@@ -70,7 +70,7 @@ ${body}
     if (error) return res.status(500).send("Couldn’t update your settings. Please try again.");
     return page(
       "You’re unsubscribed",
-      `<p style="color:#4a4b63;line-height:1.6;margin:0 0 22px;">No more tips and reminders about your projects. You’ll still get emails you need, like RSVPs, receipts and replies from our team.</p>
+      `<p style="color:#4a4b63;line-height:1.6;margin:0 0 22px;">No more tips and reminders about your events. You’ll still get emails you need, like RSVPs, receipts and replies from our team.</p>
 <a href="https://thersvpstudio.com/account/settings" style="color:#2f61d5;font-size:14px;">Change this in your notification settings</a>`,
     );
   }
@@ -91,7 +91,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: caller } = await supabaseAdmin.from("profiles").select(PERSON_COLS).eq("id", auth.user.id).maybeSingle();
   if (!caller) return res.status(401).json({ error: "No profile" });
 
-  const origin = `https://${req.headers["x-forwarded-host"] ?? req.headers.host}`;
+  // Every link in these emails points at the live site, even when the action came from a
+  // preview deployment or localhost (those addresses would be broken for the person reading it).
+  const origin = "https://thersvpstudio.com";
   const body = req.body as { kind: string; partnerId?: string; note?: string | null; code?: string; email?: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string };
   const sends: Promise<unknown>[] = [];
 
@@ -125,7 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 replyTo: customerReplyTo(thread),
                 subject: `[${reqCode(n)}] New reply from The RSVP Studio`,
                 headers: threadHeaders(n, false, thread.reply_key),
-                html: layout(`${esc(caller.full_name || "The RSVP Studio")} replied`, `${snippet}<br><br><span style="color:#868697">${reqCode(n)} · ${esc(topic)}</span>`, { label: "Reply in your dashboard", url: link }, serviceFooter()),
+                html: layout(`${esc(caller.full_name || "The RSVP Studio")} replied`, `${snippet}<br><br><span style="color:#868697">${reqCode(n)} · ${esc(topic)}</span>`, { label: "Reply in your dashboard", url: link }, serviceFooter(), { promo: false }),
               }),
             );
           }
@@ -173,7 +175,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               `Hi ${esc((customer.full_name || "").split(" ")[0] || "there")},<br><br>We’ve marked <strong>${reqCode(n)}</strong> (${esc(SUPPORT_TOPIC[thread.category ?? "other"] ?? "Support")}) as done. If anything still isn’t right, reply within 7 days and we’ll pick it up again.${ratingButtons(origin, thread.id)}`,
               { label: "View your request", url: `${origin}/account/messages?thread=${thread.id}` },
               serviceFooter(),
-              { letter: true },
+              { letter: true, promo: false },
             ),
           }),
         );
@@ -186,9 +188,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           sendMail({
             from: FROM,
             to: r.email!,
-            subject: `${ev?.name ?? "Your project"}: ${body.title ?? "New update"}`,
-            html: layout(esc(body.title ?? "Project update"), body.detail ? esc(body.detail) : `There’s a new update on <strong>${esc(ev?.name ?? "your project")}</strong>.`, {
-              label: "View project",
+            subject: `${ev?.name ?? "Your event"}: ${body.title ?? "New update"}`,
+            html: layout(esc(body.title ?? "Event update"), body.detail ? esc(body.detail) : `There’s a new update on <strong>${esc(ev?.name ?? "your event")}</strong>.`, {
+              label: "View your event",
               url: `${origin}/account/projects/${body.eventId}`,
             }),
           }),
@@ -234,7 +236,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data: tierRows } = await supabaseAdmin.rpc("partner_tier", { p_code: pa.code });
       const tier = (Array.isArray(tierRows) ? tierRows[0] : tierRows) as { tier: string; rate: number } | null;
       const { data: existing } = await supabaseAdmin.from("profiles").select("id").ilike("email", pa.email).maybeSingle();
-      const link = `${SITE_ORIGIN(origin)}/p/${pa.code}`;
+      const link = `${origin}/p/${pa.code}`;
       const dash = `${origin}/?auth=${existing ? "signin" : "signup"}&email=${encodeURIComponent(pa.email)}&next=${encodeURIComponent("/account/partner")}`;
       const tiers = pa.rate_mode === "custom"
         ? `<p style="margin:0">You earn <strong>${Number(pa.rate)}%</strong> of what each client you send pays us.</p>`
@@ -251,7 +253,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           to: pa.email,
           subject: "You’re on the list — welcome to The RSVP Studio partners",
           html: partnerLayout(
-            SITE_ORIGIN(origin),
+            origin,
             `You’re on the list, ${firstName(pa.name)}.`,
             `Consider this your invitation to our partner program. Share your code with ${pa.kind === "influencer" ? "your followers" : "the couples and celebrants you work with"}: they get <strong>${Number(pa.discount)}% off</strong> their event website or package, and you earn a share of every booking.<br><br>
             <strong>Your code</strong><br>
@@ -306,6 +308,80 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ),
           }),
         );
+      }
+    } else if ((body.kind === "site_live" || body.kind === "std_invite") && body.eventId) {
+      // From the host's own dashboard / builder: only someone hosting the event.
+      const { data: ev } = await supabaseAdmin.from("events").select("id, name, owner_id, managed_by_studio").eq("id", body.eventId).maybeSingle();
+      const { data: member } = ev ? await supabaseAdmin.from("event_members").select("profile_id").eq("event_id", ev.id).eq("profile_id", caller.id).maybeSingle() : { data: null };
+      if (!ev || (ev.owner_id !== caller.id && !member && !caller.is_staff)) return res.status(403).json({ error: "Not your event" });
+      const { data: site } = await supabaseAdmin.from("wedding_sites").select("*").eq("event_id", ev.id).maybeSingle();
+      if (!site?.published_at) return res.status(409).json({ error: "The website isn’t live yet" });
+      const link = `${origin}/invite/${site.slug}`;
+
+      if (body.kind === "site_live") {
+        // "Your website is live": once per event, ever (followup_log, email-additions.sql).
+        const { error: claimErr } = await supabaseAdmin.from("followup_log").insert({ event_id: ev.id, kind: "site_live" });
+        if (claimErr) return res.status(200).json({ sent: 0, already: true });
+        const to = await hostRecipients(supabaseAdmin, ev.id);
+        const deadline = (site.published_content as { rsvpDeadline?: string } | null)?.rsvpDeadline;
+        sends.push(
+          sendMail(
+            {
+              from: FROM,
+              to,
+              subject: `Your website for ${ev.name} is live`,
+              html: layout(
+                "Your website is live",
+                `<strong>${esc(ev.name)}</strong> is online at<br><a href="${link}" style="color:#2f61d5 !important;">${link.replace("https://", "")}</a><br><br><strong>Share it</strong><br>Send each guest their own link from your invite list: their reply is matched to them for sure.<br>Printing invitations? Your dashboard has a QR code for them.${
+                  deadline ? "" : `<br><br><strong>One more thing</strong><br>Set a “Replies close on” date so guests know when to answer.`
+                }`,
+                { label: "Open your invite list", url: `${origin}/account/projects/${ev.id}?tab=guests&list=invites` },
+                "You’re receiving this because you published your website on The RSVP Studio.",
+              ),
+            },
+            `site-live-${ev.id}`,
+          ),
+        );
+      } else {
+        // "The invitation is here" to Save the Date sign-ups who gave an email and agreed,
+        // each once (invitees.std_invited_at). The website has to be what the link shows now.
+        if (site.std_live) return res.status(409).json({ error: "Your link still shows the Save the Date" });
+        const { data: list, error: listErr } = await supabaseAdmin
+          .from("invitees")
+          .select("id, name, contact")
+          .eq("event_id", ev.id)
+          .eq("source", "save_the_date")
+          .not("consented_at", "is", null)
+          .is("std_invited_at", null)
+          .ilike("contact", "%@%")
+          .limit(300);
+        if (listErr) return res.status(500).json({ error: "Couldn’t load the sign-ups" });
+        const { data: premium } = await supabaseAdmin.rpc("event_is_premium", { p_event: ev.id });
+        const { data: owner } = ev.owner_id ? await supabaseAdmin.from("profiles").select("email").eq("id", ev.owner_id).maybeSingle() : { data: null };
+        const content = (site.published_content ?? {}) as GuestContent & { rsvpDeadline?: string };
+        let sent = 0;
+        let failed = 0;
+        // A few at a time: kind to Resend's rate limit, and each person is marked as they go.
+        for (let i = 0; i < (list ?? []).length; i += 5) {
+          await Promise.all(
+            (list ?? []).slice(i, i + 5).map(async (inv) => {
+              if (!isEmail(String(inv.contact ?? "").trim())) return;
+              const mail = stdInvitation({ content, presentation: site.published_presentation, eventName: ev.name, slug: site.slug, guestName: inv.name, premium: premium === true, deadline: content.rsvpDeadline ?? null });
+              try {
+                await sendMail(
+                  { from: premium === true ? hostSender(content) : FROM, ...(premium === true && owner?.email ? { replyTo: owner.email as string } : {}), to: String(inv.contact).trim(), subject: mail.subject, html: mail.html },
+                  `std-invite-${inv.id}`,
+                );
+                await supabaseAdmin.from("invitees").update({ std_invited_at: new Date().toISOString() }).eq("id", inv.id);
+                sent++;
+              } catch (e) {
+                failed++;
+                console.error("std invite failed", inv.id, e);
+              }
+            }),
+          );
+        }
+        return res.status(200).json({ sent, failed });
       }
     } else {
       return res.status(400).json({ error: "Unknown or unauthorized notification" });

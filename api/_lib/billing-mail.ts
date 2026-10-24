@@ -59,6 +59,7 @@ export async function sendInvoiceEmail(
   const amount = peso(Number(inv.amount));
   const forWhat = eventName ? ` for ${eventName}` : "";
   const due = inv.due_date ? longDate(inv.due_date) : "";
+  const overdue = !!inv.due_date && new Date(`${inv.due_date}T23:59:59+08:00`) < new Date();
   const note = opts.note?.trim() ? `<br><br><span style="color:#868697">Note from the studio:</span><br>${esc(opts.note.trim()).replace(/\n/g, "<br>")}` : "";
   const link = `${opts.origin}/account/billing/${inv.id}`;
   const payLine = "You can pay online with GCash, Maya, card or QR Ph.";
@@ -71,9 +72,9 @@ export async function sendInvoiceEmail(
       cta: "View and pay",
     },
     reminder: {
-      subject: `Reminder: ${amount} ${due ? `due ${due}` : "due now"}${forWhat}`,
-      heading: "A friendly reminder",
-      body: `Invoice ${esc(inv.number)} for ${esc(inv.description)} — <strong>${amount}</strong> — is ${due && new Date(`${inv.due_date}T23:59:59+08:00`) < new Date() ? `past its due date (${due})` : due ? `due ${due}` : "due now"}.<br><br>${payLine} If you’ve already paid, thank you — just reply in your dashboard and we’ll check.`,
+      subject: overdue ? `Past due: ${amount}${forWhat}` : `Reminder: ${amount} ${due ? `due ${due}` : "due now"}${forWhat}`,
+      heading: overdue ? "This invoice is past due" : "A friendly reminder",
+      body: `Invoice ${esc(inv.number)} for ${esc(inv.description)}: <strong>${amount}</strong>, ${overdue ? `was due ${due}` : due ? `due ${due}` : "due now"}.<br><br>Pay online with GCash, Maya, card or QR Ph.<br>Already paid? Reply in your dashboard and we’ll check.`,
       cta: "View and pay",
     },
     payment: {
@@ -102,7 +103,7 @@ export async function sendInvoiceEmail(
         from: FROM,
         to: addr,
         subject: mail.subject,
-        html: layout(esc(mail.heading), mail.body, { label: mail.cta, url: opts.kind === "void" ? `${opts.origin}/account/billing` : link }),
+        html: layout(esc(mail.heading), mail.body, { label: mail.cta, url: opts.kind === "void" ? `${opts.origin}/account/billing` : link }, undefined, { promo: false }),
       }),
     ),
   );

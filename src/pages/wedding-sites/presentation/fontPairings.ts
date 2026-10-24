@@ -106,4 +106,12 @@ export const fontPairings: FontPairingOption[] = [
   },
 ];
 
+// The Tinghun designs: a Latin serif with a Chinese face that has the traditional characters
+// (and 囍). Chinese names and titles in the templates use --zh (the Chinese face first).
+fontPairings.push(
+  { id: "wenkai-lora", label: "Lora & LXGW WenKai", displayFont: '"Lora", "LXGW WenKai TC", Georgia, serif', bodyFont: '"Lora", "LXGW WenKai TC", Georgia, serif' },
+  { id: "chiron-cormorant", label: "Cormorant & Chiron Sung", displayFont: '"Cormorant Garamond", "Chiron Sung HK", Georgia, serif', bodyFont: '"Cormorant Garamond", "Chiron Sung HK", Georgia, serif' },
+  { id: "cactus-cormorant", label: "Cormorant & Cactus Serif", displayFont: '"Cormorant Garamond", "Cactus Classical Serif", Georgia, serif', bodyFont: '"Cormorant Garamond", "Cactus Classical Serif", Georgia, serif' },
+);
+
 export const defaultFontPairingId = fontPairings[0].id;

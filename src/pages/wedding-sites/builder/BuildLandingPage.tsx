@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import ServiceCta from "@/components/ServiceCta";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { claimSignupRef, rememberSignupRef } from "@/lib/signupRef";
@@ -359,15 +360,11 @@ export default function BuildLandingPage() {
 
       {/* Rather we make it? */}
       <section className="container-x pb-14 sm:pb-20 md:pb-28">
-        <div className="rounded-[24px] bg-[var(--acc-blue)] px-6 py-11 text-center sm:rounded-[28px] sm:py-14 md:py-20">
-          <h2 className="mx-auto max-w-xl font-display font-semibold leading-tight text-white text-balance" style={{ fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)" }}>
-            Rather we make it for you?
-          </h2>
-          <p className="mx-auto mt-3 max-w-lg text-[16px] text-white/85 text-balance">Our designers build a website just for your event. Custom websites from ₱8,000.</p>
-          <button onClick={() => navigate(inquiryLink({ service: "website", design: "custom" }))} className="btn btn-white mt-7">
-            Get a quote
-          </button>
-        </div>
+        <ServiceCta
+          heading="Rather we make it for you?"
+          line="Our designers build a website just for your event. Custom websites from ₱8,000."
+          quote={() => navigate(inquiryLink({ service: "website", design: "custom" }))}
+        />
       </section>
 
       <FooterSection />

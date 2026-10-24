@@ -6,7 +6,7 @@ import { parseEventDate } from "./parseEventDate";
 export type SaveTheDate = {
   /** The hosts, one per entry ("Destiny", "Austin"). */
   names: string[];
-  occasion: "wedding" | "birthday" | "anniversary" | "baby" | "other";
+  occasion: "wedding" | "birthday" | "anniversary" | "baby" | "engagement" | "other";
   /** "2027-06-14" or "2027-06-14T16:00". */
   eventDate: string;
   venue?: string;
@@ -23,7 +23,7 @@ export function stdNames(std: Pick<SaveTheDate, "names">) {
   return n.length > 2 ? `${n.slice(0, -1).join(", ")} & ${n.at(-1)}` : n.join(" & ");
 }
 
-const OCCASION: Record<SaveTheDate["occasion"], string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary", baby: "Celebration", other: "Celebration" };
+const OCCASION: Record<SaveTheDate["occasion"], string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary", baby: "Celebration", engagement: "Engagement", other: "Celebration" };
 export const stdOccasion = (std: Pick<SaveTheDate, "occasion">) => OCCASION[std.occasion] ?? "Celebration";
 
 export function stdWhen(std: Pick<SaveTheDate, "eventDate">) {

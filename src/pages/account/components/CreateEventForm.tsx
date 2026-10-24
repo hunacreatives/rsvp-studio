@@ -70,7 +70,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 // which just leaves that field blank — Hero.tsx already renders that
 // gracefully.
 export default function CreateEventForm({ eventType, onSubmit, onBack, submitting }: CreateEventFormProps) {
-  const needsTwoHosts = eventType === "wedding" || eventType === "anniversary";
+  const needsTwoHosts = eventType === "wedding" || eventType === "anniversary" || eventType === "engagement";
   const [hostOne, setHostOne] = useState("");
   const [hostTwo, setHostTwo] = useState("");
   const [venueName, setVenueName] = useState("");

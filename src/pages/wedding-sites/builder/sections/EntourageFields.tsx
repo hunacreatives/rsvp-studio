@@ -12,6 +12,7 @@ const PRESETS: Record<string, string[]> = {
   Christening: ["Ninongs", "Ninangs"],
   Dedication: ["Spiritual parents"],
   Birthday: ["Hosts"],
+  Tinghun: ["Parents of the Bride", "Parents of the Groom", "Grandparents of the Bride", "Grandparents of the Groom"],
 };
 
 export default function EntourageFields({ content, onChange }: { content: EventContent; onChange: (next: EventContent) => void }) {

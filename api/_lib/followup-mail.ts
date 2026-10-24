@@ -9,7 +9,7 @@ import { BODY, browse, CORAL, frame, h1, INK, label, p, SITE, SLATE, steps } fro
 //   after     — thank you, thank-you cards, how did we do (pink heart)
 // Every one ends with an unsubscribe link (turns off profiles.notify_tips).
 
-export type FollowupKind = "draft_1" | "draft_4" | "draft_10" | "rsvp_10" | "headcount" | "after";
+export type FollowupKind = "draft_1" | "draft_4" | "draft_10" | "rsvp_10" | "headcount" | "after" | "deadline_3";
 
 export type FollowupData = {
   first: string;
@@ -31,6 +31,9 @@ export type FollowupData = {
   photos?: { url: string; qr: string } | null;
   unsubscribeUrl: string;
   bookingUrl?: string | null;
+  /** deadline_3: the published "Replies close on" (YYYY-MM-DD) and how many are on the invite list. */
+  deadline?: string | null;
+  invited?: number;
 };
 
 const day = (iso: string, withWeekday = false) => {
@@ -42,7 +45,7 @@ const day = (iso: string, withWeekday = false) => {
 const peso = (n: number) => `₱${Math.round(n).toLocaleString("en-PH")}`;
 
 function button(text: string, url: string) {
-  return `<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:6px auto 26px;"><tr><td bgcolor="#2f61d5" style="background:#2f61d5;border-radius:999px;">
+  return `<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:6px auto 26px;"><tr><td bgcolor="#000727" class="fnavy" style="background:#000727;border-radius:999px;">
 <a href="${url}" class="fw" style="display:inline-block;padding:14px 28px;color:#ffffff!important;font-size:15px;font-weight:600;text-decoration:none;">${text}</a></td></tr></table>`;
 }
 
@@ -77,7 +80,7 @@ ${note ? `<p class="fs" style="margin:0 0 30px;color:${SLATE}!important;font-siz
 }
 
 const footer = (unsub: string) =>
-  `You’re receiving this because you have a project on The RSVP Studio. <a href="${unsub}" class="fs" style="color:#a0a0ad!important;text-decoration:underline;">Unsubscribe from these emails</a>`;
+  `You’re receiving this because you have an event on The RSVP Studio. <a href="${unsub}" class="fs" style="color:#a0a0ad!important;text-decoration:underline;">Unsubscribe from these emails</a>`;
 
 const wrap = (rows: string) => `<tr><td class="pad" style="padding:26px 56px 6px;">\n${rows}\n</td></tr>`;
 
@@ -86,7 +89,10 @@ export function followupEmail(kind: FollowupKind, d: FollowupData): { subject: s
   const name = esc(d.eventName);
   const hosts = esc(d.hosts);
   const project = `${SITE}/account/projects/${d.eventId}`;
-  const finish = `${project}?tab=website`;
+  // Straight into the builder, where the draft is (not the dashboard tab that links to it).
+  const finish = `${SITE}/account/events/${d.eventId}/site-builder/edit`;
+  // Premium is bought in the builder: its upgrade dialog opens straight away (BuilderShellPage ?upgrade=1).
+  const upgradeUrl = `${SITE}/account/events/${d.eventId}/site-builder/edit?upgrade=1`;
   const guestList = `${project}?tab=guests`;
   const booking = d.bookingUrl ? ` Or <a href="${d.bookingUrl}" style="color:#2f61d5!important;">book a quick call</a> and we’ll walk you through it.` : "";
 
@@ -109,7 +115,7 @@ export function followupEmail(kind: FollowupKind, d: FollowupData): { subject: s
           spotAlt: "A friendly blue character waving",
           footer: footer(d.unsubscribeUrl),
           content: wrap(`${h1(`Pick up where you left off, ${first}.`)}
-${p(`Your website for <strong>${name}</strong> is saved as a draft. Most people finish theirs in about 20 minutes. Here’s what’s left:`, 14)}
+${p(`Your website for <strong>${name}</strong> is saved as a draft.<br>Here’s what’s left:`, 14)}
 ${list}
 ${button("Finish your website", finish)}
 ${signoff()}`),
@@ -125,7 +131,7 @@ ${signoff()}`),
           spotAlt: "A friendly blue character waving",
           footer: footer(d.unsubscribeUrl),
           content: wrap(`${h1(`Stuck on anything, ${first}?`)}
-${p(`Your draft for <strong>${name}</strong> is still waiting. If something’s in the way, a photo you’re not sure about, the wording, or which design to use, reply to this email and we’ll help.${booking}`)}
+${p(`Your draft for <strong>${name}</strong> is still waiting.<br><br>Stuck on a photo, the wording or the design?<br>Reply to this email and we’ll help.${booking}`)}
 ${list}
 ${button("Finish your website", finish)}
 ${p(`Rather we make it for you? Our designers build custom event websites from ${peso(8000)}. <a href="${SITE}/enquire?service=website&amp;from=draft-followup#start" style="color:#2f61d5!important;">Tell us about your event</a>.`, 8)}
@@ -167,8 +173,33 @@ ${steps([
   "Guests share their photos on your website. Print the QR code for your tables.",
   "Your website stays online for a year after your event, not 30 days.",
 ])}
-${button(d.upgradePesos ? `Upgrade for ${peso(d.upgradePesos)}` : "Upgrade to Premium", finish)}
+${button(d.upgradePesos ? `Upgrade for ${peso(d.upgradePesos)}` : "Upgrade to Premium", upgradeUrl)}
 ${p("Paid once for this event. Your design, details and RSVPs stay exactly as they are.", 8)}
+${signoff()}`),
+      }),
+    };
+  }
+
+  if (kind === "deadline_3") {
+    // No lone "31." on its own line: the date's last word stays with the month.
+    const closes = d.deadline ? day(d.deadline, true).replace(/ (\d+)$/, "&nbsp;$1") : "soon";
+    return {
+      subject: `RSVPs for ${d.eventName} close on ${d.deadline ? day(d.deadline, true).split(",")[0] : "soon"}`,
+      html: frame({
+        preheader: `${d.rsvps} ${d.rsvps === 1 ? "reply" : "replies"} so far. A nudge now gets the rest in.`,
+        spot: "followup-headcount.png",
+        spotAlt: "A cheerful orange character",
+        footer: footer(d.unsubscribeUrl),
+        content: wrap(`${h1(`Replies close on<br>${closes}.`)}
+${p(`Here’s where <strong>${name}</strong> stands, ${first}:`, 10)}
+${tally([
+  ["Coming", `${d.guests} ${d.guests === 1 ? "guest" : "guests"}`],
+  ["Replies in", d.invited ? `${d.rsvps} of ${d.invited} invited` : String(d.rsvps)],
+  ["Can’t make it", String(d.declined)],
+])}
+${p(`A quick reminder now gets the rest in.<br>Your invite list has one ready to copy into Messenger or&nbsp;Viber.`, 6)}
+${button("Send a reminder", `${guestList}&list=invites`)}
+${p(`<span style="font-size:14px;">Need more time? Move the date in your website’s RSVP&nbsp;section.</span>`, 8)}
 ${signoff()}`),
       }),
     };
@@ -219,7 +250,7 @@ ${signoff()}`),
       footer: footer(d.unsubscribeUrl),
       content: wrap(`${h1(`We hope it was wonderful, ${first}.`)}
 ${p(`Thank you for making <strong>${name}</strong> with us.${until}`)}
-${d.photos ? p(`Guests can still add their photos. Share the <a href="${d.photos.url}" style="color:#2f61d5!important;">photo page</a> in your group chat, then see them all under your project’s Guests tab.`) : ""}
+${d.photos ? p(`Guests can still add their photos. Share the <a href="${d.photos.url}" style="color:#2f61d5!important;">photo page</a> in your group chat, then see them all in your event’s Guests tab.`) : ""}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 26px;"><tr><td class="fpaper" bgcolor="#fbfaf6" style="background:#fbfaf6;border-left:3px solid ${CORAL};border-radius:4px;padding:16px 20px;">
 <p class="fi" style="margin:0 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:18px;">How did we do?</p>
 <p class="fb" style="margin:0;color:${BODY}!important;font-size:15px;line-height:1.6;">Reply with one line. What you loved, or what we should fix. We read every reply.</p>

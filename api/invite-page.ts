@@ -26,7 +26,7 @@ type Content = {
   custom?: Record<string, string>;
 };
 
-const KIND: Record<string, string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary" };
+const KIND: Record<string, string> = { wedding: "Wedding", birthday: "Birthday", anniversary: "Anniversary", engagement: "Engagement" };
 // Baby sites say which day it is themselves (custom "babyEvent": christening, first birthday…).
 const BABY: Record<string, string> = { christening: "Christening", birthday: "First birthday", both: "Christening & first birthday", dedication: "Dedication" };
 

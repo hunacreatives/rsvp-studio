@@ -124,9 +124,9 @@ function promo(slug: string, premium: boolean) {
 <p style="margin:0;color:#2f61d5!important;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;">The RSVP Studio</p>
 <p class="fi" style="margin:8px 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.3;">Planning a celebration of&nbsp;your&nbsp;own?</p>
 <p class="fb" style="margin:0 0 18px;color:${BODY}!important;font-size:15px;line-height:1.6;">Make an event website like this one, with RSVPs built&nbsp;in.<br />Free to start, ready in an&nbsp;evening.</p>
-<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;"><tr><td bgcolor="#2f61d5" style="background:#2f61d5;border-radius:999px;"><a href="${SITE}/build?${ref}" class="fw" style="display:inline-block;white-space:nowrap;padding:13px 26px;color:#ffffff!important;font-size:15px;font-weight:600;text-decoration:none;">Make yours free</a></td></tr></table>
+<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;"><tr><td bgcolor="#000727" class="fnavy" style="background:#000727;border-radius:999px;"><a href="${SITE}/build?${ref}" class="fw" style="display:inline-block;white-space:nowrap;padding:13px 26px;color:#ffffff!important;font-size:15px;font-weight:600;text-decoration:none;">Make yours free</a></td></tr></table>
 <p class="fb" style="margin:0 0 16px;color:${BODY}!important;font-size:14px;">Rather we design it for you? <a href="${SITE}/enquire?from=guest-email&amp;${ref}#start" style="color:${INK}!important;font-weight:600;">Tell us about your&nbsp;event</a></p>
-<p style="margin:0;font-size:12px;line-height:1.8;color:#6b6b7c;">${svc("Event websites", "/services/milestone")}&nbsp;&middot;&nbsp;${svc("Invitations", "/services/save-the-date")}&nbsp;&middot;&nbsp;${svc("Monograms", "/services/monogram")}&nbsp;&middot;&nbsp;${svc("Stationery", "/services/stationery")}</p>
+<p style="margin:0;font-size:12px;line-height:1.8;color:#6b6b7c;">${svc("Event websites", "/services/milestone")}&nbsp;&middot;&nbsp;${svc("Save the dates", "/services/save-the-date")}&nbsp;&middot;&nbsp;${svc("Monograms", "/services/monogram")}&nbsp;&middot;&nbsp;${svc("Stationery", "/services/stationery")}</p>
 </td></tr></table>`;
 }
 
@@ -172,6 +172,11 @@ export function guestConfirmation(
     : "";
   // Every guest email advertises us: the full card on free sites, one quiet line on Premium.
   const makeYourOwn = promo(o.slug, o.premium);
+  // Free sites' confirmations come from us, so a reply reaches us, not the hosts: say so.
+  // (Premium ones come in the hosts' names and replies go to them.)
+  const replyNote = o.premium
+    ? ""
+    : `<p class="fs" style="margin:-10px 0 26px;color:#8a8478!important;font-size:12.5px;line-height:1.6;">Replies to this email reach The RSVP Studio, not the hosts.<br />To reach ${b.hosts}, message them directly.</p>`;
 
   if (declined) {
     return {
@@ -187,9 +192,10 @@ export function guestConfirmation(
 ${pill("Reply received", "#f1f0ec", "#6b6658")}
 ${h1(`Thank you for letting us know,&nbsp;${b.first}.`)}
 ${p(`${b.hosts} will miss you.<br />Your reply has been sent to&nbsp;them.`, 26)}
-${p("Plans changed? You can update your reply from the invitation.", 16)}
+${p("Plans changed? Update your reply on the invitation.", 16)}
 ${buttons([{ label: "Open the invitation", url: b.link }])}
 ${signed(b.hosts)}
+${replyNote}
 ${makeYourOwn}
 </td></tr>`,
       }),
@@ -197,7 +203,7 @@ ${makeYourOwn}
   }
 
   const cal = b.when ? calendarLink(o.eventName, b.when, b.where, b.link) : "";
-  const reminder = o.remindsLater && b.when && b.when.daysLeft > 2 ? `<br />We’ll send you a reminder two days&nbsp;before.` : "";
+  const reminder = o.remindsLater && b.when && b.when.daysLeft > 2 ? p("We’ll send you a reminder two days&nbsp;before.", 26) : "";
   return {
     subject: `You’re on the list — ${b.hostsPlain}`,
     html: frame({
@@ -218,8 +224,10 @@ ${ticket({
   stub: `${admitStub(o.guestName, o.guestCount)}${detail("Where", esc(b.where))}${detail("Dress code", esc(b.dress))}${detail("Dietary needs", esc(o.dietary?.trim() ?? ""))}${note}`,
 })}
 ${buttons([...(cal ? [{ label: "Add to calendar", url: cal, solid: true }] : []), ...(b.map ? [{ label: "Get directions", url: b.map }] : [])])}
-${p(`Need to change your answer? Send the form again on the <a href="${esc(b.link)}" style="color:${INK}!important;">invitation</a> with the same email or mobile&nbsp;number.${reminder}`, 26)}
+${p(`Plans changed? Update your reply on the <a href="${esc(b.link)}" style="color:${INK}!important;">invitation</a>.`, reminder ? 10 : 26)}
+${reminder}
 ${signed(b.hosts)}
+${replyNote}
 ${makeYourOwn}
 </td></tr>`,
     }),
@@ -256,6 +264,42 @@ ${o.photos ? p(`Taking photos on the day? <a href="${b.link}/photos" style="colo
 ${p("Plans changed? You can update your reply from the invitation.", 26)}
 ${signed(b.hosts)}
 ${promo(o.slug, true)}
+</td></tr>`,
+    }),
+  };
+}
+
+/**
+ * "The invitation is here": to someone who signed up on the Save the Date to get the
+ * invitation (supabase/save-the-date.sql), sent by the host from their dashboard once the
+ * website is live (api/notify.ts → std_invite). The Save the Date page promised it.
+ */
+export function stdInvitation(o: Common & { premium: boolean; deadline?: string | null }): { subject: string; html: string } {
+  const b = basics(o);
+  const by = o.deadline && /^\d{4}-\d{2}-\d{2}$/.test(o.deadline)
+    ? new Date(`${o.deadline}T12:00:00+08:00`).toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric", timeZone: "Asia/Manila" })
+    : "";
+  const replyNote = o.premium
+    ? ""
+    : `<p class="fs" style="margin:-10px 0 26px;color:#8a8478!important;font-size:12.5px;line-height:1.6;">Replies to this email reach The RSVP Studio, not the hosts.<br />To reach ${b.hosts}, message them directly.</p>`;
+  return {
+    subject: `${b.hostsPlain}’s invitation is here`,
+    html: frame({
+      tagline: false,
+      preheader: `${b.when ? `${b.when.long}${b.venue ? ` · ${esc(b.venue)}` : ""}. ` : ""}Kindly reply${by ? ` by ${esc(by)}` : ""}.`,
+      spot: "confirm-envelope.png",
+      spotAlt: b.cover ? esc(o.eventName) : "An invitation in an envelope",
+      cover: b.cover,
+      footer: `You’re receiving this because you asked for ${b.hosts}’s invitation on their Save the Date.<br />Sent by The RSVP Studio for ${b.hosts}.`,
+      content: `<tr><td class="pad" align="center" style="padding:24px 56px 6px;text-align:center;">
+${pill("You’re invited", "#f7f0dc", "#8a6a1c")}
+${h1(`The invitation is here,&nbsp;${b.first}.`)}
+${p(`You asked for it on the Save the Date.<br />${b.hosts} would love to hear if you can&nbsp;come.`, 18)}
+${ticket({ kicker: "The invitation", eventName: o.eventName, when: b.when, stub: `${detail("Where", esc(b.where))}${detail("Dress code", esc(b.dress))}${by ? detail("Kindly reply by", esc(by)) : ""}` })}
+${buttons([{ label: "RSVP now", url: b.link, solid: true }, ...(b.map ? [{ label: "Get directions", url: b.map }] : [])])}
+${signed(b.hosts)}
+${replyNote}
+${promo(o.slug, o.premium)}
 </td></tr>`,
     }),
   };
