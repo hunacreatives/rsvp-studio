@@ -36,7 +36,7 @@ export default function RsvpCard({ content, editorPreview, sample, honoree }: { 
         <div className="ug-done" role="status">
           <h2 className="ug-title">{form.attending === "no" ? "We’ll miss you" : "See you there"}</h2>
           <p className="ug-text">{form.attending === "no" ? "Thank you for letting us know, and for your message." : customValue(content, "thankYou") || "Salamat po. Your seat is saved."}</p>
-          {form.emailed ? <p className="ug-small">A copy is on its way to your email.</p> : null}
+          {form.copyNote ? <p className="ug-small">{form.copyNote}</p> : null}
           <button type="button" className="ug-btn ug-btn--line" onClick={() => setDone(false)}>
             Change my reply
           </button>

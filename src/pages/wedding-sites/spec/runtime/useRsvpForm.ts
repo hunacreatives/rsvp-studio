@@ -23,8 +23,9 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   const [state, setState] = useState<SubmitState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
-  // True only when the server actually sent the guest a confirmation email.
+  // True only when the server actually sent the guest a confirmation email (or, with texting on, a text).
   const [emailed, setEmailed] = useState(false);
+  const [texted, setTexted] = useState(false);
   const set = (k: string, v: string) => setValues((cur) => ({ ...cur, [k]: v }));
   const attending = values.attending === "yes" ? "yes" : values.attending === "no" ? "no" : null;
   const { closed, replyBy, closedText } = rsvpWindow(content);
@@ -101,7 +102,7 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
         }),
       });
       let res = await post();
-      let data = (await res.json().catch(() => ({}))) as { error?: string; emailed?: boolean; retry?: boolean };
+      let data = (await res.json().catch(() => ({}))) as { error?: string; emailed?: boolean; texted?: boolean; retry?: boolean };
       for (let attempt = 0; res.status === 429 && data.retry && attempt < 3; attempt++) {
         await new Promise((r) => setTimeout(r, 4000 + attempt * 3000));
         res = await post();
@@ -109,6 +110,7 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
       }
       if (!res.ok) throw new Error(data.error ?? "Something went wrong — please try again.");
       setEmailed(data.emailed === true);
+      setTexted(data.texted === true);
       setState("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong — please try again.");
@@ -116,5 +118,7 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
     }
   }
 
-  return { values, set, state, error, website, setWebsite, attending, submit, emailed, closed: closed && !editorPreview, replyBy, closedText, contactMode, contactProps, toggleContact, contactToggleLabel, invitee, maxGuests, questions };
+  // The line every design shows under "you're on the list", when a copy really went out.
+  const copyNote = emailed ? "A copy is on its way to your email." : texted ? "A copy is on its way to your phone." : null;
+  return { values, set, state, error, website, setWebsite, attending, submit, emailed, copyNote, closed: closed && !editorPreview, replyBy, closedText, contactMode, contactProps, toggleContact, contactToggleLabel, invitee, maxGuests, questions };
 }

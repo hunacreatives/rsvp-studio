@@ -15,6 +15,7 @@ import { capizTemplateDefinition } from "../templates/capiz";
 import { caladoTemplateDefinition } from "../templates/calado";
 import { underGlassTemplateDefinition } from "../templates/under-glass";
 import { tinghunRiceTemplateDefinition } from "../templates/tinghun-rice";
+import { debutIssueTemplateDefinition } from "../templates/debut-issue";
 import { tinghunLacquerTemplateDefinition } from "../templates/tinghun-lacquer";
 import { tinghunPorcelainTemplateDefinition } from "../templates/tinghun-porcelain";
 
@@ -181,6 +182,7 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   "tinghun-rice": tinghunRiceTemplateDefinition,
   "tinghun-lacquer": tinghunLacquerTemplateDefinition,
   "tinghun-porcelain": tinghunPorcelainTemplateDefinition,
+  "debut-issue": debutIssueTemplateDefinition,
 };
 
 // ---------------------------------------------------------------------------

@@ -35,7 +35,7 @@ export default function RsvpCard({ content, editorPreview, sample }: { content: 
         <div className="rp-done" role="status">
           <h3 className="rp-card__t">{form.attending === "no" ? "With thanks" : "Received, with thanks"}</h3>
           <p className="rp-text">{form.attending === "no" ? "Thank you for letting us know. You will be missed." : thanks}</p>
-          {form.emailed ? <p className="rp-small">A copy is on its way to your email.</p> : null}
+          {form.copyNote ? <p className="rp-small">{form.copyNote}</p> : null}
           <button type="button" className="rp-btn rp-btn--line" onClick={() => setDone(false)}>
             Change my reply
           </button>

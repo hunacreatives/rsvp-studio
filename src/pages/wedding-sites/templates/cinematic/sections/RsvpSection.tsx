@@ -164,7 +164,7 @@ export default function RsvpSection({ content, editorPreview, reveal, dress: wit
               <Heart size={48} fill="#B8C5B0" />
               <h3>Thank You!</h3>
               <p>{form.attending === "no" ? "We’ll miss you — thank you for letting us know." : thanks}</p>
-              {form.emailed ? <p style={{ fontSize: "1rem" }}>A copy is on its way to your email.</p> : null}
+              {form.copyNote ? <p style={{ fontSize: "1rem" }}>{form.copyNote}</p> : null}
               <button
                 type="button"
                 className="cn-close"

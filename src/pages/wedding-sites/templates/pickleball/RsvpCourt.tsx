@@ -95,7 +95,7 @@ export default function RsvpCourt({ content, editorPreview, reveal, motion }: { 
             </div>
             <h2 className="pb-serif pb-c__title">{form.attending === "no" ? "We’ll Miss You" : "You’re In!"}</h2>
             <p className="pb-text">{form.attending === "no" ? `Thank you for letting ${plural ? "us" : names || "us"} know.` : thanks}</p>
-            {form.emailed ? <p className="pb-small">A copy is on its way to your email.</p> : null}
+            {form.copyNote ? <p className="pb-small">{form.copyNote}</p> : null}
             <button type="button" className="pb-btn pb-btn--line" onClick={() => setDone(false)}>
               Change my reply
             </button>

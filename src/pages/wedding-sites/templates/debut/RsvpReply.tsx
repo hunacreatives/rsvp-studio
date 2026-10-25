@@ -61,7 +61,7 @@ export default function RsvpReply({ content, editorPreview, reveal, motion }: { 
             <h2 className="db-script db-sec__title">{form.attending === "no" ? "You’ll Be Missed" : "Thank You"}</h2>
             <Flourish className="db-sec__flourish" />
             <p className="db-text">{form.attending === "no" ? `Thank you for letting ${first || "us"} know.` : thanks}</p>
-            {form.emailed ? <p className="db-small">A copy is on its way to your email.</p> : null}
+            {form.copyNote ? <p className="db-small">{form.copyNote}</p> : null}
             <button type="button" className="db-btn db-btn--line" onClick={() => setDone(false)}>
               Change my reply
             </button>

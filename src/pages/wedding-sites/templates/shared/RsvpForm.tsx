@@ -31,7 +31,7 @@ const MAX_PARTY = 10;
 
 export default function RsvpForm({ content, editorPreview, skin }: { content: EventContent; editorPreview?: boolean; skin: RsvpSkin }) {
   const form = useRsvpForm(content, editorPreview, { asksAttending: true });
-  const { values, set, state, error, website, setWebsite, attending, submit, emailed, closed, replyBy, closedText, contactMode, contactProps, toggleContact, contactToggleLabel, invitee, maxGuests } = form;
+  const { values, set, state, error, website, setWebsite, attending, submit, copyNote, closed, replyBy, closedText, contactMode, contactProps, toggleContact, contactToggleLabel, invitee, maxGuests } = form;
   const id = useId();
   const first = (values.name ?? "").trim().split(" ")[0];
 
@@ -54,7 +54,7 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
         {attending === "no" ? (
           <p style={{ margin: 0 }}>Thank you, {first}. We’ll miss you — your reply has been sent.</p>
         ) : (
-          <p style={{ margin: 0 }}>Thank you, {first} — you’re on the list.{emailed ? " A copy is on its way to your email." : ""}</p>
+          <p style={{ margin: 0 }}>Thank you, {first} — you’re on the list.{copyNote ? ` ${copyNote}` : ""}</p>
         )}
         {attending !== "no" && calendarUrl(content) ? (
           <p style={{ margin: "12px 0 0", fontSize: 15 }}>

@@ -161,7 +161,7 @@ function DrawnForm({ section, content, editorPreview, style, children }: { secti
             color: colorOf(theme, "ink"),
           }}
         >
-          {form.closed ? form.closedText : `Thank you — your RSVP is in.${form.emailed ? " A confirmation is on its way to your inbox." : ""}`}
+          {form.closed ? form.closedText : `Thank you — your RSVP is in.${form.copyNote ? ` ${form.copyNote}` : ""}`}
         </div>
       ) : null}
       {form.error && !form.closed ? note(form.error, "#c2412d") : !form.closed && !editorPreview && form.replyBy && form.state !== "success" ? note(form.replyBy, colorOf(theme, "muted")) : null}

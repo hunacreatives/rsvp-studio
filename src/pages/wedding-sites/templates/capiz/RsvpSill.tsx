@@ -36,7 +36,7 @@ export default function RsvpSill({ content, editorPreview, sample }: { content: 
             <p className="cz-whisper">{form.attending === "no" ? "Salamat po" : "Maraming salamat po"}</p>
             <h2 className="cz-title">{form.attending === "no" ? "We’ll miss you" : "We’ll save your seat"}</h2>
             <p className="cz-text">{form.attending === "no" ? "Thank you for letting us know." : thanks}</p>
-            {form.emailed ? <p className="cz-small">A copy is on its way to your email.</p> : null}
+            {form.copyNote ? <p className="cz-small">{form.copyNote}</p> : null}
             <button type="button" className="cz-btn cz-btn--line" onClick={() => setDone(false)}>
               Change my reply
             </button>

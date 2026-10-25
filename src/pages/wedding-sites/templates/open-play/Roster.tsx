@@ -109,7 +109,7 @@ export default function Roster({ content, editorPreview, live, rackOn }: { conte
             <p className="op-label">{form.attending === "no" ? "Next time" : "Game on"}</p>
             <h2 className="op-h2">{form.attending === "no" ? "We’ll miss you" : "You’re in"}</h2>
             <p className="op-text">{form.attending === "no" ? "Thanks for letting us know." : thanks}</p>
-            {form.emailed ? <p className="op-small">A copy is on its way to your email.</p> : null}
+            {form.copyNote ? <p className="op-small">{form.copyNote}</p> : null}
             <button type="button" className="op-btn op-btn--line" onClick={() => setDone(false)}>
               Change my reply
             </button>

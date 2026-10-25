@@ -143,6 +143,18 @@ export const palettes: PaletteOption[] = [
     label: "Rose & Walnut",
     swatches: ["#f6efea", "#33211d", "#81665d"],
   },
+  {
+    // The Debut Issue: magazine paper and ink (the spot colour is her first motif colour).
+    id: "debut-issue",
+    label: "Gloss & Ink",
+    swatches: ["#f6f3ee", "#151515", "#77716a"],
+  },
+  {
+    // The Debut Issue's second scheme: a warmer, blush stock.
+    id: "debut-issue-blush",
+    label: "Blush Stock",
+    swatches: ["#f5ebe6", "#22191a", "#86716c"],
+  },
 ];
 
 export const defaultPaletteId = palettes[0].id;

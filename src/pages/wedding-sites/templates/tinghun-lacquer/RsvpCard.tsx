@@ -39,7 +39,7 @@ export default function RsvpCard({ content, editorPreview, sample }: { content: 
             </p>
             <h2 className="lq-card__title">{form.attending === "no" ? "We will miss you" : "Received with thanks"}</h2>
             <p className="lq-text">{form.attending === "no" ? "Thank you for letting us know." : thanks}</p>
-            {form.emailed ? <p className="lq-small">A copy is on its way to your email.</p> : null}
+            {form.copyNote ? <p className="lq-small">{form.copyNote}</p> : null}
             <button type="button" className="lq-btn lq-btn--line" onClick={() => setDone(false)}>
               Change my reply
             </button>

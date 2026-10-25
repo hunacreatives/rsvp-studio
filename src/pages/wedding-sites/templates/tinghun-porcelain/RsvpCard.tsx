@@ -45,7 +45,7 @@ export default function RsvpCard({ content, editorPreview, sample }: { content: 
             </p>
             <h2 className="pg-title">{form.attending === "no" ? "You will be missed" : "Until then"}</h2>
             <p className="pg-text">{form.attending === "no" ? "Thank you for letting us know." : thanks}</p>
-            {form.emailed ? <p className="pg-small">A copy is on its way to your email.</p> : null}
+            {form.copyNote ? <p className="pg-small">{form.copyNote}</p> : null}
             <button type="button" className="pg-btn pg-btn--line" onClick={() => setDone(false)}>
               Change my reply
             </button>

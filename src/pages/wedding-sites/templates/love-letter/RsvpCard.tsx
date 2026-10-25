@@ -57,7 +57,7 @@ export default function RsvpCard({ content, editorPreview, reveal }: { content: 
             <h2 className="ll-script ll-block__title">{form.attending === "no" ? "You’ll Be Missed" : "Thank You"}</h2>
             <Sprig />
             <p className="ll-text">{form.attending === "no" ? `Thank you for letting ${couple || "us"} know.` : thanks}</p>
-            {form.emailed ? <p className="ll-text ll-text--soft">A copy is on its way to your email.</p> : null}
+            {form.copyNote ? <p className="ll-text ll-text--soft">{form.copyNote}</p> : null}
             <button type="button" className="ll-btn ll-btn--line" onClick={() => setDone(false)}>
               Change my reply
             </button>

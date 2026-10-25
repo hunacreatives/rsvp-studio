@@ -36,7 +36,7 @@ export default function RsvpBlock({ content, editorPreview, motion }: { content:
         {burst ? <Confetti key={burst} /> : null}
         <p className="pm-thanks__big">{form.attending === "no" ? "We’ll miss you" : "Thank you!"}</p>
         <p className="pm-text">{form.attending === "no" ? `Thank you for letting ${couple || "us"} know.` : customValue(content, "thankYou") || "We’re looking forward to seeing you."}</p>
-        {form.emailed ? <p className="pm-text pm-text--soft">A copy is on its way to your email.</p> : null}
+        {form.copyNote ? <p className="pm-text pm-text--soft">{form.copyNote}</p> : null}
         <button type="button" className="pm-btn pm-btn--line" onClick={() => setDone(false)}>
           Change my reply
         </button>
