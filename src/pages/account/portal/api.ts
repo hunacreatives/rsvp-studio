@@ -1,6 +1,7 @@
 import type { SaveTheDate } from "@/pages/wedding-sites/content/saveTheDate";
 import { supabase } from "@/lib/supabase";
-import type { Activity, Attachment, Invoice, Message, PersonLite, Profile, Project, Task, Thread, ThreadKind, ThreadSummary, SupportCategory, SupportStatus } from "./types";
+import type { Activity, Attachment, EventAccess, Invoice, Message, PersonLite, Profile, Project, Task, Thread, ThreadKind, ThreadSummary, SupportCategory, SupportStatus } from "./types";
+import { isUnclaimed } from "./types";
 
 export type SiteInfo = {
   slug: string;
@@ -58,8 +59,12 @@ export type Guest = {
 const PROFILE_COLS =
   "id, full_name, email, created_at, is_staff, phone, location, avatar_url, billing_name, billing_email, billing_address, notify_project_updates, notify_billing_updates, notify_tips, password_changed_at";
 
-const PROJECT_COLS =
+const BASE_PROJECT_COLS =
   "id, name, event_date, event_type, table_name, status, project_status, services, progress, next_step, next_step_due, cover_image_url, site_url, completed_at, updated_at, created_at, owner_id, next_step_owner, managed_by_studio, deleted_at";
+// Client events (supabase/coordinator-desk.sql). Until that file is on the database these
+// columns don't exist, and every read falls back to the ones without them.
+const PROJECT_COLS = `${BASE_PROJECT_COLS}, client_of, handed_over_at`;
+const NO_COLUMN = "42703";
 
 type SiteRow = {
   event_id: string;
@@ -85,25 +90,49 @@ function siteInfo(row: SiteRow): SiteInfo {
 }
 
 /** Projects the user can see. Staff see every project (RLS allows it). */
-async function loadProjects(userId: string, staff: boolean): Promise<Project[]> {
+async function loadProjects(userId: string, staff: boolean, cols = PROJECT_COLS): Promise<Project[]> {
+  type Row = Omit<Project, "role" | "access">;
   if (staff) {
     // Deleted projects only appear in Studio → Projects → Deleted (studioApi.loadDeletedProjects).
-    const { data } = await supabase.from("events").select(PROJECT_COLS).is("deleted_at", null).order("updated_at", { ascending: false });
-    return (data ?? []).map((e) => ({ ...(e as Omit<Project, "role">), role: e.owner_id === userId ? "Owner" : "Member" }));
+    const { data, error } = await supabase.from("events").select(cols).is("deleted_at", null).order("updated_at", { ascending: false });
+    if (error && cols !== BASE_PROJECT_COLS) return loadProjects(userId, staff, BASE_PROJECT_COLS);
+    return ((data ?? []) as unknown as Row[]).map((e) => ({ ...e, role: e.owner_id === userId ? "Owner" : "Member", access: "owner" }));
   }
   const [own, member] = await Promise.all([
-    supabase.from("events").select(PROJECT_COLS).eq("owner_id", userId),
-    supabase.from("event_members").select(`events(${PROJECT_COLS})`).eq("profile_id", userId),
+    supabase.from("events").select(cols).eq("owner_id", userId),
+    supabase.from("event_members").select(`role, events(${cols})`).eq("profile_id", userId),
   ]);
+  if ((own.error || member.error) && cols !== BASE_PROJECT_COLS) return loadProjects(userId, staff, BASE_PROJECT_COLS);
   const byId = new Map<string, Project>();
-  for (const e of own.data ?? []) byId.set(e.id, { ...(e as Omit<Project, "role">), role: "Owner" });
-  for (const r of member.data ?? []) {
-    const e = r.events as unknown as Omit<Project, "role"> | null;
-    if (e && !byId.has(e.id)) byId.set(e.id, { ...e, role: "Member" });
+  for (const e of (own.data ?? []) as unknown as Row[]) byId.set(e.id, { ...e, role: "Owner", access: "owner" });
+  for (const r of (member.data ?? []) as unknown as { role: string; events: Row | null }[]) {
+    const e = r.events;
+    const access = (["cohost", "coordinator", "viewer"].includes(r.role as string) ? r.role : "cohost") as EventAccess;
+    if (e && !byId.has(e.id)) byId.set(e.id, { ...e, role: "Member", access });
   }
-  return [...byId.values()]
-    .filter((p) => p.status !== "archived" && !p.deleted_at)
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  const list = [...byId.values()].filter((p) => p.status !== "archived" && !p.deleted_at);
+  // Client events I still own: the hand-over invite that's out, if any (the next step waits on it).
+  const unclaimed = list.filter(isUnclaimed).map((p) => p.id);
+  if (unclaimed.length) {
+    const { data } = await supabase
+      .from("event_invites")
+      .select("event_id, email")
+      .eq("role", "owner")
+      .is("accepted_at", null)
+      .is("cancelled_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .in("event_id", unclaimed);
+    const to = new Map((data ?? []).map((i) => [i.event_id as string, i.email as string]));
+    for (const p of list) if (to.has(p.id)) p.handover_to = to.get(p.id);
+  }
+  // Viewers a coordinator invited are their crew (coordinator-fixes.sql my_crew_events); a viewer
+  // the couple invited (family) isn't, and doesn't get the Coordinator desk.
+  if (list.some((p) => p.access === "viewer")) {
+    const { data } = await supabase.rpc("my_crew_events");
+    const crew = new Set(((data ?? []) as unknown[]).map((x) => (typeof x === "string" ? x : (x as { my_crew_events?: string }).my_crew_events ?? "")));
+    for (const p of list) if (p.access === "viewer" && crew.has(p.id)) p.crew = true;
+  }
+  return list.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 }
 
 /**
@@ -182,7 +211,9 @@ export async function saveTheDateStats(eventId: string) {
 }
 
 export async function loadSnapshot(userId: string): Promise<PortalSnapshot | null> {
-  const { data: profile } = await supabase.from("profiles").select(PROFILE_COLS).eq("id", userId).single();
+  // is_coordinator comes with coordinator-desk.sql; before that, the same read without it.
+  let { data: profile, error: profileError } = await supabase.from("profiles").select(`${PROFILE_COLS}, is_coordinator`).eq("id", userId).single();
+  if (profileError?.code === NO_COLUMN) ({ data: profile } = await supabase.from("profiles").select(PROFILE_COLS).eq("id", userId).single());
   if (!profile) return null;
   const staff = !!profile.is_staff;
   const projects = await loadProjects(userId, staff);
@@ -343,7 +374,7 @@ export async function loadGuests(project: Pick<Project, "id" | "table_name">) {
  * DIY website, or (`upgrade`) to make a free-template site Premium. Returns the
  * PayMongo page to send the customer to, or `free` when nothing is owed (e.g. a free template).
  */
-export async function startCheckout(target: { invoiceId: string } | { eventId: string; upgrade?: boolean; domain?: string; renewDomain?: boolean }): Promise<{ checkoutUrl?: string; free?: boolean }> {
+export async function startCheckout(target: { invoiceId: string } | { eventId: string; upgrade?: boolean; domain?: string; renewDomain?: boolean; smsPack?: 100 | 300 | 600 }): Promise<{ checkoutUrl?: string; free?: boolean }> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Please sign in again to pay.");
@@ -365,8 +396,56 @@ export async function deleteProject(eventId: string) {
 
 /** A co-host takes themselves off a project. */
 export async function leaveProject(eventId: string) {
+  // remove_event_member (coordinator-mode.sql) also passes their seating plans to the couple
+  // and gives those plans a new check-in link. Without it, leave_project as before.
+  const { data } = await supabase.auth.getUser();
+  const viaPeople = data.user ? await supabase.rpc("remove_event_member", { p_event: eventId, p_profile: data.user.id }) : null;
+  if (viaPeople && !viaPeople.error) return;
   const { error } = await supabase.rpc("leave_project", { p_event: eventId });
   if (error) throw new Error("Couldn’t leave the project — please try again.");
+}
+
+// ---- People on an event (supabase/coordinator-mode.sql) ----------------------------------
+export type EventPerson = { kind: "person" | "invite"; id: string; name: string | null; email: string | null; role: EventAccess; since: string; added_by: string | null };
+
+/** The couple, everyone on the event, and open invites (the couple and cohosts see them all,
+ *  a coordinator the ones they sent). Null when it can't be read (before the SQL runs). */
+export async function loadEventPeople(eventId: string): Promise<EventPerson[] | null> {
+  const { data, error } = await supabase.rpc("event_people", { p_event: eventId });
+  return error ? null : ((data ?? []) as EventPerson[]);
+}
+
+/** Email someone an invite (api/notify.ts, kind event_invite). Returns the problem, or null. */
+/** role "owner": hand an event I added for a client over to them (coordinator-desk.sql). */
+export async function inviteToEvent(eventId: string, email: string, role: EventAccess): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  const r = await fetch("/api/notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    body: JSON.stringify({ kind: "event_invite", eventId, email, role }),
+  }).catch(() => null);
+  if (!r) return "Couldn’t reach us. Check your connection and try again.";
+  if (r.ok) return null;
+  return ((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? "Couldn’t send the invite. Please try again.";
+}
+
+export async function cancelEventInvite(id: string) {
+  const { error } = await supabase.rpc("cancel_event_invite", { p_id: id });
+  if (error) throw new Error("Couldn’t cancel the invite. Please try again.");
+}
+
+export async function removeEventMember(eventId: string, profileId: string) {
+  const { error } = await supabase.rpc("remove_event_member", { p_event: eventId, p_profile: profileId });
+  if (error) throw new Error(/NOT_ALLOWED/.test(error.message) ? "Only the event’s hosts can remove people." : "Couldn’t remove them. Please try again.");
+}
+
+export type JoinProblem = "SIGN_IN" | "NOT_FOUND" | "USED" | "EXPIRED" | "OTHER_EMAIL" | "ERROR";
+/** The /account/join link: join the event as the invite says. */
+export async function acceptEventInvite(token: string): Promise<{ eventId: string; role: EventAccess } | { problem: JoinProblem }> {
+  const { data, error } = await supabase.rpc("accept_event_invite", { p_token: token });
+  if (error) return { problem: ((["SIGN_IN", "NOT_FOUND", "USED", "EXPIRED", "OTHER_EMAIL"] as const).find((c) => error.message.includes(c)) ?? "ERROR") as JoinProblem };
+  const r = data as { event_id: string; role: EventAccess };
+  return { eventId: r.event_id, role: r.role };
 }
 
 /** Free accounts: up to 3 free projects at once, 1 of them live (supabase/free-limits.sql). */
@@ -415,6 +494,61 @@ export type DomainStatus = { status: "none" | "paid" | "buying" | "connecting" |
 export async function domainStatus(eventId: string): Promise<DomainStatus> {
   const res = await authedFetch(`/api/domain-status?eventId=${encodeURIComponent(eventId)}`);
   return ((await res.json().catch(() => null)) as DomainStatus | null) ?? { status: "none" };
+}
+
+// ---------------------------------------------------------------------------
+// Texts (supabase/sms.sql, api/_lib/sms.ts) and "Message your guests" (api/notify.ts → broadcast)
+
+export const SMS_PACKS = [
+  { texts: 100, php: 199 },
+  { texts: 300, php: 549 },
+  { texts: 600, php: 1099 },
+] as const;
+
+let smsOn: Promise<boolean> | null = null;
+/** Is texting switched on for everyone (Semaphore connected)? `?sms=1` shows it anyway, for testing. */
+export function smsEnabled() {
+  if (new URLSearchParams(window.location.search).has("sms")) return Promise.resolve(true);
+  smsOn ??= fetch("/api/pay-checkout?op=sms-status").then((r) => r.json()).then((j) => !!j.enabled).catch(() => false);
+  return smsOn;
+}
+
+export type SmsAccount = { enabled: boolean; credits: number; used: number; premium_grant_at: string | null; host_alerts: "email" | "sms" | "both"; host_phone: string | null };
+/** The event's texting row, or null before texting was ever switched on (undefined: sms.sql not run). */
+export async function smsAccount(eventId: string): Promise<SmsAccount | null | undefined> {
+  const { data, error } = await supabase.from("event_sms").select("enabled, credits, used, premium_grant_at, host_alerts, host_phone").eq("event_id", eventId).maybeSingle();
+  if (error) return undefined;
+  return (data as SmsAccount | null) ?? null;
+}
+
+const SMS_ERRORS: Record<string, string> = {
+  NO_CREDITS: "Add texts first, then switch it on.",
+  PREMIUM_ONLY: "Texts for every reply are part of Premium.",
+  BAD_PHONE: "Enter your mobile number, e.g. 0917 123 4567.",
+};
+const smsError = (m: string) => SMS_ERRORS[Object.keys(SMS_ERRORS).find((k) => m.includes(k)) ?? ""] ?? "Couldn’t save. Please try again.";
+
+export async function setSmsEnabled(eventId: string, on: boolean): Promise<SmsAccount> {
+  const { data, error } = await supabase.rpc("sms_set_enabled", { p_event: eventId, p_on: on });
+  if (error) throw new Error(smsError(error.message));
+  return data as SmsAccount;
+}
+
+export async function setHostAlerts(eventId: string, alerts: SmsAccount["host_alerts"], phone: string | null): Promise<SmsAccount> {
+  const { data, error } = await supabase.rpc("sms_set_host_alerts", { p_event: eventId, p_alerts: alerts, p_phone: phone });
+  if (error) throw new Error(smsError(error.message));
+  return data as SmsAccount;
+}
+
+export type BroadcastAudience = "coming" | "replied" | "waiting" | "declined";
+export type BroadcastChannel = "email" | "sms" | "both";
+export type BroadcastPreview = { emails: number; texts: number; segments: number; credits: number; left: number; textingOn: boolean; unreachable: number; premium: boolean };
+/** "Message your guests": `preview` counts who it reaches and what it costs; otherwise sends. */
+export async function broadcast(o: { eventId: string; audience: BroadcastAudience; channel: BroadcastChannel; message: string; preview?: boolean }) {
+  const res = await authedFetch("/api/notify", { method: "POST", body: JSON.stringify({ kind: "broadcast", ...o }) });
+  const json = (await res.json().catch(() => ({}))) as BroadcastPreview & { error?: string; textStatus?: string | null };
+  if (!res.ok) throw new Error(json.error ?? "Couldn’t send it. Please try again.");
+  return json;
 }
 
 /** A payment's status, for the "checking your payment…" screen after PayMongo sends the customer back. */

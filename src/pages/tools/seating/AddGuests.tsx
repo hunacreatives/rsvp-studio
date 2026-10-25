@@ -3,10 +3,11 @@ import { parseGuestText, SAMPLE_LIST } from "./parse";
 import type { Chart } from "./model";
 import { commit } from "./store";
 import { seatByTableLabels } from "./presets";
+import { ReadNotes } from "./ReadCheck";
 
 // Paste more guests into an open chart: shows how the list was read before adding it.
 
-export default function AddGuests({ chart, onClose, onAdded }: { chart: Chart; onClose(): void; onAdded(n: number): void }) {
+export default function AddGuests({ chart, onClose, onAdded, onHelp }: { chart: Chart; onClose(): void; onAdded(n: number): void; /** "Need a hand?" (the list won't come in right). */ onHelp?(): void }) {
   const [text, setText] = useState("");
   const [note, setNote] = useState("");
   const parsed = useMemo(() => (text.trim() ? parseGuestText(text, chart) : null), [text, chart]);
@@ -57,6 +58,7 @@ export default function AddGuests({ chart, onClose, onAdded }: { chart: Chart; o
               {parsed.duplicates ? `. ${parsed.duplicates} already on your list, skipped.` : "."}
               {Object.keys(parsed.wantTable).length ? ` ${Object.keys(parsed.wantTable).length} already have a table and will be seated there.` : ""}
             </p>
+            <ReadNotes parsed={parsed} className="mb-3" />
             <div className="sp-preview">
               {parsed.parties.slice(0, 60).map((p, i) => (
                 <div key={i}>
@@ -84,6 +86,14 @@ export default function AddGuests({ chart, onClose, onAdded }: { chart: Chart; o
             Add {parsed?.guests.length || ""} {parsed?.guests.length === 1 ? "guest" : "guests"}
           </button>
         </div>
+        {onHelp ? (
+          <p className="sp-pop-note" style={{ margin: 0 }}>
+            List not coming in right?{" "}
+            <button className="sp-link" onClick={onHelp}>
+              Need a hand?
+            </button>
+          </p>
+        ) : null}
       </div>
     </div>
   );

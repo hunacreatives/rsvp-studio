@@ -20,7 +20,7 @@ const STYLE_PAGES: { id: `style:${StylePart}`; part: StylePart; title: string }[
   { id: "style:colours", part: "colours", title: "Colours" },
   { id: "style:fonts", part: "fonts", title: "Fonts" },
 ];
-const SETTINGS_HITS = ["Ask guests for a password", "Remind guests 2 days before", "Let guests share their photos", "Only guests with a personal link can RSVP", "Let guests find their table"];
+const SETTINGS_HITS = ["Ask guests for a password", "Remind guests 2 days before", "Let guests share their photos", "Only guests with a personal link can RSVP", "Let guests find their table", "Text guests who reply by mobile"];
 
 /** Open one of the panel's pages (a group id, or "style:colours" etc.) from anywhere. */
 export function openPanelPage(page: string) {

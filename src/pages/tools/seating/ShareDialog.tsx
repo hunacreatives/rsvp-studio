@@ -6,6 +6,7 @@ import { useState } from "react";
 
 export default function ShareDialog({ url, busy, signedIn, onSignIn, onStop, onClose }: { url: string | null; busy: boolean; signedIn: boolean; onSignIn(): void; onStop(): void; onClose(): void }) {
   const [copied, setCopied] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const copy = async () => {
     if (!url) return;
     try {
@@ -30,7 +31,7 @@ export default function ShareDialog({ url, busy, signedIn, onSignIn, onStop, onC
         <h2 id="sp-share-h">Share a view-only link</h2>
         {!signedIn ? (
           <>
-            <p>Send your coordinator, caterer or family a link to the plan. They can look and search for anyone, but not change it. Links need a free account so the plan can live online, not just in this browser.</p>
+            <p>Your coordinator, caterer or family can look and search for anyone, but not change anything. Links need a free account, so the plan lives online and not just in this browser.</p>
             <div className="row">
               <button className="sp-btn soft" onClick={onClose}>
                 Not now
@@ -45,20 +46,45 @@ export default function ShareDialog({ url, busy, signedIn, onSignIn, onStop, onC
         ) : url ? (
           <>
             <p>Anyone with this link can view the plan and search for a guest. It updates as you make changes. Only you can edit it.</p>
-            <input id="sp-share-url" readOnly value={url} onFocus={(e) => e.target.select()} className="sp-search" style={{ width: "100%", boxSizing: "border-box", fontSize: 14, padding: "0 12px" }} aria-label="Share link" />
-            <div className="row">
-              <button className="sp-link" style={{ marginRight: "auto", color: "var(--warn)" }} onClick={onStop}>
-                Turn off this link
-              </button>
-              {"share" in navigator ? (
-                <button className="sp-btn soft" onClick={native}>
-                  Send…
+            <input
+              id="sp-share-url"
+              readOnly
+              value={url}
+              onFocus={(e) => e.target.select()}
+              className="sp-search"
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                fontSize: 14,
+                padding: "0 12px",
+              }}
+              aria-label="Share link"
+            />
+            {stopping ? (
+              <div className="row">
+                <p style={{ marginRight: "auto" }}>Anyone who has the link won’t be able to open it.</p>
+                <button className="sp-btn soft" onClick={() => setStopping(false)}>
+                  Keep it
                 </button>
-              ) : null}
-              <button className="sp-btn primary" onClick={copy}>
-                {copied ? "Copied" : "Copy link"}
-              </button>
-            </div>
+                <button className="sp-btn primary" onClick={onStop}>
+                  Turn it off
+                </button>
+              </div>
+            ) : (
+              <div className="row">
+                <button className="sp-link" style={{ marginRight: "auto", color: "var(--warn)" }} onClick={() => setStopping(true)}>
+                  Turn off this link
+                </button>
+                {"share" in navigator ? (
+                  <button className="sp-btn soft" onClick={native}>
+                    Send…
+                  </button>
+                ) : null}
+                <button className="sp-btn primary" onClick={copy}>
+                  {copied ? "Copied" : "Copy link"}
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <>

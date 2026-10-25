@@ -1,0 +1,22 @@
+/* Contact page. The three ways in use Mesa's coloured tiles (as on /services/rsvp). */
+.ct-trio { width: min(200px, 52%); }
+.ct-ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.ct-way { display: flex; flex-direction: column; height: 100%; padding: 20px 20px 18px; border-radius: 22px; text-decoration: none; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.ct-way:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px rgba(0, 7, 39, 0.35); }
+.ct-way-title { font-family: var(--font-display, Lora, Georgia, serif); font-size: 19px; font-weight: 600; line-height: 1.2; color: var(--ink); }
+.ct-way-body { flex: 1; margin-top: 8px; font-size: 15px; line-height: 1.55; color: var(--slate); text-wrap: pretty; }
+.ct-way-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.ct-way:hover .ct-way-cta i { transform: translateX(3px); }
+.ct-way-cta i { transition: transform 0.25s ease; }
+.ct-icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 12px; border-radius: 14px; background: #fff; font-size: 21px; }
+.ct-way.sky { background: #e6f4fa; } .ct-icon.sky { color: #1f8fb3; }
+.ct-way.sun { background: #fff4d1; } .ct-icon.sun { color: #b8860b; }
+.ct-way.coral { background: #ffeae3; } .ct-icon.coral { color: #d9553b; }
+@media (max-width: 900px) {
+  .ct-ways { grid-template-columns: minmax(0, 1fr); gap: 10px; max-width: 520px; }
+  .ct-way { padding: 20px 20px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ct-way, .ct-way-cta i { transition: none; }
+  .ct-way:hover { transform: none; }
+}

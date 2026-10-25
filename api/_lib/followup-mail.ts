@@ -9,7 +9,7 @@ import { BODY, browse, CORAL, frame, h1, INK, label, p, SITE, SLATE, steps } fro
 //   after     — thank you, thank-you cards, how did we do (pink heart)
 // Every one ends with an unsubscribe link (turns off profiles.notify_tips).
 
-export type FollowupKind = "draft_1" | "draft_4" | "draft_10" | "rsvp_10" | "headcount" | "after" | "deadline_3";
+export type FollowupKind = "draft_1" | "draft_4" | "draft_10" | "rsvp_10" | "headcount" | "after" | "deadline_3" | "checkin_1";
 
 export type FollowupData = {
   first: string;
@@ -34,6 +34,11 @@ export type FollowupData = {
   /** deadline_3: the published "Replies close on" (YYYY-MM-DD) and how many are on the invite list. */
   deadline?: string | null;
   invited?: number;
+  /** headcount: where their Mesa seating plan stands (or that they haven't made one). */
+  seating?: { url: string; planned: boolean; seated: number; total: number; cantCome: number; premium: boolean; checkin: boolean };
+  /** checkin_1: their day-of check-in link, its QR picture, whether it needs a PIN, and the
+   *  coordinator they sent it to (if any). */
+  checkin?: { url: string; qr: string; pin: boolean; coordinator: string | null; plan: string };
 };
 
 const day = (iso: string, withWeekday = false) => {
@@ -42,6 +47,67 @@ const day = (iso: string, withWeekday = false) => {
     ? iso
     : d.toLocaleDateString("en-PH", { ...(withWeekday ? { weekday: "long" } : {}), month: "long", day: "numeric", year: withWeekday ? undefined : "numeric", timeZone: "Asia/Manila" });
 };
+/** The week-away email's seating card: a nudge to make, finish or use their Mesa plan. */
+function seatingCard(s: NonNullable<FollowupData["seating"]>) {
+  const left = s.total - s.seated;
+  const [title, body, cta] = !s.planned
+    ? ["Seat everyone with Mesa", "Our free seating planner starts from these RSVPs and seats every family at the right table. Print the plan, table numbers and place cards in one go.", "Make your seating plan"]
+    : left > 0 || s.cantCome
+      ? [
+          `${s.seated} of ${s.total} guests have a seat`,
+          `${left > 0 ? `${left} still ${left === 1 ? "needs" : "need"} a table.` : ""}${s.cantCome ? ` ${s.cantCome} who can’t come ${s.cantCome === 1 ? "is" : "are"} still on a seat.` : ""} Seat everyone fills the rest in a tap.`.trim(),
+          "Finish your seating plan",
+        ]
+      : s.premium
+        ? ["Everyone has a seat", s.checkin ? "Your day-of check-in link is ready. Send it to your coordinator so the welcome team can check guests in on their phones." : "Make your day-of check-in link, so your coordinator and welcome team can check guests in on their phones and seat any walk-ins.", s.checkin ? "Open your seating plan" : "Make the check-in link"]
+        : ["Everyone has a seat", "Print the plan, the entrance board and table numbers when you’re ready.", "Open your seating plan"];
+  const extra = !s.premium && s.planned ? `<p class="fs" style="margin:12px 0 0;color:${SLATE}!important;font-size:13px;line-height:1.6;">With Premium, your welcome team checks guests in on their phones on the day.</p>` : "";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px;"><tr><td class="fpaper" bgcolor="#fbfaf6" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:16px;padding:20px 22px;">
+${label("Your seating")}
+<p class="fb" style="margin:0 0 4px;color:#000727!important;font-size:17px;font-weight:700;line-height:1.4;">${esc(title)}</p>
+<p class="fb" style="margin:0 0 14px;color:${BODY}!important;font-size:15px;line-height:1.6;">${esc(body)}</p>
+<a href="${esc(s.url)}" style="color:#2f61d5!important;font-size:15px;font-weight:700;text-decoration:none;">${esc(cta)} &rarr;</a>
+${extra}
+</td></tr></table>`;
+}
+
+/** The check-in link as a QR card, for the couple's and the coordinator's emails. */
+function checkinCard(c: { url: string; qr: string; pin: boolean }) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px;"><tr><td align="center" class="fpaper" bgcolor="#fbfaf6" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:16px;padding:22px 20px;text-align:center;">
+${label("Welcome team only")}
+<img src="${c.qr}" alt="QR code for the day-of check-in link" width="160" height="160" style="display:block;margin:0 auto 12px;width:160px;height:160px;border:0;" />
+<p class="fb" style="margin:0 0 6px;color:${BODY}!important;font-size:15px;line-height:1.6;">Scan it with a phone camera, or open <a href="${esc(c.url)}" style="color:#2f61d5!important;">the check-in link</a>.${c.pin ? "<br />It asks for the 4-digit PIN the couple set." : ""}</p>
+<p class="fs" style="margin:0;color:${SLATE}!important;font-size:12px;">Please don’t share it with guests.</p>
+</td></tr></table>`;
+}
+
+/** The coordinator's email: the check-in link from the couple (sent when the couple emails it,
+ *  and again the day before). No account needed, and no list to unsubscribe from. */
+export function coordinatorEmail(o: { couple: string; eventName: string; eventDate: string | null; url: string; qr: string; pin: boolean; dayBefore: boolean }): { subject: string; html: string } {
+  const who = esc(o.couple);
+  const when = o.eventDate ? day(o.eventDate, true) : null;
+  return {
+    subject: o.dayBefore ? `Tomorrow: check-in for ${o.couple}` : `Day-of check-in for ${o.couple}`,
+    html: frame({
+      preheader: o.dayBefore ? "Your check-in link for tomorrow, and three things to do tonight." : `${o.couple} sent you their day-of check-in link.`,
+      spot: "followup-headcount.png",
+      spotAlt: "A cheerful orange character",
+      footer: `You’re receiving this because ${who} added you as their coordinator on The RSVP Studio. Not you? You can ignore it.`,
+      content: wrap(`${h1(o.dayBefore ? "Tomorrow’s the day." : "Your check-in link")}
+${p(o.dayBefore ? `<strong>${who}</strong>${when ? ` is on ${esc(when)}` : " is tomorrow"}. Here’s the check-in link for you and the welcome team.` : `<strong>${who}</strong> sent you the day-of check-in link${when ? ` for ${esc(when)}` : ""}. Your team opens it on their phones, with no account.`, 10)}
+${checkinCard(o)}
+${label(o.dayBefore ? "Tonight" : "On the day")}
+${steps(
+  o.dayBefore
+    ? ["Open the link once on each phone, while there’s signal, and type your name.", "Charge the phones, and print the team card if you’d like the QR code at the welcome table.", "At the door: search a guest, check in the household, and point them to their table."]
+    : ["Search a guest, check in the household, and point them to their table.", "Open seats show for walk-ins. A spare table goes first.", "It keeps working on a weak signal; check-ins send when it can."],
+)}
+${button("Open the check-in link", esc(o.url))}
+${signoff("Questions on the day? Reply to this email and our team will help.")}`),
+    }),
+  };
+}
+
 const peso = (n: number) => `₱${Math.round(n).toLocaleString("en-PH")}`;
 
 function button(text: string, url: string) {
@@ -205,6 +271,30 @@ ${signoff()}`),
     };
   }
 
+  if (kind === "checkin_1" && d.checkin) {
+    const c = d.checkin;
+    return {
+      subject: `Tomorrow: your check-in link for ${d.eventName}`,
+      html: frame({
+        preheader: c.coordinator ? `We’ve sent it to ${c.coordinator} too.` : "Send it to your coordinator so the welcome team has it.",
+        spot: "followup-headcount.png",
+        spotAlt: "A cheerful orange character",
+        footer: footer(d.unsubscribeUrl),
+        content: wrap(`${h1(`It’s almost here, ${first}.`)}
+${p(`<strong>${esc(d.eventName)}</strong> is tomorrow. Your welcome team checks guests in with this link, on their phones.${c.coordinator ? ` We’ve sent it to <strong>${esc(c.coordinator)}</strong> as well.` : ""}`, 10)}
+${checkinCard(c)}
+${label("Tonight")}
+${steps([
+  c.coordinator ? "Make sure your coordinator has opened the link once." : "Send the link to your coordinator (Mesa → plan menu → Day-of check-in).",
+  c.pin ? "Tell the team the PIN. Mesa can’t show it again." : "Add a PIN if you’d like a forwarded link not to be enough.",
+  "Last changes to the seating? Make them now; the team sees them when they open the link.",
+])}
+${button("Open your seating plan", esc(c.plan))}
+${signoff()}`),
+      }),
+    };
+  }
+
   if (kind === "headcount") {
     const when = d.eventDate ? day(d.eventDate, true) : "next week";
     return {
@@ -228,6 +318,7 @@ ${steps([
   "Download your guest list for the welcome table.",
 ])}
 ${button("See your guest list", guestList)}
+${d.seating ? seatingCard(d.seating) : ""}
 ${d.photos ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px;"><tr><td align="center" class="fpaper" bgcolor="#fbfaf6" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:16px;padding:22px 20px;text-align:center;">
 ${label("For your tables")}
 <img src="${d.photos.qr}" alt="QR code for your guest photo page" width="150" height="150" style="display:block;margin:0 auto 12px;width:150px;height:150px;border:0;" />

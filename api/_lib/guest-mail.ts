@@ -7,6 +7,7 @@ import { BODY, CORAL, frame, h1, INK, p } from "./enquiry-mail.js";
 // them, with the details as a navy-and-gold admission ticket.
 //   guestConfirmation — "You're on the list" right after they RSVP (api/wedding-rsvp.ts)
 //   guestReminder     — "See you on Saturday" 2 days before (guest-reminders.ts, Premium)
+//   guestMessage      — the hosts' own "Message your guests" (api/notify.ts → broadcast, Premium)
 
 const SITE = "https://thersvpstudio.com";
 const GOLD = "#d9b45a";
@@ -300,6 +301,38 @@ ${buttons([{ label: "RSVP now", url: b.link, solid: true }, ...(b.map ? [{ label
 ${signed(b.hosts)}
 ${replyNote}
 ${promo(o.slug, o.premium)}
+</td></tr>`,
+    }),
+  };
+}
+
+/**
+ * The hosts' own message to their guests ("Message your guests" in the Guests tab, Premium):
+ * their words on a paper card, signed by them, with the invitation one tap away.
+ */
+export function guestMessage(o: Common & { message: string; invited: boolean; published: boolean }): { subject: string; html: string } {
+  const b = basics(o);
+  const words = esc(o.message.trim()).replace(/\r?\n/g, "<br />");
+  return {
+    subject: `A message from ${b.hostsPlain}`,
+    html: frame({
+      tagline: false,
+      preheader: esc(o.message.trim().replace(/\s+/g, " ").slice(0, 110)),
+      spot: "confirm-envelope.png",
+      spotAlt: b.cover ? esc(o.eventName) : "A letter in an envelope",
+      cover: b.cover,
+      footer: o.invited
+        ? `You’re receiving this because ${b.hosts} invited you to ${esc(o.eventName)}.<br />Sent by The RSVP Studio for ${b.hosts}.`
+        : footer(o.eventName, b.hosts),
+      content: `<tr><td class="pad" align="center" style="padding:24px 56px 6px;text-align:center;">
+${pill("From the hosts", "#f7f0dc", "#8a6a1c")}
+${h1(`Hi&nbsp;${b.first},`)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 24px;"><tr><td bgcolor="#fbfaf6" class="fpaper" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:18px;padding:24px 26px;text-align:left;">
+<p class="fi" style="margin:0;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65;">${words}</p>
+</td></tr></table>
+${o.published ? buttons([{ label: o.invited ? "RSVP now" : "Open the invitation", url: b.link, solid: o.invited }]) : ""}
+${signed(b.hosts)}
+${promo(o.slug, true)}
 </td></tr>`,
     }),
   };

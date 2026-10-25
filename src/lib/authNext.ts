@@ -13,6 +13,13 @@ export function rememberAuthNext(path: string | null) {
   }
 }
 
+/** The email-confirmation link's return address: /account, with the page they were headed to
+ *  as ?next= (the link opens in a new tab, so sessionStorage can't carry it). */
+export function confirmRedirect(next?: string | null) {
+  const safe = next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : null;
+  return `${window.location.origin}/account?welcome=1${safe ? `&next=${encodeURIComponent(safe)}` : ""}`;
+}
+
 export function takeAuthNext(): string | null {
   try {
     const raw = sessionStorage.getItem(KEY);

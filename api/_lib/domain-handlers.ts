@@ -19,8 +19,9 @@ async function canAccess(eventId: string, userId: string) {
   const { data: ev } = await db.from("events").select("owner_id, deleted_at").eq("id", eventId).maybeSingle();
   if (!ev || ev.deleted_at) return false;
   if (ev.owner_id === userId) return true;
-  const { data: m } = await db.from("event_members").select("profile_id").eq("event_id", eventId).eq("profile_id", userId).maybeSingle();
-  if (m) return true;
+  // Buying a domain is billing: the couple and cohosts (coordinator-mode.sql).
+  const { data: m } = await db.from("event_members").select("role").eq("event_id", eventId).eq("profile_id", userId).maybeSingle();
+  if (m?.role === "cohost") return true;
   const { data: p } = await db.from("profiles").select("is_staff").eq("id", userId).maybeSingle();
   return !!p?.is_staff;
 }
@@ -79,7 +80,8 @@ export async function domainStatusHandler(req: VercelRequest, res: VercelRespons
   const eventId = String(req.query.eventId ?? "");
   if (!staff) {
     const { data: ev } = await db.from("events").select("owner_id").eq("id", eventId).maybeSingle();
-    const { data: m } = await db.from("event_members").select("profile_id").eq("event_id", eventId).eq("profile_id", auth.user.id).maybeSingle();
+    // The couple and cohosts (who pay for it); coordinators and viewers don't see the domain.
+    const { data: m } = await db.from("event_members").select("profile_id").eq("event_id", eventId).eq("profile_id", auth.user.id).eq("role", "cohost").maybeSingle();
     if (!ev || (ev.owner_id !== auth.user.id && !m)) return res.status(404).json({ error: "We couldn’t find that event." });
   }
   const { data: row } = await db.from("site_domains").select("*").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle();

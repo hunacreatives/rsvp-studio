@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
+import { readFloorPlan } from "./_lib/floorplan.js";
 
 // Studio → Templates → Import design with AI.
 //
@@ -154,6 +155,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
   const { data } = await supabaseAdmin.auth.getUser(token);
   if (!data?.user) return res.status(401).json({ error: "Not signed in" });
+  if (req.query.op === "floorplan") return floorPlan(req, res, data.user.id);
   const { data: profile } = await supabaseAdmin.from("profiles").select("is_staff").eq("id", data.user.id).single();
   if (!profile?.is_staff) return res.status(403).json({ error: "Staff only" });
 
@@ -161,6 +163,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const out = await analyseDesign(body);
   if ("error" in out) return res.status(out.status).json({ error: out.error });
   return res.status(200).json(out);
+}
+
+// Mesa's floor plan reader (?op=floorplan): Premium only (a host with at least one Premium
+// event, their own or one they help with), 5 reads a day each, and a ceiling for the whole
+// site so a busy day can't run up the bill.
+const PLAN_READS_PER_DAY = 5;
+const PLAN_READS_SITE_PER_DAY = 300;
+
+async function floorPlan(req: VercelRequest, res: VercelResponse, userId: string) {
+  const body = (typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body) as { image?: unknown; type?: unknown };
+  const image = typeof body.image === "string" ? body.image.replace(/^data:image\/\w+;base64,/, "") : "";
+  const type = body.type === "image/png" ? "image/png" : "image/jpeg";
+  if (!image || image.length > 3_000_000 || !/^[A-Za-z0-9+/=]+$/.test(image.slice(0, 200))) return res.status(400).json({ error: "Add a picture of the floor plan first." });
+  if (!(await hasPremium(userId))) return res.status(403).json({ error: "Reading floor plans comes with Premium. You can measure the plan yourself below, for free.", premium: false });
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const [{ count: mine }, { count: all }] = await Promise.all([
+    supabaseAdmin.from("seating_ai_uses").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since),
+    supabaseAdmin.from("seating_ai_uses").select("id", { count: "exact", head: true }).gte("created_at", since),
+  ]);
+  if ((mine ?? 0) >= PLAN_READS_PER_DAY) return res.status(429).json({ error: `You’ve had ${PLAN_READS_PER_DAY} plans read today. Try again tomorrow, or measure the plan by hand below.` });
+  if ((all ?? 0) >= PLAN_READS_SITE_PER_DAY) return res.status(429).json({ error: "The plan reader is busy today. Measure the plan by hand below, or try again tomorrow." });
+  await supabaseAdmin.from("seating_ai_uses").insert({ user_id: userId });
+  const out = await readFloorPlan(image, type);
+  if ("error" in out) return res.status(out.status).json({ error: out.error });
+  return res.status(200).json({ ...out, left: Math.max(0, PLAN_READS_PER_DAY - (mine ?? 0) - 1) });
+}
+
+/** Any live event of theirs (owned or shared with them) that's Premium. */
+async function hasPremium(userId: string) {
+  const [own, member] = await Promise.all([
+    supabaseAdmin.from("events").select("id").eq("owner_id", userId).is("deleted_at", null),
+    supabaseAdmin.from("event_members").select("events(id, deleted_at)").eq("profile_id", userId),
+  ]);
+  const ids = new Set((own.data ?? []).map((e) => e.id as string));
+  for (const r of (member.data ?? []) as unknown as { events: { id: string; deleted_at: string | null } | null }[]) if (r.events && !r.events.deleted_at) ids.add(r.events.id);
+  for (const id of [...ids].slice(0, 50)) {
+    const { data } = await supabaseAdmin.rpc("event_is_premium", { p_event: id });
+    if (data === true) return true;
+  }
+  return false;
 }
 
 export interface DesignInput {

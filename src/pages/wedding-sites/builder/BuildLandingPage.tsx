@@ -186,9 +186,8 @@ export default function BuildLandingPage() {
       <section className="pb-12 pt-10 sm:pb-16 sm:pt-14 md:pb-24 md:pt-16" style={{ background: "linear-gradient(180deg, #fff1cc 0%, #fff8e6 340px, var(--warm-white) 640px)" }}>
         <div className="container-x">
           <div className="text-center">
-            <p className="eyebrow">Build your website</p>
-            <h1 className="mx-auto mt-4 max-w-3xl font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] text-balance" style={{ fontSize: "clamp(2.1rem, 5vw, 3.4rem)" }}>
-              Your event website, ready tonight.
+            <h1 className="mx-auto max-w-3xl font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] text-balance" style={{ fontSize: "clamp(2.1rem, 5vw, 3.4rem)" }}>
+              Build Your Website
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-[var(--slate)] text-balance md:text-[18px]">
               Pick one of our designs, add your details and photos, and share one link. Guests RSVP right on the site. Free to start.
@@ -215,50 +214,55 @@ export default function BuildLandingPage() {
           </div>
 
           <div id="designs" className="scroll-mt-24 pt-10 sm:pt-14">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[17px] font-semibold text-[var(--ink)]">Choose a design</h2>
-              <label className="relative order-3 w-full sm:order-none sm:ml-auto sm:w-[260px]">
-                <span className="sr-only">Search designs</span>
-                <i className="ri-search-line pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--slate)]" aria-hidden />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search, e.g. ting hun, debut"
-                  className="min-h-[44px] w-full rounded-full border border-[var(--line)] bg-white pl-10 pr-4 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--ink)] md:min-h-[38px] md:text-[14px]"
-                />
-              </label>
-              {hasPremium ? (
-                <div role="group" aria-label="Filter designs" className="flex gap-2">
-                  {(["all", "free", "premium"] as Tier[]).map((x) => (
+            {/* One quiet bar: the kind of event as tabs, then search and Free / Premium.
+                Phones: search and the plan on top, the tabs (scrolling sideways) under them. */}
+            <h2 className="sr-only">Choose a design</h2>
+            <div className="mb-6 flex flex-col-reverse gap-3 border-b border-[var(--line)] md:flex-row md:items-end md:justify-between md:gap-8 sm:mb-8">
+              {eventChips.length > 1 ? (
+                <div role="group" aria-label="Filter by event" className="-mx-4 -mb-px flex min-w-0 gap-6 overflow-x-auto px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
+                  {[{ id: "all", label: "All" }, ...eventChips].map((e) => (
                     <button
-                      key={x}
-                      aria-pressed={tier === x}
-                      onClick={() => setTier(x)}
-                      className={`min-h-[44px] rounded-full border px-4 text-[14px] font-medium md:min-h-[38px] ${tier === x ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)]"}`}
+                      key={e.id}
+                      type="button"
+                      aria-pressed={eventType === e.id}
+                      onClick={() => setEventType(e.id)}
+                      className={`shrink-0 whitespace-nowrap border-b-2 pb-3 pt-1 text-[14px] transition-colors ${eventType === e.id ? "border-[var(--ink)] font-medium text-[var(--ink)]" : "border-transparent text-[var(--slate)] hover:text-[var(--ink)]"}`}
                     >
-                      {x === "all" ? "All" : x === "free" ? "Free" : "Premium"}
+                      {e.label}
                     </button>
                   ))}
                 </div>
-              ) : null}
-            </div>
-            {/* The kind of event: one row of chips (scrolls sideways on phones). */}
-            {eventChips.length > 1 ? (
-              <div role="group" aria-label="Filter by event" className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:mb-6 sm:flex-wrap sm:overflow-visible sm:px-0">
-                {[{ id: "all", label: "All events" }, ...eventChips].map((e) => (
-                  <button
-                    key={e.id}
-                    type="button"
-                    aria-pressed={eventType === e.id}
-                    onClick={() => setEventType(e.id)}
-                    className={`min-h-[40px] shrink-0 whitespace-nowrap rounded-full border px-4 text-[14px] font-medium md:min-h-[34px] md:text-[13px] ${eventType === e.id ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"}`}
-                  >
-                    {e.label}
-                  </button>
-                ))}
+              ) : (
+                <span />
+              )}
+              <div className="flex shrink-0 items-center gap-2 md:pb-2.5">
+                <label className="relative min-w-0 flex-1 md:w-[220px] md:flex-none">
+                  <span className="sr-only">Search designs</span>
+                  <i className="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-[var(--slate)]" aria-hidden />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search"
+                    className="h-10 w-full rounded-full border border-[var(--line)] bg-white pl-9 pr-4 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--ink)] md:h-9 md:text-[14px]"
+                  />
+                </label>
+                {hasPremium ? (
+                  <div role="group" aria-label="Filter designs" className="inline-flex shrink-0 rounded-full bg-[var(--paper)] p-1">
+                    {(["all", "free", "premium"] as Tier[]).map((x) => (
+                      <button
+                        key={x}
+                        aria-pressed={tier === x}
+                        onClick={() => setTier(x)}
+                        className={`h-8 rounded-full px-3.5 text-[13px] font-medium transition-colors md:h-7 ${tier === x ? "bg-white text-[var(--ink)] shadow-[0_1px_2px_rgba(0,7,39,0.12)]" : "text-[var(--slate)] hover:text-[var(--ink)]"}`}
+                      >
+                        {x === "all" ? "All" : x === "free" ? "Free" : "Premium"}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
+            </div>
             {ready && !shown.length ? (
               <div className="rounded-[22px] bg-[var(--paper)] px-6 py-12 text-center">
                 <p className="text-[16px] font-medium text-[var(--ink)]">No designs match{query.trim() ? ` “${query.trim()}”` : ""}.</p>
@@ -423,7 +427,7 @@ export default function BuildLandingPage() {
 
       {/* Mesa, our free seating chart maker: the next thing hosts need, in one line. */}
       <p className="container-x pb-10 text-center text-[15px] text-[var(--slate)] sm:pb-14">
-        Seating everyone next? <Link to="/tools/seating-chart-maker" className="font-medium text-[var(--ink)] underline underline-offset-4">Mesa</Link>, our free seating chart maker, seats every family at the right table.
+        Seating everyone next? <Link to="/tools/seating-chart-maker" className="font-medium text-[var(--ink)] underline underline-offset-4">Mesa</Link>, our free seating chart maker, starts from your RSVPs and seats every family at the right table.
       </p>
 
       {/* Rather we make it? */}

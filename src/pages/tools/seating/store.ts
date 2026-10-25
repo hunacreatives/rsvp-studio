@@ -4,7 +4,7 @@ import type { Chart } from "./model";
 
 // One chart, kept in this browser. Every change is a new snapshot, so undo/redo is exact
 // and nothing "comes back" after a delete. Saved to localStorage shortly after each change
-// and when the tab is hidden. A backup file (exportBackup) is the copy that survives a
+// and when the tab is hidden. A Mesa file (exportBackup, "…-mesa-plan.json") is the copy that survives a
 // cleared browser.
 
 const KEY = "seating:v1:current";
@@ -23,6 +23,12 @@ const ChartSchema = z.object({
     .max(1000)
     .optional(),
   bg: z.object({ key: z.string().max(40), x: z.number(), y: z.number(), w: z.number().positive(), h: z.number().positive(), opacity: z.number().min(0).max(1) }).optional(),
+  prefs: z
+    .object({ spare: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(), kids: z.enum(["parents", "table"]).optional(), sides: z.enum(["apart", "mix"]).optional(), care: z.boolean().optional() })
+    .optional(),
+  site: z
+    .object({ eventId: z.string().max(60), slug: z.string().max(80).nullable(), finder: z.boolean().optional(), syncedAt: z.number().optional(), seen: z.record(z.string().max(80), z.string().max(20)).optional(), dayAt: z.string().max(40).optional() })
+    .optional(),
   kind: z.enum(["wedding", "debut", "lauriat", "party", "blank"]),
   room: z.object({ w: z.number().min(200).max(20000), h: z.number().min(200).max(20000) }),
   tables: z
@@ -39,8 +45,11 @@ const ChartSchema = z.object({
         w: z.number().optional(),
         h: z.number().optional(),
         locked: z.boolean().optional(),
+        fixed: z.boolean().optional(),
+        inside: z.boolean().optional(),
         cat: cat.optional(),
         side: z.enum(["bride", "groom"]).optional(),
+        spare: z.boolean().optional(),
       }),
     )
     .max(300),
@@ -55,10 +64,11 @@ const ChartSchema = z.object({
         w: z.number(),
         h: z.number(),
         rot: z.number(),
+        fixed: z.boolean().optional(),
       }),
     )
     .max(100),
-  groups: z.array(z.object({ id: z.string(), name: z.string().max(80), cat })).max(500),
+  groups: z.array(z.object({ id: z.string(), name: z.string().max(80), cat, side: z.enum(["bride", "groom"]).optional() })).max(500),
   guests: z
     .array(
       z.object({
@@ -68,8 +78,10 @@ const ChartSchema = z.object({
         party: z.string(),
         tableId: z.string().nullable(),
         seat: z.number().int().nullable(),
-        tags: z.array(z.enum(["senior", "kid", "vip", "plusone"])).optional(),
+        tags: z.array(z.enum(["senior", "kid", "vip", "plusone", "access"])).optional(),
         meal: z.string().max(60).optional(),
+        inviteeId: z.string().max(60).optional(),
+        reply: z.enum(["yes", "no", "pending"]).optional(),
       }),
     )
     .max(3000),
@@ -121,6 +133,9 @@ export const subscribe = (l: () => void) => {
   listeners.add(l);
   return () => listeners.delete(l);
 };
+/** The plan as it is right now (for async work that must not use a stale copy). */
+export const currentChart = () => state.chart;
+
 export function useStore<T>(pick: (s: State) => T): T {
   return useSyncExternalStore(subscribe, () => pick(state), () => pick(state));
 }
@@ -253,7 +268,7 @@ export function exportBackup(chart: Chart) {
   const blob = new Blob([JSON.stringify(background ? { ...chart, background } : chart, null, 1)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${(chart.title || "seating-plan").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "seating-plan"}.seating.json`;
+  a.download = `${(chart.title || "seating-plan").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "seating"}-mesa-plan.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }

@@ -10,14 +10,18 @@ import * as api from "../api";
 import ProjectDangerZone from "../components/ProjectDangerZone";
 import InviteList from "../components/InviteList";
 import GuestPhotosAdmin from "../components/GuestPhotosAdmin";
+import MessageGuests from "../components/MessageGuests";
+import { useSitePlan } from "@/pages/wedding-sites/builder/SitePlan";
 import { supabase } from "@/lib/supabase";
 import DiyExtras from "../components/DiyExtras";
 import EventOverview from "../components/EventOverview";
+import SeatingPlanLink from "../components/SeatingPlanLink";
 import DomainCard from "../components/DomainCard";
+import EventPeople from "../components/EventPeople";
 import SaveTheDateCard from "../components/SaveTheDateCard";
 import { ActivityList, CopyLink, DiySiteSummary, InvoiceTable, ProjectStatusPill, TaskList, isDiy, useProjectCover, nextStepLabel } from "../components/blocks";
 import { countdown, formatDate, formatLongDate, servicesLabel } from "../format";
-import type { Project } from "../types";
+import { canBill, canEdit, isClientEvent, type Project } from "../types";
 import { Cover, FilterTabs, OutlineCard, Panel, PillButton, ProgressBar, SectionTitle } from "../ui";
 
 type Tab = "overview" | "website" | "guests";
@@ -52,16 +56,14 @@ export default function ProjectDetailPage() {
   const done = project.project_status === "completed";
   const diy = isDiy(project);
   const site = sites[project.id];
-  const projectTasks = tasks
-    .filter((t) => t.event_id === project.id)
-    .sort((a, b) => Number(!!a.done_at) - Number(!!b.done_at) || (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"));
+  const projectTasks = tasks.filter((t) => t.event_id === project.id).sort((a, b) => Number(!!a.done_at) - Number(!!b.done_at) || (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"));
   const projectActivity = activity.filter((a) => a.event_id === project.id).slice(0, 8);
   const projectInvoices = invoices.filter((i) => i.event_id === project.id && i.status !== "void");
 
   return (
     <>
-      <Link to="/account/projects" className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
-        <i className="ri-arrow-left-line" /> All events
+      <Link to={isClientEvent(project) ? "/account/clients" : "/account/projects"} className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--slate)] hover:text-[var(--ink)]">
+        <i className="ri-arrow-left-line" /> {isClientEvent(project) ? "All clients" : "All events"}
       </Link>
 
       {/* The event at a glance: a small cover (not a banner), what and when, and what to do. */}
@@ -75,53 +77,63 @@ export default function ProjectDetailPage() {
                 <ProjectStatusPill project={project} />
               </div>
               <p className="mt-1 text-[14px] text-[var(--slate)] md:text-[15px]">
-                {[project.event_date ? formatLongDate(project.event_date) : "Date not set", !done && project.event_date ? countdown(project.event_date) : "", servicesLabel(project.services, project.event_type)].filter(Boolean).join(" · ")}
+                {[
+                  project.event_date ? formatLongDate(project.event_date) : "Date not set",
+                  !done && project.event_date ? countdown(project.event_date) : "",
+                  servicesLabel(project.services, project.event_type),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             </div>
           </div>
-            {diy ? (
-              <div className="flex flex-wrap gap-2">
-                {site?.publishedAt && !site.ended ? <CopyLink url={`${window.location.origin}/invite/${site.slug}`} label="Copy link" pill /> : null}
-                {site?.publishedAt ? (
-                  <PillButton onClick={() => window.open(`/invite/${site.slug}`, "_blank", "noopener")}>
-                    <i className="ri-external-link-line" /> View site
-                  </PillButton>
-                ) : null}
+          {diy ? (
+            <div className="flex flex-wrap gap-2">
+              {site?.publishedAt && !site.ended ? <CopyLink url={`${window.location.origin}/invite/${site.slug}`} label="Copy link" pill /> : null}
+              {site?.publishedAt ? (
+                <PillButton onClick={() => window.open(`/invite/${site.slug}`, "_blank", "noopener")}>
+                  <i className="ri-external-link-line" /> View site
+                </PillButton>
+              ) : null}
+              {canEdit(project) ? (
                 <PillButton tone="dark" onClick={() => navigate(`/account/events/${project.id}/site-builder${site ? "/edit" : ""}`)}>
                   <i className="ri-edit-2-line" /> {site?.publishedAt ? "Edit site" : site ? "Continue building" : "Pick a template"}
                 </PillButton>
-              </div>
-            ) : (
-              <PillButton tone="dark" onClick={() => navigate(`/account/messages?project=${project.id}`)}>
-                <i className="ri-chat-3-line" /> Message the studio
-              </PillButton>
-            )}
-          </div>
-
-          {diy ? (
-            // Only when there's something to say that the header doesn't (an ended site's guest list).
-            site?.ended ? <DiySiteSummary project={project} /> : null
+              ) : null}
+            </div>
           ) : (
-            <>
-          <div className="mt-6 flex items-center justify-between text-[13px]">
-            <span className="text-[var(--ink)]">Project progress</span>
-            <span className="text-[var(--slate)]">{project.progress}%</span>
-          </div>
-          <div className="mt-3">
-            <ProgressBar value={project.progress} />
-          </div>
-          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#dcdce0] pt-4 text-[13px]">
-            <div>
-              <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Status" : nextStepLabel(project)}</p>
-              <p className="text-[var(--ink)]">{done ? "Project Complete" : project.next_step || "We’ll post your next step soon"}</p>
-            </div>
-            <div>
-              <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Completed" : "Due"}</p>
-              <p className="text-[var(--ink)]">{(done ? formatDate(project.completed_at) : formatDate(project.next_step_due)) || "—"}</p>
-            </div>
-          </div>
-            </>
+            <PillButton tone="dark" onClick={() => navigate(`/account/messages?project=${project.id}`)}>
+              <i className="ri-chat-3-line" /> Message the studio
+            </PillButton>
           )}
+        </div>
+
+        {diy ? (
+          // Only when there's something to say that the header doesn't (an ended site's guest list).
+          site?.ended ? (
+            <DiySiteSummary project={project} />
+          ) : null
+        ) : (
+          <>
+            <div className="mt-6 flex items-center justify-between text-[13px]">
+              <span className="text-[var(--ink)]">Project progress</span>
+              <span className="text-[var(--slate)]">{project.progress}%</span>
+            </div>
+            <div className="mt-3">
+              <ProgressBar value={project.progress} />
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#dcdce0] pt-4 text-[13px]">
+              <div>
+                <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Status" : nextStepLabel(project)}</p>
+                <p className="text-[var(--ink)]">{done ? "Project Complete" : project.next_step || "We’ll post your next step soon"}</p>
+              </div>
+              <div>
+                <p className="uppercase tracking-[0.04em] text-[var(--slate)]">{done ? "Completed" : "Due"}</p>
+                <p className="text-[var(--ink)]">{(done ? formatDate(project.completed_at) : formatDate(project.next_step_due)) || "—"}</p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="mb-8 mt-6">
@@ -144,12 +156,19 @@ export default function ProjectDetailPage() {
           <EventOverview project={project} openGuests={openGuests} />
           {projectInvoices.length ? (
             <section className="min-w-0">
-              <SectionTitle action={<Link to="/account/billing" className="inline-flex min-h-[44px] items-center text-[14px] font-medium text-[var(--acc-blue)] hover:underline md:min-h-0">All billing →</Link>}>
+              <SectionTitle
+                action={
+                  <Link to="/account/billing" className="inline-flex min-h-[44px] items-center text-[14px] font-medium text-[var(--acc-blue)] hover:underline md:min-h-0">
+                    All billing →
+                  </Link>
+                }
+              >
                 Invoices
               </SectionTitle>
               <InvoiceTable invoices={projectInvoices} payable />
             </section>
           ) : null}
+          <EventPeople project={project} />
         </div>
       ) : tab === "overview" ? (
         <div className="space-y-12">
@@ -165,20 +184,27 @@ export default function ProjectDetailPage() {
               <ActivityList items={projectActivity} showProject={false} emptyText={diy ? "New replies will show up here." : undefined} />
             </section>
           </div>
-          {!diy || projectInvoices.length ? (
+          {(!diy && canBill(project)) || projectInvoices.length ? (
             <section className="min-w-0">
-              <SectionTitle action={<Link to="/account/billing" className="inline-flex min-h-[44px] items-center text-[14px] font-medium text-[var(--acc-blue)] hover:underline md:min-h-0">All billing →</Link>}>
+              <SectionTitle
+                action={
+                  <Link to="/account/billing" className="inline-flex min-h-[44px] items-center text-[14px] font-medium text-[var(--acc-blue)] hover:underline md:min-h-0">
+                    All billing →
+                  </Link>
+                }
+              >
                 Invoices
               </SectionTitle>
               <InvoiceTable invoices={projectInvoices} payable />
             </section>
           ) : null}
+          <EventPeople project={project} />
         </div>
       ) : tab === "website" ? (
         <>
           <SaveTheDateCard project={project} />
           <WebsiteTab project={project} />
-          {diy && site ? <DomainCard project={project} slug={site.slug} /> : null}
+          {diy && site && canBill(project) ? <DomainCard project={project} slug={site.slug} /> : null}
           {diy ? <DiyExtras project={project} /> : null}
           <ProjectDangerZone project={project} />
         </>
@@ -190,14 +216,24 @@ export default function ProjectDetailPage() {
 }
 
 function WebsiteTab({ project }: { project: Project }) {
-  const { sites } = usePortal();
+  const { sites, refresh, demo } = usePortal();
   const navigate = useNavigate();
+  // Taking the site offline (same as the builder's ⋯ → Unpublish): guests see "not available",
+  // replies and photos stay, and publishing again from the editor costs nothing more.
+  const [offline, setOffline] = useState<"idle" | "confirm" | "working" | "error">("idle");
+  const takeOffline = async () => {
+    setOffline("working");
+    const { error } = await supabase.from("wedding_sites").update({ published_at: null }).eq("event_id", project.id);
+    if (error) return setOffline("error");
+    await refresh();
+    setOffline("idle");
+  };
   useTemplateCatalog(); // so uploaded templates show their real name
   const site = sites[project.id];
   const builder = `/account/events/${project.id}/site-builder`;
 
   if (site) {
-    const template = site.templateId ? getTemplateDefinition(site.templateId)?.label ?? site.templateId : null;
+    const template = site.templateId ? (getTemplateDefinition(site.templateId)?.label ?? site.templateId) : null;
     const publicUrl = `${window.location.origin}/invite/${site.slug}`;
     return (
       <OutlineCard className="p-5 sm:p-6 md:p-8">
@@ -205,9 +241,7 @@ function WebsiteTab({ project }: { project: Project }) {
           <div>
             <p className="eyebrow">Your website</p>
             <p className="mt-2 font-display text-2xl font-semibold text-[var(--ink)]">{template ? `${template} template` : "No template chosen yet"}</p>
-            <p className="mt-1 text-[14px] text-[var(--slate)]">
-              {site.publishedAt ? `Published ${formatDate(site.publishedAt)}` : "Draft — not published yet"}
-            </p>
+            <p className="mt-1 text-[14px] text-[var(--slate)]">{site.publishedAt ? `Published ${formatDate(site.publishedAt)}` : "Not live. Publish it from the editor when it’s ready."}</p>
             {/* How long it stays up (supabase/project-lifecycle.sql) — a detail, so it lives here, not on the cards. */}
             {site.liveUntil && !site.ended ? (
               <p className="mt-1 text-[14px] text-[var(--slate)]">
@@ -236,12 +270,32 @@ function WebsiteTab({ project }: { project: Project }) {
           </div>
         ) : null}
         {site.publishedAt && !site.ended ? <InviteShareButtons url={publicUrl} slug={site.slug} title={project.name} className="mt-3" /> : null}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <PillButton tone="primary" onClick={() => navigate(`${builder}/edit`)}>
-            <i className="ri-edit-2-line" /> Edit website
-          </PillButton>
-          <PillButton onClick={() => navigate(builder)}>Change template</PillButton>
-        </div>
+        {canEdit(project) ? (
+          <div className="mt-6 flex flex-wrap gap-3">
+            <PillButton tone="primary" onClick={() => navigate(`${builder}/edit`)}>
+              <i className="ri-edit-2-line" /> Edit website
+            </PillButton>
+            <PillButton onClick={() => navigate(builder)}>Change template</PillButton>
+            {site.publishedAt && !site.ended && !demo && offline === "idle" ? (
+              <PillButton className="sm:ml-auto" onClick={() => setOffline("confirm")}>
+                <i className="ri-eye-off-line" /> Take website offline
+              </PillButton>
+            ) : null}
+          </div>
+        ) : null}
+        {offline !== "idle" ? (
+          <div className="mt-4 rounded-2xl border border-[var(--line)] bg-white p-4">
+            <p className="text-[14px] font-medium text-[var(--ink)]">Take your website offline?</p>
+            <p className="mt-1 text-[14px] text-[var(--slate)]">Guests won’t be able to open it or RSVP. Replies and photos stay. Publish again from the editor anytime, no extra charge.</p>
+            {offline === "error" ? <p className="mt-2 text-[13px] text-[#c2412d]">Couldn’t take it offline. Please try again.</p> : null}
+            <div className="mt-3 flex flex-wrap gap-3">
+              <PillButton tone="primary" onClick={takeOffline} disabled={offline === "working"}>
+                {offline === "working" ? "Taking it offline…" : "Take it offline"}
+              </PillButton>
+              <PillButton onClick={() => setOffline("idle")}>Keep it live</PillButton>
+            </div>
+          </div>
+        ) : null}
       </OutlineCard>
     );
   }
@@ -270,7 +324,11 @@ function WebsiteTab({ project }: { project: Project }) {
         If our studio is designing your site, it will appear here once it’s live. You can also build one yourself from a template.
       </p>
       <div className="mt-5 flex flex-wrap justify-center gap-3">
-        <PillButton tone="primary" onClick={() => navigate(builder)}>Build it yourself</PillButton>
+        {canEdit(project) ? (
+          <PillButton tone="primary" onClick={() => navigate(builder)}>
+            Build it yourself
+          </PillButton>
+        ) : null}
         <PillButton onClick={() => navigate(`/account/messages?project=${project.id}`)}>Ask the studio</PillButton>
       </div>
     </Panel>
@@ -278,12 +336,37 @@ function WebsiteTab({ project }: { project: Project }) {
 }
 
 const DEMO_GUESTS: api.Guest[] = [
-  { id: "g1", name: "Maria Santos", email: "maria@example.com", message: "Can’t wait to celebrate with you both!", created_at: new Date().toISOString(), attending: true, guest_count: 2, dietary: "Vegetarian" },
+  {
+    id: "g1",
+    name: "Maria Santos",
+    email: "maria@example.com",
+    message: "Can’t wait to celebrate with you both!",
+    created_at: new Date().toISOString(),
+    attending: true,
+    guest_count: 2,
+    dietary: "Vegetarian",
+  },
   { id: "g2", name: "Paolo Cruz", email: "paolo@example.com", message: null, created_at: new Date(Date.now() - 86_400_000).toISOString(), attending: false, guest_count: 0 },
   { id: "g3", name: "Bea Reyes", email: "bea@example.com", message: "See you there 💛", created_at: new Date(Date.now() - 3 * 86_400_000).toISOString(), attending: true, guest_count: 1 },
   { id: "g4", name: "Miguel Tan", email: "miguel@example.com", message: null, created_at: new Date(Date.now() - 4 * 86_400_000).toISOString(), attending: true, guest_count: 2, dietary: "No seafood" },
-  { id: "g5", name: "Carla Villanueva", email: "carla@example.com", message: "Congratulations, Nikki and Alan!", created_at: new Date(Date.now() - 5 * 86_400_000).toISOString(), attending: true, guest_count: 1 },
-  { id: "g6", name: "Josh Ramos", email: "josh@example.com", message: "So sorry, we’ll be abroad. Sending love!", created_at: new Date(Date.now() - 6 * 86_400_000).toISOString(), attending: false, guest_count: 0 },
+  {
+    id: "g5",
+    name: "Carla Villanueva",
+    email: "carla@example.com",
+    message: "Congratulations, Nikki and Alan!",
+    created_at: new Date(Date.now() - 5 * 86_400_000).toISOString(),
+    attending: true,
+    guest_count: 1,
+  },
+  {
+    id: "g6",
+    name: "Josh Ramos",
+    email: "josh@example.com",
+    message: "So sorry, we’ll be abroad. Sending love!",
+    created_at: new Date(Date.now() - 6 * 86_400_000).toISOString(),
+    attending: false,
+    guest_count: 0,
+  },
   { id: "g7", name: "Andrea Lim", email: "andrea@example.com", message: null, created_at: new Date(Date.now() - 8 * 86_400_000).toISOString(), attending: true, guest_count: 3 },
 ];
 
@@ -299,6 +382,13 @@ function GuestsTab({ project }: { project: Project }) {
   const site = sites[project.id];
   // Studio-built events keep their RSVPs in their own table: no invite list or photos there.
   const diy = !project.table_name;
+  // "Message your guests": email on Premium, texts once texting is live.
+  const { plan } = useSitePlan(diy && !demo ? project.id : undefined);
+  const [smsOn, setSmsOn] = useState(false);
+  const [messaging, setMessaging] = useState(false);
+  useEffect(() => {
+    void api.smsEnabled().then(setSmsOn);
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -317,7 +407,9 @@ function GuestsTab({ project }: { project: Project }) {
   }, [project, demo, diy, reloadKey]);
 
   if (!guests) return <p className="text-[var(--slate)]">Loading RSVPs…</p>;
-  const canManage = diy && !demo;
+  // Viewers (coordinator-mode.sql) look but don't change anything.
+  const editable = canEdit(project);
+  const canManage = diy && !demo && editable;
   const manage = canManage
     ? {
         onAdd: () => setEditing("new"),
@@ -346,7 +438,7 @@ function GuestsTab({ project }: { project: Project }) {
       guests={guests}
       manage={manage}
       onToggleWall={
-        demo
+        demo || !editable
           ? undefined
           : async (g) => {
               const next = !g.message_hidden;
@@ -371,7 +463,7 @@ function GuestsTab({ project }: { project: Project }) {
   if (!diy) return replies;
   return (
     <>
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <FilterTabs<"replies" | "invites">
           value={view}
           onChange={setView}
@@ -380,7 +472,18 @@ function GuestsTab({ project }: { project: Project }) {
             { value: "invites", label: "Invite list" },
           ]}
         />
+        {!demo && editable ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <SeatingPlanLink eventId={project.id} />
+            {plan?.premium || smsOn ? (
+              <PillButton onClick={() => setMessaging(true)}>
+                <i className="ri-send-plane-line" /> Message your guests
+              </PillButton>
+            ) : null}
+          </div>
+        ) : null}
       </div>
+      {messaging ? <MessageGuests eventId={project.id} onClose={() => setMessaging(false)} /> : null}
       {view === "replies" ? (
         replies
       ) : (
@@ -391,9 +494,10 @@ function GuestsTab({ project }: { project: Project }) {
           siteUrl={site?.slug && site.publishedAt ? `${window.location.origin}/invite/${site.slug}` : null}
           deadline={deadline}
           demo={demo}
+          readOnly={!editable}
         />
       )}
-      {!demo ? <GuestPhotosAdmin eventId={project.id} slug={site?.slug ?? null} /> : null}
+      {!demo && editable ? <GuestPhotosAdmin eventId={project.id} slug={site?.slug ?? null} /> : null}
       {editor}
     </>
   );

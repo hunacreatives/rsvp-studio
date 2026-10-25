@@ -83,19 +83,19 @@ function clientSnapshot(): PortalSnapshot {
         id: NIKKI, name: "Nikki & Alan", event_date: dateIn(120), event_type: "wedding", table_name: null, status: "upcoming",
         project_status: "in_progress", services: ["Wedding Website", "Digital Invitations"], progress: 75,
         next_step: "Guest List Review", next_step_due: dateIn(4), cover_image_url: "/home/hero-phone/carlo-trixia-1.webp",
-        site_url: null, completed_at: null, updated_at: ago(2 * day), created_at: ago(60 * day), owner_id: ME, role: "Owner",
+        site_url: null, completed_at: null, updated_at: ago(2 * day), created_at: ago(60 * day), owner_id: ME, role: "Owner", access: "owner",
       },
       {
         id: SOPHIA, name: "Sophia & Ren", event_date: dateIn(200), event_type: "wedding", table_name: null, status: "upcoming",
         project_status: "in_progress", services: ["Digital Save the Date", "Digital Invitations"], progress: 50,
         next_step: "Design Approval", next_step_due: dateIn(7), cover_image_url: "/home/hero-phone/carlo-trixia-2.webp",
-        site_url: null, completed_at: null, updated_at: ago(10 * day), created_at: ago(40 * day), owner_id: ME, role: "Owner",
+        site_url: null, completed_at: null, updated_at: ago(10 * day), created_at: ago(40 * day), owner_id: ME, role: "Owner", access: "owner",
       },
       {
         id: FRANCIS, name: "Francis’ 31st", event_date: dateIn(-18), event_type: "birthday", table_name: null, status: "past",
         project_status: "completed", services: ["Event Website", "RSVP Management"], progress: 100,
         next_step: null, next_step_due: null, cover_image_url: "/portfolio/claudy-at-30.webp",
-        site_url: "https://claudyat30.com", completed_at: ago(18 * day), updated_at: ago(18 * day), created_at: ago(90 * day), owner_id: ME, role: "Owner",
+        site_url: "https://claudyat30.com", completed_at: ago(18 * day), updated_at: ago(18 * day), created_at: ago(90 * day), owner_id: ME, role: "Owner", access: "owner",
       },
     ],
     tasks: [

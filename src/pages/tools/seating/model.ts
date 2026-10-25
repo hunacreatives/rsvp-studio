@@ -21,12 +21,20 @@ export interface Table {
   /** rect/head only, centimetres. */
   w?: number;
   h?: number;
-  /** Seat everyone never moves anyone at a locked table. */
+  /** Keep these guests: Seat everyone never moves anyone at a locked table. */
   locked?: boolean;
+  /** Lock in place: can't be moved, turned or resized on the plan (fit and the floor-plan
+   *  reader work around it). Separate from `locked`, so a head table can stay movable while
+   *  its guests are kept. */
+  fixed?: boolean;
+  /** U- and L-shapes: chairs along the inside edges too (a "hollow U"), not just the outside. */
+  inside?: boolean;
   /** Who the table is meant for, so Seat everyone puts that category there first. */
   cat?: Category;
   /** Left/right of the aisle for the bride's and groom's sides. */
   side?: "bride" | "groom";
+  /** Kept empty for walk-ins: Seat everyone leaves it alone. */
+  spare?: boolean;
 }
 
 export interface VenueObject {
@@ -38,6 +46,8 @@ export interface VenueObject {
   w: number;
   h: number;
   rot: number;
+  /** Lock in place: can't be moved, turned or resized on the plan. */
+  fixed?: boolean;
 }
 
 export interface Rule {
@@ -62,6 +72,8 @@ export interface Group {
   id: string;
   name: string;
   cat: Category;
+  /** A group of another kind on one side ("Officemates (bride)"); bride/groom groups don't need it. */
+  side?: "bride" | "groom";
 }
 
 export interface Guest {
@@ -72,8 +84,28 @@ export interface Guest {
   party: string;
   tableId: string | null;
   seat: number | null;
-  tags?: ("senior" | "kid" | "vip" | "plusone")[];
+  /** access: needs an easy way in and out (wheelchair, walker, pregnant). */
+  tags?: GuestTag[];
   meal?: string;
+  /** Their line on the event's invite list (set when seats are sent, or the plan starts from
+   *  RSVPs), or "r:" + their reply when they answered the open form and aren't on the list. */
+  inviteeId?: string;
+  /** What their RSVP says: coming, can't come, or not replied yet. Unset = not from an event. */
+  reply?: "yes" | "no" | "pending";
+}
+
+export type GuestTag = "senior" | "kid" | "vip" | "plusone" | "access";
+
+/** How Seat everyone seats people (the choices under its arrow). */
+export interface SeatPrefs {
+  /** Seats left free at each table for walk-ins. */
+  spare?: 0 | 1 | 2;
+  /** Kids with their household, or together at one table. */
+  kids?: "parents" | "table";
+  /** Bride's and groom's guests on their own sides, or mixed. */
+  sides?: "apart" | "mix";
+  /** Seniors and guests who need easy access near the exits and away from the speakers. */
+  care?: boolean;
 }
 
 export interface Chart {
@@ -86,6 +118,20 @@ export interface Chart {
   rules?: Rule[];
   /** A venue floor plan under everything (image kept separately: store.ts bgImage). */
   bg?: Background;
+  prefs?: SeatPrefs;
+  /** The event website the seats were sent to (Send seats to your website). */
+  site?: {
+    eventId: string;
+    slug: string | null;
+    finder?: boolean;
+    /** When replies were last read in. */
+    syncedAt?: number;
+    /** The last answer acted on, per invite-list line (or "r:" + reply id): "no", "yes:3", "pending".
+     *  Replies change the plan only when this changes, so the host's own fixes stay. */
+    seen?: Record<string, string>;
+    /** Day-of changes (walk-ins, moves) already brought into the plan, up to this time. */
+    dayAt?: string;
+  };
   kind: ChartKind;
   room: { w: number; h: number };
   tables: Table[];
@@ -236,12 +282,14 @@ export function seatOffsets(t: Table): [number, number][] {
       { from: [-w / 2 - g, -h / 2 + 20], to: [-w / 2 - g, h / 2 + g] },
       { from: [-w / 2, h / 2 + g], to: [w / 2, h / 2 + g] },
       { from: [w / 2 + g, h / 2 + g], to: [w / 2 + g, -h / 2 + 20] },
+      ...(t.inside ? innerRuns(t) : []),
     ]);
   }
   if (t.shape === "lshape") {
     return along([
       { from: [-w / 2 - g, h / 2 - 20], to: [-w / 2 - g, -h / 2 - g] },
       { from: [-w / 2, -h / 2 - g], to: [w / 2 - 20, -h / 2 - g] },
+      ...(t.inside ? innerRuns(t) : []),
     ]);
   }
   if (t.shape === "head" || t.shape === "sweetheart") {
@@ -256,6 +304,97 @@ export function seatOffsets(t: Table): [number, number][] {
   return out;
 }
 
+// ---- footprints (snapping, distances, fit) --------------------------------------------
+export type Box = { x0: number; y0: number; x1: number; y1: number };
+
+/** The table's real footprint on the floor: its top plus its chairs, as an upright box (a head
+ *  table has chairs on one side only, so its box isn't centred on t.x, t.y). */
+export function footprint(t: Table, x = t.x, y = t.y): Box {
+  if (isRound(t)) {
+    const r = topRadius(t) + CHAIR_GAP + CHAIR;
+    return { x0: x - r, y0: y - r, x1: x + r, y1: y + r };
+  }
+  const { w, h } = dims(t);
+  const pts: [number, number][] = [[-w / 2, -h / 2], [w / 2, -h / 2], [-w / 2, h / 2], [w / 2, h / 2]];
+  for (const [sx, sy] of seatOffsets(t)) pts.push([sx - CHAIR, sy - CHAIR], [sx + CHAIR, sy + CHAIR], [sx - CHAIR, sy + CHAIR], [sx + CHAIR, sy - CHAIR]);
+  return boxOf(pts.map((p) => rotate(p, t.rot)), x, y);
+}
+
+/** Just the table top, as an upright box (what lines up with other tables' edges). */
+export function topBox(t: Table, x = t.x, y = t.y): Box {
+  if (isRound(t)) {
+    const r = topRadius(t);
+    return { x0: x - r, y0: y - r, x1: x + r, y1: y + r };
+  }
+  const { w, h } = dims(t);
+  return rectBox(w, h, t.rot, x, y);
+}
+
+/** A venue object (stage, dance floor…), as an upright box, exact at any angle. */
+export const objBox = (o: VenueObject, x = o.x, y = o.y): Box => rectBox(o.w, o.h, o.rot, x, y);
+
+function rectBox(w: number, h: number, rot: number, x: number, y: number): Box {
+  const a = (rot * Math.PI) / 180;
+  const c = Math.abs(Math.cos(a));
+  const s = Math.abs(Math.sin(a));
+  const hw = (w / 2) * c + (h / 2) * s;
+  const hh = (w / 2) * s + (h / 2) * c;
+  return { x0: x - hw, y0: y - hh, x1: x + hw, y1: y + hh };
+}
+
+function boxOf(pts: [number, number][], x: number, y: number): Box {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [px, py] of pts) {
+    x0 = Math.min(x0, px); y0 = Math.min(y0, py); x1 = Math.max(x1, px); y1 = Math.max(y1, py);
+  }
+  return { x0: x + x0, y0: y + y0, x1: x + x1, y1: y + y1 };
+}
+
+/** Turned by a quarter turn or not at all: upright boxes are exact, so edges can line up. */
+export const squareTurn = (rot: number) => Math.abs(((rot % 90) + 90) % 90) < 0.5 || Math.abs((((rot % 90) + 90) % 90) - 90) < 0.5;
+
+// ---- seats on the inside of U- and L-shapes ---------------------------------------------
+type Run = { from: [number, number]; to: [number, number] };
+/** Where chairs go along the inside edges of a U or an L (centre-relative, before turning). */
+function innerRuns(t: Pick<Table, "shape" | "seats" | "w" | "h">): Run[] {
+  const { w, h } = dims(t);
+  const g = CHAIR_GAP;
+  const x0 = -w / 2;
+  const y0 = -h / 2;
+  if (t.shape === "ushape") {
+    const inL = x0 + ARM + g;
+    const inR = x0 + w - ARM - g;
+    const base = y0 + h - ARM - g;
+    return [
+      { from: [inL, y0 + 20], to: [inL, base] },
+      { from: [inL + CHAIR * 2, base], to: [inR - CHAIR * 2, base] },
+      { from: [inR, base], to: [inR, y0 + 20] },
+    ];
+  }
+  if (t.shape === "lshape") {
+    const arm = y0 + ARM + g;
+    const side = x0 + ARM + g;
+    return [
+      { from: [side + CHAIR * 2, arm], to: [x0 + w - 20, arm] },
+      { from: [side, arm + CHAIR * 2], to: [side, y0 + h - 20] },
+    ];
+  }
+  return [];
+}
+/** How many more chairs the inside of a U or an L holds (one every 64 cm). */
+export function insideSeats(t: Pick<Table, "shape" | "seats" | "w" | "h">): number {
+  const len = innerRuns(t).reduce((n, r) => n + Math.max(0, Math.hypot(r.to[0] - r.from[0], r.to[1] - r.from[1])), 0);
+  return Math.max(0, Math.floor(len / STEP));
+}
+/** Room inside for chairs facing each other with a way through: about 1.5 m across a U's
+ *  hollow. An L is open on two sides, so always. */
+export function canSeatInside(t: Pick<Table, "shape" | "seats" | "w" | "h">): boolean {
+  if (t.shape === "lshape") return true;
+  if (t.shape !== "ushape") return false;
+  const { w, h } = dims(t);
+  return w - 2 * ARM >= 2 * (CHAIR_GAP + CHAIR) + 45 && h - ARM >= 120;
+}
+
 export function rotate([x, y]: [number, number], deg: number): [number, number] {
   if (!deg) return [x, y];
   const a = (deg * Math.PI) / 180;
@@ -267,7 +406,7 @@ export function seatPoint(t: Table, i: number): [number, number] {
   return [t.x + dx, t.y + dy];
 }
 
-const HONORIFIC = /^(tito|tita|ate|kuya|lola|lolo|mang|aling|manang|manong|doc|dr\.?|dra\.?|atty\.?|engr\.?|sis|bro|fr\.?|father|ninong|ninang|mr\.?|mrs\.?|ms\.?|miss|sir|ma'?am|tatay|nanay|inang|amang)$/i;
+const HONORIFIC = /^(tito|tita|ate|kuya|lola|lolo|mang|aling|manang|manong|doc|dr\.?|dra\.?|atty\.?|engr\.?|arch\.?|sis\.?|bro\.?|fr\.?|father|pastor|ptr\.?|rev\.?|coach|prof\.?|teacher|ma'?am|ninong|ninang|mr\.?|mrs\.?|ms\.?|miss|sir|tatay|nanay|inang|amang|hon\.?|gen\.?|col\.?|capt\.?|judge|little)$/i;
 
 /** "Tita Nora Santos" → "NS". Titles are left off. */
 export function initials(name: string) {

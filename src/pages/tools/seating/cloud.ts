@@ -24,11 +24,17 @@ export function useSignedIn(): { userId: string | null; ready: boolean } {
 
 export type CloudState = "off" | "saving" | "saved" | "error" | "limit";
 
-export async function saveCloud(chart: Chart): Promise<CloudState> {
+/** `eventId`: the event the row was linked to (Undo after a delete puts the link back too). */
+export async function saveCloud(chart: Chart, eventId?: string | null): Promise<CloudState> {
+  const event = chart.site?.eventId ?? eventId;
   const background = bgImage(chart.bg?.key);
   const { error } = await supabase
     .from("seating_charts")
-    .upsert({ id: chart.id, title: chart.title.slice(0, 120) || "Seating plan", chart, background: chart.bg ? background : null, updated_at: new Date(chart.updatedAt).toISOString() }, { onConflict: "id" });
+    .upsert(
+      // A plan made from an event (or sent to one) stays linked to it.
+      { id: chart.id, title: chart.title.slice(0, 120) || "Seating plan", chart, background: chart.bg ? background : null, updated_at: new Date(chart.updatedAt).toISOString(), ...(event ? { event_id: event } : {}) },
+      { onConflict: "id" },
+    );
   if (!error) return "saved";
   return /SEATING_CHART_LIMIT/.test(error.message) ? "limit" : "error";
 }
@@ -37,11 +43,22 @@ export interface CloudRow {
   id: string;
   title: string;
   updated_at: string;
+  event_id: string | null;
+  /** The event it's for, when it's linked to one: its name and date. */
+  event?: { name: string; event_date: string | null } | null;
 }
 
 export async function listCloud(): Promise<CloudRow[]> {
-  const { data } = await supabase.from("seating_charts").select("id, title, updated_at").order("updated_at", { ascending: false }).limit(20);
-  return (data ?? []) as CloudRow[];
+  const { data } = await supabase.from("seating_charts").select("id, title, updated_at, event_id, event:events(name, event_date)").order("updated_at", { ascending: false }).limit(60);
+  return (data ?? []) as unknown as CloudRow[];
+}
+
+/** Other people's plans for the same event (event_plans in coordinator-fixes.sql): plans are each
+ *  person's own, so the couple and their coordinator can each have one. */
+export async function otherPlans(eventId: string): Promise<{ owner_name: string; updated_at: string }[]> {
+  const { data, error } = await supabase.rpc("event_plans", { p_event: eventId });
+  if (error || !data) return [];
+  return (data as { owner_name: string; mine: boolean; updated_at: string }[]).filter((p) => !p.mine);
 }
 
 export async function loadCloud(id: string): Promise<Chart | null> {

@@ -13,6 +13,9 @@ interface CreateEventModalProps {
   onClose: () => void;
   /** Picked on /build: the builder opens with this design already chosen. */
   templateId?: string;
+  /** "Add a client" (Coordinator desk): the event is theirs to hand over, and doesn't count
+   *  toward the free projects (supabase/coordinator-desk.sql), so that check is skipped. */
+  forClient?: boolean;
 }
 
 const EVENT_TYPES: { type: EventType; label: string; icon: string }[] = [
@@ -29,9 +32,12 @@ const EVENT_TYPES: { type: EventType; label: string; icon: string }[] = [
 // site draft immediately (see useCreateEvent) and lands on the template
 // gallery — never publishes anything, matching the non-destructive
 // selection rule used everywhere else in the builder.
-export default function CreateEventModal({ onClose, templateId }: CreateEventModalProps) {
+export default function CreateEventModal({ onClose, templateId, forClient = false }: CreateEventModalProps) {
   const [eventType, setEventType] = useState<EventType | null>(null);
-  const { createEvent, status, errorDetail } = useCreateEvent();
+  const { createEvent, status, errorDetail } = useCreateEvent({ forClient });
+  // Made, but the hand-over invite didn't go out: say so before moving on.
+  const [inviteProblem, setInviteProblem] = useState<{ eventId: string; email: string; problem: string } | null>(null);
+  const [inviting, setInviting] = useState(false);
   // A design picked on /build is for certain kinds of event (Studio → Templates): only those
   // are offered, and with just one the question is skipped.
   const { ready: catalogReady } = useTemplateCatalog();
@@ -44,7 +50,7 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
   const navigate = useNavigate();
   // Free accounts: 3 projects at a time (supabase/free-limits.sql). At the limit,
   // offer to make one Premium (which frees its slot) or delete one.
-  const [freeProjects, setFreeProjects] = useState<api.FreeProject[] | undefined>(undefined);
+  const [freeProjects, setFreeProjects] = useState<api.FreeProject[] | undefined>(forClient ? [] : undefined);
   const atLimit = !!freeProjects && freeProjects.length >= api.FREE_PROJECT_LIMIT;
   const [premiumPrice, setPremiumPrice] = useState(0);
   const [paying, setPaying] = useState<string | null>(null);
@@ -64,15 +70,23 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
     };
   }, []);
   useEffect(() => {
+    if (forClient) return;
     api.myFreeProjects().then(setFreeProjects);
     supabase.from("site_prices").select("amount").eq("tier", "premium").maybeSingle().then(({ data }) => setPremiumPrice(Number(data?.amount ?? 0)));
-  }, []);
+  }, [forClient]);
 
+  const toDesigns = (eventId: string) => navigate(`/account/events/${eventId}/site-builder${templateId ? `?template=${encodeURIComponent(templateId)}` : ""}`);
   async function handleSubmit(input: CreateEventInput) {
     const eventId = await createEvent(input);
     if (eventId) {
-      navigate(`/account/events/${eventId}/site-builder${templateId ? `?template=${encodeURIComponent(templateId)}` : ""}`);
-    } else {
+      if (forClient && input.clientEmail) {
+        setInviting(true);
+        const problem = await api.inviteToEvent(eventId, input.clientEmail, "owner");
+        setInviting(false);
+        if (problem) return setInviteProblem({ eventId, email: input.clientEmail, problem });
+      }
+      toDesigns(eventId);
+    } else if (!forClient) {
       // The database said no (a project was made in another tab): show the choice.
       setFreeProjects(await api.myFreeProjects());
     }
@@ -97,7 +111,7 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Create a new event"
+      aria-label={forClient ? "Add a client" : "Create a new event"}
     >
       <div
         className="relative w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl p-6 sm:p-8"
@@ -114,7 +128,19 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
           <i className="ri-close-line text-2xl" />
         </button>
 
-        {freeProjects === undefined || (templateId && !catalogReady) ? (
+        {inviteProblem ? (
+          <>
+            <h2 className="font-display text-2xl font-semibold mb-3 pr-10" style={{ color: "var(--ink)" }}>
+              Your client’s event is ready
+            </h2>
+            <p style={{ color: "var(--slate)", fontSize: 15, lineHeight: 1.6, margin: 0 }}>
+              The invite to {inviteProblem.email} didn’t go out. {inviteProblem.problem} You can send it again from People on the&nbsp;event.
+            </p>
+            <button onClick={() => toDesigns(inviteProblem.eventId)} className="btn btn-primary mt-6 w-full">
+              Continue to designs
+            </button>
+          </>
+        ) : freeProjects === undefined || (templateId && !catalogReady) ? (
           <CharacterLoader message="One moment…" />
         ) : atLimit ? (
           <>
@@ -155,7 +181,7 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
         ) : eventType === null ? (
           <>
             <h2 className="font-display text-2xl font-semibold mb-6 px-8 text-center" style={{ color: "var(--ink)" }}>
-              What kind of event would you like to create?
+              {forClient ? "What is your client celebrating?" : "What kind of event would you like to create?"}
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-1">
               {eventTypes.map((option) => (
@@ -177,7 +203,8 @@ export default function CreateEventModal({ onClose, templateId }: CreateEventMod
               eventType={eventType}
               onBack={onlyType ? onClose : () => setEventType(null)}
               onSubmit={handleSubmit}
-              submitting={status === "creating"}
+              submitting={status === "creating" || inviting}
+              forClient={forClient}
             />
             {status === "error" ? (
               <p role="alert" style={{ marginTop: 12, fontSize: 14, color: "var(--acc-coral)" }}>

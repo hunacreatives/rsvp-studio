@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { lenisRef } from "@/lib/lenis";
 import { setRememberLogin, supabase } from "@/lib/supabase";
-import { rememberAuthNext } from "@/lib/authNext";
+import { confirmRedirect, rememberAuthNext } from "@/lib/authNext";
 import { GoogleButton } from "@/lib/googleSignIn";
 import { BLUE_LAYOUT, BUBBLE_LAYOUT, CHARACTER_BLINK as BLINK, CHARACTER_EYES as EYES, CHARACTER_LAYOUT, CHARACTER_MOUTH as MOUTH } from "@/components/CharacterLoader";
 import { trackEvent } from "@/lib/analytics";
@@ -209,7 +209,7 @@ export default function AuthModal({
 
         {sentTo ? (
           <div className="bg-white">
-            <CheckInbox email={sentTo} onBack={() => setSentTo(null)} />
+            <CheckInbox email={sentTo} onBack={() => setSentTo(null)} next={nextPath(nextProp)} />
           </div>
         ) : !desktop ? (
           /* Phones: one form at a time, no room for the illustration (so its
@@ -597,7 +597,7 @@ function AuthForm({
     const { error } = await supabase.auth.resend({
       type: "signup",
       email,
-      options: { emailRedirectTo: `${window.location.origin}/account?welcome=1` },
+      options: { emailRedirectTo: confirmRedirect(next) },
     });
     if (error) {
       setResent("idle");
@@ -702,7 +702,7 @@ function AuthForm({
           // (see PortalContext). Accounts made before this flag never get it twice.
           data: { full_name: fullName, welcomed: false },
           // The confirmation link brings them back here, signed in.
-          emailRedirectTo: `${window.location.origin}/account?welcome=1`,
+          emailRedirectTo: confirmRedirect(next),
         },
       });
       setLoading(false);
@@ -946,7 +946,7 @@ function inboxLink(email: string): { label: string; url: string } | null {
  * Shown across the whole modal once sign-up has sent the confirmation
  * email, so nobody can miss that the next step happens in their inbox.
  */
-function CheckInbox({ email, onBack }: { email: string; onBack: () => void }) {
+function CheckInbox({ email, onBack, next }: { email: string; onBack: () => void; next?: string | null }) {
   const [resent, setResent] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
   const inbox = inboxLink(email);
@@ -957,7 +957,7 @@ function CheckInbox({ email, onBack }: { email: string; onBack: () => void }) {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email,
-      options: { emailRedirectTo: `${window.location.origin}/account?welcome=1` },
+      options: { emailRedirectTo: confirmRedirect(next) },
     });
     if (error) {
       setResent("idle");

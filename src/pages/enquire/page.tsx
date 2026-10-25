@@ -26,6 +26,7 @@ import {
   type FieldSpec,
 } from "./occasions";
 import { trackEvent } from "@/lib/analytics";
+import { supabase } from "@/lib/supabase";
 
 const processSteps = [
   { num: "01", title: "Inquiry", desc: "Once we receive your form, we'll reply within 1 business day to talk through your ideas, plans, and creative direction." },
@@ -64,6 +65,33 @@ export default function ProjectInquiry() {
   // A planner's link (?partner=CODE) fills in their referral code.
   const [v, setV] = useState<Values>(() => ({ services: [], ...(visitSource()?.partner ? { partner_code: visitSource()!.partner } : {}), ...prefill.values }));
   const [askingAbout, setAskingAbout] = useState(prefill.summary);
+  // Signed in: their name and email, so nobody types them again. A wedding link gives both
+  // names; if the signed-in person is the second one, they're swapped.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      if (!user || !alive) return;
+      const { data: prof } = await supabase.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
+      if (!alive) return;
+      const full = (prof?.full_name as string | null)?.trim() || "";
+      const email = (prof?.email as string | null) || user.email || "";
+      setV((p) => {
+        const next = { ...p };
+        const first = full.split(/\s+/)[0]?.toLowerCase();
+        if (first && typeof next.partner_name === "string" && next.partner_name.toLowerCase().startsWith(first) && typeof next.your_name === "string") {
+          [next.your_name, next.partner_name] = [next.partner_name, next.your_name];
+        }
+        if (full && (!next.your_name || (typeof next.your_name === "string" && full.toLowerCase().startsWith(String(next.your_name).toLowerCase())))) next.your_name = full;
+        if (email && !next.email) next.email = email;
+        return next;
+      });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
   const clearPrefill = () => {
     setV((p) => {
       const next = { ...p, services: [] as string[] };

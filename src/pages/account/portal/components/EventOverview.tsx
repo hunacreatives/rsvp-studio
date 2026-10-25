@@ -5,9 +5,10 @@ import * as api from "../api";
 import { usePortal } from "../PortalContext";
 import { countdown, daysUntil, formatDate, timeAgo } from "../format";
 import { matchInvitees, reminderMessage } from "../inviteMatch";
-import type { Project } from "../types";
+import { canEdit, type Project } from "../types";
 import { PillButton } from "../ui";
 import { CopyLink } from "./blocks";
+import SeatingPlanLink from "./SeatingPlanLink";
 
 // A site the host runs themselves → Overview: the one summary they open the page for. How many
 // have replied (and who's coming), when replies close, who still hasn't replied (with the
@@ -115,6 +116,12 @@ export default function EventOverview({ project, openGuests }: { project: Projec
           <Stat label="Can’t make it" value={declined} />
           <Stat label={invitees.length ? "Not replied yet" : "On your list"} value={invitees.length ? waiting.length : 0} hint={invitees.length ? undefined : "Add your guests"} />
         </dl>
+        {people && canEdit(project) ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(0,7,39,0.1)] pt-4">
+            <p className="text-[14px] text-[var(--slate)]">Seat everyone in Mesa, straight from these replies.</p>
+            <SeatingPlanLink eventId={project.id} />
+          </div>
+        ) : null}
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">

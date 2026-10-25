@@ -9,6 +9,8 @@ import { sendFollowups } from "./_lib/followups.js";
 import { sendGuestReminders } from "./_lib/guest-reminders.js";
 import { sendInvoiceReminders } from "./_lib/invoice-reminders.js";
 import { domainsDaily } from "./_lib/domains.js";
+import { smsDaily } from "./_lib/sms.js";
+import { eventPeopleEmails } from "./_lib/hosts.js";
 import { code, customerReplyTo, reqCode, emailRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
 import { captureError } from "./_lib/sentry.js";
 
@@ -26,6 +28,7 @@ import { captureError } from "./_lib/sentry.js";
 //      before, a thank-you after (_lib/followups.ts).
 //      Premium guest reminders, 2 days before (_lib/guest-reminders.ts).
 //      Invoice reminders from the due date (_lib/invoice-reminders.ts).
+//      Texts: refunds for late failures, "running low" to hosts, our Semaphore balance (_lib/sms.ts).
 //   8. Heartbeat, shown in the Studio, so a job that stops running gets noticed.
 // The database claims each reminder / close in one UPDATE, and Resend drops repeat
 // sends with the same idempotency key — a double run can't double-email.
@@ -59,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
 
   const started = Date.now();
-  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, rsvpDigests: 0, rsvpDigestsSkipped: 0, endNotices: 0, photoPurges: 0, photoMode: "", guestPurges: 0, purges: 0, domainsAdvanced: 0, domainRenewNotices: 0, domainsExpired: 0, followups: 0, followupsSkipped: 0, guestReminders: 0, invoiceReminders: 0, errors: [] as string[] };
+  const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, rsvpDigests: 0, rsvpDigestsSkipped: 0, endNotices: 0, photoPurges: 0, photoMode: "", guestPurges: 0, purges: 0, domainsAdvanced: 0, domainRenewNotices: 0, domainsExpired: 0, followups: 0, followupsSkipped: 0, guestReminders: 0, guestReminderTexts: 0, smsRefunded: 0, smsLowNotices: 0, smsBalance: null as number | null, invoiceReminders: 0, errors: [] as string[] };
 
   // ?only=photos: just the photo step (e.g. to check a dry run), no emails.
   if (req.query.only === "photos") {
@@ -252,7 +255,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Premium: "See you on Saturday" to guests who said yes, 2 days before.
   const gr = await sendGuestReminders(supabaseAdmin, sendMail, SITE, { deadline: started + 40_000 });
   report.guestReminders = gr.sent;
+  report.guestReminderTexts = gr.texts;
   report.errors.push(...gr.errors);
+  const sms = await smsDaily(supabaseAdmin, sendMail, {
+    from: FROM,
+    studioInbox: STUDIO_INBOX,
+    hostEmails: (eventId) => eventPeopleEmails(supabaseAdmin, eventId),
+    lowBalance: (name, left, eventId) => ({
+      subject: `${left} ${left === 1 ? "text" : "texts"} left for ${name}`,
+      html: layout(
+        "Your texts are running low",
+        `<strong>${esc(name)}</strong> has ${left} ${left === 1 ? "text" : "texts"} left. When they run out, guests who gave a mobile number stop getting confirmations and reminders by text. Guests with an email still get theirs.`,
+        { label: "Add texts", url: `${SITE}/account/events/${eventId}/site-builder/edit?settings=1` },
+        "You’re receiving this because texting is on for your event.",
+        { promo: false },
+      ),
+    }),
+    studioLow: (balance) => ({
+      subject: `Semaphore balance low: ${balance} credits`,
+      html: layout("Top up Semaphore", `Our Semaphore balance is <strong>${balance} credits</strong>. Hosts’ texts stop sending when it runs out. Top up at semaphore.co.`, { label: "Open Semaphore", url: "https://semaphore.co" }, undefined, { ad: false }),
+    }),
+  });
+  report.smsRefunded = sms.refunded;
+  report.smsLowNotices = sms.lowNotices;
+  report.smsBalance = sms.balance;
+  report.errors.push(...sms.errors);
   // Open invoices on/after their due date: "A friendly reminder", every ~4 days, up to 10 days.
   const ir = await sendInvoiceReminders(supabaseAdmin, sendMail, SITE, { deadline: started + 42_000 });
   report.invoiceReminders = ir.sent;

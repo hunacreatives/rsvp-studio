@@ -6,6 +6,7 @@ import { resolveTemplate } from "../engine/render";
 import { editorGroups } from "./ContentEditor";
 import DetailsPanel, { openPanelPage } from "./DetailsPanel";
 import GuestSettings from "./GuestSettings";
+import SmsSettings from "./SmsSettings";
 import EventTypeSetting from "./EventTypeSetting";
 import CreateEventModal from "@/pages/account/components/CreateEventModal";
 import PreviewCanvas from "./components/PreviewCanvas";
@@ -21,6 +22,8 @@ import { DomainReturnDialog, useDomainReturn } from "./DomainPicker";
 import { isPhoneNow, useIsPhone } from "./useIsPhone";
 import CharacterLoader from "@/components/CharacterLoader";
 import { inquiryLink } from "@/pages/enquire/prefill";
+import NeedHand from "@/components/NeedHand";
+import { BUILDER_ANSWERS } from "@/lib/helpAnswers";
 import { inOrder } from "../templates/shared/siteEdit";
 import { addItem, addSub, getField, removeItem, setField, type ListKey } from "./pageEdit";
 import { DEFAULT_HIDEABLE, PageEditProvider, UndoToast, useUndoToast, type PageEdit } from "./pageEdit";
@@ -63,6 +66,7 @@ export default function BuilderShellPage() {
   const [tab, setTab] = useState<"edit" | "preview">("preview");
   const [editorCollapsed, setEditorCollapsed] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
@@ -77,7 +81,18 @@ export default function BuilderShellPage() {
   useEffect(() => {
     if (flow.step.kind === "live") reloadPlan();
   }, [flow.step.kind, reloadPlan]);
-  const canUpgrade = !!plan && !plan.managed && !plan.premium && plan.upgradeCentavos > 0;
+  const canUpgrade = !!plan && plan.canBill && !plan.managed && !plan.premium && plan.upgradeCentavos > 0;
+  // Back from buying texts, or the "texts running low" email (?settings=1): open Settings.
+  const openedSettings = useRef(false);
+  useEffect(() => {
+    if (status !== "ready" || openedSettings.current) return;
+    openedSettings.current = true;
+    const q = new URLSearchParams(window.location.search);
+    if (!q.has("texts") && !q.has("texts_cancelled") && !q.has("settings")) return;
+    if (isPhoneNow()) setTab("edit");
+    else setEditorCollapsed(false);
+    requestAnimationFrame(() => openPanelPage("settings"));
+  }, [status]);
   // ?upgrade=1 (the "What Premium adds" email's button): open the upgrade once the plan is known.
   useEffect(() => {
     if (!plan || new URLSearchParams(window.location.search).get("upgrade") !== "1") return;
@@ -101,11 +116,34 @@ export default function BuilderShellPage() {
   const designForMe = inquiryLink({
     service: "website",
     design: "custom",
+    occasion: ({ wedding: "wedding", engagement: "engagement", birthday: "birthday", anniversary: "anniversary" } as Record<string, string>)[eventType ?? ""] ?? "other",
     date: content.eventDate || undefined,
     names: hostNames || undefined,
     from: `${hostNames || "DIY site"}${activeDefinition ? ` (${activeDefinition.label} template)` : ""}`,
+    event: eventId,
   });
   const offerDesign = !!plan && !plan.managed;
+  // A one-time nudge: still building a draft after 20 minutes here, we offer to finish it.
+  const [nudge, setNudge] = useState(false);
+  const nudgeKey = `rsvp.builder-nudged.${eventId}`;
+  useEffect(() => {
+    if (publishedAt || !offerDesign) return;
+    try {
+      if (localStorage.getItem(nudgeKey)) return;
+    } catch {
+      return;
+    }
+    const t = window.setTimeout(() => setNudge(true), 20 * 60 * 1000);
+    return () => window.clearTimeout(t);
+  }, [publishedAt, offerDesign, nudgeKey]);
+  const endNudge = () => {
+    setNudge(false);
+    try {
+      localStorage.setItem(nudgeKey, "1");
+    } catch {
+      /* fine */
+    }
+  };
   loadPairingFonts(resolved?.settings.fontPairingId);
 
   // Undo, section switches and the "Removed … · Undo" message, for the panel and the page.
@@ -246,6 +284,7 @@ export default function BuilderShellPage() {
                 />
               ) : null}
               <GuestSettings eventId={eventId} slug={slug} premium={!!plan?.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} price={canUpgrade ? peso(plan!.upgradeCentavos) : undefined} />
+              {plan && !plan.managed ? <SmsSettings eventId={eventId} premium={!!plan.premium} onUpgrade={canUpgrade ? upgrade.open : undefined} /> : null}
             </>
           }
         />
@@ -255,7 +294,25 @@ export default function BuilderShellPage() {
   const dialogs = (
     <>
       {startingAnother ? <CreateEventModal onClose={() => setStartingAnother(false)} /> : null}
-      <PublishDialog flow={flow} slug={slug} upsell={canUpgrade ? { price: peso(plan!.upgradeCentavos), open: upgrade.open } : null} />
+      <NeedHand
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        where="builder"
+        finish={offerDesign ? { to: designForMe, note: "Our designers take it from here, using what you’ve added. Custom websites from ₱8,000." } : null}
+        answers={BUILDER_ANSWERS}
+      />
+      {nudge && !publishedAt ? (
+        <div role="status" style={{ position: "fixed", left: "50%", bottom: 20, transform: "translateX(-50%)", zIndex: 60, display: "flex", alignItems: "center", gap: 12, maxWidth: "calc(100vw - 24px)", padding: "10px 10px 10px 18px", borderRadius: 999, background: "var(--ink)", color: "#fff", fontSize: 14, boxShadow: "0 16px 40px -12px rgba(0,7,39,0.45)" }}>
+          <span>Taking longer than expected? We can finish it for&nbsp;you.</span>
+          <button onClick={() => (endNudge(), setHelpOpen(true))} style={{ flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 999, border: "none", background: "#fff", color: "var(--ink)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            See how
+          </button>
+          <button onClick={endNudge} aria-label="Dismiss" style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 999, border: "none", background: "transparent", color: "#fff", fontSize: 18, cursor: "pointer" }}>
+            &times;
+          </button>
+        </div>
+      ) : null}
+      <PublishDialog flow={flow} slug={slug} onHelp={() => setHelpOpen(true)} canPay={plan?.canBill !== false} upsell={canUpgrade ? { price: peso(plan!.upgradeCentavos), open: upgrade.open } : null} />
       <UpgradeDialog
         flow={upgrade}
         plan={plan}
@@ -328,11 +385,10 @@ export default function BuilderShellPage() {
         Start another event
       </button>
     ) : null}
-    {offerDesign ? (
-      <Link role="menuitem" to={designForMe} onClick={closeMoreMenu} style={{ ...menuItem, textDecoration: "none" }}>
-        Have us design it &rarr;
-      </Link>
-    ) : null}
+    <button type="button" role="menuitem" onClick={() => { closeMoreMenu(); setHelpOpen(true); }} style={menuItem}>
+      Need a hand?
+      <span style={{ display: "block", fontSize: 12, color: "var(--slate)", fontWeight: 400 }}>{offerDesign ? "We can finish it for you, or answer a question" : "Chat with us, or a quick answer"}</span>
+    </button>
     {publishedAt && slug ? (
       <>
         <a role="menuitem" href={`/invite/${slug}`} target="_blank" rel="noopener noreferrer" onClick={closeMoreMenu} style={{ ...menuItem, textDecoration: "none" }}>
@@ -523,6 +579,9 @@ export default function BuilderShellPage() {
           <span aria-live="polite" style={{ fontSize: 12, whiteSpace: "nowrap", color: publishedAt && hasUnpublishedChanges && !unsaved ? "#8a5a00" : "var(--slate)" }}>
             {publishedAt && hasUnpublishedChanges && !unsaved && saveStatus !== "saving" ? "Saved · not live yet" : saveText}
           </span>
+          <button type="button" onClick={() => setHelpOpen(true)} className="dp-hover" style={{ padding: "8px 12px", borderRadius: 999, border: "none", background: "transparent", color: "var(--ink)", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            Need a hand?
+          </button>
           <button
             type="button"
             aria-label="More options"

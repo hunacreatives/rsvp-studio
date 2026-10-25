@@ -218,7 +218,6 @@ function toolPage(req: VercelRequest, res: VercelResponse, shellHtml: string, or
   ].join("\n    ");
   const body = [
     `<main>`,
-    `<p>${esc(SEATING_NAME)} by The RSVP Studio · Free seating chart maker</p>`,
     `<h1>${esc(SEATING_H1)}</h1>`,
     `<p>${esc(SEATING_SUB)}</p>`,
     `<p>${esc(SEATING_FACTS)}</p>`,

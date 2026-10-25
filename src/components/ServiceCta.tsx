@@ -72,7 +72,7 @@ const CSS = `
 `;
 
 type Spot = { l: number; w: number; m?: [number, number] };
-type Actor = Spot & { name: string; anim: string };
+type Actor = Spot & { name: string; anim: string; faceLeft?: boolean };
 
 /** Day: the line the invitation travels along, left to right, and the mailbox at the end. */
 // Three at a time (the full six read as too busy).
@@ -89,7 +89,8 @@ const MAIL_STOPS = { d: ["27%", "43.5%", "63%", "80.8%"], m: ["18%", "38%", "63%
 const NIGHT_CAST: Actor[] = [
   { name: "blue", l: 22, w: 13, m: [3, 22], anim: `sc-n-sway 3.2s ease-in-out -1.1s infinite` },
   { name: "pink", l: 40, w: 15.5, m: [28, 26], anim: `sc-n-lean-l ${NIGHT_LOOP} ease-in-out infinite` },
-  { name: "orange", l: 59, w: 14, m: [60, 23], anim: `sc-n-lean-r ${NIGHT_LOOP} ease-in-out infinite` },
+  // The circle looks at the heart it's toasting with.
+  { name: "orange", l: 59, w: 14, m: [60, 23], anim: `sc-n-lean-r ${NIGHT_LOOP} ease-in-out infinite`, faceLeft: true },
 ];
 /** The two glasses (left edge, width %) and where they meet. */
 /** The two glasses, held in the heart's right hand and the circle's left (left edge, width %);
@@ -351,7 +352,7 @@ export default function ServiceCta({
       {/* The ground, and everyone on it. */}
       <div className="relative mx-auto mt-8 w-full max-w-[1100px] sm:mt-10" style={{ height: "clamp(160px, 20vw, 220px)" }} aria-hidden>
         {cast.map((c) => (
-          <Character key={c.name} name={c.name} className={`sc-char ${c.m ? "" : "sc-wide"}`} style={{ position: "absolute", bottom: 0, ...spotVars(c), animation: c.anim }} />
+          <Character key={c.name} name={c.name} faceLeft={c.faceLeft} className={`sc-char ${c.m ? "" : "sc-wide"}`} style={{ position: "absolute", bottom: 0, ...spotVars(c), animation: c.anim }} />
         ))}
         {day ? <MailRun /> : <Party />}
       </div>

@@ -1,13 +1,17 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { esc, isEmail } from "./_lib/email.js";
+import { clean, esc, isEmail, normalizePhone } from "./_lib/email.js";
 import { customerReplyTo, reqCode, FROM, firstName, layout, partnerLayout, makeSendMail, ratingButtons, readTipsToken, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
 import { customerMessageEmails } from "./_lib/support-notify.js";
 import { sendInvoiceEmail } from "./_lib/billing-mail.js";
 import { captureError } from "./_lib/sentry.js";
 import { hostRecipients } from "./_lib/hosts.js";
-import { hostSender, stdInvitation, type GuestContent } from "./_lib/guest-mail.js";
+import { guestMessage, hostSender, stdInvitation, type GuestContent } from "./_lib/guest-mail.js";
+import { claimRsvpEmails } from "./_lib/rsvp-budget.js";
+import { broadcastText, phNumber, segmentsOf, sendTexts } from "./_lib/sms.js";
+import { formatHostNames } from "./_lib/hosts.js";
+import { coordinatorEmail } from "./_lib/followup-mail.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -94,10 +98,109 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Every link in these emails points at the live site, even when the action came from a
   // preview deployment or localhost (those addresses would be broken for the person reading it).
   const origin = "https://thersvpstudio.com";
-  const body = req.body as { kind: string; partnerId?: string; note?: string | null; code?: string; email?: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string };
+  const body = req.body as { kind: string; role?: string; chartId?: string; partnerId?: string; note?: string | null; code?: string; email?: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string; audience?: string; channel?: string; message?: string; preview?: boolean };
   const sends: Promise<unknown>[] = [];
 
   try {
+    // Mesa → Day-of check-in → "Email it to your coordinator". Only the plan's owner, only while
+    // its link is on and the event is Premium, and at most 5 a day: it emails someone who isn't
+    // a user. The address is kept for the day-before reminder.
+    if (body.kind === "checkin_invite") {
+      const to = clean(body.email ?? "", 254).toLowerCase();
+      if (!isEmail(to)) return res.status(400).json({ error: "That email doesn’t look right." });
+      const { data: plan } = await supabaseAdmin
+        .from("seating_charts")
+        .select("id, owner_id, event_id, title, checkin_token, checkin_until, checkin_pin, checkin_mail_day, checkin_mail_count, names:chart->>names")
+        .eq("id", String(body.chartId ?? ""))
+        .maybeSingle();
+      const pl = plan as { id: string; owner_id: string; event_id: string | null; title: string; checkin_token: string | null; checkin_until: string | null; checkin_pin: string | null; checkin_mail_day: string | null; checkin_mail_count: number; names: string | null } | null;
+      if (!pl || pl.owner_id !== caller.id) return res.status(403).json({ error: "Not your plan" });
+      if (!pl.checkin_token || !pl.checkin_until || new Date(pl.checkin_until) < new Date() || !pl.event_id) return res.status(400).json({ error: "Make the check-in link first." });
+      const [{ data: evOwn }, { data: evMember }] = await Promise.all([
+        supabaseAdmin.from("events").select("id").eq("id", pl.event_id).eq("owner_id", caller.id).maybeSingle(),
+        supabaseAdmin.from("event_members").select("event_id").eq("event_id", pl.event_id).eq("profile_id", caller.id).neq("role", "viewer").maybeSingle(),
+      ]);
+      if (!evOwn && !evMember) return res.status(403).json({ error: "Not your event" });
+      const { data: premium } = await supabaseAdmin.rpc("event_is_premium", { p_event: pl.event_id });
+      if (premium !== true) return res.status(403).json({ error: "Day-of check-in comes with Premium." });
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+      const count = pl.checkin_mail_day === today ? pl.checkin_mail_count : 0;
+      if (count >= 5) return res.status(429).json({ error: "That’s 5 emails today. Copy the link and send it yourself, or try tomorrow." });
+      await supabaseAdmin.from("seating_charts").update({ checkin_contact: to, checkin_mail_day: today, checkin_mail_count: count + 1 }).eq("id", pl.id);
+      const { data: ev } = await supabaseAdmin.from("events").select("name, event_date").eq("id", pl.event_id).maybeSingle();
+      const url = `${origin}/tools/seating-chart-maker/day/${pl.checkin_token}`;
+      const mail = coordinatorEmail({ couple: pl.names || ev?.name || pl.title, eventName: ev?.name || pl.title, eventDate: (ev?.event_date as string | null) ?? null, url, qr: `${origin}/qr/day-${pl.checkin_token}.png`, pin: !!pl.checkin_pin, dayBefore: false });
+      await sendMail({ from: FROM, to, subject: mail.subject, html: mail.html, replyTo: STUDIO_INBOX });
+      return res.status(200).json({ sent: 1 });
+    }
+
+    // Project → People → "Invite": a cohost, coordinator or viewer, or (role "owner") a coordinator
+    // handing a client's event over to them (coordinator-desk.sql). invite_to_event runs as the
+    // caller, so the database decides who may invite whom; the emailed token is only ever stored
+    // hashed. At most 10 a day per event.
+    if (body.kind === "event_invite") {
+      const to = clean(body.email ?? "", 254).toLowerCase();
+      const role = String(body.role ?? "");
+      const eventId = String(body.eventId ?? "");
+      if (!isEmail(to)) return res.status(400).json({ error: "That email doesn’t look right." });
+      const since = new Date(Date.now() - 864e5).toISOString();
+      const { count } = await supabaseAdmin.from("event_invites").select("id", { count: "exact", head: true }).eq("event_id", eventId).gt("created_at", since);
+      if ((count ?? 0) >= 10) return res.status(429).json({ error: "That’s 10 invites today. Try again tomorrow." });
+      const asCaller = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } });
+      const { data: made, error } = await asCaller.rpc("invite_to_event", { p_event: eventId, p_email: to, p_role: role });
+      if (error || !made) {
+        const m = error?.message ?? "";
+        const why = /ALREADY/.test(m)
+          ? role === "owner" ? "That’s your own email. Enter your client’s." : "They already have access to this event."
+          : /NOT_ALLOWED/.test(m)
+            ? role === "owner" ? "Only the coordinator who set up this event can hand it over, and only once." : "Only the event’s hosts can invite people to it."
+            : /DAILY_LIMIT/.test(m)
+              ? "That’s 20 invites today. Try again tomorrow."
+              : /TOO_MANY/.test(m) ? "That’s a lot of open invites. Cancel some first." : /EMAIL/.test(m) ? "That email doesn’t look right." : "Couldn’t make the invite. Please try again.";
+        return res.status(/DAILY_LIMIT/.test(m) ? 429 : /ALREADY|EMAIL|TOO_MANY/.test(m) ? 400 : 403).json({ error: why });
+      }
+      const { data: ev } = await supabaseAdmin.from("events").select("name, event_date").eq("id", eventId).maybeSingle();
+      const evName = ev?.name ?? "an event";
+      const who = caller.full_name || caller.email || "Someone";
+      const what = ({
+        cohost: "You can edit the website, see replies and guests, and pay for upgrades.",
+        coordinator: "You can edit the website and seating plan, see replies and guests, and run check-in on the day. Billing stays with them.",
+        viewer: "You can see the website, replies and guests. Nothing you do there changes them.",
+      } as Record<string, string>)[role] ?? "";
+      // r= only picks the words on the join page; accepting still does what the invite says.
+      const url = `${origin}/account/join?t=${encodeURIComponent((made as { token: string }).token)}&e=${encodeURIComponent(to)}&r=${encodeURIComponent(role)}`;
+      const signIn = `Sign in or create your account with <strong>${esc(to)}</strong>. The link works for 14 days.`;
+      const mail =
+        role === "owner"
+          ? {
+              subject: "Your event is ready on The RSVP Studio",
+              title: "Your event is ready",
+              body: `${esc(who)} set up <strong>${esc(evName)}</strong> for you on The RSVP Studio. Accept to take it over: from then on the event is yours, and so are its payments. ${esc(who)} stays on as your coordinator to help with guests, seating and the day.<br><br>${signIn}`,
+              button: "Take over your event",
+            }
+          : role === "coordinator"
+            ? {
+                subject: "You’re invited to coordinate an event on The RSVP Studio",
+                title: "Welcome, coordinator",
+                body: `${esc(who)} would like your help with <strong>${esc(evName)}</strong> on The RSVP Studio, as their coordinator.<br><br>${esc(what)} Their event will be waiting for you under Clients.<br><br>${signIn}`,
+                button: "Accept the invite",
+              }
+            : {
+                subject: "You’re invited to an event on The RSVP Studio",
+                title: `Join ${esc(evName)}`,
+                body: `${esc(who)} invited you to help with <strong>${esc(evName)}</strong> on The RSVP Studio as ${role === "cohost" ? "a co-host" : `the ${esc(role)}`}.<br><br>${esc(what)}<br><br>${signIn}`,
+                button: "Accept the invite",
+              };
+      await sendMail({
+        from: FROM,
+        to,
+        subject: mail.subject,
+        html: layout(mail.title, mail.body, { label: mail.button, url }, role === "owner" ? `Not expecting this? You can ignore it; nothing changes unless you accept.` : `Not expecting this? You can ignore it; nothing happens unless you accept.`),
+        replyTo: caller.email && isEmail(caller.email) ? caller.email : STUDIO_INBOX,
+      });
+      return res.status(200).json({ id: (made as { id: string }).id });
+    }
+
     if (body.kind === "message" && body.messageId) {
       const { data: msg } = await supabaseAdmin.from("messages").select("id, thread_id, sender_id, body, attachments, internal").eq("id", body.messageId).maybeSingle();
       if (!msg || msg.sender_id !== caller.id) return res.status(403).json({ error: "Not your message" });
@@ -206,10 +309,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Studio → project → "Email code to…": the client's invite code and how to use it.
       const to = String(body.email).trim().toLowerCase();
       if (!isEmail(to)) return res.status(400).json({ error: "That email address doesn’t look right." });
-      const { data: invite } = await supabaseAdmin.from("invite_codes").select("code, used_at").eq("event_id", body.eventId).eq("code", body.code).maybeSingle();
+      // (role comes with coordinator-mode.sql; without it, read the rest.)
+      let found = await supabaseAdmin.from("invite_codes").select("code, used_at, role").eq("event_id", body.eventId).eq("code", body.code).maybeSingle();
+      if (found.error) found = await supabaseAdmin.from("invite_codes").select("code, used_at").eq("event_id", body.eventId).eq("code", body.code).maybeSingle();
+      const invite = found.data as { code: string; used_at: string | null; role?: string | null } | null;
+      const coordinator = invite?.role === "coordinator";
       if (!invite || invite.used_at) return res.status(404).json({ error: "That code has already been used — generate a new one." });
       const { data: ev } = await supabaseAdmin.from("events").select("name").eq("id", body.eventId).maybeSingle();
       const signUp = `${origin}/?auth=signup&email=${encodeURIComponent(to)}`;
+      const intro = coordinator
+        ? `You’re the coordinator for <strong>${esc(ev?.name ?? "this event")}</strong> on The RSVP Studio. You can edit the website and seating plan, see replies and guests, and run check-in on the day. Billing stays with your client.<br><br>`
+        : `We’ve set up <strong>${esc(ev?.name ?? "your event")}</strong> in your RSVP Studio dashboard — progress, designs, invoices and messages, all together.<br><br>`;
       sends.push(
         sendMail({
           from: FROM,
@@ -217,7 +327,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           subject: `Your event dashboard is ready — ${ev?.name ?? "The RSVP Studio"}`,
           html: layout(
             "See your event in one place",
-            `We’ve set up <strong>${esc(ev?.name ?? "your event")}</strong> in your RSVP Studio dashboard — progress, designs, invoices and messages, all together.<br><br>
+            `${intro}
             <strong>1.</strong> Create your account (or log in) with <strong>${esc(to)}</strong>.<br>
             <strong>2.</strong> Enter this code when asked:<br>
             <span style="display:inline-block;margin:10px 0;padding:10px 18px;border-radius:12px;background:#f5f5f2;font-family:monospace;font-size:20px;letter-spacing:.12em;color:#000727;">${esc(invite.code)}</span><br>
@@ -309,10 +419,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }),
         );
       }
+    } else if (body.kind === "broadcast" && body.eventId) {
+      return await broadcast(caller, body, res);
     } else if ((body.kind === "site_live" || body.kind === "std_invite") && body.eventId) {
-      // From the host's own dashboard / builder: only someone hosting the event.
+      // From the host's own dashboard / builder: only someone hosting the event (not a viewer).
       const { data: ev } = await supabaseAdmin.from("events").select("id, name, owner_id, managed_by_studio").eq("id", body.eventId).maybeSingle();
-      const { data: member } = ev ? await supabaseAdmin.from("event_members").select("profile_id").eq("event_id", ev.id).eq("profile_id", caller.id).maybeSingle() : { data: null };
+      const { data: member } = ev ? await supabaseAdmin.from("event_members").select("profile_id").eq("event_id", ev.id).eq("profile_id", caller.id).neq("role", "viewer").maybeSingle() : { data: null };
       if (!ev || (ev.owner_id !== caller.id && !member && !caller.is_staff)) return res.status(403).json({ error: "Not your event" });
       const { data: site } = await supabaseAdmin.from("wedding_sites").select("*").eq("event_id", ev.id).maybeSingle();
       if (!site?.published_at) return res.status(409).json({ error: "The website isn’t live yet" });
@@ -396,4 +508,113 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await captureError(err, "notify", { kind: (req.body as { kind?: string } | undefined)?.kind });
     return res.status(500).json({ error: "Notification failed" });
   }
+}
+
+const BROADCASTS_PER_DAY = 3;
+
+/**
+ * "Message your guests" (Guests tab): the host writes once; guests get it by email (Premium)
+ * and/or text (texting on, uses texts). `preview` counts who it reaches and what it costs
+ * without sending. "Email and text": email whoever has an email, text the rest.
+ */
+async function broadcast(caller: Person, body: { eventId?: string; audience?: string; channel?: string; message?: string; preview?: boolean }, res: VercelResponse) {
+  const { data: ev } = await supabaseAdmin.from("events").select("id, name, owner_id, table_name").eq("id", body.eventId!).maybeSingle();
+  const { data: member } = ev ? await supabaseAdmin.from("event_members").select("profile_id").eq("event_id", ev.id).eq("profile_id", caller.id).neq("role", "viewer").maybeSingle() : { data: null };
+  if (!ev || (ev.owner_id !== caller.id && !member && !caller.is_staff)) return res.status(403).json({ error: "Not your event" });
+  if (ev.table_name) return res.status(409).json({ error: "Message your guests isn’t available for this event." });
+  const audience = ["coming", "replied", "waiting", "declined"].includes(String(body.audience)) ? String(body.audience) : null;
+  const channel = ["email", "sms", "both"].includes(String(body.channel)) ? String(body.channel) : null;
+  const message = clean(body.message, 600);
+  if (!audience || !channel) return res.status(400).json({ error: "Pick who it’s for and how to send it." });
+
+  const { data: premiumRaw } = await supabaseAdmin.rpc("event_is_premium", { p_event: ev.id });
+  const premium = premiumRaw === true;
+  if (channel !== "sms" && !premium) return res.status(403).json({ error: "Emailing your guests is part of Premium." });
+  const { data: site } = await supabaseAdmin.from("wedding_sites").select("*").eq("event_id", ev.id).maybeSingle();
+  const content = (site?.published_content ?? site?.draft_content ?? {}) as GuestContent;
+  const hosts = formatHostNames(content, ev.name);
+
+  // Who: replies (coming / declined / all), or invite-list people with no reply yet.
+  type Person2 = { name: string; email: string | null; phone: string | null };
+  let people: Person2[] = [];
+  if (audience === "waiting") {
+    const { data: inv } = await supabaseAdmin.from("invitees").select("id, name, contact").eq("event_id", ev.id).limit(1000);
+    const { data: answered } = await supabaseAdmin.from("rsvps").select("invitee_id").eq("event_id", ev.id).not("invitee_id", "is", null).limit(2000);
+    const done = new Set((answered ?? []).map((r) => r.invitee_id));
+    people = (inv ?? [])
+      .filter((i) => !done.has(i.id))
+      .map((i) => {
+        const c = String(i.contact ?? "").trim();
+        return { name: String(i.name ?? ""), email: isEmail(c.toLowerCase()) ? c.toLowerCase() : null, phone: c.includes("@") ? null : normalizePhone(c) };
+      });
+  } else {
+    let q = supabaseAdmin.from("rsvps").select("name, email, phone, attending").eq("event_id", ev.id).limit(2000);
+    if (audience === "coming") q = q.eq("attending", true);
+    if (audience === "declined") q = q.eq("attending", false);
+    const { data } = await q;
+    people = (data ?? []).map((r) => ({ name: String(r.name ?? ""), email: r.email && isEmail(String(r.email)) ? String(r.email).toLowerCase() : null, phone: normalizePhone(r.phone) }));
+  }
+  // One message per address.
+  const seenE = new Set<string>();
+  const seenP = new Set<string>();
+  const emails: Person2[] = [];
+  const texts: Person2[] = [];
+  let unreachable = 0;
+  for (const p of people) {
+    const wantEmail = channel !== "sms" && p.email && !seenE.has(p.email);
+    const ph = phNumber(p.phone);
+    const wantText = (channel === "sms" || (channel === "both" && !p.email)) && ph && !seenP.has(ph);
+    if (wantEmail) (seenE.add(p.email!), emails.push(p));
+    else if (wantText) (seenP.add(ph!), texts.push(p));
+    else if (!(p.email && seenE.has(p.email)) && !(ph && seenP.has(ph))) unreachable++;
+  }
+  const smsBody = broadcastText(message || "x", hosts);
+  const segs = segmentsOf(smsBody);
+  const { data: acct } = await supabaseAdmin.from("event_sms").select("enabled, credits, used").eq("event_id", ev.id).maybeSingle();
+  const left = acct ? Number(acct.credits) - Number(acct.used) : 0;
+  const summary = { emails: emails.length, texts: texts.length, segments: segs, credits: texts.length * segs, left, textingOn: !!acct?.enabled, unreachable, premium };
+  if (body.preview) return res.status(200).json(summary);
+
+  if (!message) return res.status(400).json({ error: "Write your message first." });
+  if (!emails.length && !texts.length) return res.status(400).json({ error: "Nobody in that group can be reached this way." });
+  if (texts.length && !acct?.enabled) return res.status(409).json({ error: "Switch on texting in your website’s Settings first." });
+  if (texts.length && segs > 4) return res.status(400).json({ error: "That’s too long for a text. Keep it under about 600 characters." });
+  if (summary.credits > left) return res.status(402).json({ error: `This needs ${summary.credits} texts and you have ${left}. Add texts in your website’s Settings.` });
+  const since = new Date(Date.now() - 86_400_000).toISOString();
+  const { count: recent } = await supabaseAdmin.from("guest_broadcasts").select("id", { count: "exact", head: true }).eq("event_id", ev.id).gte("created_at", since);
+  if ((recent ?? 0) >= BROADCASTS_PER_DAY) return res.status(429).json({ error: `You can send ${BROADCASTS_PER_DAY} messages a day. Try again tomorrow.` });
+  if (emails.length && !(await claimRsvpEmails(supabaseAdmin, "guest", true, ev.id, emails.length)))
+    return res.status(429).json({ error: "We’ve sent a lot of email today. Please try again tomorrow, or send it by text." });
+
+  const { data: row, error: insErr } = await supabaseAdmin
+    .from("guest_broadcasts")
+    .insert({ event_id: ev.id, created_by: caller.id, audience, channels: channel === "both" ? ["email", "sms"] : [channel], message })
+    .select("id")
+    .single();
+  if (insErr || !row) return res.status(500).json({ error: "Couldn’t send it. Please try again." });
+
+  let sentEmails = 0;
+  if (emails.length) {
+    const { data: owner } = ev.owner_id ? await supabaseAdmin.from("profiles").select("email").eq("id", ev.owner_id).maybeSingle() : { data: null };
+    for (let i = 0; i < emails.length; i += 5) {
+      const results = await Promise.allSettled(
+        emails.slice(i, i + 5).map((p, j) => {
+          const mail = guestMessage({ content, presentation: site?.published_presentation, eventName: ev.name, slug: site?.slug ?? "", guestName: p.name, message, invited: audience === "waiting", published: !!site?.published_at });
+          return sendMail({ from: hostSender(content), ...(owner?.email ? { replyTo: owner.email as string } : {}), to: p.email!, subject: mail.subject, html: mail.html }, `broadcast-${row.id}-${i + j}`);
+        }),
+      );
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      sentEmails += ok;
+      if (ok)
+        await supabaseAdmin.from("message_log").insert(
+          emails
+            .slice(i, i + 5)
+            .filter((_, j) => results[j].status === "fulfilled")
+            .map((p) => ({ event_id: ev.id, channel: "email", kind: "broadcast", broadcast_id: row.id, to_address: p.email!, status: "sent" })),
+        );
+    }
+  }
+  const sms = texts.length ? await sendTexts(supabaseAdmin, { eventId: ev.id, kind: "broadcast", message: smsBody, recipients: texts.map((p) => ({ to: p.phone! })), broadcastId: row.id }) : null;
+  await supabaseAdmin.from("guest_broadcasts").update({ emails: sentEmails, texts: sms?.texts ?? 0 }).eq("id", row.id);
+  return res.status(200).json({ emails: sentEmails, texts: sms?.texts ?? 0, textStatus: sms?.status ?? null });
 }

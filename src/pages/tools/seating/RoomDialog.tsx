@@ -1,49 +1,50 @@
 import { useState, type PointerEvent as RPointerEvent } from "react";
 import { contentBounds, uid, type Chart } from "./model";
 import { bgImage, commit, setBgImage } from "./store";
+import PlanReader from "./PlanRead";
+import { toDataUrl } from "./venue";
+import type { Units } from "./units";
 
 // Room & venue: the room's real size in metres, and the venue's own floor plan under the
 // tables, scaled by one measurement ("this room is 24 m wide") so tables sit at true size.
 
-/** A phone photo or a PDF screenshot → a compressed JPEG data URL (≤ ~800 KB). */
-async function toDataUrl(file: File): Promise<{ url: string; w: number; h: number } | null> {
-  let bmp: ImageBitmap;
-  try {
-    bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-  } catch {
-    return null;
-  }
-  const scale = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
-  const w = Math.round(bmp.width * scale);
-  const h = Math.round(bmp.height * scale);
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(bmp, 0, 0, w, h);
-  let url = "";
-  for (const q of [0.78, 0.65, 0.5, 0.4]) {
-    url = canvas.toDataURL("image/jpeg", q);
-    if (url.length < 800_000) break;
-  }
-  return { url, w, h };
-}
-
 const m = (cm: number) => Math.round(cm / 10) / 10;
+const FOOT = 30.48;
 
-export default function RoomDialog({ chart, onClose, onFit, onFitTables }: { chart: Chart; onClose(): void; onFit(): void; onFitTables(): void }) {
-  const [wm, setWm] = useState(String(m(chart.room.w)));
-  const [hm, setHm] = useState(String(m(chart.room.h)));
+export default function RoomDialog({
+  chart,
+  onClose,
+  onFit,
+  onFitTables,
+  userId,
+  onSignIn,
+  onRead,
+  units = "m",
+}: {
+  chart: Chart;
+  onClose(): void;
+  onFit(): void;
+  onFitTables(): void;
+  userId: string | null;
+  onSignIn(): void;
+  /** The plan reader changed the plan: say what it did (and fit the tables if it didn't place them). */
+  onRead(text: string, fitTables: boolean): void;
+  /** Metres, or feet for venues that quote their rooms in feet. */
+  units?: Units;
+}) {
+  const ft = units === "ft";
+  const show = (cm: number) => String(ft ? Math.round(cm / FOOT) : m(cm));
+  const toCm = (v: string) => Math.round(Number(v) * (ft ? FOOT : 100));
+  const [wm, setWm] = useState(show(chart.room.w));
+  const [hm, setHm] = useState(show(chart.room.h));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const pic = bgImage(chart.bg?.key);
 
   const setSize = () => {
-    const w = Math.round(Number(wm) * 100);
-    const h = Math.round(Number(hm) * 100);
-    if (!(w >= 300 && w <= 20000 && h >= 300 && h <= 20000)) return setErr("Use a size between 3 and 200 metres.");
+    const w = toCm(wm);
+    const h = toCm(hm);
+    if (!(w >= 300 && w <= 20000 && h >= 300 && h <= 20000)) return setErr(ft ? "Use a size between 10 and 650 feet." : "Use a size between 3 and 200 metres.");
     setErr("");
     commit((c) => {
       c.room = { w, h };
@@ -63,8 +64,8 @@ export default function RoomDialog({ chart, onClose, onFit, onFitTables }: { cha
       if (c.bg) Object.assign(c.bg, { x: c.bg.x + dx, y: c.bg.y + dy });
       c.room = { w: Math.round(b.w + pad * 2), h: Math.round(b.h + pad * 2) };
     });
-    setWm(String(m(b0.w + pad * 2)));
-    setHm(String(m(b0.h + pad * 2)));
+    setWm(show(b0.w + pad * 2));
+    setHm(show(b0.h + pad * 2));
     onFit();
   };
 
@@ -90,15 +91,15 @@ export default function RoomDialog({ chart, onClose, onFit, onFitTables }: { cha
     <div className="sp-scrim" onClick={onClose}>
       <div className="sp-dialog" role="dialog" aria-modal="true" aria-labelledby="sp-room-h" onClick={(e) => e.stopPropagation()}>
         <h2 id="sp-room-h">Room &amp; venue</h2>
-        <p>Real sizes, in metres. A 10-seat round table is 1.8 m across, so what fits here fits on the day.</p>
+        <p>{ft ? "Real sizes, in feet. A 10-seat round table is 6 ft across, so what fits here fits on the day." : "Real sizes, in metres. A 10-seat round table is 1.8 m across, so what fits here fits on the day."}</p>
         <div className="sp-two">
           <label className="sp-field dark">
-            Width (m)
-            <input type="number" inputMode="decimal" step="0.5" min={3} max={200} value={wm} onChange={(e) => setWm(e.target.value)} />
+            Width ({ft ? "ft" : "m"})
+            <input type="number" inputMode="decimal" step={ft ? 1 : 0.5} min={ft ? 10 : 3} max={ft ? 650 : 200} value={wm} onChange={(e) => setWm(e.target.value)} />
           </label>
           <label className="sp-field dark">
-            Depth (m)
-            <input type="number" inputMode="decimal" step="0.5" min={3} max={200} value={hm} onChange={(e) => setHm(e.target.value)} />
+            Depth ({ft ? "ft" : "m"})
+            <input type="number" inputMode="decimal" step={ft ? 1 : 0.5} min={ft ? 10 : 3} max={ft ? 650 : 200} value={hm} onChange={(e) => setHm(e.target.value)} />
           </label>
         </div>
         <div className="sp-acts">
@@ -115,9 +116,12 @@ export default function RoomDialog({ chart, onClose, onFit, onFitTables }: { cha
 
         <hr style={{ border: 0, borderTop: "1px solid var(--panel-line)", width: "100%", margin: "4px 0" }} />
         <b style={{ fontSize: 15 }}>The venue’s floor plan</b>
-        <p>Add the plan your venue or coordinator sent. A photo or screenshot is fine. Then measure one line on it so tables sit at their real size.</p>
+        <p>Add the plan your venue or coordinator sent. A photo or screenshot is fine. Mesa reads it and sets up the room for you.</p>
         {pic && chart.bg ? (
           <>
+            <PlanReader key={chart.bg.key} chart={chart} pic={pic} userId={userId} onSignIn={onSignIn} onApplied={onRead} />
+            <details className="sp-read__manual">
+              <summary>Or measure it yourself</summary>
             <Calibrate
               pic={pic}
               onFitTables={onFitTables}
@@ -132,6 +136,7 @@ export default function RoomDialog({ chart, onClose, onFit, onFitTables }: { cha
                 onFit();
               }}
             />
+            </details>
             <label className="sp-field dark">
               Show the picture {Math.round(chart.bg.opacity * 100)}%
               <input

@@ -17,7 +17,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Explore",
     links: [
       { label: "Collections", to: "/collections" },
-      { label: "Portfolio", to: "/portfolio" },
+      { label: "Our work", to: "/portfolio" },
       { label: "FAQ", to: "/faqs" },
       { label: "Blog", to: "/blog" },
     ],
@@ -26,6 +26,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Studio",
     links: [
       { label: "Start a Project", to: "/enquire#start" },
+      { label: "Contact us", to: "/contact" },
       { label: "Build your own website", to: "/build" },
       { label: "Mesa: free seating charts", to: "/tools/seating-chart-maker" },
       { label: "Partner program", to: "/partners" },

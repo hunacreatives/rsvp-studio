@@ -165,7 +165,8 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
 }
 
 /** `upsell`: a free site — after it goes live, offer Premium (no credit, an email per RSVP). */
-export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof usePublishFlow>; slug: string; upsell?: { price: string; open: () => void } | null }) {
+/** canPay false: a coordinator, who can publish but not pay (the couple does). */
+export function PublishDialog({ flow, slug, upsell, canPay = true, onHelp }: { flow: ReturnType<typeof usePublishFlow>; slug: string; upsell?: { price: string; open: () => void } | null; canPay?: boolean; /** "Need a hand?" when something went wrong. */ onHelp?: () => void }) {
   const { step } = flow;
   const [copied, setCopied] = useState(false);
   if (step.kind === "closed") return null;
@@ -187,11 +188,29 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
           <p style={{ margin: 0, fontSize: 16 }}>{step.text}</p>
         ) : step.kind === "address" ? (
           <>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Choose your web address</h2>
-            <p style={{ margin: "6px 0 0", fontSize: 14.5, lineHeight: 1.55, color: "#55556a" }}>This is the link your guests open.</p>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Publish your website</h2>
+            <p style={{ margin: "6px 0 0", fontSize: 14.5, lineHeight: 1.55, color: "#55556a" }}>Free on our link, or on a web address of your own.</p>
+
+            {/* Free first, as the main button: hosts were missing it under the domain offer. */}
+            <button
+              onClick={flow.chooseFree}
+              style={{ width: "100%", marginTop: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 18px", borderRadius: 14, border: 0, background: "#000727", color: "#fff", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
+            >
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>Publish free</span>
+                <span style={{ display: "block", marginTop: 2, fontSize: 13, color: "#c9cbe0", overflowWrap: "anywhere" }}>thersvpstudio.com/invite/{slug}</span>
+              </span>
+              <span aria-hidden style={{ flexShrink: 0, fontSize: 18 }}>→</span>
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0 14px", color: "#868697", fontSize: 13 }}>
+              <span style={{ flex: 1, height: 1, background: "#e7e7ee" }} />
+              or
+              <span style={{ flex: 1, height: 1, background: "#e7e7ee" }} />
+            </div>
 
             {/* The offer: their own address, set apart in the brand blue. */}
-            <div style={{ marginTop: 18, padding: "18px 18px 16px", borderRadius: 18, background: "#eef3ff", border: "1.5px solid #2f61d5" }}>
+            <div style={{ padding: "18px 18px 16px", borderRadius: 18, background: "#eef3ff", border: "1.5px solid #2f61d5" }}>
               <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 999, background: "#2f61d5", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Your own web address</span>
               <p style={{ margin: "12px 0 0", fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 26, lineHeight: 1.15, color: "#000727", overflowWrap: "anywhere" }}>
                 {slug.replace(/-/g, "")}
@@ -208,24 +227,6 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
               <DomainPicker eventId={flow.eventId!} suggestion={slug.replace(/-/g, "")} onPick={flow.chooseDomain} />
               <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "#55556a" }}>Your site goes live on the free link right away; your own address follows a few minutes after you pay.</p>
             </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0 14px", color: "#868697", fontSize: 13 }}>
-              <span style={{ flex: 1, height: 1, background: "#e7e7ee" }} />
-              or
-              <span style={{ flex: 1, height: 1, background: "#e7e7ee" }} />
-            </div>
-
-            {/* The free link: clearly a button that publishes. */}
-            <button
-              onClick={flow.chooseFree}
-              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "13px 18px", borderRadius: 14, border: "1px solid #d9d9e3", background: "#fff", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
-            >
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 15, fontWeight: 600, color: "#000727" }}>Publish on the free link →</span>
-                <span style={{ display: "block", marginTop: 2, fontSize: 13, color: "#55556a", overflowWrap: "anywhere" }}>thersvpstudio.com/invite/{slug}</span>
-              </span>
-              <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: "#3d7a12" }}>Free</span>
-            </button>
             <button onClick={flow.close} style={{ display: "block", margin: "14px auto 0", minHeight: 44, padding: "0 12px", border: "none", background: "none", color: "#55556a", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
               Not now
             </button>
@@ -251,6 +252,18 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
               ) : null}
               <button onClick={flow.close} style={btn(false)}>
                 Not now
+              </button>
+            </div>
+          </>
+        ) : step.kind === "pay" && !canPay ? (
+          <>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Your client puts this one live</h2>
+            <p style={{ margin: "10px 0 0", fontSize: 15, lineHeight: 1.6, color: "#55556a" }}>
+              Going live with this design is a {peso(step.amount)} payment, and payments stay with your client. Your changes are saved, so they can publish from their account.
+            </p>
+            <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
+              <button onClick={flow.close} style={btn(true)}>
+                Got it
               </button>
             </div>
           </>
@@ -355,7 +368,7 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
             ) : null}
 
             {/* What they can do next, as two tidy rows instead of paragraphs. */}
-            {flow.skippedDomain || upsell ? (
+            {flow.eventId ? (
               <div style={{ marginTop: 18 }}>
                 <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#868697" }}>Next</p>
                 <div style={{ border: "1px solid #e7e7ee", borderRadius: 16, overflow: "hidden" }}>
@@ -366,6 +379,8 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
                     ...(upsell
                       ? [{ icon: "ri-vip-crown-line", color: "#b8860b", title: `Upgrade to Premium · ${upsell.price}`, sub: "Every RSVP by email, guest reminders, photo sharing", onClick: () => (flow.close(), upsell.open()) }]
                       : []),
+                    // Mesa, the free seating planner, starts from this site's replies.
+                    { icon: "ri-layout-grid-line", color: "#2e8b57", title: "Seat your guests", sub: "Free with Mesa, straight from your RSVPs", href: `/tools/seating-chart-maker?event=${flow.eventId}` },
                   ].map((r, k) => {
                     const inner = (
                       <>
@@ -401,9 +416,16 @@ export function PublishDialog({ flow, slug, upsell }: { flow: ReturnType<typeof 
         ) : (
           <>
             <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6 }}>{step.text}</p>
-            <button onClick={flow.close} style={{ ...btn(false), marginTop: 18 }}>
-              OK
-            </button>
+            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+              <button onClick={flow.close} style={btn(false)}>
+                OK
+              </button>
+              {onHelp ? (
+                <button onClick={() => (flow.close(), onHelp())} style={{ ...btn(false), border: "none", color: "var(--acc-blue)" }}>
+                  Need a hand?
+                </button>
+              ) : null}
+            </div>
           </>
         )}
       </div>

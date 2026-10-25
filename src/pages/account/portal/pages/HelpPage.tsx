@@ -8,6 +8,8 @@ import { usePortal } from "../PortalContext";
 import { inboxStamp } from "../format";
 import { categoryLabel, parseTicket, requestCode } from "../support";
 import { SupportChip } from "./MessagesPage";
+import { inquiryLink } from "@/pages/enquire/prefill";
+import { isDiy } from "../components/blocks";
 
 export default function HelpPage() {
   const [params, setParams] = useSearchParams();
@@ -50,6 +52,7 @@ export default function HelpPage() {
         <i className="ri-search-line text-xl text-[var(--ink)]" />
       </label>
 
+      <FinishForMe />
       <MyRequests />
 
       {searchHits ? (
@@ -250,5 +253,34 @@ function MyRequests() {
         </button>
       ) : null}
     </section>
+  );
+}
+
+/** "Rather we do it?": the enquiry form, filled in from their most recent website they haven't
+ *  published yet (or a fresh one), so nobody retypes their names and date. */
+function FinishForMe() {
+  const { projects, sites, demo } = usePortal();
+  const draft = projects.filter((p) => isDiy(p) && sites[p.id] && !sites[p.id].publishedAt).sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+  const to = inquiryLink({
+    service: "website",
+    design: "custom",
+    date: draft?.event_date ?? undefined,
+    names: draft?.name,
+    from: draft ? `${draft.name} (unfinished DIY site, Help & Support)` : "Help & Support",
+    event: draft?.id,
+    occasion: draft?.event_type ? (({ wedding: "wedding", engagement: "engagement", birthday: "birthday", anniversary: "anniversary" } as Record<string, string>)[draft.event_type] ?? "other") : undefined,
+  });
+  if (demo) return null;
+  return (
+    <Link to={to} className="mt-6 flex items-center gap-4 rounded-[22px] border border-[rgba(0,7,39,0.14)] bg-white px-5 py-4 transition-colors hover:border-[var(--ink)] md:px-6">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--paper)] text-[20px] text-[var(--ink)]">
+        <i className="ri-quill-pen-line" aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[16px] font-semibold text-[var(--ink)]">{draft ? "Rather we finish your website?" : "Rather we make it for you?"}</span>
+        <span className="block text-[14px] text-[var(--slate)]">Our designers take it from here. Custom websites from ₱8,000.</span>
+      </span>
+      <i className="ri-arrow-right-line text-[18px] text-[var(--slate)]" aria-hidden />
+    </Link>
   );
 }

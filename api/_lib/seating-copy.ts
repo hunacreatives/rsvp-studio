@@ -7,7 +7,7 @@ export const SEATING_TITLE = "Mesa: Free Seating Chart Maker for Weddings, Debut
 export const SEATING_DESCRIPTION = "Mesa is a free seating chart maker for weddings, debuts, birthdays and every kind of event. Paste your guest list and seat everyone, no sign-up needed; download and share with a free account.";
 
 export const SEATING_NAME = "Mesa";
-export const SEATING_H1 = "Everyone, seated.";
+export const SEATING_H1 = "Mesa by The RSVP Studio";
 // "\n" marks where a line should break on wide screens (never a word left alone).
 export const SEATING_SUB = "The free seating chart maker for weddings,\ndebuts, birthdays and every celebration in between.";
 export const SEATING_FACTS = "No sign-up to start · No guest limit · Works on your phone";

@@ -5,6 +5,7 @@ import FooterSection from "@/pages/home/components/FooterSection";
 import { CharacterTrio } from "@/components/CharacterLoader";
 import { Reveal } from "@/lib/Reveal";
 import { PRESETS, buildLayout, seatByTableLabels, seatHonorees } from "./presets";
+import StartFlow from "./StartFlow";
 import { parseGuestText, SAMPLE_LIST } from "./parse";
 import { planSeating } from "./autoseat";
 import { CHAIR, emptyChart, roundRadius, seatPoint, type Category, type Chart, type ChartKind } from "./model";
@@ -182,177 +183,6 @@ function TableMath() {
   );
 }
 
-const ROOMS: { kind: ChartKind; label: string }[] = [
-  { kind: "wedding", label: "Wedding" },
-  { kind: "debut", label: "Debut" },
-  { kind: "lauriat", label: "Lauriat" },
-  { kind: "party", label: "Birthday or other" },
-  { kind: "blank", label: "Empty room" },
-];
-
-/** The form that starts a plan, in a sheet over the page. */
-function StartSheet({ onClose, onReady, current }: { onClose(): void; onReady(autoSeat: boolean): void; current?: Chart | null }) {
-  const [kind, setKind] = useState<ChartKind>("wedding");
-  const [names, setNames] = useState("");
-  const [text, setText] = useState("");
-  const [count, setCount] = useState("150");
-  const [perTable, setPerTable] = useState<8 | 10 | 12>(10);
-  const [autoSeat, setAutoSeat] = useState(true);
-  const [err, setErr] = useState("");
-  const parsed = useMemo(() => (text.trim() ? parseGuestText(text) : null), [text]);
-
-  // Once per opening (not per render), so the page's own scrolling is put back exactly.
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
-    window.addEventListener("keydown", onKey);
-    const prev = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.documentElement.style.overflow = prev;
-    };
-  }, []);
-
-  const build = () => {
-    const guests = parsed?.guests ?? [];
-    const groups = parsed?.groups ?? [];
-    const special = guests.filter((g) => ["vip", "entourage", "court"].includes(groups.find((x) => x.id === g.groupId)?.cat ?? "")).length;
-    const n = Math.max(guests.length, guests.length ? 0 : Number(count) || 0);
-    const layout = buildLayout(kind, n, perTable, special);
-    const preset = PRESETS.find((p) => p.kind === kind)!;
-    const who = names.trim().slice(0, 80);
-    const chart: Chart = { ...emptyChart(kind), title: who || (kind === "blank" ? "Our seating plan" : `${preset.title.replace(" (PH)", "")} seating plan`), ...layout, groups, guests, ...(who ? { names: who } : {}) };
-    if (who && (kind === "wedding" || kind === "debut")) seatHonorees(chart, who);
-    if (parsed) seatByTableLabels(chart, parsed.wantTable);
-    open(chart);
-    trackEvent("seating_start", { layout: kind, guests: guests.length });
-    onReady(autoSeat && guests.some((g) => !chart.guests.find((x) => x.id === g.id)?.tableId));
-  };
-
-  const field = "w-full rounded-xl border border-[var(--line)] bg-white px-4 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--ink)] md:text-[15px]";
-  const pill = (on: boolean) => `min-h-[42px] rounded-full border px-4 text-[14px] font-medium transition-colors ${on ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"}`;
-
-  return (
-    <div className="mesa-sheet-scrim" onClick={onClose} data-lenis-prevent>
-      <div className="mesa-sheet" role="dialog" aria-modal="true" aria-labelledby="mesa-start-h" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[13px] font-medium text-[var(--slate)]">{SEATING_NAME} by The RSVP Studio</p>
-            <h2 id="mesa-start-h" className="mt-1 font-display text-[1.9rem] font-semibold leading-tight text-[var(--ink)]">
-              Start your seating plan
-            </h2>
-          </div>
-          <button onClick={onClose} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
-            <i className="ri-close-line text-xl" />
-          </button>
-        </div>
-        <div className="mt-6 grid gap-5">
-          <label className="text-[14px] font-medium text-[var(--ink)]">
-            Names on the plan
-            <input value={names} onChange={(e) => setNames(e.target.value)} placeholder={kind === "debut" ? "Bea" : "Andrea & Miguel"} autoComplete="off" className={`mt-1.5 h-12 ${field}`} />
-          </label>
-          <div className="text-[14px] font-medium text-[var(--ink)]">
-            Type of event
-            <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Type of event">
-              {ROOMS.map((r) => (
-                <button
-                  key={r.kind}
-                  role="radio"
-                  aria-checked={kind === r.kind}
-                  onClick={() => {
-                    setKind(r.kind);
-                    if (r.kind === "lauriat") setPerTable(12);
-                  }}
-                  className={pill(kind === r.kind)}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {kind !== "blank" ? (
-            <div className="text-[14px] font-medium text-[var(--ink)]">
-              Guests per table
-              <div className="mt-1.5 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Guests per table">
-                {([8, 10, 12] as const).map((n) => (
-                  <button key={n} role="radio" aria-checked={perTable === n} onClick={() => setPerTable(n)} className={`${pill(perTable === n)} min-w-[52px]`}>
-                    {n}
-                  </button>
-                ))}
-                <span className="text-[13px] font-normal text-[var(--slate)]">You can change any table later.</span>
-              </div>
-            </div>
-          ) : null}
-          <label className="text-[14px] font-medium text-[var(--ink)]">
-            Guest list
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={7}
-              placeholder={"Paste it as it is. One family per line works best.\n\nTito Ben & Tita Marie Santos + 2 kids\nLola Cora Santos\nBianca Lopez +1"}
-              className={`mt-1.5 py-3 leading-relaxed ${field}`}
-            />
-          </label>
-          <div className="-mt-2 flex flex-wrap justify-between gap-3 text-[13px] text-[var(--slate)]">
-            <span>
-              {parsed ? (
-                <>
-                  <b className="text-[var(--ink)]">{parsed.guests.length} guests</b> in {parsed.parties.length} households
-                  {parsed.groups.length ? `, ${parsed.groups.length} groups` : ""}
-                  {Object.keys(parsed.wantTable).length ? `. ${Object.keys(parsed.wantTable).length} already have a table.` : ""}
-                </>
-              ) : (
-                "Headings like “Bride’s family” or “Table 5” are understood."
-              )}
-            </span>
-            <button className="font-medium text-[var(--ink)] underline underline-offset-4" onClick={() => setText(text ? "" : SAMPLE_LIST)}>
-              {text ? "Clear" : "Use a sample list"}
-            </button>
-          </div>
-          {!parsed && kind !== "blank" ? (
-            <label className="flex flex-wrap items-center gap-3 text-[14px] text-[var(--slate)]">
-              No list yet? Start with about
-              <input type="number" inputMode="numeric" min={10} max={2000} value={count} onChange={(e) => setCount(e.target.value)} className={`h-10 w-24 ${field}`} />
-              guests
-            </label>
-          ) : null}
-          {parsed?.guests.length ? (
-            <label className="flex items-center gap-2.5 text-[14px] text-[var(--ink)]">
-              <input type="checkbox" checked={autoSeat} onChange={(e) => setAutoSeat(e.target.checked)} className="h-[18px] w-[18px] accent-[var(--acc-blue)]" />
-              Seat everyone for me
-            </label>
-          ) : null}
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-4">
-            <label className="cursor-pointer text-[14px] font-medium text-[var(--ink)] underline underline-offset-4">
-              Open a backup file
-              <input
-                type="file"
-                accept=".json,application/json"
-                hidden
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  const c = await readBackup(f);
-                  if (!c) return setErr("That file isn’t a seating plan backup.");
-                  open(c);
-                  onReady(false);
-                }}
-              />
-            </label>
-            <button className="btn btn-primary" onClick={build}>
-              {current ? "Start a new plan" : "Create my plan"}
-            </button>
-          </div>
-          {current ? <p className="text-[13px] text-[var(--slate)]">This replaces “{current.title}” in this browser. Download a backup or save it to an account first if you want to keep it.</p> : null}
-          {err ? <p className="text-[13px] text-[#c2412d]">{err}</p> : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** "Edited 5 minutes ago" / "yesterday" / "on 12 Oct". */
 function editedAgo(ts: number): string {
   const min = Math.round((Date.now() - ts) / 60000);
@@ -412,16 +242,19 @@ export default function StartScreen({
   current,
   onResume,
   welcomeBack = false,
+  startEvent,
 }: {
   onReady(autoSeat: boolean): void;
   current?: Chart | null;
   onResume?(): void;
   /** arrived with a saved plan: ask before doing anything */
   welcomeBack?: boolean;
+  /** From the dashboard (?event=): the new-plan form opens on that event's guests. */
+  startEvent?: string;
 }) {
   const sample = useSample();
-  const [sheet, setSheet] = useState(false);
-  const [asking, setAsking] = useState(welcomeBack);
+  const [sheet, setSheet] = useState(!!startEvent);
+  const [asking, setAsking] = useState(welcomeBack && !startEvent);
   const board = useMemo(() => boardSvg(sample.chart), [sample]);
 
   useEffect(() => {
@@ -479,22 +312,18 @@ export default function StartScreen({
         >
           <Confetti />
           <div className="container-x mesa-hero-content max-sm:flex max-sm:min-h-0 max-sm:flex-1 max-sm:flex-col">
-            <p className="mesa-lockup max-sm:self-center">
-              <span className="mesa-word">{SEATING_NAME}</span>
-              <span className="mesa-by">by The RSVP Studio</span>
-            </p>
-            <h1 className="mx-auto mt-5 max-w-4xl font-display font-semibold leading-[1.02] tracking-[-0.035em] text-[var(--ink)] text-balance" style={{ fontSize: "clamp(2.5rem, 5.6vw, 4.4rem)" }}>
-              {SEATING_H1}
+            {/* The same hero as the Build page: the name as the title, one line, the buttons. */}
+            <h1 className="mx-auto max-w-3xl font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] text-balance" style={{ fontSize: "clamp(2.1rem, 5vw, 3.4rem)" }}>
+              {/* SEATING_H1 ("Mesa by The RSVP Studio"), kept whole after the name on phones. */}
+              {SEATING_NAME} <span className="whitespace-nowrap">{SEATING_H1.slice(SEATING_NAME.length + 1)}</span>
             </h1>
-            <p className="mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-[var(--slate)] text-balance md:text-[21px]">
+            <p className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-[var(--slate)] text-balance md:text-[18px]">
               <Lines text={SEATING_SUB} />
             </p>
-            <div className="mt-8">{startButtons}</div>
-            {/* Phones: the facts repeat in "Everything's free" below, so only a plan in progress shows here. */}
-            <p className="mt-4 hidden text-[14px] text-[var(--slate)] sm:block">{SEATING_FACTS}</p>
+            <div className="mt-7">{startButtons}</div>
             {/* The real thing: screenshots of Mesa itself (public/tools/mesa). */}
             {/* Phones: fills the rest of the screen; the phone below sizes to it. */}
-            <div className="relative mx-auto mt-12 max-w-[820px] sm:pb-16 md:mt-14 md:pb-20 max-sm:mb-7 max-sm:mt-7 max-sm:min-h-0 max-sm:w-full max-sm:flex-1 max-sm:[container-type:size]">
+            <div className="relative mx-auto mt-12 max-w-[820px] md:mt-14 max-sm:mb-7 max-sm:mt-7 max-sm:min-h-0 max-sm:w-full max-sm:flex-1 max-sm:[container-type:size]">
               <span className="mesa-wash w1" aria-hidden />
               <span className="mesa-wash w2" aria-hidden />
               <span className="mesa-wash w3" aria-hidden />
@@ -519,6 +348,8 @@ export default function StartScreen({
                 </p>
               </div>
             </div>
+            {/* Under the laptop. Phones: the facts repeat in "Everything's free" below. */}
+            <p className="hidden pb-14 pt-8 text-[14px] text-[var(--slate)] sm:block md:pb-20 md:pt-10">{SEATING_FACTS}</p>
           </div>
         </section>
 
@@ -678,7 +509,22 @@ export default function StartScreen({
         </section>
       </main>
       <FooterSection />
-      {sheet ? <StartSheet current={current} onClose={() => setSheet(false)} onReady={onReady} /> : null}
+      {sheet ? (
+        <StartFlow
+          current={current}
+          startEvent={startEvent}
+          onClose={() => setSheet(false)}
+          onReady={onReady}
+          onContinue={
+            onResume
+              ? () => {
+                  setSheet(false);
+                  onResume();
+                }
+              : undefined
+          }
+        />
+      ) : null}
       {asking && current && !sheet ? (
         <WelcomeBack
           chart={current}

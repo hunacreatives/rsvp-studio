@@ -15,6 +15,7 @@ import Collections from "../pages/collections/page";
 import Portfolio from "../pages/portfolio/page";
 import PortfolioDetail from "../pages/portfolio/detail";
 import Faqs from "../pages/faqs/page";
+const ContactPage = lazy(() => import("../pages/contact/page"));
 import Enquire from "../pages/enquire/page";
 import PartnerInquiry from "../pages/enquire/partner";
 import Blog from "../pages/blog/page";
@@ -28,9 +29,11 @@ const PartnerLink = lazy(() => import("../pages/partners/PartnerLink"));
 const PortalPartner = lazy(() => import("../pages/account/portal/pages/PartnerPage"));
 const StudioPartners = lazy(() => import("../pages/studio/pages/PartnersPage"));
 const AccountOnboarding = lazy(() => import("../pages/account/onboarding"));
+const AccountJoin = lazy(() => import("../pages/account/join"));
 const PortalLayout = lazy(() => import("../pages/account/portal/PortalLayout"));
 const PortalHome = lazy(() => import("../pages/account/portal/pages/HomePage"));
 const PortalProjects = lazy(() => import("../pages/account/portal/pages/ProjectsPage"));
+const PortalClients = lazy(() => import("../pages/account/portal/pages/ClientsPage"));
 const PortalProjectDetail = lazy(() => import("../pages/account/portal/pages/ProjectDetailPage"));
 const PortalBilling = lazy(() => import("../pages/account/portal/pages/BillingPage"));
 const PortalInvoice = lazy(() => import("../pages/account/portal/pages/InvoicePage"));
@@ -63,6 +66,7 @@ const BuildLandingPage = lazy(() => import("../pages/wedding-sites/builder/Build
 const TemplatePreviewPage = lazy(() => import("../pages/wedding-sites/public/TemplatePreviewPage"));
 const SeatPlannerPage = lazy(() => import("../pages/tools/seating/SeatPlannerPage"));
 const SeatPlanView = lazy(() => import("../pages/tools/seating/ViewPage"));
+const SeatDayPage = lazy(() => import("../pages/tools/seating/DayOfPage"));
 
 const routes: RouteObject[] = [
   { path: "/", element: <Home /> },
@@ -76,6 +80,7 @@ const routes: RouteObject[] = [
   { path: "/portfolio", element: <Portfolio /> },
   { path: "/portfolio/:slug", element: <PortfolioDetail /> },
   { path: "/faqs", element: <Faqs /> },
+  { path: "/contact", element: <ContactPage /> },
   { path: "/blog", element: <Blog /> },
   { path: "/blog/:slug", element: <BlogPost /> },
   { path: "/enquire", element: <Enquire /> },
@@ -91,6 +96,7 @@ const routes: RouteObject[] = [
     children: [
       { index: true, element: <PortalHome /> },
       { path: "projects", element: <PortalProjects /> },
+      { path: "clients", element: <PortalClients /> },
       { path: "projects/:projectId", element: <PortalProjectDetail /> },
       { path: "billing", element: <PortalBilling /> },
       { path: "billing/:invoiceId", element: <PortalInvoice /> },
@@ -103,6 +109,7 @@ const routes: RouteObject[] = [
     ],
   },
   { path: "/account/onboarding", element: <AccountOnboarding /> },
+  { path: "/account/join", element: <AccountJoin /> },
   {
     path: "/studio",
     element: <StudioLayout />,
@@ -130,6 +137,7 @@ const routes: RouteObject[] = [
   { path: "/build", element: <BuildLandingPage /> },
   { path: "/tools/seating-chart-maker", element: <SeatPlannerPage /> },
   { path: "/tools/seating-chart-maker/view/:token", element: <SeatPlanView /> },
+  { path: "/tools/seating-chart-maker/day/:token", element: <SeatDayPage /> },
   { path: "/build/preview/:templateId", element: <TemplatePreviewPage /> },
   { path: "/account/events/:eventId/site-builder", element: <TemplateGalleryPage /> },
   { path: "/account/events/:eventId/site-builder/edit", element: <BuilderShellPage /> },

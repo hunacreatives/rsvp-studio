@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatHostNames } from "./hosts.js";
-import { followupEmail, type FollowupData, type FollowupKind } from "./followup-mail.js";
+import { coordinatorEmail, followupEmail, type FollowupData, type FollowupKind } from "./followup-mail.js";
 import { FROM, STUDIO_INBOX, tipsToken } from "./support-mail.js";
 
 // The daily follow-up emails (supabase/followups.sql → followups_due(), email-additions.sql):
@@ -13,7 +13,7 @@ import { FROM, STUDIO_INBOX, tipsToken } from "./support-mail.js";
 type SendMail = (payload: Parameters<typeof import("./email.js").sendChecked>[1], idempotencyKey?: string) => Promise<unknown>;
 type Due = { event_id: string; kind: FollowupKind; rsvps: number; guests: number; declined: number };
 
-const PRIORITY: Record<FollowupKind, number> = { deadline_3: 0, headcount: 1, after: 2, rsvp_10: 3, draft_10: 4, draft_4: 5, draft_1: 6 };
+const PRIORITY: Record<FollowupKind, number> = { checkin_1: -1, deadline_3: 0, headcount: 1, after: 2, rsvp_10: 3, draft_10: 4, draft_4: 5, draft_1: 6 };
 const MAX_PER_RUN = 60;
 
 type Content = {
@@ -96,6 +96,38 @@ export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site
         const { data: premium } = await db.rpc("event_is_premium", { p_event: row.event_id });
         if (sharing?.photo_sharing && premium === true && sharing.slug)
           d.photos = { url: `${site}/invite/${sharing.slug}/photos`, qr: `${site}/qr/${sharing.slug}.png` };
+        // The week-away email nudges their seating: make the plan, finish it, or (Premium) set up
+        // day-of check-in. One plan per event: the one changed most recently.
+        if (row.kind === "headcount") {
+          const { data: plans } = await db.from("seating_charts").select("chart, checkin_token").eq("event_id", row.event_id).order("updated_at", { ascending: false }).limit(1);
+          const plan = (plans ?? [])[0] as { chart?: { guests?: { tableId?: string | null; reply?: string }[] }; checkin_token?: string | null } | undefined;
+          const all = plan?.chart?.guests ?? [];
+          const live = all.filter((g) => g.reply !== "no");
+          d.seating = {
+            url: `${site}/tools/seating-chart-maker?event=${row.event_id}`,
+            planned: !!plan,
+            seated: live.filter((g) => g.tableId).length,
+            total: live.length,
+            cantCome: all.filter((g) => g.reply === "no" && g.tableId).length,
+            premium: premium === true,
+            checkin: !!plan?.checkin_token,
+          };
+        }
+      }
+      // The day before: the check-in link, for them and (a copy) for their coordinator.
+      let coordinator: { to: string; mail: { subject: string; html: string } } | null = null;
+      if (row.kind === "checkin_1") {
+        const { data: plans } = await db.from("seating_charts").select("checkin_token, checkin_pin, checkin_contact").eq("event_id", row.event_id).not("checkin_token", "is", null).order("updated_at", { ascending: false }).limit(1);
+        const plan = (plans ?? [])[0] as { checkin_token: string; checkin_pin: string | null; checkin_contact: string | null } | undefined;
+        if (!plan) {
+          report.skipped++; // turned off since the list was made
+          continue;
+        }
+        const url = `${site}/tools/seating-chart-maker/day/${plan.checkin_token}`;
+        const qr = `${site}/qr/day-${plan.checkin_token}.png`;
+        d.checkin = { url, qr, pin: !!plan.checkin_pin, coordinator: plan.checkin_contact, plan: `${site}/tools/seating-chart-maker?event=${row.event_id}` };
+        if (plan.checkin_contact && plan.checkin_contact.toLowerCase() !== owner.email.toLowerCase())
+          coordinator = { to: plan.checkin_contact, mail: coordinatorEmail({ couple: d.hosts, eventName: d.eventName, eventDate: d.eventDate, url, qr, pin: !!plan.checkin_pin, dayBefore: true }) };
       }
       if (row.kind === "deadline_3") {
         d.deadline = content.rsvpDeadline ?? null;
@@ -122,6 +154,8 @@ export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site
           `followup-${row.kind}-${row.event_id}`,
         );
         report.sent++;
+        if (coordinator)
+          await sendMail({ from: FROM, to: coordinator.to, subject: coordinator.mail.subject, html: coordinator.mail.html, replyTo: STUDIO_INBOX }, `followup-checkin-coordinator-${row.event_id}`).catch((e) => report.errors.push(`coordinator ${row.event_id}: ${String(e)}`));
       } catch (e) {
         await db.from("followup_log").delete().eq("event_id", row.event_id).eq("kind", row.kind); // try again tomorrow
         throw e;

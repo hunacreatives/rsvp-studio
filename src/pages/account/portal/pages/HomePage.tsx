@@ -2,16 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
-import { ActivityList, byWhen, EventList, isDiy, isOverdue, isPast, TaskList } from "../components/blocks";
-import { useGuestStats, type GuestStats } from "../guestStats";
-import { daysUntil, formatDate, formatMoney } from "../format";
-import NewProjectModal from "../components/NewProjectModal";
-import { EmptyState, PrimaryButton, SectionTitle } from "../ui";
+import { ActivityList, byWhen, EventList, isDiy, isPast, TaskList } from "../components/blocks";
+import { useGuestStats } from "../guestStats";
+import NewProjectModal, { Choice } from "../components/NewProjectModal";
+import { ErrorText, SectionTitle } from "../ui";
 import PartnerStrip from "../components/PartnerStrip";
+import NeedsAttention from "../components/NeedsAttention";
+import CoordinatorDesk from "../components/CoordinatorDesk";
+import { isClientEvent, isCoordinator } from "../types";
 
 export default function HomePage() {
-  const { projects, tasks, activity, profile, demo } = usePortal();
-  const stats = useGuestStats(projects, demo);
+  const { projects: everything, tasks, activity, profile, demo } = usePortal();
+  const stats = useGuestStats(everything, demo);
+  // Coordinators' clients live on the Coordinator desk (and under Clients), not "Your events".
+  const projects = everything.filter((p) => !isClientEvent(p));
   const navigate = useNavigate();
   const [newOpen, setNewOpen] = useState(false);
 
@@ -27,20 +31,36 @@ export default function HomePage() {
   const showTasks = openTasks.length > 0 || studioClient;
   const recent = activity.slice(0, 4);
 
+  const tasksAndActivity =
+    showTasks || recent.length ? (
+      <div className={`mt-12 grid gap-10 xl:gap-6 ${showTasks && recent.length ? "xl:grid-cols-2" : ""}`}>
+        {showTasks ? (
+          <section className="min-w-0">
+            <SectionTitle>Upcoming Tasks</SectionTitle>
+            <TaskList tasks={openTasks} />
+          </section>
+        ) : null}
+        {recent.length ? (
+          <section className="min-w-0">
+            <SectionTitle>Recent Activity</SectionTitle>
+            <ActivityList items={recent} />
+          </section>
+        ) : null}
+      </div>
+    ) : null;
+
+  // Coordinators (said so, or have a client): the Coordinator desk is their Home.
+  if (isCoordinator(profile, everything)) return <CoordinatorDesk>{tasksAndActivity}</CoordinatorDesk>;
+
   return (
     <>
       {/* Home is the overview; the full list lives under Projects (same title twice confused people). */}
       <PageHeader title={`Welcome back${profile.full_name ? `, ${profile.full_name.trim().split(/\s+/)[0]}` : ""}`} />
       <PartnerStrip />
-      <NeedsAttention stats={stats} />
+      <NeedsAttention stats={stats} projects={projects} />
 
       {projects.length === 0 ? (
-        <EmptyState
-          icon="ri-folder-add-line"
-          title="No events yet"
-          body="Start an inquiry with our studio, build a site yourself, or link an event we set up for you with your invite code."
-          action={<PrimaryButton onClick={() => setNewOpen(true)}>Start an event</PrimaryButton>}
-        />
+        <FirstVisit onOwn={() => setNewOpen(true)} />
       ) : (
         <>
           <SectionTitle
@@ -59,22 +79,7 @@ export default function HomePage() {
         </>
       )}
 
-      {showTasks || recent.length ? (
-        <div className={`mt-12 grid gap-10 xl:gap-6 ${showTasks && recent.length ? "xl:grid-cols-2" : ""}`}>
-          {showTasks ? (
-            <section className="min-w-0">
-              <SectionTitle>Upcoming Tasks</SectionTitle>
-              <TaskList tasks={openTasks} />
-            </section>
-          ) : null}
-          {recent.length ? (
-            <section className="min-w-0">
-              <SectionTitle>Recent Activity</SectionTitle>
-              <ActivityList items={recent} />
-            </section>
-          ) : null}
-        </div>
-      ) : null}
+      {tasksAndActivity}
 
       <NewProjectModal open={newOpen} onClose={() => setNewOpen(false)} />
     </>
@@ -82,72 +87,29 @@ export default function HomePage() {
 }
 
 /**
- * The few things that need the customer, on top: money owed, a reply we're
- * waiting for, and steps that are their turn. Nothing to do → nothing shown.
+ * No events yet: what brings them here. Their own celebration → the usual "Start a new event";
+ * a coordinator or planner → the Coordinator desk (profiles.is_coordinator), which also has a
+ * switch under Account.
  */
-function NeedsAttention({ stats }: { stats: Record<string, GuestStats> }) {
-  const { projects, invoices, threads, sites } = usePortal();
-  const navigate = useNavigate();
-  const unpaid = invoices.filter((i) => i.status === "open").sort((a, b) => (a.due_date ?? "0000").localeCompare(b.due_date ?? "0000"));
-  const owed = unpaid.reduce((s, i) => s + i.amount, 0);
-  const waitingOnThem = threads.filter((t) => t.kind === "support" && t.status === "waiting");
-  const theirTurn = projects.filter((p) => p.project_status !== "completed" && p.next_step && p.next_step_owner === "client");
-  const items: { icon: string; text: string; tone?: "late"; onClick: () => void }[] = [];
-  if (unpaid.length) {
-    const next = unpaid[0];
-    items.push({
-      icon: "ri-bank-card-line",
-      text: `${formatMoney(owed)} to pay${isOverdue(next) ? ` · overdue since ${formatDate(next.due_date)}` : next.due_date ? ` · due ${formatDate(next.due_date)}` : " · due now"}`,
-      tone: isOverdue(next) ? "late" : undefined,
-      onClick: () => navigate(unpaid.length === 1 ? `/account/billing/${next.id}` : "/account/billing"),
-    });
-  }
-  for (const t of waitingOnThem.slice(0, 2)) {
-    items.push({ icon: "ri-chat-3-line", text: "We’re waiting for your reply on a support request", onClick: () => navigate(`/account/messages?thread=${t.id}`) });
-  }
-  for (const p of theirTurn.slice(0, 2)) {
-    items.push({ icon: "ri-task-line", text: `Your turn: ${p.next_step}${p.next_step_due ? ` by ${formatDate(p.next_step_due)}` : ""}`, onClick: () => navigate(`/account/projects/${p.id}`) });
-  }
-  // Sites hosts run themselves: who hasn't replied, replies closing soon, a draft not live yet.
-  for (const p of projects.filter((x) => isDiy(x) && !isPast(x))) {
-    const site = sites[p.id];
-    const s = stats[p.id];
-    const closesIn = daysUntil(site?.deadline);
-    if (site?.publishedAt && !site.ended) {
-      if (closesIn !== null && closesIn >= 0 && closesIn <= 7) {
-        items.push({
-          icon: "ri-timer-line",
-          text: `Replies for ${p.name} close ${closesIn === 0 ? "today" : closesIn === 1 ? "tomorrow" : `in ${closesIn} days`}${s?.waiting ? ` · ${s.waiting} still to reply` : ""}`,
-          tone: closesIn <= 1 ? "late" : undefined,
-          onClick: () => navigate(`/account/projects/${p.id}?tab=guests&list=invites`),
-        });
-      } else if (s?.waiting) {
-        items.push({
-          icon: "ri-user-follow-line",
-          text: `${s.waiting} ${s.waiting === 1 ? "guest hasn’t" : "guests haven’t"} replied to ${p.name} · send a reminder`,
-          onClick: () => navigate(`/account/projects/${p.id}?tab=guests&list=invites`),
-        });
-      }
-    } else if (site && !site.publishedAt) {
-      items.push({ icon: "ri-edit-2-line", text: `${p.name} isn’t published yet`, onClick: () => navigate(`/account/events/${p.id}/site-builder/edit`) });
+function FirstVisit({ onOwn }: { onOwn: () => void }) {
+  const { saveProfile, demo } = usePortal();
+  const [error, setError] = useState<string | null>(null);
+  const coordinator = async () => {
+    setError(null);
+    try {
+      await saveProfile({ is_coordinator: true });
+    } catch {
+      setError(demo ? null : "Couldn’t save that. Please try again in a moment.");
     }
-  }
-  if (!items.length) return null;
-  items.splice(5);
+  };
   return (
-    <section className="mb-8 rounded-[22px] bg-[#fff6e3] p-4 md:p-5">
-      <p className="mb-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-[#8a5a00]">Needs your attention</p>
-      <ul className="space-y-1">
-        {items.map((it, i) => (
-          <li key={i}>
-            <button onClick={it.onClick} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-[15px] text-[var(--ink)] hover:bg-black/5">
-              <i className={`${it.icon} text-[18px] ${it.tone === "late" ? "text-[#c2412d]" : "text-[#8a5a00]"}`} />
-              <span className={`flex-1 ${it.tone === "late" ? "font-medium text-[#c2412d]" : ""}`}>{it.text}</span>
-              <i className="ri-arrow-right-s-line text-[var(--slate)]" />
-            </button>
-          </li>
-        ))}
-      </ul>
+    <section>
+      <SectionTitle sub="Tell us what brings you here.">Let’s get you started</SectionTitle>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Choice icon="ri-cake-3-line" title="Planning my own celebration" body="Make your event site, invite your guests and keep track of replies." onClick={onOwn} />
+        <Choice icon="ri-team-line" title="I’m a coordinator or planner" body="Set up events for your clients, then hand each one over when it’s ready." onClick={coordinator} />
+      </div>
+      <ErrorText>{error}</ErrorText>
     </section>
   );
 }

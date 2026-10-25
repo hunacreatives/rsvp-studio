@@ -4,7 +4,7 @@ import InviteShareButtons from "@/components/InviteShare";
 import { stdNames, stdWhen } from "@/pages/wedding-sites/content/saveTheDate";
 import { usePortal } from "../PortalContext";
 import * as api from "../api";
-import type { Project } from "../types";
+import { canEdit, type Project } from "../types";
 import { OutlineCard, PillButton } from "../ui";
 import { supabase } from "@/lib/supabase";
 
@@ -119,7 +119,7 @@ export default function SaveTheDateCard({ project }: { project: Project }) {
                 : "Couldn’t send them. Please try again."
               : `${toInvite} ${toInvite === 1 ? "person" : "people"} asked for the invitation on your Save the Date.`}
           </p>
-          {toInvite > 0 ? (
+          {toInvite > 0 && canEdit(project) ? (
             <PillButton tone="dark" onClick={sendInvites} disabled={sending === "sending"}>
               {sending === "sending" ? "Sending…" : `Send them the invitation`}
             </PillButton>

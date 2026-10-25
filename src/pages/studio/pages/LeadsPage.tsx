@@ -14,9 +14,9 @@ type Filter = "new" | "contacted" | "converted" | "archived" | "all";
 const FORM_LABEL: Record<string, string> = { "project-inquiry": "Project inquiry", "partner-inquiry": "Partner inquiry", "faq-question": "Question (FAQ page)" };
 const STATUS_LABEL: Record<studio.LeadStatus, string> = { new: "New", contacted: "Contacted", converted: "Project started", archived: "Archived", spam: "Spam" };
 // Shown first, in this order; anything else the form sent follows.
-const ORDER = ["interested_in", "diy_project", "partner_code", "source", "source_detail", "occasion", "event_date", "event_location", "guest_count", "services", "design_type", "semi_collections", "bespoke_collections", "addons", "budget", "timeline", "vision", "message", "business_name", "role", "looking_for", "regions", "volume", "event_brief", "ig_handle", "instagram", "hear_about"];
+const ORDER = ["interested_in", "diy_project", "diy_event", "partner_code", "source", "source_detail", "occasion", "event_date", "event_location", "guest_count", "services", "design_type", "semi_collections", "bespoke_collections", "addons", "budget", "timeline", "vision", "message", "business_name", "role", "looking_for", "regions", "volume", "event_brief", "ig_handle", "instagram", "hear_about"];
 const HIDDEN = new Set(["your_name", "full_name", "email", "website"]);
-const LABEL: Record<string, string> = { interested_in: "Asked about", event_date: "Event date", event_location: "Where", guest_count: "Guests", design_type: "Custom or Semi-Custom", semi_collections: "Collections", bespoke_collections: "Stationery suites", addons: "Add-ons", vision: "Their vision", ig_handle: "Instagram", hear_about: "Found us via", event_brief: "Event brief", looking_for: "Looking for", website_url: "Website", files_not_attached: "Files not attached", diy_project: "From their DIY project", partner_code: "Referral code", source: "Came from", source_detail: "Source detail" };
+const LABEL: Record<string, string> = { interested_in: "Asked about", event_date: "Event date", event_location: "Where", guest_count: "Guests", design_type: "Custom or Semi-Custom", semi_collections: "Collections", bespoke_collections: "Stationery suites", addons: "Add-ons", vision: "Their vision", ig_handle: "Instagram", hear_about: "Found us via", event_brief: "Event brief", looking_for: "Looking for", website_url: "Website", files_not_attached: "Files not attached", diy_project: "From their DIY project", diy_event: "Their event", partner_code: "Referral code", source: "Came from", source_detail: "Source detail" };
 const labelize = (k: string) => LABEL[k] ?? k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
 export default function LeadsPage() {
@@ -121,7 +121,17 @@ export default function LeadsPage() {
                     <div key={k} className={["vision", "message", "event_brief"].includes(k) ? "sm:col-span-2" : ""}>
                       <dt className="text-[12px] uppercase tracking-[0.06em] text-[var(--slate)]">{labelize(k)}</dt>
                       <dd className="whitespace-pre-line text-[var(--ink)] [overflow-wrap:anywhere]">
-                        {Array.isArray(v[k]) ? (v[k] as string[]).join(", ") : /^\d{4}-\d{2}-\d{2}$/.test(String(v[k])) ? formatDate(String(v[k])) : String(v[k])}
+                        {k === "diy_event" ? (
+                          <button className="font-medium text-[var(--acc-blue)] hover:underline" onClick={() => navigate(`/studio/projects?project=${String(v[k])}`)}>
+                            Open their event
+                          </button>
+                        ) : Array.isArray(v[k]) ? (
+                          (v[k] as string[]).join(", ")
+                        ) : /^\d{4}-\d{2}-\d{2}$/.test(String(v[k])) ? (
+                          formatDate(String(v[k]))
+                        ) : (
+                          String(v[k])
+                        )}
                       </dd>
                     </div>
                   ))}

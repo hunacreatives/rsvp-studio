@@ -8,6 +8,7 @@ import { captureError } from "./_lib/sentry.js";
 import { guestPhotoHandler } from "./_lib/guest-photos.js";
 import { guestConfirmation, hostSender, type GuestContent, type GuestPresentation } from "./_lib/guest-mail.js";
 import { layout } from "./_lib/support-mail.js";
+import { confirmText, hostAlertText, sendTexts, shortWhen } from "./_lib/sms.js";
 
 // One RSVP endpoint for every event site. Which table to write to and the
 // email copy are resolved server-side from `slug` — never trusted from the
@@ -33,6 +34,9 @@ import { layout } from "./_lib/support-mail.js";
 // the hosts for every RSVP. Free sites don't — their hosts get one summary a
 // day (api/support-cron.ts). Every guest with an email gets a confirmation,
 // within the budget; on free sites it carries a "Make your own" link.
+// Texts (api/_lib/sms.ts, a paid add-on): a guest who replied with a mobile number only gets a
+// confirmation text when the hosts have texting on; Premium hosts can get each reply by text
+// instead of (or as well as) the email (event_sms.host_alerts).
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 // No key (local dev, preview builds): RSVPs still save; emails are skipped.
@@ -277,7 +281,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const row = legacy ? { name, message: legacyMessage } : { name, message: message || null, ...extra };
   const write = prior
     ? await supabaseAdmin.from(table).update(row).eq("id", prior.id)
-    : await supabaseAdmin.from(table).insert(legacy ? { ...row, email } : { ...row, event_id: site.event_id });
+    : await supabaseAdmin.from(table).insert(legacy ? { ...row, email } : { ...row, event_id: site.event_id }).select("id").maybeSingle();
   if (write.error) {
     console.error("RSVP write error:", write.error);
     await captureError(new Error(write.error.message), "wedding-rsvp:write", { table });
@@ -292,9 +296,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const safeMessage = esc(message);
   const safeDietary = esc(dietary);
 
+  const rsvpId = prior?.id ?? ((write.data as { id?: string } | null)?.id ?? null);
+  // Texting (supabase/sms.sql; missing table → no texts).
+  const { data: sms } = legacy ? { data: null } : await supabaseAdmin.from("event_sms").select("enabled, host_alerts, host_phone").eq("event_id", site.event_id).maybeSingle();
+  const hostAlerts = premium && sms?.host_phone ? ((sms.host_alerts as "email" | "sms" | "both") ?? "email") : "email";
+
   const sends: Promise<unknown>[] = [];
-  // Free sites: the hosts hear about this in tomorrow's summary instead.
-  const recipients = premium ? await hostRecipients(supabaseAdmin, site.event_id) : [];
+  // Free sites: the hosts hear about this in tomorrow's summary instead. Premium hosts who chose
+  // texts only get no email.
+  const recipients = premium && hostAlerts !== "sms" ? await hostRecipients(supabaseAdmin, site.event_id) : [];
   // Hosts who turned off project updates get no RSVP email (it's still in their dashboard).
   if (recipients.length && (await claimRsvpEmails(supabaseAdmin, "host", true, site.event_id, recipients.length))) sends.push(
     sendEmail({
@@ -320,6 +330,34 @@ ${[
       ),
     }),
   );
+
+  if (hostAlerts !== "email")
+    sends.push(
+      sendTexts(supabaseAdmin, {
+        eventId: site.event_id,
+        kind: "host_alert",
+        message: hostAlertText({ guestName: name, eventName: (event.name as string | null) || formatHostNames(content), attending, guestCount, updated: !!prior, eventId: site.event_id }),
+        recipients: [{ to: sms!.host_phone as string }],
+      }),
+    );
+  // A guest with a mobile number and no email: their confirmation by text (first reply only).
+  let textSend: Promise<{ status: string }> | null = null;
+  if (!prior && !email && phone && sms?.enabled && rsvpId) {
+    textSend = sendTexts(supabaseAdmin, {
+      eventId: site.event_id,
+      kind: "rsvp_confirm",
+      message: confirmText({
+        guestName: name,
+        eventName: (event.name as string | null) || formatHostNames(content),
+        hosts: formatHostNames(content, (event.name as string | null) || "The hosts"),
+        slug,
+        attending,
+        when: shortWhen((site.published_content as { eventDate?: string }).eventDate || (event.event_date as string | null)),
+      }),
+      recipients: [{ to: phone, rsvpId }],
+    });
+    sends.push(textSend);
+  }
 
   // Guest confirmation: first reply only, only with an email, and within the event's daily cap.
   let underDailyCap = true;
@@ -366,9 +404,13 @@ ${[
 
   // The RSVP is saved either way; email trouble is logged, not surfaced.
   const results = await Promise.allSettled(sends);
-  for (const r of results) if (r.status === "rejected") console.error("RSVP email failed:", r.reason);
+  for (const r of results) if (r.status === "rejected") console.error("RSVP email/text failed:", r.reason);
   // Tells the form whether to say "a copy is on its way to your email".
   const emailed = guestSend !== null && results[sends.indexOf(guestSend)]?.status === "fulfilled";
 
-  res.status(200).json({ ok: true, updated: !!prior, emailed });
+  // …and "a text is on its way" (only once Semaphore actually took it).
+  const textResult = textSend ? results[sends.indexOf(textSend)] : null;
+  const texted = textResult?.status === "fulfilled" && (textResult.value as { status: string }).status === "sent";
+
+  res.status(200).json({ ok: true, updated: !!prior, emailed, texted });
 }

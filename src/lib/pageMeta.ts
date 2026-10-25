@@ -16,6 +16,8 @@ const META: [RegExp, string, string?][] = [
   [/^\/collections/, `Collections — ${SITE}`, "Ready-made designs for weddings, birthdays and more — personalised with your details."],
   [/^\/portfolio$/, `Our Work — ${SITE}`, "Event websites, monograms and stationery we’ve made for real celebrations."],
   [/^\/portfolio\//, `Our Work — ${SITE}`],
+  [/^\/contact/, `Contact Us — ${SITE}`, "Talk to a real person at The RSVP Studio: have us make your event website, finish the one you started, or sort out your account. We reply within 1 business day."],
+  [/^\/account\/join/, `Join an event — ${SITE}`],
   [/^\/faqs/, `FAQ — ${SITE}`, "Answers about pricing, payment (GCash, Maya, card), timelines, revisions and how RSVPs work."],
   [/^\/enquire\/partner/, `Partner with Us — ${SITE}`, "For planners, venues and suppliers who want to work with The RSVP Studio."],
   [/^\/enquire/, `Get a Quote — ${SITE}`, "Tell us about your celebration and we’ll reply within 1 business day."],

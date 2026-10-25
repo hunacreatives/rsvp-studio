@@ -19,7 +19,8 @@ export default function ViewPage() {
   const canvas = useRef<CanvasHandle>(null);
 
   useEffect(() => {
-    getShared(token).then(setChart);
+    // Guests who replied they can't come aren't on the shared plan.
+    getShared(token).then((c) => setChart(c ? { ...c, guests: c.guests.filter((g) => g.reply !== "no") } : c));
   }, [token]);
 
   useEffect(() => {

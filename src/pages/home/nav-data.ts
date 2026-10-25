@@ -19,7 +19,7 @@ export type NavItem = {
   };
 };
 
-// Partner program links, shared by Services and Resources.
+// Partner program links (under Help).
 const PARTNERS: MegaGroup = {
   title: "Partner program",
   links: [
@@ -28,8 +28,9 @@ const PARTNERS: MegaGroup = {
   ],
 };
 
-// Six items (Oct 13 2026): the logo already goes home and "Get a quote" covers Inquire, so
-// those two are gone; FAQ, the Journal and the partner program share one Resources menu.
+// Five items (Oct 25 2026): the logo already goes home and "Get a quote" covers Inquire.
+// Collections sit inside Services; Contact, FAQ, the Journal and the partner program share
+// one Help menu.
 export const NAV_ITEMS: NavItem[] = [
   {
     label: "Build Your Website",
@@ -62,6 +63,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Services",
     to: "/services",
+    activePrefixes: ["/services", "/collections"],
     mega: {
       exploreEyebrow: "Explore Services",
       exploreCta: { label: "Explore All Services", to: "/services" },
@@ -76,17 +78,6 @@ export const NAV_ITEMS: NavItem[] = [
             { label: "RSVP Management", to: "/services/rsvp" },
           ],
         },
-        PARTNERS,
-      ],
-    },
-  },
-  {
-    label: "Collections",
-    to: "/collections",
-    mega: {
-      exploreEyebrow: "Explore Collections",
-      exploreCta: { label: "Explore All Collections", to: "/collections" },
-      groups: [
         {
           title: "Collections",
           links: [
@@ -94,20 +85,21 @@ export const NAV_ITEMS: NavItem[] = [
             { label: "Baby Shower", to: "/collections#baby-shower" },
             { label: "Birthday", to: "/collections#birthday" },
             { label: "Engagement", to: "/collections#engagement" },
+            { label: "All collections", to: "/collections" },
           ],
         },
       ],
     },
   },
   {
-    label: "Portfolio",
+    label: "Our work",
     to: "/portfolio",
     mega: {
-      exploreEyebrow: "Explore Our Portfolio",
+      exploreEyebrow: "Explore Our Work",
       exploreCta: { label: "View all our work", to: "/portfolio" },
       groups: [
         {
-          title: "Portfolio",
+          title: "Our work",
           links: [
             { label: "Milestone Events Website", to: "/portfolio#milestone" },
             { label: "Monogram", to: "/portfolio#monogram" },
@@ -119,12 +111,12 @@ export const NAV_ITEMS: NavItem[] = [
     },
   },
   {
-    label: "Resources",
-    to: "/faqs",
-    activePrefixes: ["/faqs", "/blog", "/partners", "/enquire"],
+    label: "Help",
+    to: "/contact",
+    activePrefixes: ["/contact", "/faqs", "/blog", "/partners", "/enquire"],
     mega: {
-      exploreEyebrow: "Resources",
-      exploreCta: { label: "Read the FAQs", to: "/faqs" },
+      exploreEyebrow: "Help",
+      exploreCta: { label: "Contact us", to: "/contact" },
       groups: [
         {
           title: "FAQs",

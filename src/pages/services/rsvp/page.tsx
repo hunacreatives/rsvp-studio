@@ -21,7 +21,7 @@ function MesaBand() {
           <p className="eyebrow">Mesa · free seating charts</p>
           <h2 className="mt-3 font-display text-[1.8rem] font-semibold leading-tight text-[var(--ink)] md:text-[2.2rem] text-balance">Then seat everyone with Mesa</h2>
           <p className="mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed text-[var(--slate)] sm:text-[16px] md:mx-0" style={{ textWrap: "pretty" }}>
-            Paste your guest list and Mesa seats every family, sponsor and barkada at the right table. Print the plan, or let guests find their table on your website.
+            Start from your RSVPs, or paste any list, and Mesa seats every family, sponsor and barkada at the right table. Print the plan, or let guests find their table on your website.
           </p>
         </div>
         <Link to="/tools/seating-chart-maker" className="block [grid-area:visual]" aria-label="Open Mesa">

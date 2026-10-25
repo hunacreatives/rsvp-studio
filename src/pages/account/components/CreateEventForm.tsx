@@ -6,6 +6,8 @@ interface CreateEventFormProps {
   onSubmit: (input: CreateEventInput) => void;
   onBack: () => void;
   submitting: boolean;
+  /** "Add a client": their names, not "yours", and their email for the hand-over invite. */
+  forClient?: boolean;
 }
 
 const inputStyle: CSSProperties = {
@@ -69,7 +71,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 // ask for one. Venue and date each have a "still deciding" skip toggle,
 // which just leaves that field blank — Hero.tsx already renders that
 // gracefully.
-export default function CreateEventForm({ eventType, onSubmit, onBack, submitting }: CreateEventFormProps) {
+export default function CreateEventForm({ eventType, onSubmit, onBack, submitting, forClient = false }: CreateEventFormProps) {
   const needsTwoHosts = eventType === "wedding" || eventType === "anniversary" || eventType === "engagement";
   const [hostOne, setHostOne] = useState("");
   const [hostTwo, setHostTwo] = useState("");
@@ -77,8 +79,10 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
   const [venueUndecided, setVenueUndecided] = useState(false);
   const [eventDate, setEventDate] = useState("");
   const [dateUndecided, setDateUndecided] = useState(false);
+  const [clientEmail, setClientEmail] = useState("");
+  const emailOk = !clientEmail.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clientEmail.trim());
 
-  const canSubmit = needsTwoHosts ? hostOne && hostTwo : Boolean(hostOne);
+  const canSubmit = (needsTwoHosts ? hostOne && hostTwo : Boolean(hostOne)) && emailOk;
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -88,6 +92,7 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
       hostNames: needsTwoHosts ? [hostOne, hostTwo] : [hostOne],
       venueName: venueUndecided ? undefined : venueName || undefined,
       eventDate: dateUndecided ? undefined : eventDate || undefined,
+      clientEmail: forClient ? clientEmail.trim() || undefined : undefined,
     });
   }
 
@@ -102,12 +107,12 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
         &larr; Back
       </button>
       <h2 className="font-display text-2xl font-semibold mb-6" style={{ color: "var(--ink)" }}>
-        Let&apos;s get ready to plan.
+        {forClient ? "Your client’s event" : "Let's get ready to plan."}
       </h2>
 
       <div className="flex flex-col gap-4">
         <div>
-          <Label htmlFor="ce-host-one">{needsTwoHosts ? "Your first name" : eventType === "baby" ? "Baby’s name" : "Who's celebrating?"}</Label>
+          <Label htmlFor="ce-host-one">{needsTwoHosts ? (forClient ? "First name" : "Your first name") : eventType === "baby" ? "Baby’s name" : "Who's celebrating?"}</Label>
           <input
             id="ce-host-one"
             required
@@ -122,7 +127,7 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
         </div>
         {needsTwoHosts ? (
           <div>
-            <Label htmlFor="ce-host-two">Your partner&apos;s first name</Label>
+            <Label htmlFor="ce-host-two">{forClient ? "Their partner’s first name" : "Your partner's first name"}</Label>
             <input
               id="ce-host-two"
               required
@@ -166,6 +171,25 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
           <Toggle checked={dateUndecided} onChange={setDateUndecided} label="We're still deciding" />
         </div>
 
+        {forClient ? (
+          <div>
+            <Label htmlFor="ce-client-email">Your client’s email (optional)</Label>
+            <input
+              id="ce-client-email"
+              type="email"
+              inputMode="email"
+              autoComplete="off"
+              placeholder="client@email.com"
+              value={clientEmail}
+              onChange={(e) => setClientEmail(e.target.value)}
+              style={inputStyle}
+            />
+            <p className="mt-1.5 text-[13px]" style={{ color: emailOk ? "var(--slate)" : "var(--acc-coral)" }}>
+              {emailOk ? "We’ll invite them to take the event over. Or do it later, from People." : "That email doesn’t look right."}
+            </p>
+          </div>
+        ) : null}
+
         <button
           type="submit"
           disabled={!canSubmit || submitting}
@@ -182,7 +206,7 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
             opacity: canSubmit && !submitting ? 1 : 0.5,
           }}
         >
-          {submitting ? "Creating…" : "Create Event"}
+          {submitting ? "Creating…" : forClient ? "Add client" : "Create Event"}
         </button>
       </div>
     </form>

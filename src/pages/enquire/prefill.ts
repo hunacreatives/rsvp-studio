@@ -38,6 +38,8 @@ export type InquiryContext = {
   date?: string;
   names?: string;
   from?: string;
+  /** The DIY event it came from, so Studio → Leads can open it. */
+  event?: string;
 };
 
 export function inquiryLink(ctx: InquiryContext = {}) {
@@ -50,6 +52,7 @@ export function inquiryLink(ctx: InquiryContext = {}) {
   if (ctx.date) q.set("date", ctx.date);
   if (ctx.names) q.set("names", ctx.names);
   if (ctx.from) q.set("from", ctx.from);
+  if (ctx.event) q.set("event", ctx.event);
   const qs = q.toString();
   return `/enquire${qs ? `?${qs}` : ""}#start`;
 }
@@ -97,6 +100,15 @@ export function readInquiryParams(search: string): { values: Record<string, stri
   const names = clean(p.get("names"));
   const nameField = occ?.key === "birthday" ? "celebrant_name" : occ?.key === "baby-shower" ? "parents_names" : occ?.key === "anniversary" ? "couple_names" : null;
   if (names && nameField) values[nameField] = names;
+  // A wedding or engagement: "Ana & Ben" → their name and their partner's (the form swaps them
+  // if the signed-in person turns out to be Ben).
+  if (names && (occ?.key === "wedding" || occ?.key === "engagement")) {
+    const [a, b] = names.split(/\s*(?:&|and)\s*/i).map((x) => x.trim()).filter(Boolean);
+    if (a) values.your_name = a;
+    if (b) values.partner_name = b;
+  }
+  const event = (p.get("event") ?? "").trim();
+  if (/^[0-9a-f-]{36}$/i.test(event)) values.diy_event = event;
   const from = clean(p.get("from"));
   if (from) values.diy_project = from;
 

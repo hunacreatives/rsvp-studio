@@ -282,6 +282,11 @@ export function useEventSiteDraft(eventId: string | undefined) {
         setSaveStatus("saved");
         return { ok: false, freeLive };
       }
+      // A coordinator's client event (coordinator-fixes.sql): free publishing waits for the client.
+      if (/CLIENT_DRAFT/.test(error.message)) {
+        setSaveStatus("saved");
+        return { ok: false, message: "This is your client’s event. Hand it over to them from the People card to publish it free, or make it Premium to put it live now." };
+      }
       const paymentRequired = /PAYMENT_REQUIRED/.test(error.message);
       setSaveStatus(paymentRequired ? "saved" : "error");
       return { ok: false, paymentRequired, message: paymentRequired ? "" : "Couldn’t publish — please try again." };

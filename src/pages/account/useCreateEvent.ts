@@ -11,6 +11,8 @@ export interface CreateEventInput {
   hostNames: string[]; // 1 or 2, depending on eventType — see CreateEventForm
   venueName?: string; // omitted if "still deciding"
   eventDate?: string; // omitted if "still deciding"
+  /** "Add a client": who to send the hand-over invite to, right after (optional). */
+  clientEmail?: string;
 }
 
 const EVENT_TYPE_LABEL: Record<EventType, string> = {
@@ -41,8 +43,11 @@ function buildEventName(input: CreateEventInput): string {
  * answers (hosts/date/venue), reusing the exact EventContent shape the
  * builder already uses — so the couple lands on the template gallery with
  * real content already in place instead of a blank draft.
+ *
+ * `forClient`: a coordinator adding a client's event (supabase/coordinator-desk.sql). They own
+ * it (client_of = them) until the client takes it over.
  */
-export function useCreateEvent() {
+export function useCreateEvent({ forClient = false }: { forClient?: boolean } = {}) {
   const [status, setStatus] = useState<"idle" | "creating" | "error">("idle");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
@@ -70,18 +75,24 @@ export function useCreateEvent() {
         event_type: input.eventType,
         event_date: input.eventDate || null,
         table_name: null,
+        ...(forClient ? { client_of: session.user.id } : {}),
       })
       .select("id")
       .single();
 
     if (eventError || !event) {
       console.error("useCreateEvent: failed to insert events row", eventError);
+      const message = eventError?.message ?? "";
       setErrorDetail(
-        /PROJECT_LIMIT/.test(eventError?.message ?? "")
-          ? "Accounts can have 10 projects at a time. Delete one to start another — or if you plan events for clients, ask us about a partner account at thersvpstudio.com/enquire/partner."
-          : /FREE_LIMIT/.test(eventError?.message ?? "")
-            ? "Free accounts can have 3 projects at a time. Make one Premium or delete one to start another."
-            : "Couldn’t create your event — please try again.",
+        /CLIENT_LIMIT/.test(message)
+          ? "You can have 10 clients at a time before handing them over. Hand one over to add another."
+          : forClient && (eventError?.code === "PGRST204" || /client_of/.test(message))
+            ? "Adding clients isn’t switched on yet. Please try again in a little while."
+            : /PROJECT_LIMIT/.test(message)
+              ? "Accounts can have 10 projects at a time. Delete one to start another."
+              : /FREE_LIMIT/.test(message)
+                ? "Free accounts can have 3 projects at a time. Make one Premium or delete one to start another."
+                : "Couldn’t create your event — please try again.",
       );
       setStatus("error");
       return null;

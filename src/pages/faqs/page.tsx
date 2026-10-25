@@ -64,7 +64,7 @@ function FaqItem({ q, a, id }: { q: string; a: string; id: string }) {
   );
 }
 
-function ContactForm() {
+export function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [charCount, setCharCount] = useState(0);

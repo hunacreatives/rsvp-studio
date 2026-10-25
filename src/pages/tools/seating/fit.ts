@@ -1,4 +1,4 @@
-import { CHAIR, contentBounds, dims, isRound, rotate, seatOffsets, topRadius, type Chart, type Table, type VenueObject } from "./model";
+import { contentBounds, footprint, isRound, objBox, type Box, type Chart, type Table } from "./model";
 
 // "Fit my tables to this room": spread the tables over the room as they were arranged
 // (front stays front, the bride's side stays on its side), keeping them off the stage, the
@@ -10,32 +10,8 @@ const WALK = 70; // walkway between chair backs, cm
 const WALL = 50; // clearance from the walls, cm
 const CELL = 20; // venue-plan sampling grid, cm
 
-type Box = { x0: number; y0: number; x1: number; y1: number };
 const overlap = (a: Box, b: Box) => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
-
-function halfSize(w: number, h: number, rot: number) {
-  const r = ((rot % 180) + 180) % 180;
-  if (r === 0) return { hw: w / 2, hh: h / 2 };
-  if (r === 90) return { hw: h / 2, hh: w / 2 };
-  const d = Math.max(w, h) / 2;
-  return { hw: d, hh: d };
-}
-/** The table's real footprint: its top plus its chairs (a head table has chairs on one side only). */
-const tableBox = (t: Table, x = t.x, y = t.y): Box => {
-  if (isRound(t)) {
-    const r = topRadius(t) + 30 + CHAIR;
-    return { x0: x - r, y0: y - r, x1: x + r, y1: y + r };
-  }
-  const { w, h } = dims(t);
-  const pts: [number, number][] = [[-w / 2, -h / 2], [w / 2, -h / 2], [-w / 2, h / 2], [w / 2, h / 2]];
-  for (const [sx, sy] of seatOffsets(t)) pts.push([sx - CHAIR, sy - CHAIR], [sx + CHAIR, sy + CHAIR], [sx - CHAIR, sy + CHAIR], [sx + CHAIR, sy - CHAIR]);
-  const r = pts.map((p) => rotate(p, t.rot));
-  return { x0: x + Math.min(...r.map((p) => p[0])), y0: y + Math.min(...r.map((p) => p[1])), x1: x + Math.max(...r.map((p) => p[0])), y1: y + Math.max(...r.map((p) => p[1])) };
-};
-const objBox = (o: VenueObject, x = o.x, y = o.y): Box => {
-  const { hw, hh } = halfSize(o.w, o.h, o.rot);
-  return { x0: x - hw, y0: y - hh, x1: x + hw, y1: y + hh };
-};
+const tableBox = footprint;
 const grow = (b: Box, d: number): Box => ({ x0: b.x0 - d, y0: b.y0 - d, x1: b.x1 + d, y1: b.y1 + d });
 
 /** Where the venue's plan has ink (walls, pillars, stairs), as a summed-area table so any
@@ -107,9 +83,10 @@ export async function fitTablesToRoom(chart: Chart, bgUrl: string | null): Promi
   const objects = chart.objects.map((o) => {
     const b = objBox(o);
     const wall = o.type === "entrance" || o.type === "exit";
-    if (wall ? b.x0 >= -o.w && b.x1 <= W + o.w && b.y0 >= -o.h && b.y1 <= H + o.h : b.x0 >= 0 && b.y0 >= 0 && b.x1 <= W && b.y1 <= H) return { id: o.id, x: o.x, y: o.y, moved: false };
+    if (o.fixed || (wall ? b.x0 >= -o.w && b.x1 <= W + o.w && b.y0 >= -o.h && b.y1 <= H + o.h : b.x0 >= 0 && b.y0 >= 0 && b.x1 <= W && b.y1 <= H)) return { id: o.id, x: o.x, y: o.y, moved: false };
     const p = mapPt(o.x, o.y);
-    const { hw, hh } = halfSize(o.w, o.h, o.rot);
+    const hw = (b.x1 - b.x0) / 2;
+    const hh = (b.y1 - b.y0) / 2;
     return { id: o.id, x: Math.round(Math.min(W - hw, Math.max(hw, p.x))), y: Math.round(Math.min(H - hh, Math.max(hh, p.y))), moved: true };
   });
   const obstacles = chart.objects.map((o, i) => grow(objBox(o, objects[i].x, objects[i].y), 40));
@@ -153,19 +130,28 @@ export async function fitTablesToRoom(chart: Chart, bgUrl: string | null): Promi
     out.push({ id: t.id, ...spot });
   };
 
+  // 0. Tables locked in place stay exactly where they are; the rest work around them.
+  const fixed = chart.tables.filter((t) => t.fixed);
+  for (const t of fixed) {
+    placed.push(grow(tableBox(t), WALK / 2));
+    out.push({ id: t.id, x: t.x, y: t.y });
+  }
+  const free = chart.tables.filter((t) => !t.fixed);
+
   // 1. Head and sweetheart tables stay just in front of the stage (or where they are).
-  const heads = chart.tables.filter((t) => t.shape === "head" || t.shape === "sweetheart");
+  const heads = free.filter((t) => t.shape === "head" || t.shape === "sweetheart");
   for (const t of heads) {
     const want = stage && stageAt ? { x: stageAt.x + (t.x - stage.x), y: stageAt.y + (t.y - stage.y) } : mapPt(t.x, t.y);
     put(t, nearest(t, want));
   }
-  const front = heads[0] ? out[0] : stageAt ? { x: stageAt.x, y: stageAt.y + (stage?.h ?? 0) / 2 } : { x: W / 2, y: WALL };
+  const firstHead = chart.tables.find((t) => t.shape === "head" || t.shape === "sweetheart");
+  const front = firstHead ? out.find((o) => o.id === firstHead.id)! : stageAt ? { x: stageAt.x, y: stageAt.y + (stage?.h ?? 0) / 2 } : { x: W / 2, y: WALL };
   const cx = front.x;
 
   // 2. Round tables in tidy rows: try a few grids (square and staggered, shifted) and keep
   //    the one with the most clear spots around the pillars, stage and dance floor.
-  const rounds = chart.tables.filter((t) => isRound(t) && !heads.includes(t));
-  const others = chart.tables.filter((t) => !isRound(t) && !heads.includes(t));
+  const rounds = free.filter((t) => isRound(t) && !heads.includes(t));
+  const others = free.filter((t) => !isRound(t) && !heads.includes(t));
   const big = rounds.reduce((m, t) => Math.max(m, tableBox(t, 0, 0).x1 * 2), 0);
   let slots: { x: number; y: number }[] = [];
   let bestBalance = Infinity;

@@ -6,6 +6,8 @@ export interface Command {
   id: string;
   label: string;
   hint?: string;
+  /** The heading it's listed under: "Do", "Guests" or "Tables". */
+  section: string;
   run(): void;
 }
 
@@ -15,18 +17,31 @@ export default function CommandBar({ commands, onClose }: { commands: Command[];
   const list = useRef<HTMLDivElement>(null);
   const results = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return commands.filter((c) => c.id.startsWith("a-")).slice(0, 8);
+    if (!s) return commands.filter((c) => c.id.startsWith("a-")).slice(0, 10);
     const words = s.split(/\s+/);
-    return commands
-      .map((c) => {
-        const l = c.label.toLowerCase();
-        if (!words.every((w) => l.includes(w) || (c.hint ?? "").toLowerCase().includes(w))) return null;
-        return { c, score: (l.startsWith(s) ? 0 : 1) + (c.id.startsWith("a-") ? 0.5 : 0) + l.length / 200 };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a!.score - b!.score)
-      .slice(0, 30)
-      .map((x) => x!.c);
+    return (
+      commands
+        .map((c) => {
+          const l = c.label.toLowerCase();
+          if (!words.every((w) => l.includes(w) || (c.hint ?? "").toLowerCase().includes(w))) return null;
+          return {
+            c,
+            score: (l.startsWith(s) ? 0 : 1) + (c.id.startsWith("a-") ? 0.5 : 0) + l.length / 200,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a!.score - b!.score)
+        .slice(0, 30)
+        .map((x) => x!.c)
+        // Keep each heading's rows together, headings in order of their best match.
+        .map((c, n, all) => ({
+          c,
+          g: all.findIndex((x) => x.section === c.section),
+          n,
+        }))
+        .sort((a, b) => a.g - b.g || a.n - b.n)
+        .map((x) => x.c)
+    );
   }, [q, commands]);
 
   const run = (c: Command | undefined) => {
@@ -64,10 +79,13 @@ export default function CommandBar({ commands, onClose }: { commands: Command[];
         <div className="sp-cmd-list" id="sp-cmd-list" role="listbox" ref={list}>
           {results.length ? (
             results.map((c, n) => (
-              <button key={c.id} className="sp-cmd-item" role="option" aria-selected={n === i} onMouseEnter={() => setI(n)} onClick={() => run(c)}>
-                {c.label}
-                {c.hint ? <small>{c.hint}</small> : null}
-              </button>
+              <div key={c.id} role="presentation">
+                {n === 0 || results[n - 1].section !== c.section ? <p className="sp-cmd-h">{c.section}</p> : null}
+                <button className="sp-cmd-item" role="option" aria-selected={n === i} onMouseEnter={() => setI(n)} onClick={() => run(c)}>
+                  {c.label}
+                  {c.hint ? <small>{c.hint}</small> : null}
+                </button>
+              </div>
             ))
           ) : (
             <p className="sp-empty">Nothing matches “{q}”.</p>

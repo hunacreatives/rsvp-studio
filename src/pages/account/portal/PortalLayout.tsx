@@ -9,14 +9,26 @@ import { PortalProvider, usePortal } from "./PortalContext";
 import NewProjectModal from "./components/NewProjectModal";
 import { defaultAvatar, firstName } from "./format";
 import * as api from "./api";
+import { isClientEvent, isCoordinator } from "./types";
 
 const NAV = [
   { to: "/account", label: "Home", icon: "ri-home-4-line", end: true },
   { to: "/account/projects", label: "Events", icon: "ri-folder-3-line" },
+  { to: "/account/clients", label: "Clients", icon: "ri-team-line" },
   { to: "/account/billing", label: "Billing", icon: "ri-file-list-3-line" },
   { to: "/account/settings", label: "Account", icon: "ri-user-3-line" },
   { to: "/account/messages", label: "Messages", icon: "ri-inbox-2-line" },
 ];
+
+/** A couple's event page opened by their coordinator counts as Clients in the nav, not Events
+ *  (both live under /account/projects/…). Returns the nav path that should look active. */
+function useNavOverride(): string | null {
+  const { projects } = usePortal();
+  const { pathname } = useLocation();
+  const id = pathname.match(/^\/account\/projects\/([^/]+)/)?.[1];
+  return id && projects.some((p) => p.id === id && isClientEvent(p)) ? "/account/clients" : null;
+}
+const activeFor = (to: string, isActive: boolean, override: string | null) => (override ? to === override : isActive);
 
 /** Partners (supabase/revenue.sql) get a "Partner" page; everyone else never sees it. */
 function useIsPartner() {
@@ -38,7 +50,7 @@ export default function PortalLayout() {
 }
 
 function Shell() {
-  const { profile, threads, demo } = usePortal();
+  const { profile, threads, demo, projects } = usePortal();
   const navigate = useNavigate();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   // Arrived from the "confirm your email" link (?welcome=1): say so once.
@@ -52,6 +64,10 @@ function Shell() {
   }, [params, setParams]);
   const unread = threads.filter((t) => t.unread).length;
   const isPartner = useIsPartner();
+  // "Clients" only for coordinators: they said so, added a client, or were invited to help.
+  const hasClients = isCoordinator(profile, projects);
+  const nav = NAV.filter((n) => n.to !== "/account/clients" || hasClients);
+  const override = useNavOverride();
 
   // Studio team accounts use the admin console, never the client dashboard.
   if (profile.is_staff && !demo) return <Navigate to="/studio" replace />;
@@ -67,7 +83,10 @@ function Shell() {
       <AppHeader onNewProject={() => setNewProjectOpen(true)} />
       {demo ? (
         <div className="bg-[var(--acc-yellow)] px-4 py-1.5 text-center text-[12px] font-medium text-[var(--ink)]">
-          Demo data (dev only) — <a className="underline" href="?demo=off">exit demo</a>
+          Demo data (dev only) —{" "}
+          <a className="underline" href="?demo=off">
+            exit demo
+          </a>
         </div>
       ) : null}
 
@@ -92,13 +111,11 @@ function Shell() {
             {/* Just the way around: the greeting is Home's title (phones don't see this sidebar). */}
             <div className="rounded-[22px] bg-[var(--paper)] p-3 lg:sticky lg:top-24">
               <nav className="flex flex-col gap-1">
-                {NAV.map((item) => (
-                  <SideLink key={item.to} to={item.to} end={item.end} icon={item.icon}>
+                {nav.map((item) => (
+                  <SideLink key={item.to} to={item.to} end={item.end} icon={item.icon} override={override}>
                     {item.label}
                     {item.to === "/account/messages" && unread > 0 ? (
-                      <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-[var(--acc-blue)] px-1.5 text-[11px] font-semibold text-white">
-                        {unread}
-                      </span>
+                      <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-[var(--acc-blue)] px-1.5 text-[11px] font-semibold text-white">{unread}</span>
                     ) : null}
                   </SideLink>
                 ))}
@@ -111,10 +128,7 @@ function Shell() {
                 <SideLink to="/account/help" icon="ri-question-line">
                   Help &amp; Support
                 </SideLink>
-                <button
-                  onClick={signOut}
-                  className="flex shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-left text-[15px] text-[var(--slate)] transition-colors hover:bg-black/5 lg:mt-1"
-                >
+                <button onClick={signOut} className="flex shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-left text-[15px] text-[var(--slate)] transition-colors hover:bg-black/5 lg:mt-1">
                   <i className="ri-logout-box-r-line text-[19px]" />
                   Log out
                 </button>
@@ -131,22 +145,23 @@ function Shell() {
         </div>
       </div>
 
-      <MobileTabBar unread={unread} isPartner={isPartner} onNewProject={() => setNewProjectOpen(true)} onSignOut={signOut} />
+      <MobileTabBar unread={unread} isPartner={isPartner} hasClients={hasClients} onNewProject={() => setNewProjectOpen(true)} onSignOut={signOut} />
       <NewProjectModal open={newProjectOpen} onClose={() => setNewProjectOpen(false)} />
     </div>
   );
 }
 
-function SideLink({ to, end, icon, children }: { to: string; end?: boolean; icon: string; children: ReactNode }) {
+function SideLink({ to, end, icon, children, override = null }: { to: string; end?: boolean; icon: string; children: ReactNode; override?: string | null }) {
   return (
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) =>
-        `flex shrink-0 items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2 text-[15px] transition-colors ${
+      className={({ isActive: routeActive }) => {
+        const isActive = activeFor(to, routeActive, override);
+        return `flex shrink-0 items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2 text-[15px] transition-colors ${
           isActive ? "bg-[#e3e3e6] font-medium text-[var(--ink)]" : "text-[var(--ink)] hover:bg-black/5"
-        }`
-      }
+        }`;
+      }}
     >
       <i className={`${icon} text-[19px]`} />
       {children}
@@ -192,11 +207,17 @@ const TABS = [
  * Phones/tablets: a fixed bottom tab bar (one thumb reaches everything) with
  * "More" for Account, Help & Support, New Project and Log out.
  */
-function MobileTabBar({ unread, isPartner, onNewProject, onSignOut }: { unread: number; isPartner: boolean; onNewProject: () => void; onSignOut: () => void }) {
+function MobileTabBar({ unread, isPartner, hasClients, onNewProject, onSignOut }: { unread: number; isPartner: boolean; hasClients: boolean; onNewProject: () => void; onSignOut: () => void }) {
   const { pathname } = useLocation();
+  // Coordinators: Clients takes Billing's tab (Billing moves under More), so it stays 5 across.
+  const override = useNavOverride();
+  const tabs = hasClients
+    ? [...TABS.filter((t) => t.to !== "/account/billing").slice(0, 2), { to: "/account/clients", label: "Clients", icon: "ri-team-line" }, ...TABS.filter((t) => t.to === "/account/messages")]
+    : TABS;
   const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
-  const moreActive = pathname.startsWith("/account/settings") || pathname.startsWith("/account/help") || pathname.startsWith("/account/partner");
+  const moreActive =
+    pathname.startsWith("/account/settings") || pathname.startsWith("/account/help") || pathname.startsWith("/account/partner") || (hasClients && pathname.startsWith("/account/billing"));
 
   useEffect(() => setMoreOpen(false), [pathname]);
   useEffect(() => {
@@ -216,26 +237,26 @@ function MobileTabBar({ unread, isPartner, onNewProject, onSignOut }: { unread: 
 
   return (
     <>
-      <nav
-        aria-label="Dashboard"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--line)] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
-      >
+      <nav aria-label="Dashboard" className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--line)] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-xl">
-          {TABS.map((t) => (
-            <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => tabClass(isActive)}>
-              {({ isActive }) => (
-                <>
-                  <span className="relative">
-                    <i className={`${isActive ? t.icon.replace("-line", "-fill") : t.icon} text-[22px] leading-none`} />
-                    {t.to === "/account/messages" && unread > 0 ? (
-                      <span className="absolute -right-2.5 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--acc-blue)] px-1 text-[11px] font-semibold leading-none text-white">
-                        {unread}
-                      </span>
-                    ) : null}
-                  </span>
-                  {t.label}
-                </>
-              )}
+          {tabs.map((t) => (
+            <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => tabClass(activeFor(t.to, isActive, override))}>
+              {({ isActive: routeActive }) => {
+                const isActive = activeFor(t.to, routeActive, override);
+                return (
+                  <>
+                    <span className="relative">
+                      <i className={`${isActive ? t.icon.replace("-line", "-fill") : t.icon} text-[22px] leading-none`} />
+                      {t.to === "/account/messages" && unread > 0 ? (
+                        <span className="absolute -right-2.5 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--acc-blue)] px-1 text-[11px] font-semibold leading-none text-white">
+                          {unread}
+                        </span>
+                      ) : null}
+                    </span>
+                    {t.label}
+                  </>
+                );
+              }}
             </NavLink>
           ))}
           <button onClick={() => setMoreOpen(true)} className={tabClass(moreActive || moreOpen)} aria-haspopup="dialog" aria-expanded={moreOpen}>
@@ -256,16 +277,29 @@ function MobileTabBar({ unread, isPartner, onNewProject, onSignOut }: { unread: 
                 <ul className="divide-y divide-[var(--line)]">
                   {[
                     ...(isPartner ? [{ label: "Partner", icon: "ri-hand-heart-line", onClick: () => navigate("/account/partner") }] : []),
+                    ...(hasClients ? [{ label: "Billing", icon: "ri-file-list-3-line", onClick: () => navigate("/account/billing") }] : []),
                     { label: "Account", icon: "ri-user-3-line", onClick: () => navigate("/account/settings") },
                     { label: "Help & Support", icon: "ri-question-line", onClick: () => navigate("/account/help") },
-                    { label: "New event", icon: "ri-folder-add-line", onClick: () => { setMoreOpen(false); onNewProject(); } },
-                    { label: "Log out", icon: "ri-logout-box-r-line", onClick: () => { setMoreOpen(false); onSignOut(); }, muted: true },
+                    {
+                      label: "New event",
+                      icon: "ri-folder-add-line",
+                      onClick: () => {
+                        setMoreOpen(false);
+                        onNewProject();
+                      },
+                    },
+                    {
+                      label: "Log out",
+                      icon: "ri-logout-box-r-line",
+                      onClick: () => {
+                        setMoreOpen(false);
+                        onSignOut();
+                      },
+                      muted: true,
+                    },
                   ].map((it) => (
                     <li key={it.label}>
-                      <button
-                        onClick={it.onClick}
-                        className={`flex min-h-[52px] w-full items-center gap-4 px-2 text-left text-[16px] ${it.muted ? "text-[var(--slate)]" : "text-[var(--ink)]"}`}
-                      >
+                      <button onClick={it.onClick} className={`flex min-h-[52px] w-full items-center gap-4 px-2 text-left text-[16px] ${it.muted ? "text-[var(--slate)]" : "text-[var(--ink)]"}`}>
                         <i className={`${it.icon} text-[20px]`} />
                         {it.label}
                       </button>
@@ -286,9 +320,7 @@ export function PageHeader({ title, sub, action }: { title: string; sub?: string
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="font-display text-[2.4rem] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--ink)] md:text-[3rem]">
-          {title}
-        </h1>
+        <h1 className="font-display text-[2.4rem] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--ink)] md:text-[3rem]">{title}</h1>
         {sub ? <p className="mt-3 text-[17px] text-[var(--ink)] md:text-[19px]">{sub}</p> : null}
       </div>
       {action}
@@ -302,6 +334,7 @@ function PrefetchPortalPages() {
     const t = setTimeout(() => {
       void import("./pages/HomePage");
       void import("./pages/ProjectsPage");
+      void import("./pages/ClientsPage");
       void import("./pages/ProjectDetailPage");
       void import("./pages/BillingPage");
       void import("./pages/InvoicePage");

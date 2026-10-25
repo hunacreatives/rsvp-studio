@@ -123,16 +123,21 @@ export async function emailInviteCode(eventId: string, code: string, email: stri
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 
-export async function createInviteCode(eventId: string) {
+export type CodeRole = "owner" | "cohost" | "coordinator";
+export type InviteCode = { code: string; used_at: string | null; role?: CodeRole | null };
+
+/** A one-time code. `role` (coordinator-mode.sql) says who it's for: the couple (owner), a
+ *  co-host, or a coordinator, who never becomes the owner. */
+export async function createInviteCode(eventId: string, role: CodeRole = "owner") {
   const bytes = crypto.getRandomValues(new Uint8Array(8));
   const code = Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
-  must(await supabase.from("invite_codes").insert({ code, event_id: eventId }));
+  must(await supabase.from("invite_codes").insert({ code, event_id: eventId, role }));
   return code;
 }
 
 export async function loadInviteCodes(eventId: string) {
-  const r = await supabase.from("invite_codes").select("code, used_at").eq("event_id", eventId);
-  return (r.data ?? []) as { code: string; used_at: string | null }[];
+  const r = await supabase.from("invite_codes").select("code, used_at, role").eq("event_id", eventId);
+  return (r.data ?? []) as InviteCode[];
 }
 
 export async function loadClients(projects: Project[]) {
@@ -141,7 +146,7 @@ export async function loadClients(projects: Project[]) {
   const ownerIds = [...new Set(projects.map((p) => p.owner_id).filter(Boolean))] as string[];
   const [{ data: owners }, { data: members }] = await Promise.all([
     ownerIds.length ? supabase.from("profiles").select("id, full_name, email, avatar_url, is_staff").in("id", ownerIds) : { data: [] },
-    supabase.from("event_members").select("event_id, profiles(id, full_name, email, avatar_url, is_staff)").in("event_id", ids),
+    supabase.from("event_members").select("event_id, role, profiles(id, full_name, email, avatar_url, is_staff)").in("event_id", ids),
   ]);
   const ownerMap: Record<string, PersonLite> = {};
   for (const o of owners ?? []) ownerMap[o.id] = o as PersonLite;
@@ -150,7 +155,7 @@ export async function loadClients(projects: Project[]) {
   const memberMap: Record<string, PersonLite[]> = {};
   for (const m of members ?? []) {
     const person = m.profiles as unknown as PersonLite | null;
-    if (person) (memberMap[m.event_id as string] ??= []).push(person);
+    if (person) (memberMap[m.event_id as string] ??= []).push({ ...person, role: m.role as string });
   }
   return { owners: byProject, members: memberMap };
 }

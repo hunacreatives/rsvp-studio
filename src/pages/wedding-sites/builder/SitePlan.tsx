@@ -12,7 +12,8 @@ import { DiscountNote, ReferralCode } from "./ReferralCode";
 //   (Every site shows "Made with love by The RSVP Studio" either way.)
 // A free-template site can upgrade (PayMongo, back here with ?upgraded=…).
 
-export type SitePlan = { premium: boolean; managed: boolean; upgradeCentavos: number };
+/** canBill: this person pays for the event (the couple or a cohost, not a coordinator). */
+export type SitePlan = { premium: boolean; managed: boolean; upgradeCentavos: number; canBill: boolean };
 
 export const peso = (centavos: number) =>
   new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: centavos % 100 ? 2 : 0 }).format(centavos / 100);
@@ -21,9 +22,10 @@ export function useSitePlan(eventId: string | undefined) {
   const [plan, setPlan] = useState<SitePlan | null>(null);
   const reload = useCallback(async () => {
     if (!eventId) return;
-    const { data, error } = await supabase.rpc("site_plan", { p_event: eventId });
+    const [{ data, error }, bill] = await Promise.all([supabase.rpc("site_plan", { p_event: eventId }), supabase.rpc("can_bill_event", { eid: eventId })]);
     const r = (Array.isArray(data) ? data[0] : data) as { premium: boolean; managed: boolean; upgrade_centavos: number } | null;
-    setPlan(error || !r ? null : { premium: r.premium, managed: r.managed, upgradeCentavos: r.upgrade_centavos });
+    // (can_bill_event comes with coordinator-mode.sql; without it, everyone on the event pays, as before.)
+    setPlan(error || !r ? null : { premium: r.premium, managed: r.managed, upgradeCentavos: r.upgrade_centavos, canBill: bill.error ? true : bill.data !== false });
   }, [eventId]);
   useEffect(() => {
     reload();

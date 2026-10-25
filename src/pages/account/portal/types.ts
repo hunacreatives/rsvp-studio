@@ -17,6 +17,8 @@ export type Profile = {
   /** Follow-up emails: draft reminders, headcount, after the event (supabase/followups.sql). */
   notify_tips?: boolean;
   password_changed_at: string | null;
+  /** "I'm a coordinator or planner" (supabase/coordinator-desk.sql): Home is the Coordinator desk. */
+  is_coordinator?: boolean;
 };
 
 export type ProjectStatus = "in_progress" | "completed";
@@ -47,7 +49,32 @@ export type Project = {
   /** Deleted projects are hidden everywhere except Studio → Projects → Deleted. */
   deleted_at?: string | null;
   role: "Owner" | "Member";
+  /** What this person can do on it (coordinator-mode.sql): the couple (owner) and cohosts
+   *  edit and pay; a coordinator edits and publishes; a viewer only looks. Staff: "owner". */
+  access: EventAccess;
+  /** The coordinator who added it for a client (coordinator-desk.sql). They own it until the
+   *  client takes it over (handed_over_at), then stay on as its coordinator. */
+  client_of?: string | null;
+  handed_over_at?: string | null;
+  /** An unclaimed client event of mine: who the hand-over invite went to, if one is open. */
+  handover_to?: string | null;
+  /** A viewer their coordinator invited (crew), not family the couple invited. */
+  crew?: boolean;
 };
+export type EventAccess = "owner" | "cohost" | "coordinator" | "viewer";
+/** Pay, upgrade, domains, texts, invite and remove people. */
+export const canBill = (p: Pick<Project, "access">) => p.access === "owner" || p.access === "cohost";
+/** A client's event: one this person helps with (their coordinator or crew), or one they added
+ *  for a client and haven't handed over yet. Under Clients, not Events. */
+export const isClientEvent = (p: Pick<Project, "access" | "client_of" | "handed_over_at" | "crew">) =>
+  p.access === "coordinator" || (p.access === "viewer" && !!p.crew) || isUnclaimed(p);
+/** A client event I still own: I added it for them and they haven't taken it over. */
+export const isUnclaimed = (p: Pick<Project, "access" | "client_of" | "handed_over_at">) => p.access === "owner" && !!p.client_of && !p.handed_over_at;
+/** Gets the Coordinator desk: said so (Account, or the first-visit choice), or has a client event. */
+export const isCoordinator = (profile: Pick<Profile, "is_coordinator">, projects: Pick<Project, "access" | "client_of" | "handed_over_at" | "crew">[]) =>
+  !!profile.is_coordinator || projects.some(isClientEvent);
+/** Change the website, guests, replies and seating. */
+export const canEdit = (p: Pick<Project, "access">) => p.access !== "viewer";
 
 export type Task = {
   id: string;
@@ -152,4 +179,4 @@ export type ThreadSummary = Thread & {
   counterpartAvatar: string | null;
 };
 
-export type PersonLite = { id: string; full_name: string | null; avatar_url: string | null; is_staff: boolean; email?: string | null };
+export type PersonLite = { id: string; full_name: string | null; avatar_url: string | null; is_staff: boolean; email?: string | null; /** event_members.role, on members */ role?: string };

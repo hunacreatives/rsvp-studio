@@ -81,7 +81,9 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
     }
     claimSignupRef();
     // Back from Google sign-in: on to the page they were headed to.
-    const headedTo = takeAuthNext();
+    // (or from the confirm-your-email link: /account?welcome=1&next=…)
+    const fromLink = window.location.pathname.slice(base.length) === "/account" ? new URLSearchParams(window.location.search).get("next") : null;
+    const headedTo = takeAuthNext() ?? (fromLink && fromLink.startsWith("/") && !fromLink.startsWith("//") && !fromLink.startsWith("/\\") ? fromLink : null);
     if (headedTo && headedTo !== asked) navigate(headedTo, { replace: true });
     const next = await api.loadSnapshot(user.id);
     if (next) setSnap(next);

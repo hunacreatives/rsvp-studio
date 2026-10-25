@@ -18,6 +18,7 @@ export default function DiyExtras({ project }: { project: Project }) {
   const live = !!site.publishedAt;
   const template = site.templateId ? getTemplateDefinition(site.templateId)?.label ?? site.templateId : null;
   const ctx = {
+    event: project.id,
     occasion: OCCASION[project.event_type ?? ""] ?? "other",
     date: project.event_date ?? undefined,
     names: project.name,

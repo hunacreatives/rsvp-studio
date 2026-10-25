@@ -31,7 +31,8 @@ async function billingRecipients(db: SupabaseClient, eventId: string) {
   const ids = new Set<string>();
   const { data: ev } = await db.from("events").select("owner_id, name").eq("id", eventId).maybeSingle();
   if (ev?.owner_id) ids.add(ev.owner_id);
-  const { data: members } = await db.from("event_members").select("profile_id").eq("event_id", eventId);
+  // Receipts and invoices go to whoever pays: the couple and cohosts, not coordinators.
+  const { data: members } = await db.from("event_members").select("profile_id").eq("event_id", eventId).eq("role", "cohost");
   for (const m of members ?? []) ids.add(m.profile_id);
   if (!ids.size) return { to: [] as string[], eventName: (ev?.name as string) ?? "" };
   const { data } = await db.from("profiles").select("email, billing_email, is_staff, notify_billing_updates").in("id", [...ids]);

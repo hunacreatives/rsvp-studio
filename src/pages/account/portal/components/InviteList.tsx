@@ -33,7 +33,8 @@ export function parseInviteLines(text: string) {
  *  forwarded personal link, sharing the invitation's seats. */
 type Status = { reply: Guest | null; others: Guest[] };
 
-export default function InviteList({ eventId, guests: loaded, eventName, siteUrl, deadline, demo }: { eventId: string; guests: Guest[]; eventName: string; siteUrl: string | null; deadline?: string | null; demo?: boolean }) {
+/** readOnly: a viewer on the event (coordinator-mode.sql) sees the list but can't change it. */
+export default function InviteList({ eventId, guests: loaded, eventName, siteUrl, deadline, demo, readOnly }: { eventId: string; guests: Guest[]; eventName: string; siteUrl: string | null; deadline?: string | null; demo?: boolean; readOnly?: boolean }) {
   const [list, setList] = useState<Invitee[] | null | undefined>(undefined);
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
@@ -246,12 +247,14 @@ export default function InviteList({ eventId, guests: loaded, eventName, siteUrl
           <PillButton onClick={nudge}>{copied ? "Copied" : "Copy a reminder message"}</PillButton>
         ) : null}
         {rows.length && siteUrl ? <PillButton onClick={downloadLinks}>Download personal links</PillButton> : null}
-        <PillButton tone="dark" onClick={() => setAdding((v) => !v)}>
-          {adding ? "Cancel" : "Add guests"}
-        </PillButton>
+        {readOnly ? null : (
+          <PillButton tone="dark" onClick={() => setAdding((v) => !v)}>
+            {adding ? "Cancel" : "Add guests"}
+          </PillButton>
+        )}
       </div>
 
-      {repeats.length && !adding ? (
+      {repeats.length && !adding && !readOnly ? (
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3">
           <p className="min-w-0 flex-1 text-[14px] text-[var(--ink)]">
             {repeats.length === 1 ? `${repeats[0].keep.name} is on your list ${repeats[0].drop.length === 1 ? "twice" : `${repeats[0].drop.length + 1} times`}.` : `${repeats.length} guests are on your list more than once.`}
@@ -338,12 +341,16 @@ export default function InviteList({ eventId, guests: loaded, eventName, siteUrl
                     <i className="ri-link" aria-hidden /> {copiedId === inv.id ? "Copied" : "Copy invite"}
                   </button>
                 ) : null}
-                <button onClick={() => setEditing(inv)} aria-label={`Edit ${inv.name}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
-                  <i className="ri-pencil-line text-[18px]" aria-hidden />
-                </button>
-                <button onClick={() => remove(inv)} aria-label={`Remove ${inv.name}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
-                  <i className="ri-close-line text-[18px]" aria-hidden />
-                </button>
+                {readOnly ? null : (
+                  <>
+                    <button onClick={() => setEditing(inv)} aria-label={`Edit ${inv.name}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
+                      <i className="ri-pencil-line text-[18px]" aria-hidden />
+                    </button>
+                    <button onClick={() => remove(inv)} aria-label={`Remove ${inv.name}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-[var(--paper)]">
+                      <i className="ri-close-line text-[18px]" aria-hidden />
+                    </button>
+                  </>
+                )}
               </li>
               );
             })}

@@ -93,6 +93,12 @@ export default function PreviewPhotoTools({
   const pickFor = useRef<Target | null>(null); // Replace: which photo; null = add new
   const pickInto = useRef<HTMLElement | null>(null); // Add: the empty frame clicked
   const hideTimer = useRef(0);
+  // One pending hide at a time: leaving the page and then the toolbar used to start two, and
+  // the first one (no longer tracked) hid the toolbar of the photo the mouse had just reached.
+  const hideSoon = useCallback(() => {
+    window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => setHover(null), 250);
+  }, []);
   // First visit: say that the page itself is what you edit. Gone after the first click on it.
   const [hint, setHint] = useState(() => {
     try {
@@ -210,29 +216,34 @@ export default function PreviewPhotoTools({
     [eventId, write, setContent, edit, galleryLimit],
   );
 
-  // Hover, click and drop on the page.
+  // Hover, click and drop on the page. The listeners are re-attached on every render, so the
+  // frame that finds the photo under the mouse lives in a ref and reads the latest state:
+  // cancelling it on cleanup lost the last move whenever something re-rendered mid-move (a
+  // scroll, the list item bar appearing), and the toolbar didn't show until the mouse moved again.
+  const raf = useRef(0);
+  const adjusting = useRef(false);
+  adjusting.current = !!adjust;
+  const findAt = useRef(photoAt);
+  findAt.current = photoAt;
+  useEffect(() => () => cancelAnimationFrame(raf.current), []);
   useEffect(() => {
     const r = root.current;
     if (!r) return;
-    let raf = 0;
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse" || adjust) return;
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const t = photoAt(e.clientX, e.clientY);
+      if (e.pointerType !== "mouse" || adjusting.current) return;
+      cancelAnimationFrame(raf.current);
+      raf.current = requestAnimationFrame(() => {
+        if (adjusting.current) return;
+        const t = findAt.current(e.clientX, e.clientY);
         if (t) {
           window.clearTimeout(hideTimer.current);
           setHover((h) => (h?.img === t.img ? h : t));
         } else {
-          window.clearTimeout(hideTimer.current);
-          hideTimer.current = window.setTimeout(() => setHover(null), 250);
+          hideSoon();
         }
       });
     };
-    const onLeave = () => {
-      window.clearTimeout(hideTimer.current);
-      hideTimer.current = window.setTimeout(() => setHover(null), 250);
-    };
+    const onLeave = hideSoon;
     const onClick = (e: MouseEvent) => {
       if (hint) dismissHint();
       const slot = (e.target as Element).closest?.("[data-add-photo]") as HTMLElement | null;
@@ -280,7 +291,6 @@ export default function PreviewPhotoTools({
     r.addEventListener("dragleave", onDragLeave);
     r.addEventListener("drop", onDrop);
     return () => {
-      cancelAnimationFrame(raf);
       r.removeEventListener("pointermove", onMove);
       r.removeEventListener("pointerleave", onLeave);
       r.removeEventListener("click", onClick, true);
@@ -343,7 +353,7 @@ export default function PreviewPhotoTools({
           t={hv}
           pane={paneRect}
           onEnter={() => window.clearTimeout(hideTimer.current)}
-          onLeave={() => (hideTimer.current = window.setTimeout(() => setHover(null), 250))}
+          onLeave={hideSoon}
           onAdjust={() => {
             edit?.checkpoint();
             setAdjust(hv);
@@ -444,8 +454,9 @@ function Toolbar({ t, pane, onEnter, onLeave, onAdjust, onReplace }: { t: Target
  */
 function Adjuster({ t, asset, onChange, onDone }: { t: Target; asset: ImageAsset; onChange: (a: ImageAsset) => void; onDone: () => void }) {
   const r = t.frame.getBoundingClientRect();
-  const w = asset.width || t.img.naturalWidth || 1;
-  const h = asset.height || t.img.naturalHeight || 1;
+  // The photo's real shape (what object-fit crops by), then what was saved for it.
+  const w = t.img.naturalWidth || asset.width || 1;
+  const h = t.img.naturalHeight || asset.height || 1;
   const fx = asset.focalPoint?.x ?? 0.5;
   const fy = asset.focalPoint?.y ?? 0.5;
   const z = Math.min(3, Math.max(1, asset.zoom ?? 1));
@@ -459,6 +470,19 @@ function Adjuster({ t, asset, onChange, onDone }: { t: Target; asset: ImageAsset
   const pinch = useRef<{ d: number; z: number } | null>(null);
   const clamp = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 1000) / 1000;
   const setZoom = (v: number) => onChange({ ...asset, zoom: Math.round(Math.min(3, Math.max(1, v)) * 100) / 100 });
+
+  // Hold the photo still while it's adjusted: a design's hover zoom or reveal (a transform on the
+  // photo) would otherwise ease it out from under the frame once the adjuster covers it.
+  useEffect(() => {
+    const img = t.img;
+    const was = { transform: img.style.transform, transition: img.style.transition };
+    img.style.transition = "none";
+    img.style.transform = "none";
+    return () => {
+      img.style.transform = was.transform;
+      img.style.transition = was.transition;
+    };
+  }, [t.img]);
 
   // Scroll to zoom (a native listener: React's wheel handler can't stop the page scrolling).
   const pad = useRef<HTMLDivElement>(null);

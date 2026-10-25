@@ -1,18 +1,31 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateEventModal from "../../components/CreateEventModal";
+import { usePortal } from "../PortalContext";
+import { isCoordinator } from "../types";
 import { Modal } from "../ui";
 
 /**
  * "New Project" has three real paths: hire the studio (inquiry), build it
  * yourself (self-serve site builder), or link a project the studio already
- * set up for you (invite code).
+ * set up for you (invite code). Coordinators get a fourth, first: add a
+ * client's event (theirs to hand over; supabase/coordinator-desk.sql).
  */
 export default function NewProjectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
-  const [selfServe, setSelfServe] = useState(false);
+  const { profile, projects } = usePortal();
+  const [selfServe, setSelfServe] = useState<false | "own" | "client">(false);
 
-  if (selfServe) return <CreateEventModal onClose={() => { setSelfServe(false); onClose(); }} />;
+  if (selfServe)
+    return (
+      <CreateEventModal
+        forClient={selfServe === "client"}
+        onClose={() => {
+          setSelfServe(false);
+          onClose();
+        }}
+      />
+    );
 
   const go = (to: string) => {
     onClose();
@@ -22,6 +35,14 @@ export default function NewProjectModal({ open, onClose }: { open: boolean; onCl
   return (
     <Modal open={open} onClose={onClose} title="Start a new event" width={560}>
       <div className="grid gap-3">
+        {isCoordinator(profile, projects) ? (
+          <Choice
+            icon="ri-user-add-line"
+            title="Add a client"
+            body="Set up a client’s event, then hand it over when they’re ready."
+            onClick={() => setSelfServe("client")}
+          />
+        ) : null}
         <Choice
           icon="ri-sparkling-2-line"
           title="Work with our studio"
@@ -32,7 +53,7 @@ export default function NewProjectModal({ open, onClose }: { open: boolean; onCl
           icon="ri-layout-masonry-line"
           title="Build it yourself"
           body="Pick a template, add your details, and publish your event site today."
-          onClick={() => setSelfServe(true)}
+          onClick={() => setSelfServe("own")}
         />
         <Choice
           icon="ri-key-2-line"
@@ -45,7 +66,7 @@ export default function NewProjectModal({ open, onClose }: { open: boolean; onCl
   );
 }
 
-function Choice({ icon, title, body, onClick }: { icon: string; title: string; body: string; onClick: () => void }) {
+export function Choice({ icon, title, body, onClick }: { icon: string; title: string; body: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}

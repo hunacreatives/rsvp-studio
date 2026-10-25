@@ -4,6 +4,7 @@ import StartScreen from "./StartScreen";
 import Editor, { type Look } from "./Editor";
 import { loadSaved, open, useStore } from "./store";
 import { listCloud, loadCloud } from "./cloud";
+import { planForEvent } from "./website";
 import { supabase } from "@/lib/supabase";
 import "./seating.css";
 
@@ -66,6 +67,10 @@ export default function SeatPlannerPage() {
   const { search } = useLocation();
   const navigate = useNavigate();
   const home = new URLSearchParams(search).has("home");
+  // ?event=<id> (the dashboard's "Make / Open seating plan"): that event's plan, or a new one
+  // started from its guests.
+  const [eventParam] = useState(() => new URLSearchParams(window.location.search).get("event"));
+  const [startEvent, setStartEvent] = useState<string | undefined>(undefined);
   // "ask": a saved plan exists and we haven't been told to open it yet.
   const [asking, setAsking] = useState(() => {
     if (session.has(AFTER_AUTH)) return false; // finishing a download/share after sign-up
@@ -80,6 +85,22 @@ export default function SeatPlannerPage() {
     (async () => {
       const local = loadSaved();
       const { data } = await supabase.auth.getSession();
+      if (data.session && eventParam) {
+        // Their plan for this event, straight into the editor; or the new-plan form on its guests.
+        const linked = await planForEvent(eventParam).catch(() => null);
+        const c = linked ? await loadCloud(linked.id).catch(() => null) : null;
+        if (!alive) return;
+        if (c) {
+          open(c);
+          setAsking(false);
+        } else {
+          if (local) open(local);
+          setStartEvent(eventParam);
+        }
+        navigate("/tools/seating-chart-maker", { replace: true });
+        setBooted(true);
+        return;
+      }
       if (data.session) {
         try {
           if (local) {
@@ -99,6 +120,8 @@ export default function SeatPlannerPage() {
     return () => {
       alive = false;
     };
+    // Once, on arrival (eventParam is read once; navigate is stable).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // The editor is a full-screen tool: the page behind it doesn't scroll or bounce.
@@ -136,15 +159,17 @@ export default function SeatPlannerPage() {
   };
 
   if (!booted) return <div style={{ minHeight: "100dvh", background: "var(--warm-white)" }} />;
-  if (!chart || home || asking)
+  if (!chart || home || asking || startEvent)
     return (
       <StartScreen
         current={chart}
+        startEvent={startEvent}
         // Only on arrival with a saved plan — not when you chose "Mesa home" from the editor.
         welcomeBack={!!chart && asking && !home}
         onResume={enterEditor}
         onReady={(a) => {
           setAutoSeat(a);
+          setStartEvent(undefined);
           enterEditor();
         }}
       />

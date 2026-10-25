@@ -342,8 +342,11 @@ function ProgressCard({ project }: { project: Project }) {
   );
 }
 
+const ROLE_LABEL: Record<string, string> = { owner: "Couple", cohost: "Co-host", coordinator: "Coordinator", viewer: "Viewer" };
+
 function ClientCard({ project, owner, members, onOpenInbox }: { project: Project; owner?: PersonLite; members: PersonLite[]; onOpenInbox: () => void }) {
-  const [codes, setCodes] = useState<{ code: string; used_at: string | null }[]>([]);
+  const [codes, setCodes] = useState<studio.InviteCode[]>([]);
+  const [forRole, setForRole] = useState<studio.CodeRole>("owner");
   const { demo } = usePortal();
   const { busy, error, run } = useAction();
   const [toast, setToast] = useState<string | null>(null);
@@ -366,12 +369,22 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
     <Card title="Client access" action={<PillButton onClick={onOpenInbox}><i className="ri-chat-3-line" /> Messages</PillButton>}>
       <div className="space-y-1 text-[14px]">
         {owner ? (
-          <p className="break-words text-[var(--ink)] [overflow-wrap:anywhere]"><span className="text-[var(--slate)]">Owner:</span> {owner.full_name || "—"} · {owner.email}</p>
+          <>
+            <p className="break-words text-[var(--ink)] [overflow-wrap:anywhere]">
+              <span className="text-[var(--slate)]">{project.client_of && !project.handed_over_at ? "Coordinator:" : "Owner:"}</span> {owner.full_name || "—"} · {owner.email}
+            </p>
+            {/* A coordinator's client event (coordinator-desk.sql): who added it, and whether the client has it yet. */}
+            {project.client_of ? (
+              <p className="text-[13px] text-[var(--slate)]">
+                {project.handed_over_at ? `Set up by their coordinator, handed over ${formatDate(project.handed_over_at)}.` : "A coordinator’s client event, not handed over yet. It can’t go live free until the client takes it over."}
+              </p>
+            ) : null}
+          </>
         ) : (
           <p className="text-[var(--slate)]">Not linked to a client yet — generate a code and send it to them.</p>
         )}
         {members.map((m) => (
-          <p key={m.id} className="break-words text-[var(--ink)] [overflow-wrap:anywhere]"><span className="text-[var(--slate)]">Member:</span> {m.full_name || "—"} · {m.email}</p>
+          <p key={m.id} className="break-words text-[var(--ink)] [overflow-wrap:anywhere]"><span className="text-[var(--slate)]">{ROLE_LABEL[m.role ?? ""] ?? "Member"}:</span> {m.full_name || "—"} · {m.email}</p>
         ))}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -383,24 +396,33 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
             className={`min-h-[40px] rounded-full px-3.5 py-1.5 font-mono text-[14px] md:min-h-0 md:px-3 md:py-1 md:text-[13px] ${c.used_at ? "bg-[var(--paper)] text-[var(--slate)]" : "bg-[#ecfbcc] text-[#3d5a12]"}`}
           >
             <span className={c.used_at ? "line-through" : ""}>{c.code}</span>
+            {c.role && c.role !== "owner" ? <span className="ml-1.5 font-sans text-[12px]">{ROLE_LABEL[c.role]}</span> : null}
             {c.used_at ? <span className="ml-1.5 font-sans text-[12px]">used {formatDate(c.used_at)}</span> : null}
           </button>
         ))}
       </div>
       <ErrorText>{error}</ErrorText>
-      <PillButton
-        className="mt-4"
-        disabled={busy}
-        onClick={() =>
-          run(async () => {
-            const code = await studio.createInviteCode(project.id);
-            copy(code);
-            setCodes(await studio.loadInviteCodes(project.id));
-          })
-        }
-      >
-        Generate invite code
-      </PillButton>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="w-full sm:w-[220px]">
+          <Select value={forRole} onChange={(e) => setForRole(e.target.value as studio.CodeRole)} aria-label="Who the code is for">
+            <option value="owner">For the couple</option>
+            <option value="cohost">For a co-host</option>
+            <option value="coordinator">For their coordinator</option>
+          </Select>
+        </div>
+        <PillButton
+          disabled={busy}
+          onClick={() =>
+            run(async () => {
+              const code = await studio.createInviteCode(project.id, forRole);
+              copy(code);
+              setCodes(await studio.loadInviteCodes(project.id));
+            })
+          }
+        >
+          Generate invite code
+        </PillButton>
+      </div>
       {unused ? (
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <Input type="email" value={sendTo} onChange={(e) => setSendTo(e.target.value)} placeholder="client@email.com" className="sm:!w-[240px]" />
@@ -421,7 +443,7 @@ function ClientCard({ project, owner, members, onOpenInbox }: { project: Project
         </div>
       ) : null}
       {toast ? <p className="mt-2 text-[13px] font-medium text-[#2f6b2f]">{toast}</p> : null}
-      <p className="mt-2 text-[12px] text-[var(--slate)]">Each code works once. The first person to use one becomes the main client; extra codes add co-hosts.</p>
+      <p className="mt-2 text-[12px] text-[var(--slate)]">Each code works once. A couple’s code makes them the main client (or a co-host if there already is one). A coordinator can edit and publish, but can’t pay or see invoices.</p>
     </Card>
   );
 }

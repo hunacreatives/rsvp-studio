@@ -19,12 +19,13 @@ export async function hostRecipients(db: SupabaseClient, eventId: string): Promi
 }
 
 /** Everyone hosting the event (owner + co-hosts), whatever their notification settings: for
- *  service notices about their own data (the site going offline, the guest list being deleted). */
+ *  service notices about their own data (the site going offline, the guest list being deleted).
+ *  Not coordinators or viewers: these are about the couple's own website and what it costs. */
 export async function eventPeopleEmails(db: SupabaseClient, eventId: string): Promise<string[]> {
   const ids = new Set<string>();
   const { data: ev } = await db.from("events").select("owner_id").eq("id", eventId).maybeSingle();
   if (ev?.owner_id) ids.add(ev.owner_id);
-  const { data: members } = await db.from("event_members").select("profile_id").eq("event_id", eventId);
+  const { data: members } = await db.from("event_members").select("profile_id").eq("event_id", eventId).eq("role", "cohost");
   for (const m of members ?? []) ids.add(m.profile_id);
   if (!ids.size) return [];
   const { data: people } = await db.from("profiles").select("email, is_staff").in("id", [...ids]);

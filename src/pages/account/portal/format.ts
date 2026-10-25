@@ -95,6 +95,9 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   other: "Celebration",
 };
 
+/** "Wedding", "Birthday" … ("Event" when it isn't set). */
+export const eventTypeLabel = (eventType: string | null | undefined) => EVENT_TYPE_LABEL[eventType ?? ""] ?? "Event";
+
 /** "Wedding Website + Digital Invitations", falling back to the event type. */
 export function servicesLabel(services: string[], eventType: string | null) {
   if (services.length) return services.join(" + ");

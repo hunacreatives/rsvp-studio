@@ -6,11 +6,14 @@ import { byWhen, EventList, isPast } from "../components/blocks";
 import { useGuestStats } from "../guestStats";
 import { FilterTabs, Panel, PrimaryButton } from "../ui";
 import NewProjectModal from "../components/NewProjectModal";
+import { isClientEvent } from "../types";
 
 type Filter = "all" | "upcoming" | "past";
 
 export default function ProjectsPage() {
-  const { projects, demo } = usePortal();
+  const { projects: everything, demo } = usePortal();
+  // Couples' events this person coordinates live under Clients.
+  const projects = everything.filter((p) => !isClientEvent(p));
   const stats = useGuestStats(projects, demo);
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>("all");

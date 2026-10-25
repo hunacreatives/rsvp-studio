@@ -97,6 +97,13 @@ export async function POST(request: Request) {
     if (payment.kind === "domain_renewal") await domainRenewalPaid(db, sendMail, payment).catch((e) => console.error("domain renewal failed", e));
     // Paying to publish / going Premium: our confirmation, which is also the receipt.
     if (payment.kind === "site_publish") await sitePublishPaid(db, sendMail, payment, amount, method).catch((e) => console.error("site publish email failed", e));
+    // A text pack: the texts go on the event straight away (and switch texting on), then the receipt.
+    // Adding them is the one part that must work, so a failure here lets PayMongo retry.
+    if (payment.kind === "sms_pack" && payment.sms_credits) {
+      const { error: addErr } = await db.rpc("sms_add_credits", { p_event: payment.event_id, p_n: payment.sms_credits });
+      if (addErr) throw new Error(`sms_add_credits: ${addErr.message}`);
+      await smsPackPaid(db, sendMail, payment, amount, method).catch((e) => console.error("sms pack email failed", e));
+    }
     // Heads-up for the studio, whatever was paid for.
     const { data: ev } = await db.from("events").select("name").eq("id", payment.event_id).maybeSingle();
     await sendMail({
@@ -108,7 +115,9 @@ export async function POST(request: Request) {
         `${esc(payment.description ?? "")}<br>${
           payment.kind === "site_publish"
             ? "A DIY website was paid for — the customer can publish it now."
-            : payment.kind === "domain"
+            : payment.kind === "sms_pack"
+              ? `${payment.sms_credits} texts were added to the event, and texting is on.`
+              : payment.kind === "domain"
               ? "A custom domain was paid for — it’s being bought and connected automatically."
               : payment.kind === "domain_renewal"
                 ? "A custom domain renewal was paid for — it’s being renewed automatically."
@@ -175,4 +184,40 @@ export function sitePaidEmailHtml(o: { first: string; name: string; amount: stri
         "You’re receiving this because you paid for this event on The RSVP Studio.",
         { promo: false },
       );
+}
+
+/** "Your texts are ready": the receipt for a text pack, to whoever paid and the event's owner. */
+async function smsPackPaid(db: SupabaseClient, sendMail: ReturnType<typeof makeSendMail>, payment: Record<string, any>, amount: string, method: string | null) {
+  const { data: ev } = await db.from("events").select("name, owner_id").eq("id", payment.event_id).maybeSingle();
+  if (!ev) return;
+  const ids = [payment.profile_id, ev.owner_id].filter(Boolean) as string[];
+  const { data: people } = ids.length ? await db.from("profiles").select("id, email, full_name").in("id", ids) : { data: [] };
+  const to = [...new Set((people ?? []).map((p) => p.email as string).filter(Boolean))];
+  if (!to.length) return;
+  const payer = (people ?? []).find((p) => p.id === payment.profile_id) ?? (people ?? [])[0];
+  const first = esc(((payer?.full_name as string | null) ?? "").trim().split(/\s+/)[0] || "there");
+  const { data: acct } = await db.from("event_sms").select("credits, used").eq("event_id", payment.event_id).maybeSingle();
+  const left = acct ? Number(acct.credits) - Number(acct.used) : Number(payment.sms_credits);
+  await sendMail(
+    {
+      from: FROM,
+      to,
+      replyTo: STUDIO_INBOX,
+      subject: `Your texts are ready for ${ev.name}`,
+      html: smsPackEmailHtml({ first, name: esc(ev.name as string), texts: Number(payment.sms_credits), left, amount, method, settings: `${SITE}/account/events/${payment.event_id}/site-builder/edit?settings=1` }),
+    },
+    `sms-pack-paid-${payment.id}`,
+  );
+}
+
+/** The email itself (exported for previews). */
+export function smsPackEmailHtml(o: { first: string; name: string; texts: number; left: number; amount: string; method: string | null; settings: string }) {
+  const li = (t: string) => `<li style="margin:0 0 6px">${t}</li>`;
+  return layout(
+    "Your texts are ready",
+    `Thank you, ${o.first}. <strong>${o.texts} texts</strong> are on <strong>${o.name}</strong>, and texting is on. You have ${o.left} to use.<br><br><strong>Guests who give a mobile number get</strong><ul style="margin:8px 0 14px;padding-left:18px">${li("A text when they RSVP")}${li("A reminder two days before, on Premium")}${li("Your messages, when you send one from the Guests tab")}</ul>One text is up to 160 characters. Guests with an email still get emails, free.<br><br><span style="color:#868697">Paid ${o.amount}${o.method ? ` by ${esc(methodLabel(o.method))}` : ""}. One time, for this event.</span>`,
+    { label: "Open your settings", url: o.settings },
+    "You’re receiving this because you paid for this event on The RSVP Studio.",
+    { promo: false },
+  );
 }

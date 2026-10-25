@@ -200,18 +200,28 @@ const ALL_POS: Record<string, { x: number; y: number; w: number }> = { ...Object
  * One character with its face (mouth, eyes that blink), sized by its container's width. For
  * scenes (the service pages' closing card); `className`/`style` carry the scene's motion.
  */
-export function Character({ name, className = "", style }: { name: keyof typeof CHARACTER_SIZE | string; className?: string; style?: CSSProperties }) {
+/** The middle of each body (canvas units), for turning a face the other way; the arms make
+ *  some characters lopsided, so it isn't always the middle of the picture. */
+const BODY_CX: Record<string, number> = { orange: 45.4 };
+
+/** `faceLeft`: the eyes and smile turned to the other side of the face (arms stay put), for
+ *  a character who should be looking at someone on their left. */
+export function Character({ name, className = "", style, faceLeft = false }: { name: keyof typeof CHARACTER_SIZE | string; className?: string; style?: CSSProperties; faceLeft?: boolean }) {
   const [w, h] = CHARACTER_SIZE[name];
   const c = ALL_POS[name];
   const m = CHARACTER_MOUTH[name];
+  const cx = BODY_CX[name] ?? c.x + c.w / 2;
   const at = (x: number, y: number) => ({ left: `${((x - c.x) / c.w) * 100}%`, top: `${((y - c.y) / ((h / CANVAS_H) * 100)) * 100}%` });
+  // Mirrored across the body's middle: an eye's centre, the mouth's left edge.
+  const eyeX = (x: number) => (faceLeft ? 2 * cx - x : x);
+  const mouthX = faceLeft ? 2 * cx - (m.x + m.w) : m.x;
   return (
     <div className={className} style={{ position: "relative", aspectRatio: `${w} / ${h}`, ...style }} aria-hidden>
       <style>{CSS}</style>
       <img src={img(name)} alt="" width={w} height={h} draggable={false} decoding="async" style={{ display: "block", width: "100%", height: "auto" }} />
-      <img src={img(`${name}-mouth`)} alt="" draggable={false} decoding="async" style={{ position: "absolute", ...at(m.x, m.y), width: `${(m.w / c.w) * 100}%` }} />
+      <img src={img(`${name}-mouth`)} alt="" draggable={false} decoding="async" style={{ position: "absolute", ...at(mouthX, m.y), width: `${(m.w / c.w) * 100}%`, ...(faceLeft ? { transform: "scaleX(-1)" } : {}) }} />
       {CHARACTER_EYES[name].map((e, j) => (
-        <span key={j} style={{ position: "absolute", ...at(e.x, e.y), width: `${(e.w / c.w) * 100}%`, aspectRatio: `${e.w} / ${e.h}`, transform: "translate(-50%, -50%)" }}>
+        <span key={j} style={{ position: "absolute", ...at(eyeX(e.x), e.y), width: `${(e.w / c.w) * 100}%`, aspectRatio: `${e.w} / ${e.h}`, transform: "translate(-50%, -50%)" }}>
           <span className="rs-eye" style={{ display: "block", width: "100%", height: "100%", background: "#0B0B12", borderRadius: 999, transformOrigin: "50% 50%", animation: CHARACTER_BLINK[name] }} />
         </span>
       ))}

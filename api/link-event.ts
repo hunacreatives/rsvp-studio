@@ -36,44 +36,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const normalizedCode = code.trim().toUpperCase();
-  const { data: invite, error: inviteError } = await supabaseAdmin
+  // Claim the code in one step, so two people can't both use it.
+  const { data: claimed, error: claimError } = await supabaseAdmin
     .from("invite_codes")
-    .select("code, event_id, used_at")
+    .update({ used_at: new Date().toISOString() })
     .eq("code", normalizedCode)
+    .is("used_at", null)
+    .select("code, event_id, role")
     .maybeSingle();
-
-  if (inviteError || !invite) {
-    res.status(404).json({ error: "That invite code wasn't found" });
+  if (claimError || !claimed) {
+    const { data: seen } = await supabaseAdmin.from("invite_codes").select("used_at").eq("code", normalizedCode).maybeSingle();
+    res.status(seen ? 409 : 404).json({ error: seen ? "That invite code has already been used" : "That invite code wasn't found" });
     return;
   }
-  if (invite.used_at) {
-    res.status(409).json({ error: "That invite code has already been used" });
-    return;
-  }
 
-  const { data: event } = await supabaseAdmin
-    .from("events")
-    .select("id, owner_id")
-    .eq("id", invite.event_id)
-    .maybeSingle();
-
+  const { data: event } = await supabaseAdmin.from("events").select("id, owner_id").eq("id", claimed.event_id).maybeSingle();
   if (!event) {
     res.status(404).json({ error: "That event no longer exists" });
     return;
   }
 
-  if (!event.owner_id) {
-    await supabaseAdmin.from("events").update({ owner_id: user.id }).eq("id", event.id);
-  } else {
-    await supabaseAdmin
-      .from("event_members")
-      .upsert({ event_id: event.id, profile_id: user.id, role: "viewer" });
+  // The code says who it's for (coordinator-mode.sql): a coordinator never becomes the owner.
+  // Without a role, as before: the first to use it owns the event, later people are cohosts.
+  const role = (claimed as { role?: string | null }).role ?? null;
+  if ((role === null || role === "owner") && !event.owner_id) {
+    const { data: took } = await supabaseAdmin.from("events").update({ owner_id: user.id }).eq("id", event.id).is("owner_id", null).select("id").maybeSingle();
+    if (!took) await supabaseAdmin.from("event_members").upsert({ event_id: event.id, profile_id: user.id, role: "cohost" });
+  } else if (event.owner_id !== user.id) {
+    const memberRole = role === "coordinator" || role === "viewer" ? role : "cohost";
+    // Already on the event with more rights (a cohost using a coordinator's code): keep them.
+    const rank: Record<string, number> = { viewer: 0, coordinator: 1, cohost: 2 };
+    const { data: had } = await supabaseAdmin.from("event_members").select("role").eq("event_id", event.id).eq("profile_id", user.id).maybeSingle();
+    if (!had || (rank[memberRole] ?? 0) > (rank[had.role as string] ?? 0)) {
+      await supabaseAdmin.from("event_members").upsert({ event_id: event.id, profile_id: user.id, role: memberRole });
+    }
   }
-
-  await supabaseAdmin
-    .from("invite_codes")
-    .update({ used_at: new Date().toISOString() })
-    .eq("code", normalizedCode);
 
   res.status(200).json({ eventId: event.id });
 }

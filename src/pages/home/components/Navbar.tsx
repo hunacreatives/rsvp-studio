@@ -428,7 +428,7 @@ export default function Navbar({
                 <>
                   <p className="eyebrow mt-6 mb-3">Quick Links</p>
                   <div className="flex flex-wrap gap-x-6 gap-y-1 md:gap-6">
-                    {[["Services", "/services"], ["Collections", "/collections"], ["Our work", "/portfolio"], ["FAQ", "/faqs"], ["Blog", "/blog"], ["Get a quote", "/enquire#start"]].map(([label, to]) => (
+                    {[["Services", "/services"], ["Collections", "/collections"], ["Our work", "/portfolio"], ["FAQ", "/faqs"], ["Blog", "/blog"], ["Contact", "/contact"], ["Get a quote", "/enquire#start"]].map(([label, to]) => (
                       <button key={to} onClick={() => go(to)} className="py-2.5 md:py-0 text-[var(--indigo)] hover:text-[var(--acc-blue)] transition-colors">
                         {label}
                       </button>
