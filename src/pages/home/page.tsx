@@ -43,21 +43,21 @@ export default function Home() {
         <ImageBand
           title={
             <>
-              Coordinator, creator{" "}
+              Work with couples?{" "}
               <br className="hidden sm:inline" />
-              or venue?
+              Work with us.
             </>
           }
           subtitle={
             <>
-              Run your clients’ events free,{" "}
-              <br className="hidden sm:inline" />
-              or earn up to 20% from the people you&nbsp;send.
+              {/* Each sentence on its own line(s), each balanced. */}
+              <span className="block text-balance">Coordinators run their clients’ events here&nbsp;free.</span>
+              <span className="block text-balance">Creators earn up to 20% from the couples they&nbsp;send.</span>
             </>
           }
           ctaLabel="Coordinators"
           ctaTo="/partners"
-          secondCta={{ label: "Earn with us", to: "/partners?type=creator" }}
+          secondCta={{ label: "Creators", to: "/partners?type=creator" }}
           image="/home/band-flatlay.webp"
         />
         <QuestionsAnswered />

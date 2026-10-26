@@ -239,7 +239,8 @@ function EditProfileModal({ open, onClose }: { open: boolean; onClose: () => voi
   );
 }
 
-function PasswordModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** Change password; also "Set your password" for a partner whose account Studio made (PartnerPage). */
+export function PasswordModal({ open, onClose, title = "Change password", intro }: { open: boolean; onClose: () => void; title?: string; intro?: string }) {
   const { profile, saveProfile, demo } = usePortal();
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -276,7 +277,7 @@ function PasswordModal({ open, onClose }: { open: boolean; onClose: () => void }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Change password">
+    <Modal open={open} onClose={onClose} title={title}>
       {done ? (
         <>
           <p className="text-[15px] text-[var(--ink)]">Your password has been updated.</p>
@@ -286,6 +287,7 @@ function PasswordModal({ open, onClose }: { open: boolean; onClose: () => void }
         </>
       ) : (
         <>
+          {intro ? <p className="mb-4 text-[15px] leading-relaxed text-[var(--slate)]">{intro}</p> : null}
           <div className="space-y-4">
             <Field label="New password" hint="At least 8 characters.">
               <Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" />

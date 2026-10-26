@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { scrollToTopNow } from "@/lib/lenis";
 import { supabase } from "@/lib/supabase";
 import AnnouncementBar from "@/pages/home/components/AnnouncementBar";
 import Navbar from "@/pages/home/components/Navbar";
@@ -9,6 +11,7 @@ import { PARTNER_TIERS } from "@/pages/partners/tiers";
 import { trackEvent } from "@/lib/analytics";
 import { useVisitor } from "@/pages/partners/visitor";
 import TierCards from "@/pages/partners/TierCards";
+import { ApplyForm } from "@/pages/partners/apply";
 
 // /partners: who it's for and what they get, with one thing to do.
 //   Planners & coordinators: sign up as a coordinator (free, instant: Home becomes their
@@ -18,7 +21,6 @@ import TierCards from "@/pages/partners/TierCards";
 // Vendors and collaborations write in through /contact.
 
 const COORDINATOR_PATH = "/account?as=coordinator";
-const APPLY_PATH = "/account/partner?type=creator";
 
 // "10% from your first paying client, 15% after 5, 20% after 15"
 const RATES = PARTNER_TIERS.map((t) =>
@@ -48,6 +50,16 @@ const PERKS = [
 export default function PartnerInquiry() {
   const { search } = useLocation();
   const forCreators = new URLSearchParams(search).get("type") === "creator";
+  // Coordinators ↔ creators is the same page with ?type=creator, so ScrollToTop (pathname
+  // only) doesn't fire: start the other version at the top.
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    scrollToTopNow();
+  }, [forCreators]);
   const navigate = useNavigate();
   const { visitor } = useVisitor();
 
@@ -69,21 +81,15 @@ export default function PartnerInquiry() {
         : `/?auth=signup&next=${encodeURIComponent(COORDINATOR_PATH)}`,
     );
   };
-  // Creators: applying happens in their account.
-  const applyLabel = visitor?.partner
-    ? "Open your partner dashboard"
-    : visitor
-      ? "Apply"
-      : "Sign up to apply";
-  const startApply = async () => {
+  // Creators: the short form is right here (no account needed; approval makes their account).
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const toForm = () => {
     trackEvent("partner_apply_start", { type: "creator" });
-    const { data } = await supabase.auth.getSession();
-    navigate(
-      data.session
-        ? APPLY_PATH
-        : `/?auth=signup&next=${encodeURIComponent(APPLY_PATH)}`,
-    );
+    document
+      .getElementById("apply")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  const applyLabel = visitor?.partner ? "Open your partner dashboard" : "Apply";
 
   return (
     <>
@@ -93,7 +99,7 @@ export default function PartnerInquiry() {
       <main style={{ background: "var(--warm-white)" }}>
         <section className="pb-4 pt-16 text-center md:pt-28">
           <div className="container-x mx-auto max-w-3xl">
-            {forCreators ? <p className="eyebrow">Earn with us</p> : null}
+            {forCreators ? <p className="eyebrow">Creator program</p> : null}
             <h1
               className={`${forCreators ? "mt-4 " : ""}font-display font-semibold tracking-[-0.02em] text-[var(--ink)] text-balance`}
               style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
@@ -103,20 +109,26 @@ export default function PartnerInquiry() {
                 : "For coordinators"}
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-[var(--slate)] md:text-[17px]">
-              {forCreators
-                ? `For creators, venues and vendors who send couples our way. The people you send get 10% off their event website or package, and you earn ${RATES}.`
-                : (
-                  <>
-                    Run every client’s event from one free dashboard,{" "}
-                    <br className="hidden sm:inline" />
-                    and earn up to 20% from the clients you&nbsp;bring.
-                  </>
-                )}
+              {forCreators ? (
+                `For creators, venues and vendors who send couples our way. The people you send get 10% off their event website or package, and you earn ${RATES}.`
+              ) : (
+                <>
+                  Run every client’s event from one free dashboard,{" "}
+                  <br className="hidden sm:inline" />
+                  and earn up to 20% from the clients you&nbsp;bring.
+                </>
+              )}
             </p>
             <div className="mt-7">
               <button
                 type="button"
-                onClick={forCreators ? startApply : startCoordinator}
+                onClick={
+                  forCreators
+                    ? visitor?.partner
+                      ? () => navigate("/account/partner")
+                      : toForm
+                    : startCoordinator
+                }
                 className="btn btn-primary"
               >
                 {forCreators ? applyLabel : coordinatorLabel}
@@ -135,7 +147,7 @@ export default function PartnerInquiry() {
                   to="/partners?type=creator"
                   className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-[var(--ink)]"
                 >
-                  Creator, venue or vendor? Earn with us
+                  Creator or influencer? See the creator program
                 </Link>
               )}
             </p>
@@ -149,10 +161,63 @@ export default function PartnerInquiry() {
           <section className="pb-24 pt-12">
             <div className="container-x mx-auto max-w-5xl">
               <TierCards />
-              <p className="mt-6 text-center text-[14px] text-[var(--slate)]">
-                Sign up, then apply from your account. We’ll set up a
-                short&nbsp;call.
-              </p>
+              {/* The application, right on the page we advertise. */}
+              <div
+                id="apply"
+                className="mx-auto mt-14 max-w-xl scroll-mt-24 rounded-[22px] border border-[var(--line)] bg-white p-6 md:p-8"
+              >
+                {visitor?.partner ? (
+                  <div className="text-center">
+                    <h2 className="font-display text-[1.5rem] font-semibold text-[var(--ink)]">
+                      You’re a partner
+                    </h2>
+                    <p className="mt-2 text-[15px] text-[var(--slate)]">
+                      Your code is {visitor.partner.code}. Your visits, sign-ups
+                      and earnings are on your partner&nbsp;dashboard.
+                    </p>
+                    <Link
+                      to="/account/partner"
+                      className="btn btn-primary mt-6 inline-flex"
+                    >
+                      Open your partner dashboard
+                    </Link>
+                  </div>
+                ) : sentTo || visitor?.applied ? (
+                  <div className="text-center">
+                    <h2 className="font-display text-[1.5rem] font-semibold text-[var(--ink)]">
+                      Your application is in
+                    </h2>
+                    <p className="mt-2 text-[15px] text-[var(--slate)]">
+                      We’ll set up a short call. Once you’re approved, we’ll
+                      email {sentTo ?? visitor?.email ?? "you"} your code and a
+                      link to set up your partner&nbsp;account.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="font-display text-[1.5rem] font-semibold text-[var(--ink)]">
+                      Apply
+                    </h2>
+                    <p className="mb-6 mt-1 text-[15px] text-[var(--slate)]">
+                      It takes a minute. We’ll set up a short call before
+                      you&nbsp;start.
+                    </p>
+                    <ApplyForm
+                      kinds={["creator", "vendor"]}
+                      initialKind="creator"
+                      account={
+                        visitor
+                          ? {
+                              name: visitor.name || visitor.email.split("@")[0],
+                              email: visitor.email,
+                            }
+                          : null
+                      }
+                      onSent={(email) => setSentTo(email)}
+                    />
+                  </>
+                )}
+              </div>
             </div>
           </section>
         ) : (
@@ -226,7 +291,7 @@ export default function PartnerInquiry() {
                       to="/partners?type=creator"
                       className="underline underline-offset-4 hover:text-[var(--ink)]"
                     >
-                      Earn with us
+                      See the creator program
                     </Link>
                   </p>
                 </div>

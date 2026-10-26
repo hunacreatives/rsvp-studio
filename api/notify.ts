@@ -347,7 +347,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const tier = (Array.isArray(tierRows) ? tierRows[0] : tierRows) as { tier: string; rate: number } | null;
       const { data: existing } = await supabaseAdmin.from("profiles").select("id").ilike("email", pa.email).maybeSingle();
       const link = `${origin}/p/${pa.code}`;
-      const dash = `${origin}/?auth=${existing ? "signin" : "signup"}&email=${encodeURIComponent(pa.email)}&next=${encodeURIComponent("/account/partner")}`;
+      // No account yet: make it now, already confirmed (we approved this email), and send a
+      // one-time link that signs them in and asks only for a password (PartnerPage ?setup=1). If
+      // the link has expired by the time they open it, "Forgot password" with their email works,
+      // because the account exists. Already have one: the usual log-in link.
+      let dash = `${origin}/?auth=signin&email=${encodeURIComponent(pa.email)}&next=${encodeURIComponent("/account/partner")}`;
+      if (!existing) {
+        const made = await supabaseAdmin.auth.admin.createUser({ email: pa.email, email_confirm: true, user_metadata: { full_name: pa.name, welcomed: true } });
+        if (made.error && !/already|registered|exists/i.test(made.error.message)) return res.status(500).json({ error: "Couldn’t create their account. Please try again." });
+        const { data: link, error: linkError } = await supabaseAdmin.auth.admin.generateLink({ type: "recovery", email: pa.email, options: { redirectTo: `${origin}/account/partner?setup=1` } });
+        if (linkError || !link?.properties?.action_link) return res.status(500).json({ error: "Couldn’t make their sign-in link. Please try again." });
+        dash = link.properties.action_link;
+      }
       const tiers = pa.rate_mode === "custom"
         ? `<p style="margin:0">You earn <strong>${Number(pa.rate)}%</strong> of what each client you send pays us.</p>`
         : `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:6px 0;margin:4px -6px 0;"><tr>${[
@@ -370,8 +381,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             <span style="display:inline-block;margin:8px 0 4px;padding:10px 18px;border-radius:12px;background:#f5f5f2;font-family:Georgia,serif;font-size:22px;letter-spacing:.1em;color:#000727;">${esc(pa.code)}</span><br>
             <strong>Your link:</strong> <a href="${link}" style="color:#2f61d5;">${esc(link.replace(/^https:\/\//, ""))}</a><br><br>
             ${pa.rate_mode === "custom" ? "" : `The more people you send, the more you earn${tier && tier.tier !== "custom" ? ` (you’re on <strong>${esc(tier.tier[0].toUpperCase() + tier.tier.slice(1))}</strong>)` : ""}:<br><br>`}${tiers}<br>
-            <strong>Your partner dashboard</strong> keeps the guest list: link visits, sign-ups, bookings and what you’ve earned. ${existing ? "Log in" : "Create your account"} with <strong>${esc(pa.email)}</strong>, or “Sign in with Google” using that address, then open <strong>Partner</strong>.`,
-            { label: "Open your partner dashboard", url: dash },
+            <strong>Your partner dashboard</strong> keeps the guest list: link visits, sign-ups, bookings and what you’ve earned. ${existing ? `Log in with <strong>${esc(pa.email)}</strong>, or “Sign in with Google” using that address, then open <strong>Partner</strong>.` : `Your account is ready: the button below signs you in and asks you to choose a password. The link works once.`}`,
+            { label: existing ? "Open your partner dashboard" : "Set up your partner account", url: dash },
             "You’re receiving this because you joined The RSVP Studio partner program. Questions? Just reply to this email.",
           ),
           replyTo: STUDIO_INBOX,

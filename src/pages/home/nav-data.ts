@@ -21,7 +21,7 @@ export type NavItem = {
 
 // Five items (Oct 25 2026): the logo already goes home and "Get a quote" covers Inquire.
 // Collections sit inside Services; Contact, FAQ and the Journal share one Help menu. The
-// coordinators' page is a quiet "Coordinators" link beside Log in (Navbar), and "Earn with us"
+// coordinators' page is a quiet "Coordinators" link beside Log in (Navbar), and "For creators"
 // is in the footer: audience links stay out of the main menu.
 export const NAV_ITEMS: NavItem[] = [
   {

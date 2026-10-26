@@ -219,7 +219,8 @@ function LinkProblem({ code }: { code: string }) {
         </h1>
         <p className="mx-auto mt-3 max-w-md text-[16px] text-[var(--slate)]">
           Email links work once and only for a limited time. If you already confirmed your email, just log in. If not, log in
-          with your email and password and we&rsquo;ll offer to send a fresh&nbsp;link.
+          with your email and password and we&rsquo;ll offer to send a fresh&nbsp;link. No password yet? Use &ldquo;Forgot
+          password&rdquo; with your email.
         </p>
         <button onClick={() => setAuthOpen(true)} className="btn btn-primary mt-8">
           Log in

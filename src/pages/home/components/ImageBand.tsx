@@ -92,7 +92,7 @@ export default function ImageBand({
           <p className="eyebrow !text-white/70 mb-4">{eyebrow}</p>
         )}
         <Heading className="h-section text-white mx-auto max-w-3xl [text-shadow:0_2px_24px_rgba(0,7,39,0.35)]">{title}</Heading>
-        <p className="mt-4 text-white/90 [text-shadow:0_1px_12px_rgba(0,7,39,0.4)] text-base md:text-lg mx-auto max-w-xl">{subtitle}</p>
+        <p className="mt-4 text-white/90 [text-shadow:0_1px_12px_rgba(0,7,39,0.4)] text-base md:text-lg mx-auto max-w-xl text-balance">{subtitle}</p>
         {ctaLabel && ctaTo ? (
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           {[{ label: ctaLabel, to: ctaTo }, ...(secondCta ? [secondCta] : [])].map((c) => (
