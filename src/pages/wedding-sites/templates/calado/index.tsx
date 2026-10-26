@@ -19,7 +19,7 @@ export const caladoTemplateDefinition: TemplateDefinition<BaseTemplateSettings> 
   label: "Calado",
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/calado/demo/month-1.webp",
-  cardImage: "/event-templates/cards/calado.webp",
+  cardImage: "/event-templates/cards/calado.webp?v=2",
   component: CaladoTemplate,
   defaultSettings,
   tier: "premium",

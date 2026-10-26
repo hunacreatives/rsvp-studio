@@ -18,7 +18,7 @@ export const capizTemplateDefinition: TemplateDefinition<BaseTemplateSettings> =
   label: "Capiz",
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/capiz/demo/pic-1.webp",
-  cardImage: "/event-templates/cards/capiz.webp",
+  cardImage: "/event-templates/cards/capiz.webp?v=2",
   component: CapizTemplate,
   defaultSettings,
   tier: "premium",

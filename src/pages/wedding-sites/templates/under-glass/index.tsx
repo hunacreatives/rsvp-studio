@@ -18,7 +18,7 @@ export const underGlassTemplateDefinition: TemplateDefinition<BaseTemplateSettin
   label: "Under Glass",
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/under-glass/demo/pic-1.webp",
-  cardImage: "/event-templates/cards/under-glass.webp",
+  cardImage: "/event-templates/cards/under-glass.webp?v=2",
   component: UnderGlassTemplate,
   defaultSettings,
   tier: "premium",
