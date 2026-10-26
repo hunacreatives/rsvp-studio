@@ -8,8 +8,8 @@ import { Modal } from "../ui";
 /**
  * "New Project" has three real paths: hire the studio (inquiry), build it
  * yourself (self-serve site builder), or link a project the studio already
- * set up for you (invite code). Coordinators get a fourth, first: add a
- * client's event (theirs to hand over; supabase/coordinator-desk.sql).
+ * set up for you (invite code). And "Add a client", for anyone planning for someone else
+ * (theirs to hand over; supabase/coordinator-desk.sql): first for coordinators, last for others.
  */
 export default function NewProjectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
@@ -27,6 +27,11 @@ export default function NewProjectModal({ open, onClose }: { open: boolean; onCl
       />
     );
 
+  // Anyone can plan for someone else: coordinators see it first, everyone else last.
+  const coordinator = isCoordinator(profile, projects);
+  const addClient = (
+    <Choice icon="ri-user-add-line" title="Add a client" body="Planning for someone else? Set up their event, then hand it over when they’re ready." onClick={() => setSelfServe("client")} />
+  );
   const go = (to: string) => {
     onClose();
     navigate(to);
@@ -35,14 +40,7 @@ export default function NewProjectModal({ open, onClose }: { open: boolean; onCl
   return (
     <Modal open={open} onClose={onClose} title="Start a new event" width={560}>
       <div className="grid gap-3">
-        {isCoordinator(profile, projects) ? (
-          <Choice
-            icon="ri-user-add-line"
-            title="Add a client"
-            body="Set up a client’s event, then hand it over when they’re ready."
-            onClick={() => setSelfServe("client")}
-          />
-        ) : null}
+        {coordinator ? addClient : null}
         <Choice
           icon="ri-sparkling-2-line"
           title="Work with our studio"
@@ -61,6 +59,7 @@ export default function NewProjectModal({ open, onClose }: { open: boolean; onCl
           body="Link an event our team already set up for you."
           onClick={() => go("/account/onboarding")}
         />
+        {coordinator ? null : addClient}
       </div>
     </Modal>
   );

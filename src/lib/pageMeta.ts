@@ -24,7 +24,7 @@ const META: [RegExp, string, string?][] = [
   [/^\/build/, `Make Your Own Event Website — ${SITE}`, "Pick a design, add your details and photos, and share one link with your guests."],
   [/^\/tools\/seating-chart-maker/, `Mesa: Free Seating Chart Maker for Weddings, Debuts & Events — ${SITE}`, "Mesa is a free seating chart maker for weddings, debuts, birthdays and every kind of event. Paste your guest list and seat everyone, no sign-up needed; download and share with a free account."],
   [/^\/blog$/, `The Journal — ${SITE}`, "Ideas, guides and stories on invitations, events, and everything in between."],
-  [/^\/partners$/, `Partner Program — ${SITE}`, "Planners, coordinators and creators: send us your people, they get 10% off and you earn up to 20%."],
+  [/^\/partners$/, `For Coordinators — ${SITE}`, "Sign up free as a coordinator: every client’s event in one dashboard, hand-over, seating and check-in. Partners earn up to 20%."],
   [/^\/privacy/, `Privacy Policy — ${SITE}`],
   [/^\/terms/, `Terms of Service — ${SITE}`],
   [/^\/account/, `Your Dashboard — ${SITE}`],

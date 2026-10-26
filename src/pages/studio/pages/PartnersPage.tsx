@@ -35,11 +35,12 @@ export default function PartnersPage() {
     const v = fromLead.values ?? {};
     const s = (k: string) => (Array.isArray(v[k]) ? (v[k] as string[]).join(", ") : String(v[k] ?? ""));
     const creator = /creator|influencer/i.test(s("partner_type"));
+    const vendor = /venue|vendor/i.test(s("partner_type"));
     const name = fromLead.name ?? s("your_name");
     setEditing({
       id: null,
       leadId: fromLead.id,
-      p: { ...blank(), kind: creator ? "influencer" : "planner", name, code: suggestCode(name), business: s("business_name") || null, email: fromLead.email, phone: fromLead.phone, handle: s("instagram") || null },
+      p: { ...blank(), kind: creator ? "influencer" : vendor ? "other" : "planner", name, code: suggestCode(name), business: s("business_name") || null, email: fromLead.email, phone: fromLead.phone, handle: s("instagram") || null },
     });
     navigate(".", { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps

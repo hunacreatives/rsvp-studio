@@ -15,7 +15,7 @@ const FORM_LABEL: Record<string, string> = { "project-inquiry": "Project inquiry
 const STATUS_LABEL: Record<studio.LeadStatus, string> = { new: "New", contacted: "Contacted", converted: "Project started", archived: "Archived", spam: "Spam" };
 // Shown first, in this order; anything else the form sent follows.
 const ORDER = ["interested_in", "diy_project", "diy_event", "partner_code", "source", "source_detail", "occasion", "event_date", "event_location", "guest_count", "services", "design_type", "semi_collections", "bespoke_collections", "addons", "budget", "timeline", "vision", "message", "business_name", "role", "looking_for", "regions", "volume", "event_brief", "ig_handle", "instagram", "hear_about"];
-const HIDDEN = new Set(["your_name", "full_name", "email", "website"]);
+const HIDDEN = new Set(["your_name", "full_name", "email", "website", "account_verified"]);
 const LABEL: Record<string, string> = { interested_in: "Asked about", event_date: "Event date", event_location: "Where", guest_count: "Guests", design_type: "Custom or Semi-Custom", semi_collections: "Collections", bespoke_collections: "Stationery suites", addons: "Add-ons", vision: "Their vision", ig_handle: "Instagram", hear_about: "Found us via", event_brief: "Event brief", looking_for: "Looking for", website_url: "Website", files_not_attached: "Files not attached", diy_project: "From their DIY project", diy_event: "Their event", partner_code: "Referral code", source: "Came from", source_detail: "Source detail" };
 const labelize = (k: string) => LABEL[k] ?? k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
@@ -26,6 +26,12 @@ export default function LeadsPage() {
   const [filter, setFilter] = useState<Filter>("new");
   const [busy, setBusy] = useState<string | null>(null);
   const reload = () => studio.loadLeads().then((l) => setLeads(l ?? []));
+  // Partner applicants: already on the desk? (Helps decide.)
+  const [applicants, setApplicants] = useState<Record<string, studio.Applicant>>({});
+  useEffect(() => {
+    if (!leads) return;
+    studio.applicantAccounts(leads.filter((l) => l.form === "partner-inquiry" && l.email).map((l) => l.email!)).then(setApplicants);
+  }, [leads]);
   useEffect(() => {
     if (demo) return setLeads([]);
     reload();
@@ -81,6 +87,9 @@ export default function LeadsPage() {
                     {FORM_LABEL[l.form] ?? l.form} · {formatDate(l.created_at)}
                     {l.status !== "new" ? ` · ${STATUS_LABEL[l.status]}` : ""}
                   </p>
+                  {l.form === "partner-inquiry" && l.email && applicants[l.email.toLowerCase()] ? (
+                    <p className="text-[13px] text-[var(--slate)]">{applicantLine(applicants[l.email.toLowerCase()], v.account_verified === "yes")}</p>
+                  ) : null}
                   <p className="mt-1 text-[14px] [overflow-wrap:anywhere]">
                     {l.email ? <a href={mailto} className="text-[var(--acc-blue)] hover:underline">{l.email}</a> : null}
                     {l.phone ? <span className="text-[var(--slate)]"> · {l.phone}</span> : null}
@@ -149,4 +158,13 @@ export default function LeadsPage() {
       </div>
     </>
   );
+}
+
+/** One line on a partner applicant: what they already do with us, and whether the email is
+ *  really theirs (applied while signed in to it; api/enquire marks it). Signed-out, anyone can
+ *  type a planner's email, so that account's history isn't theirs until confirmed. */
+function applicantLine(a: studio.Applicant, verified: boolean) {
+  if (!a.account) return "No account with this email yet";
+  const what = a.coordinator ? `a coordinator · ${a.clients} client ${a.clients === 1 ? "event" : "events"}` : "not a coordinator";
+  return verified ? `Applied from their account, ${what}` : `Applied signed out, so not confirmed as theirs. This email’s account is ${what}`;
 }

@@ -27,7 +27,7 @@ export default function PartnerStrip() {
         Partner · {look.name} · {p.rate}%
       </span>
       <span className="text-[14px] opacity-80">
-        {formatMoney(p.commission)} earned · {p.paying} paying {p.paying === 1 ? "client" : "clients"}
+        {formatMoney(p.commission)} earned{p.commission > 0 ? ` · ${formatMoney(p.paid_out)} paid to you` : ""} · {p.paying} paying {p.paying === 1 ? "client" : "clients"}
         {p.next_at != null ? ` · ${Math.max(0, p.next_at - p.paying)} to the next tier` : ""}
       </span>
       <span className="ml-auto inline-flex min-h-[40px] items-center gap-1.5 text-[14px] font-semibold">

@@ -7,21 +7,9 @@ import { PageHeader } from "../PortalLayout";
 import * as api from "../api";
 import { timeAgo } from "../format";
 import { Avatar, ErrorText, Field, Input, Modal, OutlineCard, PillButton, PrimaryButton, SectionTitle, Toggle } from "../ui";
-import { isClientEvent } from "../types";
 
 export default function AccountPage() {
-  const { profile, saveProfile, uploadAvatar, demo, projects } = usePortal();
-  // Coordinator desk (supabase/coordinator-desk.sql): their choice, or on while they have clients.
-  const hasClients = projects.some(isClientEvent);
-  const [coordError, setCoordError] = useState<string | null>(null);
-  const setCoordinator = async (on: boolean) => {
-    setCoordError(null);
-    try {
-      await saveProfile({ is_coordinator: on });
-    } catch {
-      setCoordError("Couldn’t save that. Please try again in a moment.");
-    }
-  };
+  const { profile, saveProfile, uploadAvatar, demo } = usePortal();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -153,17 +141,6 @@ export default function AccountPage() {
         </OutlineCard>
       </section>
 
-      <section className="mt-12">
-        <SectionTitle>How you use The RSVP Studio</SectionTitle>
-        <OutlineCard>
-          <Row
-            title="I’m a coordinator or planner"
-            sub={hasClients ? "Home is your Coordinator desk while you have clients." : "Home becomes your Coordinator desk: your clients, this week’s events and what each one needs next."}
-            action={hasClients ? <span className="shrink-0 text-[14px] text-[var(--slate)]">On</span> : <Toggle label="I’m a coordinator or planner" checked={!!profile.is_coordinator} onChange={setCoordinator} />}
-          />
-        </OutlineCard>
-        <ErrorText>{coordError}</ErrorText>
-      </section>
 
       <section className="mt-12">
         <SectionTitle>Account Management</SectionTitle>

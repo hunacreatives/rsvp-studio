@@ -393,6 +393,36 @@ export async function loadLeads() {
   return error ? null : ((data ?? []) as Lead[]);
 }
 
+/** For partner applications: whether each applicant already has an account, uses the
+ *  Coordinator desk, and how many client events they've set up (lowercased email → what we know). */
+export type Applicant = { account: boolean; coordinator: boolean; clients: number };
+export async function applicantAccounts(emails: string[]): Promise<Record<string, Applicant>> {
+  const list = [...new Set(emails.filter(Boolean).map((e) => e.toLowerCase()))];
+  if (!list.length) return {};
+  const { data: people } = await supabase.from("profiles").select("id, email, is_coordinator").in("email", list);
+  const rows = (people ?? []) as { id: string; email: string; is_coordinator: boolean | null }[];
+  const ids = rows.map((r) => r.id);
+  // Their clients: events they set up for a client, and events a couple brought them onto as coordinator.
+  const [{ data: evs }, { data: helping }] = rows.length
+    ? await Promise.all([
+        supabase.from("events").select("id, client_of").in("client_of", ids).is("deleted_at", null),
+        supabase.from("event_members").select("event_id, profile_id").in("profile_id", ids).eq("role", "coordinator"),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const per = new Map<string, Set<string>>();
+  const add = (who: string, ev: string) => per.set(who, (per.get(who) ?? new Set()).add(ev));
+  for (const e of (evs ?? []) as { id: string; client_of: string }[]) add(e.client_of, e.id);
+  for (const m of (helping ?? []) as { event_id: string; profile_id: string }[]) add(m.profile_id, m.event_id);
+  const clients = new Map([...per].map(([k, v]) => [k, v.size]));
+  const out: Record<string, Applicant> = {};
+  for (const e of list) out[e] = { account: false, coordinator: false, clients: 0 };
+  for (const r of rows) {
+    const n = clients.get(r.id) ?? 0;
+    out[r.email.toLowerCase()] = { account: true, coordinator: n > 0, clients: n };
+  }
+  return out;
+}
+
 export async function countNewLeads() {
   const { count } = await supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("status", "new");
   return count ?? 0;

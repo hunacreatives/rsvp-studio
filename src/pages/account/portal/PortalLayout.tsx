@@ -7,6 +7,8 @@ import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchPar
 import { supabase } from "@/lib/supabase";
 import { PortalProvider, usePortal } from "./PortalContext";
 import NewProjectModal from "./components/NewProjectModal";
+import CreateEventModal from "../components/CreateEventModal";
+import { usePartnerStatus } from "./partnerStatus";
 import { defaultAvatar, firstName } from "./format";
 import * as api from "./api";
 import { isClientEvent, isCoordinator } from "./types";
@@ -30,16 +32,6 @@ function useNavOverride(): string | null {
 }
 const activeFor = (to: string, isActive: boolean, override: string | null) => (override ? to === override : isActive);
 
-/** Partners (supabase/revenue.sql) get a "Partner" page; everyone else never sees it. */
-function useIsPartner() {
-  const { demo } = usePortal();
-  const [partner, setPartner] = useState(false);
-  useEffect(() => {
-    if (!demo) api.myPartner().then((p) => setPartner(!!p));
-  }, [demo]);
-  return partner;
-}
-
 export default function PortalLayout() {
   return (
     <PortalProvider fallback={<CharacterLoader fullScreen message="Loading your dashboard…" />}>
@@ -62,11 +54,26 @@ function Shell() {
     next.delete("welcome");
     setParams(next, { replace: true });
   }, [params, setParams]);
+  // "Add a client" from outside the dashboard: /partners' "Sign up as a coordinator" (?as=coordinator,
+  // also after sign-up) and "Add a client" (?new=client), and the first-visit chooser. There's no
+  // coordinator mode to turn on: having a client is what puts "Your clients" on Home.
+  const [addClient, setAddClient] = useState(false);
+  useEffect(() => {
+    if (params.get("as") !== "coordinator" && params.get("new") !== "client") return;
+    const next = new URLSearchParams(params);
+    next.delete("as");
+    next.delete("new");
+    setParams(next, { replace: true });
+    setAddClient(true);
+  }, [params, setParams]);
   const unread = threads.filter((t) => t.unread).length;
-  const isPartner = useIsPartner();
+  const partnerStatus = usePartnerStatus();
   // "Clients" only for coordinators: they said so, added a client, or were invited to help.
   const hasClients = isCoordinator(profile, projects);
   const nav = NAV.filter((n) => n.to !== "/account/clients" || hasClients);
+  // "Partner": partners' dashboard; for coordinators, applicants and anyone who came for the
+  // program, where they apply (or wait to hear back). Hosts who never came for it don't see it.
+  const showPartner = partnerStatus.partner || partnerStatus.applied || !!partnerStatus.intent || hasClients;
   const override = useNavOverride();
 
   // Studio team accounts use the admin console, never the client dashboard.
@@ -119,7 +126,7 @@ function Shell() {
                     ) : null}
                   </SideLink>
                 ))}
-                {isPartner ? (
+                {showPartner ? (
                   <SideLink to="/account/partner" icon="ri-hand-heart-line">
                     Partner
                   </SideLink>
@@ -145,8 +152,9 @@ function Shell() {
         </div>
       </div>
 
-      <MobileTabBar unread={unread} isPartner={isPartner} hasClients={hasClients} onNewProject={() => setNewProjectOpen(true)} onSignOut={signOut} />
+      <MobileTabBar unread={unread} isPartner={showPartner} hasClients={hasClients} onNewProject={() => setNewProjectOpen(true)} onSignOut={signOut} />
       <NewProjectModal open={newProjectOpen} onClose={() => setNewProjectOpen(false)} />
+      {addClient ? <CreateEventModal forClient onClose={() => setAddClient(false)} /> : null}
     </div>
   );
 }

@@ -22,12 +22,17 @@ export default function Home() {
         <ImageBand
           title={
             <>
-              Thoughtfully Designed{" "}
+              Your celebration is{" "}
               <br className="hidden sm:inline" />
-              Event Experiences
+              our celebration, too.
             </>
           }
-          subtitle="Elevated digital experiences for life's most meaningful milestones."
+          subtitle={
+            <>
+              We design your event website with you, <br />
+              or you build your own in&nbsp;minutes.
+            </>
+          }
           ctaLabel="Explore More of Our Services"
           ctaTo="/services"
           image="/home/band-balloons.webp"
@@ -38,15 +43,21 @@ export default function Home() {
         <ImageBand
           title={
             <>
-              Are you an event planner{" "}
+              Coordinator, creator{" "}
               <br className="hidden sm:inline" />
-              or influencer?
+              or venue?
             </>
           }
-          subtitle={"Better experiences begin with better\u00a0collaborations."}
-          ctaLabel="I'm a planner"
+          subtitle={
+            <>
+              Run your clients’ events free,{" "}
+              <br className="hidden sm:inline" />
+              or earn up to 20% from the people you&nbsp;send.
+            </>
+          }
+          ctaLabel="Coordinators"
           ctaTo="/partners"
-          secondCta={{ label: "I'm a creator", to: "/partners?type=creator" }}
+          secondCta={{ label: "Earn with us", to: "/partners?type=creator" }}
           image="/home/band-flatlay.webp"
         />
         <QuestionsAnswered />

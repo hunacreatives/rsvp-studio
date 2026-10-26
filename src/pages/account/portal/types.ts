@@ -70,9 +70,10 @@ export const isClientEvent = (p: Pick<Project, "access" | "client_of" | "handed_
   p.access === "coordinator" || (p.access === "viewer" && !!p.crew) || isUnclaimed(p);
 /** A client event I still own: I added it for them and they haven't taken it over. */
 export const isUnclaimed = (p: Pick<Project, "access" | "client_of" | "handed_over_at">) => p.access === "owner" && !!p.client_of && !p.handed_over_at;
-/** Gets the Coordinator desk: said so (Account, or the first-visit choice), or has a client event. */
-export const isCoordinator = (profile: Pick<Profile, "is_coordinator">, projects: Pick<Project, "access" | "client_of" | "handed_over_at" | "crew">[]) =>
-  !!profile.is_coordinator || projects.some(isClientEvent);
+/** Home shows their clients first: they have a client event. Having a client is what makes someone a
+ *  coordinator; profiles.is_coordinator (an old "coordinator mode" switch) isn't read any more, as it
+ *  left people with an empty clients Home they couldn't leave. (`_profile` kept for the callers.) */
+export const isCoordinator = (_profile: Pick<Profile, "is_coordinator">, projects: Pick<Project, "access" | "client_of" | "handed_over_at" | "crew">[]) => projects.some(isClientEvent);
 /** Change the website, guests, replies and seating. */
 export const canEdit = (p: Pick<Project, "access">) => p.access !== "viewer";
 

@@ -182,7 +182,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ? {
                 subject: "You’re invited to coordinate an event on The RSVP Studio",
                 title: "Welcome, coordinator",
-                body: `${esc(who)} would like your help with <strong>${esc(evName)}</strong> on The RSVP Studio, as their coordinator.<br><br>${esc(what)} Their event will be waiting for you under Clients.<br><br>${signIn}`,
+                body: `${esc(who)} would like your help with <strong>${esc(evName)}</strong> on The RSVP Studio, as their coordinator.<br><br>${esc(what)} Their event will be waiting for you under Clients.<br><br>${signIn}<br><br>Have other clients? Sign up as a coordinator, free. <a href="${origin}/partners">See how it works</a>.`,
                 button: "Accept the invite",
               }
             : {

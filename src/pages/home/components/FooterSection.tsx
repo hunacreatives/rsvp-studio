@@ -29,7 +29,8 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "Contact us", to: "/contact" },
       { label: "Build your own website", to: "/build" },
       { label: "Mesa: free seating charts", to: "/tools/seating-chart-maker" },
-      { label: "Partner program", to: "/partners" },
+      { label: "For coordinators", to: "/partners" },
+      { label: "Earn with us", to: "/partners?type=creator" },
     ],
   },
 ];

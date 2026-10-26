@@ -616,6 +616,12 @@ export function myPartner(fresh = false): Promise<MyPartner | null> {
     });
   return myPartnerCache;
 }
+/** Their partner application while it's still being looked at (supabase/partner-flow.sql). */
+export async function myPartnerApplication(): Promise<{ at: string } | null> {
+  const { data, error } = await supabase.rpc("my_partner_application");
+  const row = !error && ((Array.isArray(data) ? data[0] : data) as { status: string; created_at: string } | null);
+  return row && (row.status === "new" || row.status === "contacted") ? { at: row.created_at } : null;
+}
 export async function myPartnerPeople(): Promise<PartnerPerson[]> {
   const { data } = await supabase.rpc("my_partner_people");
   return ((data ?? []) as PartnerPerson[]).map((p) => ({ ...p, revenue: Number(p.revenue), commission: Number(p.commission) }));

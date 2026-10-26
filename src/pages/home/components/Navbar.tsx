@@ -294,6 +294,13 @@ export default function Navbar({
             >
               <i className="ri-search-line text-lg" />
             </button>
+            {/* The coordinators' page, as a quiet link beside Log in (like "Become a host" or "Join as a
+                pro" on other sites): coordinators find it at a glance, couples read past it. */}
+            <button onClick={() => go("/partners")} className="hidden lg:inline-flex min-h-11 items-center whitespace-nowrap px-2 text-[13px] transition-colors hover:text-[var(--ink)]" style={{ color: "var(--slate)" }}>
+              Coordinators
+            </button>
+            {/* A hairline between it and the account side, so it doesn't read as a second Log in. */}
+            <span className="hidden lg:block h-5 w-px bg-[rgba(0,7,39,0.15)]" aria-hidden />
             {accountName ? (
               <div ref={accountRef} className="hidden md:block relative">
                 <button
@@ -559,8 +566,16 @@ export default function Navbar({
                 </div>
               );
             })}
+            {/* Phones and tablets: the coordinators' page at the end of the menu, before the account. */}
+            <button
+              onClick={() => go("/partners")}
+              className="mt-3 flex w-full items-center justify-between py-3 text-left text-[16px] text-[var(--slate)]"
+            >
+              Coordinators
+              <i className="ri-arrow-right-line text-lg" aria-hidden />
+            </button>
             {accountName ? (
-              <div className="mt-8 space-y-2">
+              <div className="mt-6 space-y-2">
                 <button
                   onClick={() => go(accountHome)}
                   className="btn btn-dark w-full"
@@ -583,7 +598,7 @@ export default function Navbar({
                   setMobileOpen(false);
                   setAuthOpen(true);
                 }}
-                className="btn btn-dark w-full mt-8"
+                className="btn btn-dark w-full mt-6"
               >
                 Log in / Sign up
               </button>

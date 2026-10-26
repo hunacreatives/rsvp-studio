@@ -1,5 +1,6 @@
 import type { PickedFile } from "./components/FileDrop";
 import { visitSource } from "@/lib/signupRef";
+import { supabase } from "@/lib/supabase";
 
 const FORM_ENDPOINT = "/api/enquire";
 
@@ -18,9 +19,14 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 async function post(body: unknown) {
+  // Signed in: the server can confirm the email on the form is theirs (partner applications).
+  const token = await supabase.auth
+    .getSession()
+    .then(({ data: auth }) => auth.session?.access_token)
+    .catch(() => undefined);
   const res = await fetch(FORM_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(body),
   });
   const data = (await res.json().catch(() => ({}))) as InquiryResult & { error?: string };

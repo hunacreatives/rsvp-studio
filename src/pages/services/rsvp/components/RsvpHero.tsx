@@ -94,15 +94,17 @@ export default function RsvpHero() {
       }}
     >
       <div className="container-x">
-        <p className="eyebrow">RSVP Management</p>
+        {/* Sized like the Stationery Design hero. */}
         <h1
-          className="mx-auto mt-4 max-w-3xl font-display font-semibold leading-[1.05] tracking-[-0.03em] text-[var(--ink)] text-balance"
-          style={{ fontSize: "clamp(2.5rem, 5.6vw, 4.4rem)" }}
+          className="mx-auto max-w-3xl font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] text-balance"
+          style={{ fontSize: "clamp(2.4rem, 5vw, 3.6rem)" }}
         >
-          Every reply, in one place.
+          RSVP Management
         </h1>
-        <p className="mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-[var(--slate)] text-balance md:text-[20px]">
-          See who’s coming, how many, and what they eat, the moment guests reply. Built into every RSVP Studio website, free.
+        <p className="mx-auto mt-3 max-w-xl text-lg leading-relaxed text-[var(--slate)] text-balance md:text-xl">
+          Know who’s coming the moment they reply.{" "}
+          <br className="hidden sm:inline" />
+          Free with every RSVP Studio&nbsp;website.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-x-6 gap-y-2 sm:flex-row">
           <Link

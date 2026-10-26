@@ -10,7 +10,7 @@ gsap.registerPlugin(ScrollTrigger);
 type Props = {
   eyebrow?: string;
   title: ReactNode;
-  subtitle: string;
+  subtitle: ReactNode;
   /** Optional: a page hero can be just the words. */
   ctaLabel?: string;
   ctaTo?: string;

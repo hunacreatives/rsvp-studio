@@ -88,6 +88,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = String(values.email ?? "").toLowerCase();
   const name = String(values.your_name || values.full_name || "");
   if (!name || !isEmail(email)) return res.status(400).json({ error: "Please enter your name and a valid email." });
+  // Sent while signed in as the owner of that email: marked here, never taken from the form, so
+  // Studio → Leads can tell a real applicant from someone typing another planner's email.
+  delete values.account_verified;
+  const bearer = String(req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+  if (bearer) {
+    const { data: who } = await supabaseAdmin.auth.getUser(bearer).catch(() => ({ data: { user: null } }));
+    if (who.user?.email && who.user.email.toLowerCase() === email) values.account_verified = "yes";
+  }
 
   // Slow down repeat senders (same email or same network) — 5 an hour.
   const hash = ipHash(req);

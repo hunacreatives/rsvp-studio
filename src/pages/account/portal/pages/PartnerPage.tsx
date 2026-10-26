@@ -4,8 +4,13 @@ import { CharacterTrio } from "@/components/CharacterLoader";
 import CharacterLoader from "@/components/CharacterLoader";
 import * as api from "../api";
 import { usePortal } from "../PortalContext";
+import { isCoordinator } from "../types";
+import { rememberPartnerIntent } from "../partnerStatus";
 import { formatDate, formatMoney } from "../format";
 import { PARTNER_TIERS } from "@/pages/partners/tiers";
+import { submitInquiry } from "@/pages/enquire/submit";
+import { trackEvent } from "@/lib/analytics";
+import { ErrorText, Field, Input, PrimaryButton, Select, Textarea } from "../ui";
 
 // /account/partner — a partner's own dashboard (supabase/revenue.sql → my_partner):
 // their code and link, what they've earned, and everyone they've brought in
@@ -112,8 +117,9 @@ function TierCard({ p }: { p: api.MyPartner }) {
 }
 
 export default function PartnerPage() {
-  const { demo, profile } = usePortal();
+  const { demo, profile, projects } = usePortal();
   const [partner, setPartner] = useState<api.MyPartner | null | undefined>(undefined);
+  const [applied, setApplied] = useState<{ at: string } | null>(null);
   const [people, setPeople] = useState<api.PartnerPerson[] | null>(null);
   const [payouts, setPayouts] = useState<api.PartnerPayout[]>([]);
   const { copied, copy } = useCopy();
@@ -125,8 +131,13 @@ export default function PartnerPage() {
       setPayouts([{ amount: 2500, paid_at: "2026-10-01", note: "GCash" }]);
       return;
     }
+    // Opened from /partners?type=… (sign-up or "Apply"): they came for the program, so Home keeps
+    // a "finish your application" card until they apply.
+    const type = new URLSearchParams(window.location.search).get("type");
     api.myPartner(true).then((p) => {
       setPartner(p);
+      if (!p && type) void rememberPartnerIntent(type);
+      if (!p) api.myPartnerApplication().then(setApplied);
       if (p) {
         api.myPartnerPeople().then(setPeople);
         api.myPartnerPayouts().then(setPayouts);
@@ -136,22 +147,19 @@ export default function PartnerPage() {
 
   if (partner === undefined) return <CharacterLoader message="Loading your partner page…" />;
   if (!partner)
-    return (
+    return applied ? (
       <div className="mx-auto max-w-xl py-16 text-center">
         <CharacterTrio className="mx-auto w-[220px]" />
-        <h1 className="mt-8 font-display text-[1.9rem] font-semibold text-[var(--ink)]">This account isn’t a partner account</h1>
+        <h1 className="mt-8 font-display text-[1.9rem] font-semibold text-[var(--ink)]">Your application is in</h1>
         <p className="mt-3 text-[16px] leading-relaxed text-[var(--slate)]">
-          You’re logged in as <strong className="text-[var(--ink)]">{profile.email}</strong>. If you’re already a partner, log out and log back in with the email you gave us, or message us and we’ll update it.
+          You applied on {formatDate(applied.at)}. We’ll be in touch at <strong className="text-[var(--ink)]">{profile.email}</strong>, and your code and earnings show here once you’re&nbsp;approved.
         </p>
-        <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link to="/account/help/contact" className="btn btn-primary inline-flex">
-            Message us
-          </Link>
-          <Link to="/partners" className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-medium text-[var(--ink)]">
-            Not a partner yet? Join the program <i className="ri-arrow-right-line" aria-hidden />
-          </Link>
-        </div>
+        <Link to="/account/help/contact" className="btn btn-primary mt-7 inline-flex">
+          Message us
+        </Link>
       </div>
+    ) : (
+      <Apply name={profile.full_name || profile.email.split("@")[0]} email={profile.email} coordinator={isCoordinator(profile, projects)} demo={demo} onSent={() => setApplied({ at: new Date().toISOString() })} />
     );
 
   const link = `${SITE}/p/${partner.code}`;
@@ -292,6 +300,131 @@ export default function PartnerPage() {
 
       <p className="mt-10 text-[14px] text-[var(--slate)]">
         Commission is counted once your client has paid. To change your payout details, <Link to="/account/help/contact" className="text-[var(--acc-blue)] underline-offset-2 hover:underline">message us</Link>.
+      </p>
+    </div>
+  );
+}
+
+// Not a partner yet: the program in two lines, then a short application. Name and email come
+// from the account (approved partners are matched by their login email, and api/enquire marks
+// it as theirs); the keys are the ones Studio → Leads "Add as partner" fills in from.
+const RATES = PARTNER_TIERS.map((t) => (t.at ? `${t.rate}% after ${t.at}` : `${t.rate}% from your first paying client`)).join(", ");
+const VOLUME = ["Under 10", "10 – 25", "25 – 50", "50+"];
+const FOLLOWERS = ["Under 5K", "5K – 20K", "20K – 100K", "100K+"];
+
+type Kind = "planner" | "creator" | "vendor";
+const KINDS: [Kind, string][] = [
+  ["planner", "Planner or coordinator"],
+  ["creator", "Creator or influencer"],
+  ["vendor", "Venue or vendor"],
+];
+
+function Apply({ name, email, coordinator, demo, onSent }: { name: string; email: string; coordinator: boolean; demo: boolean; onSent: () => void }) {
+  // ?type=creator or ?type=vendor (from /partners) picks it; coordinators start on planner.
+  const [kind, setKind] = useState<Kind>(() => {
+    const t = new URLSearchParams(window.location.search).get("type");
+    return !coordinator && (t === "creator" || t === "vendor") ? t : "planner";
+  });
+  const creator = kind === "creator";
+  const [brand, setBrand] = useState("");
+  const [handle, setHandle] = useState("");
+  const [size, setSize] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ready = creator ? !!handle.trim() : !!brand.trim();
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ready || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (!demo)
+        await submitInquiry(
+          {
+            your_name: name,
+            email,
+            // The same words as the old /partners form, so Studio → Leads reads them as before.
+            partner_type: kind === "creator" ? "Creator or influencer" : kind === "vendor" ? "Venue or other vendor" : "Planner or coordinator",
+            ...(brand.trim() ? { business_name: brand.trim() } : {}),
+            ...(handle.trim() ? { instagram: handle.trim() } : {}),
+            ...(size ? { [creator ? "followers" : "volume"]: size } : {}),
+            ...(note.trim() ? { about: note.trim() } : {}),
+            looking_for: ["Referral partnership"],
+          },
+          [],
+          { form: "partner-inquiry" },
+        );
+      trackEvent("generate_lead", { form: "partner" });
+      onSent();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That didn’t send. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mx-auto max-w-xl py-10 md:py-14">
+      <h1 className="font-display text-[1.9rem] font-semibold text-[var(--ink)]">Partner program</h1>
+      <p className="mt-2 text-[16px] leading-relaxed text-[var(--slate)]">
+        {creator ? "Your followers" : kind === "vendor" ? "The couples you send" : "Your clients"} get 10% off with your code, and you earn {RATES}. Apply once and we’ll set up a short&nbsp;call.
+      </p>
+      <form onSubmit={send} className="mt-8 space-y-5">
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="I’m a">
+          {KINDS.map(([v, label]) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={kind === v}
+              onClick={() => setKind(v)}
+              className={`min-h-[40px] rounded-full border px-4 text-[14px] font-medium ${kind === v ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[rgba(0,7,39,0.18)] text-[var(--ink)]"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {creator ? (
+          <Field label="Your handle">
+            <Input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@yourname" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
+          </Field>
+        ) : (
+          <>
+            <Field label={kind === "vendor" ? "Venue or business name" : "Studio or business name"}>
+              <Input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder={kind === "vendor" ? "e.g. Taal Vista Hotel" : "e.g. Joy Mendoza Events"} autoComplete="organization" required />
+            </Field>
+            <Field label="Instagram (optional)">
+              <Input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@studio" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+            </Field>
+          </>
+        )}
+        <Field label={creator ? "Followers on your biggest account" : "Events a year, roughly"}>
+          <Select value={size} onChange={(e) => setSize(e.target.value)}>
+            <option value="">Choose one</option>
+            {(creator ? FOLLOWERS : VOLUME).map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Anything we should know? (optional)">
+          <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder={creator ? "What you post about, and how you’d share us" : kind === "vendor" ? "What you do, and the couples you work with" : "The events you do, and where"} />
+        </Field>
+        <p className="text-[13px] text-[var(--slate)]">
+          We’ll reply to <strong className="text-[var(--ink)]">{email}</strong>, the email you log in with. Your code and earnings show on this page once you’re approved.
+        </p>
+        <ErrorText>{error}</ErrorText>
+        <PrimaryButton type="submit" disabled={!ready || busy}>
+          {busy ? "Sending…" : "Apply"}
+        </PrimaryButton>
+      </form>
+      <p className="mt-10 text-[13px] text-[var(--slate)]">
+        Already a partner under another email? Log in with that one, or{" "}
+        <Link to="/account/help/contact" className="underline underline-offset-4 hover:text-[var(--ink)]">
+          message us
+        </Link>{" "}
+        and we’ll move it.
       </p>
     </div>
   );

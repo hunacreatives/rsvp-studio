@@ -5,8 +5,9 @@ import { PageHeader } from "../PortalLayout";
 import { ActivityList, byWhen, EventList, isDiy, isPast, TaskList } from "../components/blocks";
 import { useGuestStats } from "../guestStats";
 import NewProjectModal, { Choice } from "../components/NewProjectModal";
-import { ErrorText, SectionTitle } from "../ui";
+import { SectionTitle } from "../ui";
 import PartnerStrip from "../components/PartnerStrip";
+import PartnerApplyCard from "../components/PartnerApplyCard";
 import NeedsAttention from "../components/NeedsAttention";
 import CoordinatorDesk from "../components/CoordinatorDesk";
 import { isClientEvent, isCoordinator } from "../types";
@@ -57,6 +58,7 @@ export default function HomePage() {
       {/* Home is the overview; the full list lives under Projects (same title twice confused people). */}
       <PageHeader title={`Welcome back${profile.full_name ? `, ${profile.full_name.trim().split(/\s+/)[0]}` : ""}`} />
       <PartnerStrip />
+      <PartnerApplyCard />
       <NeedsAttention stats={stats} projects={projects} />
 
       {projects.length === 0 ? (
@@ -88,20 +90,12 @@ export default function HomePage() {
 
 /**
  * No events yet: what brings them here. Their own celebration → the usual "Start a new event";
- * a coordinator or planner → the Coordinator desk (profiles.is_coordinator), which also has a
- * switch under Account.
+ * a coordinator or planner → "Add a client". Once they have one, Home shows their clients first.
  */
 function FirstVisit({ onOwn }: { onOwn: () => void }) {
-  const { saveProfile, demo } = usePortal();
-  const [error, setError] = useState<string | null>(null);
-  const coordinator = async () => {
-    setError(null);
-    try {
-      await saveProfile({ is_coordinator: true });
-    } catch {
-      setError(demo ? null : "Couldn’t save that. Please try again in a moment.");
-    }
-  };
+  // A coordinator starts by adding a client (PortalLayout opens it): that's all it takes.
+  const navigate = useNavigate();
+  const coordinator = () => navigate("/account?new=client");
   return (
     <section>
       <SectionTitle sub="Tell us what brings you here.">Let’s get you started</SectionTitle>
@@ -109,7 +103,6 @@ function FirstVisit({ onOwn }: { onOwn: () => void }) {
         <Choice icon="ri-cake-3-line" title="Planning my own celebration" body="Make your event site, invite your guests and keep track of replies." onClick={onOwn} />
         <Choice icon="ri-team-line" title="I’m a coordinator or planner" body="Set up events for your clients, then hand each one over when it’s ready." onClick={coordinator} />
       </div>
-      <ErrorText>{error}</ErrorText>
     </section>
   );
 }

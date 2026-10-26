@@ -19,18 +19,10 @@ export type NavItem = {
   };
 };
 
-// Partner program links (under Help).
-const PARTNERS: MegaGroup = {
-  title: "Partner program",
-  links: [
-    { label: "For planners & coordinators", to: "/partners" },
-    { label: "For creators & influencers", to: "/partners?type=creator" },
-  ],
-};
-
 // Five items (Oct 25 2026): the logo already goes home and "Get a quote" covers Inquire.
-// Collections sit inside Services; Contact, FAQ, the Journal and the partner program share
-// one Help menu.
+// Collections sit inside Services; Contact, FAQ and the Journal share one Help menu. The
+// coordinators' page is a quiet "Coordinators" link beside Log in (Navbar), and "Earn with us"
+// is in the footer: audience links stay out of the main menu.
 export const NAV_ITEMS: NavItem[] = [
   {
     label: "Build Your Website",
@@ -113,7 +105,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Help",
     to: "/contact",
-    activePrefixes: ["/contact", "/faqs", "/blog", "/partners", "/enquire"],
+    activePrefixes: ["/contact", "/faqs", "/blog", "/enquire"],
     mega: {
       exploreEyebrow: "Help",
       exploreCta: { label: "Contact us", to: "/contact" },
@@ -134,10 +126,6 @@ export const NAV_ITEMS: NavItem[] = [
             { label: "Planning", to: "/blog?topic=Planning" },
             { label: "Tips & Guides", to: "/blog?topic=Tips+%26+Guides" },
           ],
-        },
-        {
-          ...PARTNERS,
-          links: [...PARTNERS.links, { label: "Partner dashboard", to: "/account/partner" }],
         },
       ],
     },

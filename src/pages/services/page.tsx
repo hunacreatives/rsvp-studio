@@ -16,7 +16,6 @@ import { goTo } from "@/lib/goTo";
 // iPad, and the homepage's planner band. Type and buttons are the site's own.
 
 const WRAP = "mx-auto w-full max-w-[1012px]";
-const CARD_BG = "#f6f5f8";
 
 function useReducedMotion() {
   const [reduce, setReduce] = useState(false);
@@ -108,7 +107,7 @@ export default function Services() {
       <AnnouncementBar />
       <Navbar />
       <main style={{ background: "var(--warm-white)" }}>
-        {/* Hero: the same band as the homepage's "Thoughtfully Designed" */}
+        {/* Hero: the same band as the homepage's "Your celebration is our celebration, too." */}
         <ImageBand
           as="h1"
           title={
@@ -118,7 +117,13 @@ export default function Services() {
               Worth Remembering
             </>
           }
-          subtitle="We create digital experiences that feel intentional, from the very first impression to the very last detail."
+          subtitle={
+            <>
+              Event websites, save the dates, stationery and RSVPs,{" "}
+              <br className="hidden sm:inline" />
+              made with you from the first look to the last&nbsp;detail.
+            </>
+          }
           image="/home/band-balloons.webp"
           blur={8}
         />
@@ -174,7 +179,7 @@ export default function Services() {
         </section>
 
         {/* RSVP Management */}
-        <section id="rsvp" className="mt-3 overflow-hidden py-10 md:py-7" style={{ background: CARD_BG }}>
+        <section id="rsvp" className="mt-3 overflow-hidden py-10 md:py-7">
           <div className="container-x">
             <div className={`${WRAP} grid items-center gap-8 md:grid-cols-2 md:gap-0`}>
               <Reveal>
@@ -195,15 +200,21 @@ export default function Services() {
         <ImageBand
           title={
             <>
-              Are you an event planner{" "}
+              Coordinator, creator{" "}
               <br className="hidden sm:inline" />
-              or influencer?
+              or venue?
             </>
           }
-          subtitle={"Better experiences begin with better\u00a0collaborations."}
-          ctaLabel="I'm a planner"
+          subtitle={
+            <>
+              Run your clients’ events free,{" "}
+              <br className="hidden sm:inline" />
+              or earn up to 20% from the people you&nbsp;send.
+            </>
+          }
+          ctaLabel="Coordinators"
           ctaTo="/partners"
-          secondCta={{ label: "I'm a creator", to: "/partners?type=creator" }}
+          secondCta={{ label: "Earn with us", to: "/partners?type=creator" }}
           image="/home/band-flatlay.webp"
         />
       </main>

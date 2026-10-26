@@ -26,20 +26,21 @@ function welcomed(id: string) {
   }
 }
 
-/** A coordinator bringing several clients who isn't a partner yet: the partner program, once,
+/** A coordinator with a client who isn't a partner yet: the partner program, once,
  *  under their client list (dismissed per browser). */
 function usePartnerInvite(clients: number, demo: boolean) {
   const key = "rsvp.partner-invite-dismissed";
   const [show, setShow] = useState(false);
   useEffect(() => {
-    if (demo || clients < 3) return;
+    if (demo || clients < 1) return;
     try {
       if (localStorage.getItem(key) === "1") return;
     } catch {
       /* show it */
     }
     let alive = true;
-    api.myPartner().then((p) => alive && setShow(!p));
+    // Not a partner, and hasn't applied already (supabase/partner-flow.sql).
+    Promise.all([api.myPartner(), api.myPartnerApplication()]).then(([p, applied]) => alive && setShow(!p && !applied));
     return () => {
       alive = false;
     };
@@ -111,12 +112,13 @@ export default function CoordinatorDesk({ children }: { /** Tasks and activity, 
           <ClientList clients={clients} stats={stats} />
           {partnerInvite.show ? (
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[22px] border border-[rgba(0,7,39,0.14)] bg-white px-5 py-4">
-              <p className="min-w-0 flex-1 text-[15px] text-[var(--ink)]">
+              {/* Grows from 240px, so on a phone the words take the full width and the link wraps under. */}
+              <p className="min-w-0 grow basis-[240px] text-[15px] text-[var(--ink)]">
                 <b className="font-semibold">Earn from the clients you bring.</b>{" "}
                 <span className="text-[var(--slate)]">As a partner, your clients get 10% off and you earn up to 20% of what they&nbsp;pay.</span>
               </p>
-              <Link to="/partners" className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--acc-blue)] hover:underline md:min-h-0">
-                Become a partner →
+              <Link to="/account/partner" className="inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--acc-blue)] hover:underline md:min-h-0">
+                Apply to the partner program →
               </Link>
               <button onClick={partnerInvite.dismiss} aria-label="Not now" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--slate)] hover:bg-black/5 md:h-9 md:w-9">
                 <i className="ri-close-line text-lg" aria-hidden />
