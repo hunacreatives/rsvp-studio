@@ -188,7 +188,7 @@ export default function SupportPage() {
                     onClick={() => open(t.id)}
                     className={`flex w-full gap-3 border-b border-[var(--line)] px-4 py-3 text-left ${t.id === activeId ? "bg-[#f1f1f3]" : "hover:bg-[var(--paper)]"}`}
                   >
-                    <Avatar name={t.counterpartName} url={t.counterpartAvatar} size={36} tone="#cfd6ea" />
+                    <Avatar name={t.counterpartName} seed={t.counterpartId} url={t.counterpartAvatar} size={36} tone="#cfd6ea" />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className={`truncate text-[15px] text-[var(--ink)] md:text-[13px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>
@@ -526,7 +526,7 @@ function CustomerPanel({ t, requests, onOpen }: { t: ThreadSummary; requests: Th
   return (
     <div>
       <div className="flex items-center gap-3">
-        <Avatar name={t.counterpartName} url={t.counterpartAvatar} size={44} tone="#cfd6ea" />
+        <Avatar name={t.counterpartName} seed={t.counterpartId} url={t.counterpartAvatar} size={44} tone="#cfd6ea" />
         <span className="min-w-0">
           <span className="block truncate text-[15px] font-semibold text-[var(--ink)]">{t.counterpartName}</span>
           {email ? <a href={`mailto:${email}`} className="block truncate text-[var(--acc-blue)] hover:underline">{email}</a> : null}

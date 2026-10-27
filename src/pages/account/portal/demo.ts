@@ -53,6 +53,7 @@ export function demoSnapshot(viewer: "client" | "staff" = "client"): PortalSnaps
     threads: snap.threads.map((t) => ({
       ...t,
       counterpartName: "Gel Lim",
+      counterpartId: ME,
       // From the studio's side, unread = the client wrote last.
       unread: t.lastMessage?.sender_id === ME,
     })),
@@ -157,7 +158,7 @@ function thread(
   const lastMessage: Message = { id: `${id}-last`, thread_id: id, sender_id: sender, body, attachments: [], created_at: at };
   return {
     id, profile_id: ME, event_id: eventId, kind, subject, last_message_at: at, created_at: at,
-    lastMessage, unread, counterpartName: "Nicole Reyes", counterpartAvatar: null,
+    lastMessage, unread, counterpartName: "Nicole Reyes", counterpartAvatar: null, counterpartId: null as string | null,
   };
 }
 

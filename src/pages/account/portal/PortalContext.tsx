@@ -181,7 +181,7 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
           demoThreads.current[t.id] = [];
           const m: Message = { id: crypto.randomUUID(), thread_id: t.id, sender_id: me.id, body, attachments: [], created_at: now };
           demoThreads.current[t.id].push(m);
-          setSnap((s) => s && { ...s, threads: [{ ...t, lastMessage: m, unread: false, counterpartName: "The RSVP Studio", counterpartAvatar: null }, ...s.threads] });
+          setSnap((s) => s && { ...s, threads: [{ ...t, lastMessage: m, unread: false, counterpartName: "The RSVP Studio", counterpartAvatar: null, counterpartId: null }, ...s.threads] });
           return t;
         }
         const t = await api.createThread({ profileId: profileId ?? me.id, eventId, kind, subject, category });

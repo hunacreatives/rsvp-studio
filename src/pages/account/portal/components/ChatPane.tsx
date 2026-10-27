@@ -159,7 +159,7 @@ export default function ChatPane({
           </button>
         ) : null}
         <span className="hidden shrink-0 sm:block">
-          <Avatar name={thread.counterpartName} url={thread.counterpartAvatar} size={44} tone="#e4e4e8" />
+          <Avatar name={thread.counterpartName} seed={thread.counterpartId} url={thread.counterpartAvatar} size={44} tone="#e4e4e8" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-semibold text-[var(--ink)]">{thread.counterpartName}</p>
@@ -187,7 +187,7 @@ export default function ChatPane({
                   </div>
                 ) : null}
                 <div className={`mb-4 flex items-end gap-2 md:gap-3 ${mine ? "flex-row-reverse" : ""}`}>
-                  <Avatar name={nameOf(m.sender_id)} url={avatarOf(m.sender_id)} size={32} tone="#e4e4e8" />
+                  <Avatar name={nameOf(m.sender_id)} seed={m.sender_id} url={avatarOf(m.sender_id)} size={32} tone="#e4e4e8" />
                   <div className={`flex min-w-0 max-w-[82%] flex-col gap-2 md:max-w-[78%] ${mine ? "items-end" : "items-start"}`}>
                     {m.body ? (
                       <div

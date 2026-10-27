@@ -1,4 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
 <defs><clipPath id="c"><circle cx="60" cy="60" r="60"/></clipPath></defs>
-<g clip-path="url(#c)"><rect width="120" height="120" fill="#ffffff"/><path d="M60 -6 L78 38 L126 42 L90 72 L102 120 L60 94 L18 120 L30 72 L-6 42 L42 38 Z" fill="#EEC048"/><circle cx="53" cy="56" r="3.4" fill="#111111"/><circle cx="67" cy="56" r="3.4" fill="#111111"/><path d="M43 55 Q43 73 60 73 Q77 73 77 55" fill="none" stroke="#111111" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g clip-path="url(#c)"><rect width="120" height="120" fill="#FAEDCC"/><g transform="translate(60 60) scale(1.36) translate(-60 -54)"><path d="M60 -6 L78 38 L126 42 L90 72 L102 120 L60 94 L18 120 L30 72 L-6 42 L42 38 Z" fill="#EEC048"/><circle cx="53" cy="56" r="3.4" fill="#111111"/><circle cx="67" cy="56" r="3.4" fill="#111111"/><path d="M43 55 Q43 73 60 73 Q77 73 77 55" fill="none" stroke="#111111" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></g></g>
 </svg>

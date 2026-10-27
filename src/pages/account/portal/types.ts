@@ -178,6 +178,8 @@ export type ThreadSummary = Thread & {
   /** Who the other side is, for the inbox row title. */
   counterpartName: string;
   counterpartAvatar: string | null;
+  /** Their profile id, so their default avatar matches everywhere else. */
+  counterpartId: string | null;
 };
 
 export type PersonLite = { id: string; full_name: string | null; avatar_url: string | null; is_staff: boolean; email?: string | null; /** event_members.role, on members */ role?: string };

@@ -52,7 +52,7 @@ export default function AccountPage() {
         <SectionTitle>Profile</SectionTitle>
         <OutlineCard>
           <div className="flex flex-wrap items-center gap-4 px-5 py-6 sm:px-6 md:px-8">
-            <Avatar name={profile.full_name || profile.email} url={profile.avatar_url} size={66} />
+            <Avatar name={profile.full_name || profile.email} seed={profile.id} url={profile.avatar_url} size={66} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[20px] font-semibold text-[var(--ink)]">{profile.full_name || "Add your name"}</p>
               <p className="truncate text-[14px] text-[var(--slate)] md:text-[13px]">{profile.email}</p>

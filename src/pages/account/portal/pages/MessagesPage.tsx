@@ -205,7 +205,7 @@ export default function MessagesPage() {
                   onClick={() => open(t.id)}
                   className={`flex w-full items-start gap-3 border-b border-[var(--line)] px-4 py-4 text-left md:py-3.5 transition-colors ${t.id === activeId ? "bg-[#f1f1f3]" : "hover:bg-[var(--paper)]"}`}
                 >
-                  <Avatar name={t.counterpartName} url={t.counterpartAvatar} size={40} tone="#cfd6ea" />
+                  <Avatar name={t.counterpartName} seed={t.counterpartId} url={t.counterpartAvatar} size={40} tone="#cfd6ea" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
                       <span className={`truncate text-[15px] text-[var(--ink)] md:text-[13px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.counterpartName}</span>

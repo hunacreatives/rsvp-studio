@@ -189,6 +189,7 @@ export async function loadThreadSummaries(
       unread,
       counterpartName: counterpart?.full_name || counterpart?.email || (viewerIsStaff ? "Client" : "The RSVP Studio"),
       counterpartAvatar: counterpart?.avatar_url ?? null,
+      counterpartId: counterpart?.id ?? null,
     };
   });
 }
