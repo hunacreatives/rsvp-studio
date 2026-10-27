@@ -97,6 +97,13 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"EB Garamond", Garamond, Georgia, serif',
   },
   {
+    // Poolside: a warm, bold serif for the name and headings, Jost for everything else.
+    id: "dmserif-jost",
+    label: "DM Serif Display & Jost",
+    displayFont: '"DM Serif Display", Georgia, serif',
+    bodyFont: '"Jost", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
     // Under Glass: Bodoni for the name and the foil numeral, EB Garamond for the text (it also
     // loads Caveat for handwritten slips and Courier Prime for the typed program).
     id: "bodoni-garamond",

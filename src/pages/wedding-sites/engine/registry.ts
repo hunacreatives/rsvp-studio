@@ -15,6 +15,7 @@ import { capizTemplateDefinition } from "../templates/capiz";
 import { caladoTemplateDefinition } from "../templates/calado";
 import { underGlassTemplateDefinition } from "../templates/under-glass";
 import { rivieraTemplateDefinition } from "../templates/riviera";
+import { poolsideTemplateDefinition } from "../templates/poolside";
 import { tinghunRiceTemplateDefinition } from "../templates/tinghun-rice";
 import { debutIssueTemplateDefinition } from "../templates/debut-issue";
 import { tinghunLacquerTemplateDefinition } from "../templates/tinghun-lacquer";
@@ -181,6 +182,7 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   calado: caladoTemplateDefinition,
   "under-glass": underGlassTemplateDefinition,
   riviera: rivieraTemplateDefinition,
+  poolside: poolsideTemplateDefinition,
   "tinghun-rice": tinghunRiceTemplateDefinition,
   "tinghun-lacquer": tinghunLacquerTemplateDefinition,
   "tinghun-porcelain": tinghunPorcelainTemplateDefinition,

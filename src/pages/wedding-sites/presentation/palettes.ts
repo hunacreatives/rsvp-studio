@@ -144,6 +144,13 @@ export const palettes: PaletteOption[] = [
     swatches: ["#f6efea", "#33211d", "#81665d"],
   },
   {
+    // Poolside: deep pool navy on light water, a peach tiled deck (the water and the deck are
+    // the design's own).
+    id: "poolside",
+    label: "Pool Navy & Peach",
+    swatches: ["#fff8f1", "#0e3555", "#5d4a42"],
+  },
+  {
     // Riviera: white deck and navy ink (the sea and the teak are the design's own).
     id: "riviera",
     label: "White Deck & Navy",
