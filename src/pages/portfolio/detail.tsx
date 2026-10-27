@@ -38,15 +38,8 @@ export default function PortfolioDetail() {
             >
               {work.title}
             </h1>
+            {/* No link out: these are real couples' live sites, and a visitor could RSVP on one. */}
             <p className="eyebrow mt-4 text-balance">{work.meta}</p>
-            <a
-              href={work.liveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-dark mt-6 w-full max-w-sm sm:w-auto"
-            >
-              Visit the live site ↗
-            </a>
           </div>
         </section>
 

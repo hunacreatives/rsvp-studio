@@ -29,6 +29,7 @@ const median = (xs: number[]) => {
 /** Office-hours duration in words: "2h 15m", or "1.5 business days" from a full day up. */
 function workTime(ms: number | null) {
   if (ms === null) return "—";
+  if (ms < 60_000) return "Under 1m";
   if (ms >= BUSINESS_DAY_MS) return `${(ms / BUSINESS_DAY_MS).toFixed(1)} business days`;
   const h = Math.floor(ms / 3_600_000);
   const m = Math.round((ms % 3_600_000) / 60_000);
@@ -71,62 +72,54 @@ export default function SupportReport({ requests, holidays }: { requests: Thread
   const now = useMemo(() => stats(requests, month, holidays), [requests, month, holidays]);
   const prev = useMemo(() => stats(requests, shiftMonth(month, -1), holidays), [requests, month, holidays]);
 
-  const openNow = requests.filter((t) => t.status !== "resolved");
-  const oldest = openNow
-    .filter((t) => t.status === "needs_reply")
-    .sort((a, b) => new Date(a.last_customer_at ?? a.last_message_at).getTime() - new Date(b.last_customer_at ?? b.last_message_at).getTime())[0];
   const openRequest = (id: string) => setParams({ thread: id });
   const nameOf = (t: ThreadSummary) => t.counterpartName || people[t.profile_id]?.email || "Customer";
   const ratedCount = now.rated.length;
   const pct = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : "—");
-  const vs = (a: number, b: number) => (b || a ? `${a >= b ? "+" : ""}${a - b} vs ${monthName(shiftMonth(month, -1)).split(" ")[0]}` : "");
+  const lastName = monthName(shiftMonth(month, -1)).split(" ")[0];
+  const vs = (a: number, b: number) => (b || a ? `${a >= b ? "+" : ""}${a - b} vs ${lastName}` : "");
+  const slow = now.answered > 0 && now.withinDay / now.answered < 0.9;
+  const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+  // The month in one sentence; the numbers below back it up.
+  const summary = !now.received
+    ? `No requests in ${monthName(month).split(" ")[0]}.`
+    : `${plural(now.received, "request")} came in. We solved ${now.solved}${now.autoClosed ? `, and ${now.autoClosed} closed on ${now.autoClosed === 1 ? "its" : "their"} own after no reply` : ""}.${
+        now.answered ? ` ${pct(now.withinDay, now.answered)}\u00a0got a first reply within one business\u00a0day${slow ? ", under our 90%\u00a0goal" : ""}.` : ""
+      }`;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <PillButton onClick={() => setMonth(shiftMonth(month, -1))}>‹</PillButton>
-        <span className="min-w-[130px] text-center text-[15px] font-semibold text-[var(--ink)]">{monthName(month)}</span>
-        <PillButton onClick={() => setMonth(shiftMonth(month, 1))} disabled={month >= thisMonth}>
-          ›
-        </PillButton>
-        <span className="ml-auto text-[12px] text-[var(--slate)]">Times count office hours only: Mon–Fri, 9 AM–6 PM Manila, minus holidays.</span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span className="flex items-center gap-1">
+          <PillButton onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">
+            ‹
+          </PillButton>
+          <span className="min-w-[130px] text-center text-[15px] font-semibold text-[var(--ink)]">{monthName(month)}</span>
+          <PillButton onClick={() => setMonth(shiftMonth(month, 1))} disabled={month >= thisMonth} aria-label="Next month">
+            ›
+          </PillButton>
+        </span>
+        <p className="min-w-0 flex-1 basis-[280px] text-balance text-[14px] text-[var(--slate)]">{summary}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 overflow-hidden rounded-[22px] border border-[var(--line)] bg-white lg:grid-cols-4">
         <Stat label="Received" value={String(now.received)} sub={vs(now.received, prev.received)} />
         <Stat
-          label="Solved"
-          value={String(now.solved)}
-          sub={`${now.autoClosed} auto-closed (no reply from the customer)`}
-        />
-        <Stat label="Open now" value={String(openNow.length)} sub={`${openNow.filter((t) => t.status === "needs_reply").length} need a reply · ${openNow.filter((t) => t.status === "waiting").length} waiting on customer`} />
-        <Stat
-          label="Oldest waiting on us"
-          value={oldest ? workTime(businessMs(oldest.last_customer_at ?? oldest.last_message_at, new Date(), holidays)) : "—"}
-          sub={oldest ? `${ticketCode(oldest.ticket_number)} · ${nameOf(oldest)}` : "Nobody is waiting on us."}
-          onClick={oldest ? () => openRequest(oldest.id) : undefined}
-        />
-        <Stat
-          label="First reply (median)"
+          label="First reply"
           value={workTime(now.firstReply)}
-          sub={prev.firstReply !== null ? `${workTime(prev.firstReply)} last month` : `${now.answered} answered${now.unanswered ? ` · ${now.unanswered} not yet` : ""}`}
+          sub={prev.firstReply !== null ? `median · ${workTime(prev.firstReply)} in ${lastName}` : `median · ${now.answered} of ${now.received} answered`}
         />
         <Stat
-          label="Replied within 1 business day"
+          label="Within 1 business day"
           value={pct(now.withinDay, now.answered)}
-          sub={now.answered ? `${now.withinDay} of ${now.answered} requests` : "No replies yet this month."}
-          tone={now.answered && now.withinDay / now.answered < 0.9 ? "late" : undefined}
+          sub={now.answered ? `${now.withinDay} of ${now.answered} · goal 90%` : "No replies yet"}
+          tone={slow ? "late" : undefined}
         />
-        <Stat label="Time to solve (median)" value={workTime(now.resolution)} sub={`${now.solved} solved by us; auto-closed not counted`} />
-        <Stat
-          label="Ratings"
-          value={ratedCount ? `${pct(now.ratings.great, ratedCount)} great` : "—"}
-          sub={ratedCount ? `${ratedCount} rated of ${now.solved} solved` : "No ratings yet this month."}
-        />
+        <Stat label="Time to solve" value={workTime(now.resolution)} sub={`median · ${plural(now.solved, "solved by us", "solved by us")}`} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="By topic">
+        <Card title="Topics">
           {now.topics.length ? (
             <ul className="space-y-2.5">
               {now.topics.map((c) => (
@@ -190,14 +183,14 @@ export default function SupportReport({ requests, holidays }: { requests: Thread
   );
 }
 
-function Stat({ label, value, sub, tone, onClick }: { label: string; value: string; sub?: string; tone?: "late"; onClick?: () => void }) {
-  const Tag = onClick ? "button" : "div";
+/** One number in the strip; hairlines between cells, not separate boxes. */
+function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "late" }) {
   return (
-    <Tag onClick={onClick} className={`min-w-0 rounded-[18px] border border-[var(--line)] bg-white p-3.5 text-left sm:p-4 ${onClick ? "hover:border-[var(--ink)]" : ""}`}>
-      <span className="block text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--slate)] md:text-[11px] md:tracking-[0.08em]">{label}</span>
-      <span className={`mt-1.5 block break-words text-[20px] font-semibold sm:text-[22px] ${tone === "late" ? "text-[#c2412d]" : "text-[var(--ink)]"}`}>{value}</span>
+    <div className="min-w-0 border-[var(--line)] p-4 sm:p-5 [&:nth-child(even)]:border-l [&:nth-child(n+3)]:border-t lg:[&:not(:first-child)]:border-l lg:[&:nth-child(n+3)]:border-t-0">
+      <span className="block text-[12.5px] text-[var(--slate)]">{label}</span>
+      <span className={`mt-1 block break-words font-display text-[24px] font-semibold leading-tight sm:text-[28px] ${tone === "late" ? "text-[#c2412d]" : "text-[var(--ink)]"}`}>{value}</span>
       {sub ? <span className="mt-0.5 block text-[12px] text-[var(--slate)]">{sub}</span> : null}
-    </Tag>
+    </div>
   );
 }
 
@@ -205,7 +198,7 @@ function Card({ title, children, aside }: { title: string; children: React.React
   return (
     <section className="rounded-[22px] border border-[var(--line)] bg-white p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--slate)] md:text-[11px]">{title}</h3>
+        <h3 className="font-display text-[1.2rem] font-semibold text-[var(--ink)]">{title}</h3>
         {aside}
       </div>
       {children}
@@ -235,7 +228,7 @@ function HolidaysCard() {
   };
   return (
     <Card
-      title="Holidays (no reply clock)"
+      title="Holidays"
       aside={
         <span className="flex items-center gap-1 text-[13px] text-[var(--ink)]">
           <PillButton onClick={() => setYear(year - 1)}>‹</PillButton>
@@ -254,7 +247,7 @@ function HolidaysCard() {
             </button>
           </li>
         ))}
-        {!shown.length ? <li className="py-2 text-[13px] text-[var(--slate)]">None for {year} yet — add them once they’re proclaimed.</li> : null}
+        {!shown.length ? <li className="py-2 text-[13px] text-[var(--slate)]">None for {year} yet. Add them once they’re proclaimed; the reply clock skips&nbsp;them.</li> : null}
       </ul>
       <div className="mt-3 flex flex-wrap gap-2">
         <Input type="date" value={draft.day} onChange={(e) => setDraft({ ...draft, day: e.target.value })} className="w-[160px]" />
@@ -315,13 +308,18 @@ const OUTCOME: Record<studio.InboundEmail["outcome"], { label: string; tone: str
 /** Customers replying by email: what happened to each email — or, before launch, how to switch it on. */
 function EmailRepliesCard({ onOpen }: { onOpen: (id: string) => void }) {
   const [rows, setRows] = useState<studio.InboundEmail[] | null | undefined>(undefined);
+  // The switch-on steps are the owner's (Resend, Namecheap, Vercel); everyone else gets one line.
+  const [owner, setOwner] = useState(false);
   useEffect(() => {
     studio.loadInboundEmails().then(setRows);
+    studio.isOwner().then(setOwner);
   }, []);
   return (
     <Card title="Email replies">
       {rows === undefined ? (
         <Empty>Checking…</Empty>
+      ) : !rows?.length && !owner ? (
+        <Empty>Off until launch. Once it’s on, a customer’s email reply lands on their request here.</Empty>
       ) : !rows?.length ? (
         <div className="text-[13px] text-[var(--ink)]">
           <p>

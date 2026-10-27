@@ -44,6 +44,7 @@ const PortalContactSupport = lazy(() => import("../pages/account/portal/pages/Co
 const PortalGuide = lazy(() => import("../pages/account/portal/pages/GuidePage"));
 const StudioLayout = lazy(() => import("../pages/studio/StudioLayout"));
 const StudioOverview = lazy(() => import("../pages/studio/pages/OverviewPage"));
+const StudioWebsite = lazy(() => import("../pages/studio/pages/WebsitePage"));
 const StudioProjects = lazy(() => import("../pages/studio/pages/ProjectsPage"));
 const StudioInboxPage = lazy(() => import("../pages/studio/pages/InboxPage"));
 const StudioInvoices = lazy(() => import("../pages/studio/pages/InvoicesPage"));
@@ -121,6 +122,7 @@ const routes: RouteObject[] = [
       { path: "leads", element: <StudioLeads /> },
       { path: "partners", element: <StudioPartners /> },
       { path: "blog", element: <StudioBlog /> },
+      { path: "website", element: <StudioWebsite /> },
       { path: "revenue", element: <StudioRevenue /> },
       { path: "invoices", element: <StudioInvoices /> },
       { path: "clients", element: <StudioClients /> },

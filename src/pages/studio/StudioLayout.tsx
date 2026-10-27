@@ -36,6 +36,7 @@ const NAV: { to: string; label: string; icon: string; end?: boolean; ownerOnly?:
   { to: "/studio/clients", label: "Clients", icon: "ri-group-line" },
   { to: "/studio/templates", label: "Templates", icon: "ri-layout-masonry-line" },
   { to: "/studio/blog", label: "Blog", icon: "ri-quill-pen-line" },
+  { to: "/studio/website", label: "Website", icon: "ri-global-line" },
   { to: "/studio/team", label: "Team", icon: "ri-shield-user-line" },
 ];
 
@@ -274,7 +275,7 @@ function MobileTabBar({ badgeFor, nav }: { badgeFor: (to: string) => number; nav
 }
 
 /** Page heading for console pages. `hideOnPhone` hides it on phones (e.g. while a conversation is open). */
-export function StudioHeader({ title, sub, action, hideOnPhone = false }: { title: string; sub?: string; action?: ReactNode; hideOnPhone?: boolean }) {
+export function StudioHeader({ title, sub, action, hideOnPhone = false }: { title: string; sub?: ReactNode; action?: ReactNode; hideOnPhone?: boolean }) {
   return (
     <div className={`mb-6 flex-wrap items-end justify-between gap-4 md:mb-7 ${hideOnPhone ? "hidden md:flex" : "flex"}`}>
       <div className="min-w-0">

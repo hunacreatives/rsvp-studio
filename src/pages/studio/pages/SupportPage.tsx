@@ -22,7 +22,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "waiting", label: "Waiting on customer" },
   { id: "resolved", label: "Resolved" },
   { id: "all", label: "All" },
-  { id: "report", label: "Report" },
 ];
 
 /**
@@ -41,6 +40,11 @@ export default function SupportPage() {
   const [params, setParams] = useSearchParams();
   // ?tab=report opens the report (the Overview's daily-job alert links here).
   const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get("tab") === "report" ? "report" : "needs_reply"));
+  // Opening a request from the report (a rated comment, an email reply) shows it in the list.
+  const threadParam = params.get("thread");
+  useEffect(() => {
+    if (threadParam) setTab((t) => (t === "report" ? "all" : t));
+  }, [threadParam]);
   const [query, setQuery] = useState("");
   const [textHits, setTextHits] = useState<Set<string> | null>(null);
   const { days: holidays } = studio.useHolidays();
@@ -124,18 +128,36 @@ export default function SupportPage() {
         title="Support"
         sub={`${counts.needs_reply} need a reply${counts.overdue ? ` · ${counts.overdue} overdue` : ""} · we promise a reply within 1 business day (Mon–Fri, 9 AM–6 PM Manila).`}
         hideOnPhone={!!active}
+        action={
+          // The report is a different view, not another queue filter: its own link, top right.
+          <button
+            type="button"
+            onClick={() => (setTab(tab === "report" ? "needs_reply" : "report"), setQuery(""))}
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-4 text-[14px] font-medium text-[var(--ink)] hover:border-[var(--ink)] md:min-h-[40px] md:text-[13px]"
+          >
+            {tab === "report" ? (
+              <>
+                <i className="ri-arrow-left-line" aria-hidden /> Back to requests
+              </>
+            ) : (
+              <>
+                <i className="ri-bar-chart-2-line" aria-hidden /> Report
+              </>
+            )}
+          </button>
+        }
       />
-      <div className={`mb-4 flex-wrap items-center gap-2 ${active ? "hidden md:flex" : "flex"}`}>
+      <div className={`mb-4 flex-wrap items-center gap-2 ${active || tab === "report" ? "hidden" : "flex"} ${active ? "md:flex" : ""}`}>
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => (setTab(t.id), setQuery(""))}
             className={`min-h-[44px] rounded-full border px-4 py-2 text-[14px] transition-colors md:min-h-0 md:text-[13px] ${tab === t.id && !query ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"}`}
           >
-            {t.label} {t.id !== "report" ? <span className="opacity-60">{counts[t.id]}</span> : null}
+            {t.label} <span className="opacity-60">{counts[t.id]}</span>
           </button>
         ))}
-        <span className={`w-full rounded-full border border-[var(--line)] bg-white p-0.5 text-[13px] sm:ml-auto sm:w-auto ${tab === "report" && !query ? "hidden" : "flex"}`}>
+        <span className={`w-full rounded-full border border-[var(--line)] bg-white p-0.5 text-[13px] sm:ml-auto sm:w-auto flex`}>
           {(["everyone", "mine", "unassigned"] as Who[]).map((w) => (
             <button key={w} onClick={() => setWho(w)} className={`min-h-[40px] flex-1 whitespace-nowrap rounded-full px-2.5 py-1.5 sm:flex-none sm:px-3 md:min-h-0 ${who === w ? "bg-[var(--ink)] text-white" : "text-[var(--ink)]"}`}>
               {w === "mine" ? "Assigned to me" : w === "unassigned" ? "Unassigned" : "Everyone"}
