@@ -73,7 +73,7 @@ async function ogImage(req: VercelRequest, res: VercelResponse) {
   const slug = String(req.query.slug ?? "").toLowerCase().replace(/\.jpg$/, "");
   const fail = () => {
     res.setHeader("Cache-Control", "public, max-age=300");
-    res.status(302).setHeader("Location", "https://thersvpstudio.com/og-default.jpg").end();
+    res.status(302).setHeader("Location", "https://thersvpstudio.com/og-default.jpg?v=2").end();
   };
   if (!/^[a-z0-9-]{1,80}$/.test(slug)) return fail();
   const { data } = await db.rpc("get_public_site", { p_slug: slug });
