@@ -285,13 +285,30 @@ export function tipsToken(profileId: string) {
   return `${payload}.${sig}`;
 }
 
+/** Where after-event emails ask for a recommendation (the page's Reviews tab). */
+export const FACEBOOK_REVIEWS_URL = "https://www.facebook.com/profile.php?id=61590604769707&sk=reviews";
+/** The signed part of /go/review/<token>: which event's email the click came from. */
+export const reviewToken = (eventId: string) => tipsToken(`review:${eventId}`);
+
 /** The person an unsubscribe link is for, if the link is genuine. */
 export function readTipsToken(token: string): string | null {
+  const id = readSigned(token);
+  return id && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+}
+
+/** The event a /go/review/<token> link is for, if the link is genuine (never an unsubscribe one). */
+export function readReviewToken(token: string): string | null {
+  const v = readSigned(token);
+  const id = v?.startsWith("review:") ? v.slice(7) : null;
+  return id && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+}
+
+/** What a signed token carries, if its signature checks out. */
+function readSigned(token: string): string | null {
   const [payload, sig] = (token || "").split(".");
   if (!payload || !sig) return null;
   const want = createHmac("sha256", tipsKey()).update(payload).digest().subarray(0, 18);
   const got = Buffer.from(sig, "base64url");
   if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
-  const id = Buffer.from(payload, "base64url").toString();
-  return /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+  return Buffer.from(payload, "base64url").toString();
 }

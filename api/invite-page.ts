@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { esc } from "./_lib/email.js";
 import { sitemap } from "./_lib/sitemap.js";
 import { qrHandler } from "./_lib/qr.js";
+import { FACEBOOK_REVIEWS_URL, readReviewToken } from "./_lib/support-mail.js";
 import { blogPage } from "./_lib/blog-page.js";
 import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_H1, SEATING_LAYOUT, SEATING_PATH, SEATING_STEPS, SEATING_SUB, SEATING_TITLE } from "./_lib/seating-copy.js";
 
@@ -112,6 +113,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.query.op === "sitemap") return sitemap(db, res);
   // /qr/<slug>.png: the photo page's QR code for the hosts' emails.
   if (req.query.op === "qr") return qrHandler(req, res);
+  // The after-event emails' "Recommend us on Facebook" (/go/review/<token>, vercel.json): note the
+  // click once (followup_log review_click: no day-10 reminder then), then on to Facebook. A bad or
+  // old link still lands on Facebook.
+  if (req.query.op === "review") {
+    const eventId = readReviewToken(String(req.query.t ?? ""));
+    if (eventId && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const admin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY);
+      await admin.from("followup_log").insert({ event_id: eventId, kind: "review_click" }).then(() => undefined, () => undefined);
+    }
+    res.setHeader("Cache-Control", "no-store");
+    return res.redirect(302, FACEBOOK_REVIEWS_URL);
+  }
   // /og/<slug>.jpg: the link preview's photo, from our own domain (see ogImage).
   if (req.query.op === "og") return ogImage(req, res);
   const host = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "");

@@ -1,5 +1,5 @@
 import { esc } from "./email.js";
-import { BODY, browse, CORAL, frame, h1, INK, label, p, SITE, SLATE, steps } from "./enquiry-mail.js";
+import { BODY, browse, frame, h1, INK, label, p, SITE, SLATE, steps } from "./enquiry-mail.js";
 
 // The follow-up emails (sent by followups.ts from the daily job), in the same branded
 // frame as the enquiry receipts, each with a character on top:
@@ -9,7 +9,7 @@ import { BODY, browse, CORAL, frame, h1, INK, label, p, SITE, SLATE, steps } fro
 //   after     — thank you, thank-you cards, how did we do (pink heart)
 // Every one ends with an unsubscribe link (turns off profiles.notify_tips).
 
-export type FollowupKind = "draft_1" | "draft_4" | "draft_10" | "rsvp_10" | "headcount" | "after" | "deadline_3" | "checkin_1";
+export type FollowupKind = "draft_1" | "draft_4" | "draft_10" | "rsvp_10" | "headcount" | "after" | "deadline_3" | "checkin_1" | "review_10";
 
 export type FollowupData = {
   first: string;
@@ -31,6 +31,8 @@ export type FollowupData = {
   photos?: { url: string; qr: string } | null;
   unsubscribeUrl: string;
   bookingUrl?: string | null;
+  /** after / review_10: "Recommend us on Facebook" (/go/review/<token>, which notes the click). */
+  reviewUrl?: string;
   /** deadline_3: the published "Replies close on" (YYYY-MM-DD) and how many are on the invite list. */
   deadline?: string | null;
   invited?: number;
@@ -136,6 +138,17 @@ ${rows
 <td valign="middle" align="right" class="fi" style="padding:8px 0;${i ? "border-top:1px solid #ece4d4;" : ""}color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:20px;">${v}</td></tr></table>`,
   )
   .join("")}
+</td></tr></table>`;
+}
+
+/** The Facebook ask (after, review_10): a quiet card, the button, and the private way to tell us. */
+function recommend(d: FollowupData, title: string, line: string) {
+  const url = d.reviewUrl ?? "https://www.facebook.com/profile.php?id=61590604769707&sk=reviews";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 26px;"><tr><td align="center" class="fpaper" bgcolor="#fbfaf6" style="background:#fbfaf6;border:1px solid #e6dfd2;border-radius:16px;padding:24px 22px 4px;text-align:center;">
+<p class="fi" style="margin:0 0 8px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:20px;">${title}</p>
+<p class="fb" style="margin:0 0 16px;color:${BODY}!important;font-size:15px;line-height:1.6;">${line}</p>
+${button("Recommend us on Facebook", url)}
+<p class="fs" style="margin:-12px 0 20px;color:${SLATE}!important;font-size:13px;line-height:1.6;">Rather tell us privately? Just reply to this&nbsp;email.</p>
 </td></tr></table>`;
 }
 
@@ -330,6 +343,24 @@ ${signoff()}`),
     };
   }
 
+  // review_10: one last, short ask (only if they didn't press the button in the day-2 email)
+  if (kind === "review_10") {
+    return {
+      subject: `Would you recommend The RSVP Studio?`,
+      html: frame({
+        preheader: "A small favour, if you have a minute.",
+        spot: "followup-after.png",
+        spotAlt: "A pink heart character with open arms",
+        footer: footer(d.unsubscribeUrl),
+        content: wrap(`${h1(`A small favour, ${first}?`)}
+${p(`If we made <strong>${name}</strong> a little easier, a few words on our Facebook page would mean a lot. It’s how other couples find us.`)}
+${recommend(d, "Would you recommend us?", "Tap the button, choose Yes, and add a line about your&nbsp;celebration.")}
+${p("This is the last time we’ll ask. Thank you for celebrating with us.", 14)}
+${signoff("")}`),
+      }),
+    };
+  }
+
   // after
   const until = d.liveUntil ? ` Your website stays online until <strong>${day(d.liveUntil)}</strong>, so guests can look back at it.` : "";
   return {
@@ -342,10 +373,7 @@ ${signoff()}`),
       content: wrap(`${h1(`We hope it was wonderful, ${first}.`)}
 ${p(`Thank you for making <strong>${name}</strong> with us.${until}`)}
 ${d.photos ? p(`Guests can still add their photos. Share the <a href="${d.photos.url}" style="color:#2f61d5!important;">photo page</a> in your group chat, then see them all in your event’s Guests tab.`) : ""}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 26px;"><tr><td class="fpaper" bgcolor="#fbfaf6" style="background:#fbfaf6;border-left:3px solid ${CORAL};border-radius:4px;padding:16px 20px;">
-<p class="fi" style="margin:0 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-size:18px;">How did we do?</p>
-<p class="fb" style="margin:0;color:${BODY}!important;font-size:15px;line-height:1.6;">Reply with one line. What you loved, or what we should fix. We read every reply.</p>
-</td></tr></table>
+${recommend(d, "Would you recommend us?", "A few words on our Facebook page help the next couple find us. It takes a&nbsp;minute.")}
 ${label("Saying thank you?")}
 ${p("We design thank-you cards and photo cards to match your event, printed or digital.", 14)}
 ${button("Get thank-you cards", `${SITE}/enquire?service=stationery&amp;package=${encodeURIComponent("Thank-you cards")}&amp;from=after-event#start`)}

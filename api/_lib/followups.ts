@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatHostNames } from "./hosts.js";
 import { coordinatorEmail, followupEmail, type FollowupData, type FollowupKind } from "./followup-mail.js";
-import { FROM, STUDIO_INBOX, tipsToken } from "./support-mail.js";
+import { FROM, reviewToken, STUDIO_INBOX, tipsToken } from "./support-mail.js";
 
 // The daily follow-up emails (supabase/followups.sql → followups_due(), email-additions.sql):
 // unfinished drafts, 10 RSVPs on a free site, replies closing in 3 days, the headcount a
@@ -13,7 +13,7 @@ import { FROM, STUDIO_INBOX, tipsToken } from "./support-mail.js";
 type SendMail = (payload: Parameters<typeof import("./email.js").sendChecked>[1], idempotencyKey?: string) => Promise<unknown>;
 type Due = { event_id: string; kind: FollowupKind; rsvps: number; guests: number; declined: number };
 
-const PRIORITY: Record<FollowupKind, number> = { checkin_1: -1, deadline_3: 0, headcount: 1, after: 2, rsvp_10: 3, draft_10: 4, draft_4: 5, draft_1: 6 };
+const PRIORITY: Record<FollowupKind, number> = { checkin_1: -1, deadline_3: 0, headcount: 1, after: 2, review_10: 3, rsvp_10: 4, draft_10: 5, draft_4: 6, draft_1: 7 };
 const MAX_PER_RUN = 60;
 
 type Content = {
@@ -134,6 +134,7 @@ export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site
         const { count } = await db.from("invitees").select("id", { count: "exact", head: true }).eq("event_id", row.event_id);
         d.invited = count ?? 0;
       }
+      if (row.kind === "after" || row.kind === "review_10") d.reviewUrl = `${site}/go/review/${reviewToken(row.event_id)}`;
       if (row.kind === "after") {
         const { data: until } = await db.rpc("site_live_until", { p_event: row.event_id });
         d.liveUntil = typeof until === "string" ? until : null;
