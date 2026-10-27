@@ -31,7 +31,13 @@ const EVENTS: { id: string; label: string; words: string[] }[] = [
   { id: "debut", label: "Debut", words: ["debut", "18th", "eighteenth", "18 roses", "cotillion"] },
   { id: "baby", label: "Christening & 1st birthday", words: ["christening", "binyag", "baptism", "baby", "first birthday", "1st birthday", "dedication"] },
   { id: "anniversary", label: "Anniversary", words: ["anniversary", "renewal of vows", "vow renewal"] },
+  // A filter-only tag (templates.event_types), like "debut": parties at sea and the like.
+  { id: "party", label: "Parties", words: ["party", "yacht", "boat", "cruise", "sail", "sailing", "sunset", "bachelorette", "bachelor", "proposal"] },
 ];
+// The Ting Hun chip is for the Chinese engagement designs. A party design that also suits an
+// engagement (it lists "engagement" so a host's engagement can use it) shows under Parties.
+const fitsChip = (t: Pick<TemplateDefinition, "occasions">, chip: string) =>
+  chip === "engagement" && (t.occasions ?? []).includes("party") ? false : templateFitsEvent(t, chip);
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 const peso = (n: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(n);
 
@@ -144,12 +150,12 @@ export default function BuildLandingPage() {
   }, [signedIn]);
 
   // The events that have at least one design (no empty chips).
-  const eventChips = useMemo(() => EVENTS.filter((e) => templates.some((t) => (t.occasions ?? []).includes(e.id))), [templates]);
+  const eventChips = useMemo(() => EVENTS.filter((e) => templates.some((t) => (t.occasions ?? []).includes(e.id) && fitsChip(t, e.id))), [templates]);
   const shown = useMemo(() => {
     const q = norm(query);
     return templates.filter((t) => {
       if (tier !== "all" && t.tier !== tier) return false;
-      if (eventType !== "all" && !templateFitsEvent(t, eventType)) return false;
+      if (eventType !== "all" && !fitsChip(t, eventType)) return false;
       if (!q) return true;
       // A name ("porcelain"), an event ("tinghon" → engagement), or Free / Premium.
       const events = EVENTS.filter((e) => (t.occasions ?? []).includes(e.id));

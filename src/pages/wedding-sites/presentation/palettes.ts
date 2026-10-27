@@ -144,6 +144,12 @@ export const palettes: PaletteOption[] = [
     swatches: ["#f6efea", "#33211d", "#81665d"],
   },
   {
+    // Riviera: white deck and navy ink (the sea and the teak are the design's own).
+    id: "riviera",
+    label: "White Deck & Navy",
+    swatches: ["#fbfbf9", "#1b2a38", "#5a6876"],
+  },
+  {
     // The Debut Issue: magazine paper and ink (the spot colour is her first motif colour).
     id: "debut-issue",
     label: "Gloss & Ink",

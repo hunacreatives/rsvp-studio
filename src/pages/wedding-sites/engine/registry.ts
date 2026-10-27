@@ -14,6 +14,7 @@ import { openPlayTemplateDefinition } from "../templates/open-play";
 import { capizTemplateDefinition } from "../templates/capiz";
 import { caladoTemplateDefinition } from "../templates/calado";
 import { underGlassTemplateDefinition } from "../templates/under-glass";
+import { rivieraTemplateDefinition } from "../templates/riviera";
 import { tinghunRiceTemplateDefinition } from "../templates/tinghun-rice";
 import { debutIssueTemplateDefinition } from "../templates/debut-issue";
 import { tinghunLacquerTemplateDefinition } from "../templates/tinghun-lacquer";
@@ -179,6 +180,7 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   capiz: capizTemplateDefinition,
   calado: caladoTemplateDefinition,
   "under-glass": underGlassTemplateDefinition,
+  riviera: rivieraTemplateDefinition,
   "tinghun-rice": tinghunRiceTemplateDefinition,
   "tinghun-lacquer": tinghunLacquerTemplateDefinition,
   "tinghun-porcelain": tinghunPorcelainTemplateDefinition,

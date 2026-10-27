@@ -56,6 +56,7 @@ export const TEMPLATE_OCCASIONS = [
   { id: "baby", label: "Baby (christening, 1st birthday)" },
   { id: "engagement", label: "Engagement / Tinghun" },
   { id: "anniversary", label: "Anniversary" },
+  { id: "party", label: "Parties (filter only: yachts, cruises…)" },
   { id: "other", label: "Other" },
 ] as const;
 
