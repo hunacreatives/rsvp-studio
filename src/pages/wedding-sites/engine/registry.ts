@@ -16,6 +16,7 @@ import { caladoTemplateDefinition } from "../templates/calado";
 import { underGlassTemplateDefinition } from "../templates/under-glass";
 import { rivieraTemplateDefinition } from "../templates/riviera";
 import { poolsideTemplateDefinition } from "../templates/poolside";
+import { freediveTemplateDefinition } from "../templates/freedive";
 import { tinghunRiceTemplateDefinition } from "../templates/tinghun-rice";
 import { debutIssueTemplateDefinition } from "../templates/debut-issue";
 import { tinghunLacquerTemplateDefinition } from "../templates/tinghun-lacquer";
@@ -137,6 +138,9 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
    * Missing = Look & Feel's general list.
    */
   hideable?: { key: string; label: string }[];
+  /** False for a design with no entourage or motif colours on the page: the builder leaves out
+   *  the "Entourage & motif" group. */
+  entourage?: false;
   /**
    * Sections the host can move on the page, in the design's own order. `key` is what the
    * design marks with siteEdit().section; `vis` the SectionVisibility keys that show it (the
@@ -183,6 +187,7 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   "under-glass": underGlassTemplateDefinition,
   riviera: rivieraTemplateDefinition,
   poolside: poolsideTemplateDefinition,
+  freedive: freediveTemplateDefinition,
   "tinghun-rice": tinghunRiceTemplateDefinition,
   "tinghun-lacquer": tinghunLacquerTemplateDefinition,
   "tinghun-porcelain": tinghunPorcelainTemplateDefinition,

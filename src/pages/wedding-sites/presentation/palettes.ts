@@ -144,6 +144,12 @@ export const palettes: PaletteOption[] = [
     swatches: ["#f6efea", "#33211d", "#81665d"],
   },
   {
+    // The Blue: white on the ocean, a pale plate at the bottom (the sea is the design's own).
+    id: "freedive",
+    label: "Open Water",
+    swatches: ["#0b4a72", "#ffffff", "#bcd7e6"],
+  },
+  {
     // Poolside: deep pool navy on light water, a peach tiled deck (the water and the deck are
     // the design's own).
     id: "poolside",

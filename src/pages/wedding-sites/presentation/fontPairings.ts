@@ -97,6 +97,13 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"EB Garamond", Garamond, Georgia, serif',
   },
   {
+    // The Blue: a fine, calm serif for the name and headings, Manrope for the text.
+    id: "instrument-manrope",
+    label: "Instrument Serif & Manrope",
+    displayFont: '"Instrument Serif", Georgia, serif',
+    bodyFont: '"Manrope", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
     // Poolside: a warm, bold serif for the name and headings, Jost for everything else.
     id: "dmserif-jost",
     label: "DM Serif Display & Jost",
