@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { manilaToday } from "../content/rsvpDeadline";
 import type { EventContent } from "../content/types";
 import type { StandardSection, TemplateDefinition } from "../engine/registry";
 import type { SectionVisibility } from "../presentation/types";
@@ -192,7 +193,7 @@ export function editorGroups({ content, onChange, eventId, template, premium = f
             render: () => (
               <>
                 <FormField label="Replies close on" hint="Guests see the date on the form. It closes the day after.">
-                  <input type="date" style={inputStyle} value={content.rsvpDeadline ?? ""} max={content.eventDate ? content.eventDate.slice(0, 10) : undefined} onChange={(e) => onChange({ ...content, rsvpDeadline: e.target.value || undefined })} />
+                  <input type="date" style={inputStyle} value={content.rsvpDeadline ?? ""} min={manilaToday()} max={content.eventDate ? content.eventDate.slice(0, 10) : undefined} onChange={(e) => { const v = e.target.value; if (v && v < manilaToday() && v !== content.rsvpDeadline) return; onChange({ ...content, rsvpDeadline: v || undefined }); }} />
                 </FormField>
                 <RsvpQuestionsFields content={content} onChange={onChange} premium={premium} onUpgrade={onUpgrade} />
                 {extra("rsvp") ? (

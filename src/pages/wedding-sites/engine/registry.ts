@@ -19,6 +19,7 @@ import { poolsideTemplateDefinition } from "../templates/poolside";
 import { freediveTemplateDefinition } from "../templates/freedive";
 import { summitTemplateDefinition } from "../templates/summit";
 import { safariTemplateDefinition } from "../templates/safari";
+import { levelUpTemplateDefinition } from "../templates/levelup";
 import { tinghunRiceTemplateDefinition } from "../templates/tinghun-rice";
 import { debutIssueTemplateDefinition } from "../templates/debut-issue";
 import { tinghunLacquerTemplateDefinition } from "../templates/tinghun-lacquer";
@@ -192,6 +193,7 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   freedive: freediveTemplateDefinition,
   summit: summitTemplateDefinition,
   safari: safariTemplateDefinition,
+  levelup: levelUpTemplateDefinition,
   "tinghun-rice": tinghunRiceTemplateDefinition,
   "tinghun-lacquer": tinghunLacquerTemplateDefinition,
   "tinghun-porcelain": tinghunPorcelainTemplateDefinition,

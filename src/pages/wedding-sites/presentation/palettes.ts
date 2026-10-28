@@ -150,6 +150,12 @@ export const palettes: PaletteOption[] = [
     swatches: ["#0b4a72", "#ffffff", "#bcd7e6"],
   },
   {
+    // Level Up: a game's HUD on the island (the world and the HUD are the design's own).
+    id: "levelup",
+    label: "Island HUD",
+    swatches: ["#0a1628", "#7ff0ff", "#c6ff5e"],
+  },
+  {
     // Safari: paper colours (the savanna, the animals and the letters are the design's own).
     id: "safari",
     label: "Storybook Paper",

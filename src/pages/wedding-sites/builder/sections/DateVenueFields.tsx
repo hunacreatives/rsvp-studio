@@ -3,6 +3,7 @@ import { FormField, inputStyle } from "../components/FormField";
 import { mapHref } from "../../templates/shared/VenueLinks";
 import { useState } from "react";
 import { MAPS_ON, VenueSearch, isPickedMapUrl } from "../components/VenueSearch";
+import { manilaToday } from "../../content/rsvpDeadline";
 
 interface DateVenueFieldsProps {
   content: EventContent;
@@ -15,15 +16,24 @@ export default function DateVenueFields({ content, onChange }: DateVenueFieldsPr
   const [editing, setEditing] = useState(false);
   // Picked from Google: editing the name or address by hand drops that place's link.
   const picked = isPickedMapUrl(content.primaryLocation.mapUrl);
+  // the date can't move into the past (a past date already saved stays until it's changed)
+  const today = manilaToday();
+  const [pastTried, setPastTried] = useState(false);
   return (
     <div>
       <div className="rb-stack" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <FormField label="Event date">
+        <FormField label="Event date" hint={pastTried ? "Pick today or a later date." : undefined}>
           <input
             type="date"
             style={inputStyle}
+            min={today}
             value={content.eventDate.slice(0, 10)}
-            onChange={(e) => onChange({ ...content, eventDate: e.target.value + (content.eventDate.length > 10 ? content.eventDate.slice(10) : "") })}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v && v < today && v !== content.eventDate.slice(0, 10)) return setPastTried(true);
+              setPastTried(false);
+              onChange({ ...content, eventDate: v + (content.eventDate.length > 10 ? content.eventDate.slice(10) : "") });
+            }}
           />
         </FormField>
         <FormField label="Start time (optional)">

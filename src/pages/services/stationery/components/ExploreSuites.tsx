@@ -145,7 +145,7 @@ const ADDITIONS = [
   {
     title: "Menus & Day-of Details",
     copy: "Thoughtful touches that complete the experience.",
-    img: "/services/stationery/add-menus.jpg",
+    img: "/services/stationery/add-menus.webp",
   },
 ];
 

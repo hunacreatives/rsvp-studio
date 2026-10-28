@@ -104,6 +104,13 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"Manrope", "Helvetica Neue", Arial, sans-serif',
   },
   {
+    // Level Up: Chakra Petch (a game's display face) for the titles and the HUD, Manrope to read.
+    id: "chakra-manrope",
+    label: "Chakra Petch & Manrope",
+    displayFont: '"Chakra Petch", "Helvetica Neue", Arial, sans-serif',
+    bodyFont: '"Manrope", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
     // Safari: Fraunces (soft, round) for the name and headings, Nunito Sans for the text.
     id: "fraunces-nunito",
     label: "Fraunces & Nunito Sans",

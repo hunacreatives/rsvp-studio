@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type FormEvent } from "react";
 import type { CreateEventInput, EventType } from "../useCreateEvent";
+import { manilaToday } from "@/pages/wedding-sites/content/rsvpDeadline";
 
 interface CreateEventFormProps {
   eventType: EventType;
@@ -82,7 +83,10 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
   const [clientEmail, setClientEmail] = useState("");
   const emailOk = !clientEmail.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clientEmail.trim());
 
-  const canSubmit = (needsTwoHosts ? hostOne && hostTwo : Boolean(hostOne)) && emailOk;
+  // the event can't be in the past (today, in Manila, is the earliest)
+  const today = manilaToday();
+  const datePast = !dateUndecided && !!eventDate && eventDate < today;
+  const canSubmit = (needsTwoHosts ? hostOne && hostTwo : Boolean(hostOne)) && emailOk && !datePast;
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -164,10 +168,16 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
             id="ce-date"
             type="date"
             value={eventDate}
+            min={today}
             disabled={dateUndecided}
             onChange={(e) => setEventDate(e.target.value)}
             style={{ ...inputStyle, opacity: dateUndecided ? 0.5 : 1 }}
           />
+          {datePast ? (
+            <p className="mt-1.5 text-[13px]" style={{ color: "var(--acc-coral)" }}>
+              Pick today or a later date.
+            </p>
+          ) : null}
           <Toggle checked={dateUndecided} onChange={setDateUndecided} label="We're still deciding" />
         </div>
 
