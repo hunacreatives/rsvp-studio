@@ -20,6 +20,7 @@ const EXTRA: Record<string, string[]> = {
   "chiron-cormorant": [CORMORANT, "Chiron+Sung+HK:wght@400;600;700"],
   "cactus-cormorant": [CORMORANT, "Cactus+Classical+Serif"],
   "instrument-manrope": ["Instrument+Serif:ital@0;1", "Manrope:wght@400;500;600"],
+  "cormorant-manrope": [CORMORANT, "Manrope:wght@400;500;600"],
   "dmserif-jost": ["DM+Serif+Display:ital@0;1", "Jost:wght@400;500;600"],
   "yellowtail-jost": ["Yellowtail", "Jost:wght@400;500;600;700", "Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,700;1,9..144,800"],
 };

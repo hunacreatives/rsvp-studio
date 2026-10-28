@@ -150,6 +150,13 @@ export const palettes: PaletteOption[] = [
     swatches: ["#0b4a72", "#ffffff", "#bcd7e6"],
   },
   {
+    // Summit: white on the mountain, a pale card at the top (the mountain and the sky are the
+    // design's own).
+    id: "summit",
+    label: "Summit Morning",
+    swatches: ["#17222f", "#ffffff", "#7a5a36"],
+  },
+  {
     // Poolside: deep pool navy on light water, a peach tiled deck (the water and the deck are
     // the design's own).
     id: "poolside",

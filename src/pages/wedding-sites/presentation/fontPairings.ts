@@ -104,6 +104,13 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"Manrope", "Helvetica Neue", Arial, sans-serif',
   },
   {
+    // Summit: Cormorant for the name and headings, Manrope for the text.
+    id: "cormorant-manrope",
+    label: "Cormorant & Manrope",
+    displayFont: '"Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Manrope", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
     // Poolside: a warm, bold serif for the name and headings, Jost for everything else.
     id: "dmserif-jost",
     label: "DM Serif Display & Jost",

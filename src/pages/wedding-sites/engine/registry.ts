@@ -17,6 +17,7 @@ import { underGlassTemplateDefinition } from "../templates/under-glass";
 import { rivieraTemplateDefinition } from "../templates/riviera";
 import { poolsideTemplateDefinition } from "../templates/poolside";
 import { freediveTemplateDefinition } from "../templates/freedive";
+import { summitTemplateDefinition } from "../templates/summit";
 import { tinghunRiceTemplateDefinition } from "../templates/tinghun-rice";
 import { debutIssueTemplateDefinition } from "../templates/debut-issue";
 import { tinghunLacquerTemplateDefinition } from "../templates/tinghun-lacquer";
@@ -188,6 +189,7 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   riviera: rivieraTemplateDefinition,
   poolside: poolsideTemplateDefinition,
   freedive: freediveTemplateDefinition,
+  summit: summitTemplateDefinition,
   "tinghun-rice": tinghunRiceTemplateDefinition,
   "tinghun-lacquer": tinghunLacquerTemplateDefinition,
   "tinghun-porcelain": tinghunPorcelainTemplateDefinition,
