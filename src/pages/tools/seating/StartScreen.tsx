@@ -126,14 +126,21 @@ function PlanPicture({ chart, order, play = true, still = false }: { chart: Char
 }
 
 /** The editor seating a wedding, on a loop. A still of the empty room with reduced motion. */
-function EditorRecording() {
+function EditorRecording({ paused = false }: { paused?: boolean }) {
   const [reduce, setReduce] = useState(false);
+  const video = useRef<HTMLVideoElement | null>(null);
   useEffect(() => setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    if (paused) v.pause();
+    else void v.play().catch(() => {});
+  }, [paused]);
   const cls = "block h-full w-full rounded-[10px] object-cover object-left-top";
   return reduce ? (
     <img src="/tools/mesa/editor-1440.webp" alt="Mesa’s editor: a wedding reception with every guest seated" className={cls} />
   ) : (
-    <video src="/tools/mesa/editor-seating.mp4" poster="/tools/mesa/editor-seating-poster.webp" autoPlay muted loop playsInline aria-label="Someone using Mesa: they seat the Friends group at table 5, press Seat everyone, then zoom in on the names" className={cls} />
+    <video ref={video} src="/tools/mesa/editor-seating.mp4" poster="/tools/mesa/editor-seating-poster.webp" autoPlay muted loop playsInline aria-label="Someone using Mesa: they seat the Friends group at table 5, press Seat everyone, then zoom in on the names" className={cls} />
   );
 }
 
@@ -303,7 +310,9 @@ export default function StartScreen({
   return (
     <>
       <Navbar />
-      <main className="mesa-page overflow-hidden">
+      {/* While a sheet is open the page behind it holds still (mesa-hold): Safari's blur behind
+          the sheet repaints whatever moves under it in dark patches. */}
+      <main className={`mesa-page overflow-hidden${sheet || (asking && current) ? " mesa-hold" : ""}`}>
         {/* Hero: the Build page's warm wash, a string of banderitas, the name, the product. */}
         <section
           ref={hero}
@@ -334,7 +343,7 @@ export default function StartScreen({
               <div className="hidden sm:block">
                 <Laptop>
                   {/* A scripted session in the real editor, with a visible cursor (public/tools/mesa). */}
-                  <EditorRecording />
+                  <EditorRecording paused={sheet || (!!asking && !!current)} />
                 </Laptop>
               </div>
               <Phone className="mesa-phone-hero hidden sm:block">

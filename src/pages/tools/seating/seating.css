@@ -1098,7 +1098,11 @@
 .mesa-specs dd { margin: 6px 0 0; font-size: 15px; line-height: 1.5; color: var(--slate); }
 
 /* the start sheet */
-.mesa-sheet-scrim { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(0, 7, 39, 0.4); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto; animation: sp-fade 0.2s ease-out; }
+/* a tint, no blur: Safari repaints a blurred backdrop over the hero's moving parts in dark
+   patches and lines. The page behind holds still while a sheet is open (.mesa-hold). */
+.mesa-hold *, .mesa-hold *::before, .mesa-hold *::after { animation-play-state: paused !important; }
+.mesa-sheet-scrim { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(0, 7, 39, 0.5); overflow-y: auto; animation: mesa-scrim-in 0.2s ease-out; }
+@keyframes mesa-scrim-in { from { background-color: rgba(0, 7, 39, 0); } }
 .mesa-sheet { width: min(640px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: 26px; background: var(--warm-white); padding: 28px; box-shadow: 0 40px 120px -40px rgba(0, 7, 39, 0.6); animation: sp-rise 0.3s ease-out; }
 .mesa-sheet--small { width: min(540px, 100%); }
 /* the start flow (StartFlow.tsx): a fixed-height sheet, the steps scroll, Back/Next stay put */
