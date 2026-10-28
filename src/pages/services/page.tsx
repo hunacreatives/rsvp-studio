@@ -110,6 +110,7 @@ export default function Services() {
         {/* Hero: the same band as the homepage's "Your celebration is our celebration, too." */}
         <ImageBand
           as="h1"
+          short
           title={
             <>
               Designed for Celebrations{" "}

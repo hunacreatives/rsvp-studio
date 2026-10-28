@@ -24,6 +24,9 @@ type Props = {
   bg?: string;
   /** extra softening for the photo, in px */
   blur?: number;
+  /** A page's hero (Services): shorter than the homepage's bands, so the page's own content
+   *  starts sooner. */
+  short?: boolean;
 };
 
 export default function ImageBand({
@@ -36,6 +39,7 @@ export default function ImageBand({
   image,
   bg,
   blur,
+  short,
   as: Heading = "h2",
 }: Props) {
   const navigate = useNavigate();
@@ -66,7 +70,7 @@ export default function ImageBand({
   return (
     <section
       ref={root}
-      className="relative overflow-hidden isolate flex items-center justify-center text-center min-h-[380px] md:min-h-[600px] py-20 md:py-28"
+      className={`relative overflow-hidden isolate flex items-center justify-center text-center ${short ? "min-h-[280px] md:min-h-[400px] py-14 md:py-20" : "min-h-[380px] md:min-h-[600px] py-20 md:py-28"}`}
     >
       <div
         ref={layer}

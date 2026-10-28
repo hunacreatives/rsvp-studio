@@ -104,6 +104,13 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"Manrope", "Helvetica Neue", Arial, sans-serif',
   },
   {
+    // Safari: Fraunces (soft, round) for the name and headings, Nunito Sans for the text.
+    id: "fraunces-nunito",
+    label: "Fraunces & Nunito Sans",
+    displayFont: '"Fraunces", Georgia, serif',
+    bodyFont: '"Nunito Sans", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
     // Summit: Cormorant for the name and headings, Manrope for the text.
     id: "cormorant-manrope",
     label: "Cormorant & Manrope",

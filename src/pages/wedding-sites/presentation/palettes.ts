@@ -150,6 +150,12 @@ export const palettes: PaletteOption[] = [
     swatches: ["#0b4a72", "#ffffff", "#bcd7e6"],
   },
   {
+    // Safari: paper colours (the savanna, the animals and the letters are the design's own).
+    id: "safari",
+    label: "Storybook Paper",
+    swatches: ["#f5e6cd", "#3b2614", "#e0633f"],
+  },
+  {
     // Summit: white on the mountain, a pale card at the top (the mountain and the sky are the
     // design's own).
     id: "summit",
