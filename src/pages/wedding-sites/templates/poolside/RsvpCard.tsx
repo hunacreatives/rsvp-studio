@@ -3,6 +3,7 @@ import type { EventContent } from "../../content/types";
 import { customValue } from "../../content/custom";
 import { useRsvpForm } from "../../spec/runtime/useRsvpForm";
 import RsvpQuestions from "../shared/RsvpQuestions";
+import { Field } from "../shared/siteEdit";
 
 // The reply, on the beach towel at the far end of the pool: coming or not, how many, the
 // host's own questions and an optional note.
@@ -39,7 +40,7 @@ export default function RsvpCard({ content, editorPreview, sample, credit }: { c
       ) : (
         <>
           {form.replyBy ? <p className="ps-k">{form.replyBy}</p> : null}
-          <h2>{customValue(content, "rsvpTitle") || "Will you make a\u00a0splash?"}</h2>
+          <Field as="h2" path="custom.rsvpTitle" value={customValue(content, "rsvpTitle")} fallback={"Will you make a\u00a0splash?"} placeholder="" editor={editorPreview} />
           {reserved ? <p className="ps-small">We’ve saved {reserved} {reserved === 1 ? "spot" : "spots"} by the pool for you.</p> : null}
           {form.closed ? (
             <p className="ps-small" role="status">

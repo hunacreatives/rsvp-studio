@@ -3,6 +3,7 @@ import type { EventContent } from "../../content/types";
 import { customValue } from "../../content/custom";
 import { useRsvpForm } from "../../spec/runtime/useRsvpForm";
 import RsvpQuestions from "../shared/RsvpQuestions";
+import { Field } from "../shared/siteEdit";
 
 // The reply card on the aft deck: coming or not, how many seats, the host's own questions and
 // an optional note for the hosts.
@@ -39,7 +40,7 @@ export default function RsvpCard({ content, editorPreview, sample }: { content: 
       ) : (
         <>
           {form.replyBy ? <p className="rv-label rv-gold">{form.replyBy}</p> : null}
-          <h2 className="rv-h2">{customValue(content, "rsvpTitle") || "Will you join us aboard?"}</h2>
+          <Field as="h2" className="rv-h2" path="custom.rsvpTitle" value={customValue(content, "rsvpTitle")} fallback="Will you join us aboard?" placeholder="" editor={editorPreview} />
           {reserved ? <p className="rv-small">We’ve saved {reserved} {reserved === 1 ? "place" : "places"} on board for you.</p> : null}
           {form.closed ? (
             <p className="rv-text" role="status">

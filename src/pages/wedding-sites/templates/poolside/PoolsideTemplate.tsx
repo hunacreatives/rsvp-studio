@@ -8,6 +8,7 @@ import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
 import { customValue } from "../../content/custom";
 import type { EventContent } from "../../content/types";
 import VenueLinks from "../shared/VenueLinks";
+import { AddItem, Field, HiddenSection, siteEdit } from "../shared/siteEdit";
 import { CashGifts, hasCashGifts } from "../shared/CashGifts";
 import { eventIsOver, longDate, timeOf } from "../under-glass/content";
 import { propSvg, type PropKind } from "./props";
@@ -48,9 +49,8 @@ const NUMBERS = ["", "one", "two", "three", "four", "five", "six", "seven", "eig
 const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
 const words = (n: number) => (n < 20 ? NUMBERS[n] : n < 100 ? TENS[Math.floor(n / 10)] + (n % 10 ? `-${NUMBERS[n % 10]}` : "") : String(n));
 
-function nameOf(c: EventContent): string {
-  const own = customValue(c, "names");
-  if (own) return own;
+const nameOf = (c: EventContent) => customValue(c, "names") || hostNames(c);
+function hostNames(c: EventContent): string {
   const first = c.hosts.map((h) => h.name.trim().split(/\s+/)[0]).filter(Boolean);
   return first.length > 1 ? `${first.slice(0, -1).join(", ")} & ${first[first.length - 1]}` : first[0] ?? "";
 }
@@ -97,6 +97,8 @@ export default function PoolsideTemplate({ content, settings, editorPreview = fa
   }, [live]);
 
   const vis = settings.sectionVisibility;
+  const ed = siteEdit(editorPreview);
+  const E = editorPreview;
   const name = nameOf(content);
   const turning = turningOf(content, content.hosts.filter((h) => h.name.trim()).length > 1);
   const when = longDate(content.eventDate);
@@ -104,9 +106,9 @@ export default function PoolsideTemplate({ content, settings, editorPreview = fa
   const town = (content.primaryLocation.addressLine ?? "").split(",").map((s) => s.trim()).filter(Boolean).pop() ?? "";
   const venue = content.primaryLocation.name?.trim() ?? "";
   const address = content.primaryLocation.addressLine?.trim() ?? "";
-  const schedule = [...content.schedule].sort((a, b) => a.startTime.localeCompare(b.startTime)).filter((s) => s.label.trim());
+  const schedule = [...content.schedule].sort((a, b) => a.startTime.localeCompare(b.startTime)).filter((s) => editorPreview || s.label.trim());
   const dress = customValue(content, "dressCode");
-  const faqs = [...content.faqs].sort((a, b) => a.order - b.order).filter((f) => f.question.trim());
+  const faqs = [...content.faqs].sort((a, b) => a.order - b.order).filter((f) => editorPreview || f.question.trim());
   const cash = hasCashGifts(content);
   const gifts = content.registryLinks.length > 0 || cash || !!customValue(content, "giftNote");
   const over = !editorPreview && eventIsOver(content.eventDate);
@@ -160,9 +162,9 @@ export default function PoolsideTemplate({ content, settings, editorPreview = fa
 
       <main className="ps-water">
         <section data-ripple>
-          <p className="ps-k">{customValue(content, "heroLine") || "You’re invited to a pool party"}</p>
-          <h1 className={`ps-name${name ? "" : " ps-hint"}`}>{name || (editorPreview ? "Your name" : "")}</h1>
-          {turning ? <p className="ps-turns">{turning}</p> : editorPreview ? <p className="ps-turns ps-hint">Add the age in the Poolside details</p> : null}
+          <Field as="p" className="ps-k" path="custom.heroLine" value={customValue(content, "heroLine")} fallback="You’re invited to a pool party" placeholder="" editor={E} />
+          <Field as="h1" className="ps-name" path="custom.names" value={customValue(content, "names")} fallback={hostNames(content) || undefined} placeholder="Your name" editor={E} />
+          <Field as="p" className="ps-turns" path="custom.ageLine" value={customValue(content, "ageLine")} fallback={turning || undefined} placeholder="is turning thirty (or set the age in the Poolside details)" editor={E} />
           <p className="ps-when">
             {when ? <span>{when}</span> : editorPreview ? "Your date" : null}
             {at ? (
@@ -179,8 +181,8 @@ export default function PoolsideTemplate({ content, settings, editorPreview = fa
             ) : null}
           </p>
           {vis.rsvp !== false && !over && !gallery ? (
-            <button type="button" className="ps-btn" onClick={toRsvp}>
-              {customValue(content, "replyButton") || "Kindly reply"}
+            <button type="button" className="ps-btn" onClick={ed.on ? undefined : toRsvp}>
+              <Field path="custom.replyButton" value={customValue(content, "replyButton")} fallback="Kindly reply" placeholder="" editor={E} />
               <i />
             </button>
           ) : null}
@@ -189,47 +191,51 @@ export default function PoolsideTemplate({ content, settings, editorPreview = fa
         </section>
 
         {vis.schedule !== false && (schedule.length || venue || editorPreview) ? (
-          <section className="ps-sec">
+          <section className="ps-sec" {...ed.section("schedule")}>
             {float()}
-            <p className="ps-k">{customValue(content, "dayLabel") || "The day"}</p>
-            <h2 className={`ps-h2${venue || customValue(content, "dayTitle") ? "" : " ps-hint"}`}>{customValue(content, "dayTitle") || venue || "Where the party is"}</h2>
-            {address ? <p className="ps-addr">{address}</p> : null}
+            <Field as="p" className="ps-k" path="custom.dayLabel" value={customValue(content, "dayLabel")} fallback="The day" placeholder="" editor={E} />
+            <Field as="h2" className="ps-h2" path="custom.dayTitle" value={customValue(content, "dayTitle")} fallback={venue || undefined} placeholder="Where the party is" editor={E} />
+            {customValue(content, "dayTitle") || E ? <Field as="p" className="ps-addr" path="primaryLocation.name" value={venue} placeholder="The venue" editor={E} /> : null}
+            <Field as="p" className="ps-addr" path="primaryLocation.addressLine" value={address} placeholder="Address" editor={E} />
             {venue ? (
               <div style={{ marginTop: 10 }}>
                 <VenueLinks content={content} font="var(--ps-sans)" color="var(--ink)" size={15} />
               </div>
             ) : null}
             {schedule.length ? (
-              <div className="ps-legs">
+              <div className="ps-legs" {...ed.list("schedule")}>
                 {schedule.map((s) => (
-                  <div key={s.id}>
-                    <b>{timeOf(s.startTime)}</b>
+                  <div key={s.id} {...ed.item(s.id)}>
+                    <b>{timeOf(s.startTime) || (E ? "Time" : "")}</b>
                     <span>
-                      {s.label}
-                      {s.description ? <em>{s.description}</em> : null}
+                      <Field path="label" value={s.label} placeholder="What’s happening" editor={E} />
+                      {s.description || E ? <Field as="em" path="description" value={s.description} placeholder="A note (optional)" editor={E} multiline /> : null}
                     </span>
                   </div>
                 ))}
               </div>
-            ) : editorPreview ? (
-              <p className="ps-addr ps-hint">Add the day under Schedule.</p>
             ) : null}
+            <AddItem list="schedule" label={schedule.length ? "Add to the day" : "Add the day"} editor={E} />
           </section>
+        ) : vis.schedule === false ? (
+          <HiddenSection k="schedule" label="The day" editor={E} />
         ) : null}
 
         {vis.dress !== false && (dress || editorPreview) ? (
-          <section className="ps-sec">
+          <section className="ps-sec" {...ed.section("dress")}>
             {float()}
-            <p className="ps-k">What to wear</p>
-            {dress ? <p className="ps-note">{dress}</p> : <p className="ps-note ps-hint">Add a dress code in the Poolside details.</p>}
+            <Field as="p" className="ps-k" path="custom.dressTitle" value={customValue(content, "dressTitle")} fallback="What to wear" placeholder="" editor={E} />
+            <Field as="p" className="ps-note" path="custom.dressCode" value={dress} placeholder="Your dress code, e.g. swimwear and resort whites." editor={E} multiline />
           </section>
+        ) : vis.dress === false ? (
+          <HiddenSection k="dress" label="What to wear" editor={E} />
         ) : null}
 
-        {vis.registry !== false && gifts ? (
-          <section className="ps-sec">
+        {vis.registry !== false && (gifts || E) ? (
+          <section className="ps-sec" {...ed.section("registry")}>
             {float()}
-            <p className="ps-k">Gifts</p>
-            <p className="ps-note">{customValue(content, "giftNote") || content.cashGiftNote?.trim() || "Your company is the only gift needed."}</p>
+            <Field as="p" className="ps-k" path="custom.giftTitle" value={customValue(content, "giftTitle")} fallback="Gifts" placeholder="" editor={E} />
+            <Field as="p" className="ps-note" path="custom.giftNote" value={customValue(content, "giftNote")} fallback={content.cashGiftNote?.trim() || "Your company is the only gift needed."} placeholder="" editor={E} multiline />
             {content.registryLinks.length ? (
               <div className="ps-links">
                 {content.registryLinks.map((r) => (
@@ -253,23 +259,30 @@ export default function PoolsideTemplate({ content, settings, editorPreview = fa
               )
             ) : null}
           </section>
+        ) : vis.registry === false ? (
+          <HiddenSection k="registry" label="Gifts" editor={E} />
         ) : null}
 
-        {vis.faqs !== false && faqs.length ? (
-          <section className="ps-sec">
+        {vis.faqs !== false && (faqs.length || E) ? (
+          <section className="ps-sec" {...ed.section("faqs")}>
             {float()}
-            <p className="ps-k">Good to know</p>
-            {faqs.map((f) => (
-              <div key={f.id} className="ps-faq">
-                <b>{f.question}</b>
-                <span>{f.answer}</span>
-              </div>
-            ))}
+            <Field as="p" className="ps-k" path="custom.faqTitle" value={customValue(content, "faqTitle")} fallback="Good to know" placeholder="" editor={E} />
+            <div {...ed.list("faqs")}>
+              {faqs.map((f) => (
+                <div key={f.id} className="ps-faq" {...ed.item(f.id)}>
+                  <Field as="b" path="question" value={f.question} placeholder="A question" editor={E} />
+                  <Field as="span" path="answer" value={f.answer} placeholder="The answer" editor={E} multiline />
+                </div>
+              ))}
+            </div>
+            <AddItem list="faqs" label={faqs.length ? "Add a question" : "Add a question guests ask"} editor={E} />
           </section>
+        ) : vis.faqs === false ? (
+          <HiddenSection k="faqs" label="Good to know" editor={E} />
         ) : null}
       </main>
 
-      <section ref={endRef} className="ps-end">
+      <section ref={endRef} className="ps-end" {...ed.section("rsvp")}>
         {over ? (
           <div className="ps-towel">
             <h2>Thank you for coming</h2>

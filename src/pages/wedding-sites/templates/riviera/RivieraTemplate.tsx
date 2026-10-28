@@ -8,6 +8,7 @@ import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
 import { customValue } from "../../content/custom";
 import type { EventContent } from "../../content/types";
 import VenueLinks from "../shared/VenueLinks";
+import { AddItem, Field, HiddenSection, siteEdit } from "../shared/siteEdit";
 import { CashGifts, hasCashGifts } from "../shared/CashGifts";
 import { eventIsOver, longDate, timeOf } from "../under-glass/content";
 import { Bow, Stern } from "./art";
@@ -32,16 +33,14 @@ const WAVES = "/event-templates/riviera/waves.jpg";
 const SANS = "Jost:wght@400;500";
 
 /** "Celine & Marco", or "Isla": the host's own, else the hosts' first names. */
-function namesOf(c: EventContent): string {
-  const own = customValue(c, "names");
-  if (own) return own;
+function hostNames(c: EventContent): string {
   const first = c.hosts.map((h) => h.name.trim().split(/\s+/)[0]).filter(Boolean);
   return first.length > 1 ? `${first.slice(0, -1).join(", ")} & ${first[first.length - 1]}` : first[0] ?? "";
 }
 
-function kickerOf(c: EventContent): string {
-  const own = customValue(c, "heroLine");
-  if (own) return own;
+const namesOf = (c: EventContent) => customValue(c, "names") || hostNames(c);
+
+function kickerDefault(c: EventContent): string {
   switch (c.occasion) {
     case "engagement":
       return "An engagement cruise";
@@ -84,25 +83,28 @@ export default function RivieraTemplate({ content, settings, editorPreview = fal
   }, [live]);
 
   const vis = settings.sectionVisibility;
+  const ed = siteEdit(editorPreview);
+  const E = editorPreview;
   const names = namesOf(content);
   const amp = names.split(/\s+&\s+/);
   const when = longDate(content.eventDate);
   const town = (content.primaryLocation.addressLine ?? "").split(",").map((s) => s.trim()).filter(Boolean).pop() ?? "";
   const boarding = customValue(content, "boardingTime");
-  const departs = content.eventDate.includes("T") ? timeOf(content.eventDate) : "";
+  const eventTime = content.eventDate.includes("T") ? timeOf(content.eventDate) : "";
+  const departs = customValue(content, "departTime") || eventTime;
   const back = customValue(content, "returnTime");
   const times = [
-    { k: "Boarding", v: boarding },
-    { k: "Departs", v: departs },
-    { k: "Return", v: back },
-  ].filter((t) => t.v);
+    { k: "Boarding", v: boarding, path: "custom.boardingTime", ph: "4:30 PM", fallback: "" },
+    { k: "Departs", v: departs, path: "custom.departTime", ph: "5:00 PM", fallback: eventTime },
+    { k: "Return", v: back, path: "custom.returnTime", ph: "9:30 PM", fallback: "" },
+  ].filter((t) => t.v || E);
   const paragraphs = (content.story ?? "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   const showNote = vis.hostIntro !== false && (paragraphs.length > 0 || editorPreview);
   const venue = content.primaryLocation.name?.trim() ?? "";
   const address = content.primaryLocation.addressLine?.trim() ?? "";
-  const schedule = [...content.schedule].sort((a, b) => a.startTime.localeCompare(b.startTime)).filter((s) => s.label.trim());
+  const schedule = [...content.schedule].sort((a, b) => a.startTime.localeCompare(b.startTime)).filter((s) => editorPreview || s.label.trim());
   const dress = customValue(content, "dressCode");
-  const faqs = [...content.faqs].sort((a, b) => a.order - b.order).filter((f) => f.question.trim());
+  const faqs = [...content.faqs].sort((a, b) => a.order - b.order).filter((f) => editorPreview || f.question.trim());
   const cash = hasCashGifts(content);
   const gifts = content.registryLinks.length > 0 || cash || !!customValue(content, "giftNote");
   const over = !editorPreview && eventIsOver(content.eventDate);
@@ -123,24 +125,22 @@ export default function RivieraTemplate({ content, settings, editorPreview = fal
           <div className="rv-mid">
             {/* The sun pad: the names */}
             <header className="rv-zone rv-sunpad">
-              <p className="rv-label rv-gold">{kickerOf(content)}</p>
-              <h1 className={`rv-names${names ? "" : " rv-hint"}`}>
-                {names ? (
-                  amp.length === 2 ? (
-                    <>
-                      {amp[0]} <em>&amp;</em> {amp[1]}
-                    </>
-                  ) : (
-                    names
-                  )
-                ) : editorPreview ? (
-                  "Your names"
-                ) : null}
+              <Field as="p" className="rv-label rv-gold" path="custom.heroLine" value={customValue(content, "heroLine")} fallback={kickerDefault(content)} placeholder="" editor={E} />
+              <h1 className="rv-names">
+                {E ? (
+                  <Field path="custom.names" value={customValue(content, "names")} fallback={hostNames(content) || undefined} placeholder="Your names" editor={E} />
+                ) : amp.length === 2 ? (
+                  <>
+                    {amp[0]} <em>&amp;</em> {amp[1]}
+                  </>
+                ) : (
+                  names
+                )}
               </h1>
               <p className="rv-date">{[when, town].filter(Boolean).join(" · ") || (editorPreview ? "Your date" : "")}</p>
               {vis.rsvp !== false && !over && !gallery ? (
-                <button type="button" className="rv-reply" onClick={toRsvp}>
-                  {customValue(content, "replyButton") || "Kindly reply"}
+                <button type="button" className="rv-reply" onClick={ed.on ? undefined : toRsvp}>
+                  <Field path="custom.replyButton" value={customValue(content, "replyButton")} fallback="Kindly reply" placeholder="" editor={E} />
                   <i />
                 </button>
               ) : null}
@@ -150,7 +150,7 @@ export default function RivieraTemplate({ content, settings, editorPreview = fal
 
             {/* The deckhouse: the times on the windscreen, the invitation on the hardtop */}
             {times.length || showNote ? (
-              <section className="rv-zone rv-house">
+              <section className="rv-zone rv-house" {...ed.section("hostIntro")}>
                 {times.length ? (
                   <div className={`rv-screen${showNote ? "" : " rv-screen--only"}`}>
                     <p className="rv-label" style={{ color: "#c6d0da" }}>
@@ -160,7 +160,7 @@ export default function RivieraTemplate({ content, settings, editorPreview = fal
                       {times.map((t) => (
                         <div key={t.k}>
                           <p className="rv-k">{t.k}</p>
-                          <p className="rv-v">{t.v}</p>
+                          <Field as="p" className="rv-v" path={t.path} value={t.path === "custom.departTime" ? customValue(content, "departTime") : t.v} fallback={t.fallback || undefined} placeholder={t.ph} editor={E} />
                         </div>
                       ))}
                     </div>
@@ -168,68 +168,69 @@ export default function RivieraTemplate({ content, settings, editorPreview = fal
                 ) : null}
                 {showNote ? (
                   <div className={`rv-roof${times.length ? "" : " rv-roof--only"}`}>
-                    <p className="rv-label rv-gold">{customValue(content, "noteTitle") || "You’re invited"}</p>
+                    <Field as="p" className="rv-label rv-gold" path="custom.noteTitle" value={customValue(content, "noteTitle")} fallback="You’re invited" placeholder="" editor={E} />
                     {paragraphs.length ? (
-                      paragraphs.map((p, i) => (
-                        <p key={i} className="rv-note">
-                          {p}
-                        </p>
-                      ))
+                      paragraphs.map((p, i) => <Field key={i} as="p" className="rv-note" path={`story#${i}`} value={p} placeholder="" editor={E} multiline />)
                     ) : (
-                      <p className="rv-note rv-hint">Your invitation note goes here.</p>
+                      <Field as="p" className="rv-note" path="story#0" value="" placeholder="Your invitation note goes here." editor={E} multiline />
                     )}
                     <i className="rv-sunroof" />
                   </div>
                 ) : null}
               </section>
+            ) : vis.hostIntro === false ? (
+              <HiddenSection k="hostIntro" label="Invitation note" editor={E} />
             ) : null}
 
             {/* The cockpit: the evening and where to board */}
             {vis.schedule !== false && (schedule.length || venue || editorPreview) ? (
-              <section className="rv-zone rv-cockpit">
+              <section className="rv-zone rv-cockpit" {...ed.section("schedule")}>
                 <img className="rv-prop rv-prop--glasses" src="/event-templates/riviera/glasses.webp" alt="" />
                 <div className="rv-plate">
-                  <p className="rv-label rv-gold">{customValue(content, "eveningLabel") || "The evening"}</p>
-                  <h2 className={`rv-h2${venue || customValue(content, "eveningTitle") ? "" : " rv-hint"}`}>{customValue(content, "eveningTitle") || venue || "Where you’ll board"}</h2>
-                  {venue && customValue(content, "eveningTitle") ? <p className="rv-addr">{venue}</p> : null}
-                  {address ? <p className="rv-addr">{address}</p> : null}
+                  <Field as="p" className="rv-label rv-gold" path="custom.eveningLabel" value={customValue(content, "eveningLabel")} fallback="The evening" placeholder="" editor={E} />
+                  <Field as="h2" className="rv-h2" path="custom.eveningTitle" value={customValue(content, "eveningTitle")} fallback={venue || undefined} placeholder="Where you’ll board" editor={E} />
+                  {customValue(content, "eveningTitle") || E ? <Field as="p" className="rv-addr" path="primaryLocation.name" value={venue} placeholder="The pier or marina" editor={E} /> : null}
+                  <Field as="p" className="rv-addr" path="primaryLocation.addressLine" value={address} placeholder="Address" editor={E} />
                   {venue ? (
                     <div style={{ marginTop: 10 }}>
                       <VenueLinks content={content} font="var(--rv-sans)" color="var(--ink)" size={14} />
                     </div>
                   ) : null}
                   {schedule.length ? (
-                    <div className="rv-legs">
+                    <div className="rv-legs" {...ed.list("schedule")}>
                       {schedule.map((s) => (
-                        <div key={s.id}>
-                          <b>{timeOf(s.startTime)}</b>
+                        <div key={s.id} {...ed.item(s.id)}>
+                          <b>{timeOf(s.startTime) || (E ? "Time" : "")}</b>
                           <span>
-                            {s.label}
-                            {s.description ? <em>{s.description}</em> : null}
+                            <Field path="label" value={s.label} placeholder="What’s happening" editor={E} />
+                            {s.description || E ? <Field as="em" path="description" value={s.description} placeholder="A note (optional)" editor={E} multiline /> : null}
                           </span>
                         </div>
                       ))}
                     </div>
-                  ) : editorPreview ? (
-                    <p className="rv-small rv-hint">Add the evening under Schedule.</p>
                   ) : null}
+                  <AddItem list="schedule" label={schedule.length ? "Add to the evening" : "Add the evening"} editor={E} />
                 </div>
               </section>
+            ) : vis.schedule === false ? (
+              <HiddenSection k="schedule" label="The evening" editor={E} />
             ) : null}
 
             {/* What to wear */}
             {vis.dress !== false && (dress || editorPreview) ? (
-              <section className="rv-zone rv-roof rv-roof--only">
-                <p className="rv-label rv-gold">What to wear</p>
-                {dress ? <p className="rv-note">{dress}</p> : <p className="rv-note rv-hint">Add a dress code in the Riviera details.</p>}
+              <section className="rv-zone rv-roof rv-roof--only" {...ed.section("dress")}>
+                <Field as="p" className="rv-label rv-gold" path="custom.dressTitle" value={customValue(content, "dressTitle")} fallback="What to wear" placeholder="" editor={E} />
+                <Field as="p" className="rv-note" path="custom.dressCode" value={dress} placeholder="Your dress code, e.g. white and navy, soft soles on deck." editor={E} multiline />
               </section>
+            ) : vis.dress === false ? (
+              <HiddenSection k="dress" label="What to wear" editor={E} />
             ) : null}
 
             {/* Gifts */}
-            {vis.registry !== false && gifts ? (
-              <section className="rv-zone rv-roof rv-roof--only">
-                <p className="rv-label rv-gold">Gifts</p>
-                <p className="rv-note">{customValue(content, "giftNote") || content.cashGiftNote?.trim() || "Your company is the only gift we need."}</p>
+            {vis.registry !== false && (gifts || E) ? (
+              <section className="rv-zone rv-roof rv-roof--only" {...ed.section("registry")}>
+                <Field as="p" className="rv-label rv-gold" path="custom.giftTitle" value={customValue(content, "giftTitle")} fallback="Gifts" placeholder="" editor={E} />
+                <Field as="p" className="rv-note" path="custom.giftNote" value={customValue(content, "giftNote")} fallback={content.cashGiftNote?.trim() || "Your company is the only gift we need."} placeholder="" editor={E} multiline />
                 {content.registryLinks.length ? (
                   <div className="rv-links">
                     {content.registryLinks.map((r) => (
@@ -253,19 +254,26 @@ export default function RivieraTemplate({ content, settings, editorPreview = fal
                   )
                 ) : null}
               </section>
+            ) : vis.registry === false ? (
+              <HiddenSection k="registry" label="Gifts" editor={E} />
             ) : null}
 
             {/* Good to know */}
-            {vis.faqs !== false && faqs.length ? (
-              <section className="rv-zone rv-roof rv-roof--only">
-                <p className="rv-label rv-gold">Good to know</p>
-                {faqs.map((f) => (
-                  <div key={f.id} className="rv-faq">
-                    <b>{f.question}</b>
-                    <span>{f.answer}</span>
-                  </div>
-                ))}
+            {vis.faqs !== false && (faqs.length || E) ? (
+              <section className="rv-zone rv-roof rv-roof--only" {...ed.section("faqs")}>
+                <Field as="p" className="rv-label rv-gold" path="custom.faqTitle" value={customValue(content, "faqTitle")} fallback="Good to know" placeholder="" editor={E} />
+                <div {...ed.list("faqs")}>
+                  {faqs.map((f) => (
+                    <div key={f.id} className="rv-faq" {...ed.item(f.id)}>
+                      <Field as="b" path="question" value={f.question} placeholder="A question" editor={E} />
+                      <Field as="span" path="answer" value={f.answer} placeholder="The answer" editor={E} multiline />
+                    </div>
+                  ))}
+                </div>
+                <AddItem list="faqs" label={faqs.length ? "Add a question" : "Add a question guests ask"} editor={E} />
               </section>
+            ) : vis.faqs === false ? (
+              <HiddenSection k="faqs" label="Good to know" editor={E} />
             ) : null}
 
             {/* The aft deck: the reply */}
@@ -277,12 +285,14 @@ export default function RivieraTemplate({ content, settings, editorPreview = fal
                 </div>
               </section>
             ) : vis.rsvp !== false ? (
-              <section id="rsvp" className="rv-zone rv-aft">
+              <section id="rsvp" className="rv-zone rv-aft" {...ed.section("rsvp")}>
                 <i className="rv-cleat" style={{ left: -8, top: 24 }} />
                 <i className="rv-cleat" style={{ right: -8, top: 24 }} />
                 <RsvpCard content={content} editorPreview={editorPreview} sample={!live && !editorPreview} />
               </section>
-            ) : null}
+            ) : (
+              <HiddenSection k="rsvp" label="RSVP" editor={E} />
+            )}
 
             {credit.show ? (
               <p className="rv-maker">
