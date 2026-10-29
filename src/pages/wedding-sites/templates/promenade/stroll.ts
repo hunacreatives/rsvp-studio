@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { createStopSnap } from "../shared/stopSnap";
 import { camOf, createGarden, FOUNTAIN, project, type Garden, type View } from "./garden";
 
 /**
@@ -90,6 +91,8 @@ export function useStroll(
     // ---- where the page comes to rest (one swipe, one stop): each card in its dock, the opening,
     // and for a card taller than the frame, its top and every ¾ frame down it
     let rests: number[] = [0];
+    // the shared one-swipe-one-stop spring (the same feel as every scroll design)
+    const snapper = createStopSnap(root, snap, { gentle: true });
     // ---- the stops: each one's hold, the scroll range [a, b] while its card is docked
     let holds: { a: number; b: number }[] = [{ a: 0, b: 0 }], H = 1, phone = false;
     const scrolled = () => stage.getBoundingClientRect().top - root.getBoundingClientRect().top;
@@ -125,6 +128,7 @@ export function useStroll(
       });
       if (!holds.length) holds = [{ a: 0, b: 0 }];
       rests = marks.map(Math.round).sort((p, q) => p - q).filter((y, i, l) => i === 0 || y - l[i - 1] > 40);
+      snapper.update(rests.map((from) => ({ from })), H);
     };
     // the camera's place along the stops for a scroll position: still while a card is docked,
     // gliding (eased) through the gap to the next, arriving a little before that card docks
@@ -153,7 +157,7 @@ export function useStroll(
       if (!introOn || skipFrom >= 0) return;
       skipFrom = introK(performance.now());
       skipAt = performance.now();
-      unlock();
+      // the page stays held until the opening ends: the swipe that skipped it (its momentum) is used up
       kick();
     };
     const introK = (now: number) => {
@@ -191,7 +195,7 @@ export function useStroll(
         if (k >= 1) {
           introOn = false;
           root.classList.remove("pm-intro");
-          if (skipFrom < 0) unlock();
+          unlock();
           evs.forEach((ev) => window.removeEventListener(ev, skip));
         }
       }
@@ -200,7 +204,8 @@ export function useStroll(
       const still = key === lastKey;
       const f = project(cam, FOUNTAIN);
       const water = animate && f[2] > 0 && Math.abs(f[0]) < 1.25 && Math.abs(f[1]) < 1.35;
-      if (garden && now - lastDraw >= 32) {
+      // while moving, every frame on a desktop (the cards move every frame: the garden keeps pace)
+      if (garden && now - lastDraw >= (still || phone ? 32 : 15)) {
         // a phone that can't keep up draws fewer pixels
         if (!still && animate && lastDraw > 0) {
           slow.push(now - lastDraw);
@@ -215,118 +220,6 @@ export function useStroll(
     };
     const kick = () => { if (!raf) { prevT = 0; raf = requestAnimationFrame(loop); } };
     const onScroll = () => { target = stopAt(scrolled()); kick(); };
-
-    // ---- one swipe, one stop: every wheel or trackpad gesture, flick, or key moves the page to
-    // the next rest in that direction, in one eased glide; a trackpad's momentum is let run out
-    // before the next gesture counts; anything else (a scrollbar drag, a link) settles to the
-    // nearest rest once it stops
-    function stepper() {
-      const here = () => -root!.getBoundingClientRect().top; // the page's scroll, from the root's top
-      let anim = 0, animTo = -1, quietAt = 0, touchY = -1, touchX = 0, touchFrom = 0, touchT = 0, dragging = false, settleT = 0;
-      const nowMs = () => performance.now();
-      const glide = (rel: number) => {
-        cancelAnimationFrame(anim);
-        const y0 = window.scrollY, y1 = Math.max(0, y0 + (rel - here()));
-        const d = Math.abs(y1 - y0);
-        if (d < 2) { animTo = -1; return; }
-        const D = Math.min(900, Math.max(520, 420 + d * 0.2)), t0 = nowMs();
-        animTo = rel;
-        const step = () => {
-          const k = Math.min(1, (nowMs() - t0) / D), e = 1 - Math.pow(1 - k, 4); // moves at once, settles softly
-          window.scrollTo(0, y0 + (y1 - y0) * e);
-          if (k < 1) anim = requestAnimationFrame(step); else { anim = 0; animTo = -1; }
-        };
-        anim = requestAnimationFrame(step);
-      };
-      const nearest = (y: number) => rests.reduce((best, r) => (Math.abs(r - y) < Math.abs(best - y) ? r : best), rests[0] ?? 0);
-      const next = (dir: number, from = animTo >= 0 ? animTo : here()) => {
-        const r = dir > 0 ? rests.find((v) => v > from + 4) : [...rests].reverse().find((v) => v < from - 4);
-        return r ?? (dir > 0 ? rests[rests.length - 1] : rests[0]);
-      };
-      const busy = () => introOn || anim !== 0 || nowMs() < quietAt;
-      const inField = (t: EventTarget | null) => t instanceof Element && !!t.closest("input, textarea, select, [contenteditable], .pm-carousel__track");
-      let acc = 0, fired = false, lastAbs = 0;
-      const onWheel = (e: WheelEvent) => {
-        if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY) || inField(e.target)) return;
-        e.preventDefault();
-        // a gesture lasts until the wheel goes quiet (a trackpad's momentum included); it moves
-        // one stop once it has travelled far enough to mean it, and never more
-        if (nowMs() > quietAt && !anim) { acc = 0; fired = false; }
-        quietAt = nowMs() + 140;
-        const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-        // a fresh flick while the last one's momentum is still fading: a sudden jump in speed
-        if (fired && !anim && Math.abs(dy) > 18 && Math.abs(dy) > lastAbs * 1.8) { acc = 0; fired = false; }
-        lastAbs = Math.abs(dy);
-        acc += dy;
-        if (fired || introOn || anim || Math.abs(acc) < 6) return;
-        fired = true;
-        glide(next(Math.sign(acc)));
-      };
-      const onKey = (e: KeyboardEvent) => {
-        if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || inField(e.target)) return;
-        if (e.key === " " && e.target instanceof Element && e.target.closest("button, a, summary")) return;
-        const dir = e.key === "PageDown" || e.key === "ArrowDown" || (e.key === " " && !e.shiftKey) ? 1 : e.key === "PageUp" || e.key === "ArrowUp" || (e.key === " " && e.shiftKey) ? -1 : e.key === "End" ? 9 : e.key === "Home" ? -9 : 0;
-        if (!dir) return;
-        e.preventDefault();
-        if (introOn) return;
-        glide(dir === 9 ? rests[rests.length - 1] : dir === -9 ? 0 : next(dir));
-      };
-      // touch: the page follows the finger, then goes on to the next rest (or back) on release
-      const onStart = (e: TouchEvent) => {
-        if (e.touches.length !== 1 || introOn) { touchY = -1; return; }
-        cancelAnimationFrame(anim); anim = 0;
-        touchY = e.touches[0].clientY; touchX = e.touches[0].clientX; touchFrom = window.scrollY; touchT = nowMs(); dragging = false;
-        animTo = -1;
-      };
-      const onMove = (e: TouchEvent) => {
-        if (touchY < 0 || e.touches.length !== 1) return;
-        const dy = touchY - e.touches[0].clientY, dx = touchX - e.touches[0].clientX;
-        if (!dragging) {
-          if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
-          if (Math.abs(dx) > Math.abs(dy) || inField(e.target)) { touchY = -1; return; } // a sideways swipe (the photos) is its own
-          dragging = true;
-        }
-        e.preventDefault();
-        window.scrollTo(0, Math.max(0, touchFrom + dy));
-      };
-      const onEnd = () => {
-        if (touchY < 0) return;
-        const moved = window.scrollY - touchFrom, ms = nowMs() - touchT;
-        touchY = -1;
-        if (!dragging) return;
-        dragging = false;
-        const from = here() - moved; // where the drag began
-        const fast = Math.abs(moved) / Math.max(ms, 1) > 0.25;
-        glide(Math.abs(moved) > 36 || (fast && Math.abs(moved) > 12) ? next(Math.sign(moved), from) : nearest(here()));
-      };
-      // anything else that moves the page (a scrollbar, a link, find in page): settle once it stops
-      const onAnyScroll = () => {
-        clearTimeout(settleT);
-        settleT = window.setTimeout(() => {
-          if (busy() || dragging || touchY >= 0) return;
-          const y = here(), r = nearest(y);
-          if (Math.abs(r - y) > 2) glide(r);
-        }, 260);
-      };
-      window.addEventListener("wheel", onWheel, { passive: false });
-      window.addEventListener("keydown", onKey);
-      window.addEventListener("touchstart", onStart, { passive: true });
-      window.addEventListener("touchmove", onMove, { passive: false });
-      window.addEventListener("touchend", onEnd);
-      window.addEventListener("touchcancel", onEnd);
-      window.addEventListener("scroll", onAnyScroll, { passive: true });
-      return () => {
-        cancelAnimationFrame(anim);
-        clearTimeout(settleT);
-        window.removeEventListener("wheel", onWheel);
-        window.removeEventListener("keydown", onKey);
-        window.removeEventListener("touchstart", onStart);
-        window.removeEventListener("touchmove", onMove);
-        window.removeEventListener("touchend", onEnd);
-        window.removeEventListener("touchcancel", onEnd);
-        window.removeEventListener("scroll", onAnyScroll);
-      };
-    }
 
     garden?.size(scale());
     measure();
@@ -345,9 +238,8 @@ export function useStroll(
     // the cards' heights change as fonts load and the reply form opens
     const mo = new MutationObserver(() => { measure(); onScroll(); });
     mo.observe(root, { childList: true, subtree: true });
-    const unsnap = snap ? stepper() : () => {};
     return () => {
-      unsnap();
+      snapper.dispose();
       redraw.current = () => {};
       cancelAnimationFrame(raf);
       ro.disconnect(); io.disconnect(); mo.disconnect();

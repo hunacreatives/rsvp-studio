@@ -127,6 +127,22 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"Inter", "Helvetica Neue", Arial, sans-serif',
   },
   {
+    // Simbahan: Castoro Titling (engraved capitals) for the names and headings, Castoro with its
+    // italic to read, set like a church programme.
+    id: "castoro-titling",
+    label: "Castoro Titling & Castoro",
+    displayFont: '"Castoro Titling", "Castoro", Georgia, serif',
+    bodyFont: '"Castoro", Georgia, serif',
+  },
+  {
+    // Letterpress: Libre Caslon Display for the names and headings, Libre Caslon Text to read
+    // (the design also loads a fine copperplate script, used small, for "and" and the sign-off).
+    id: "caslon",
+    label: "Libre Caslon Display & Text",
+    displayFont: '"Libre Caslon Display", "Libre Caslon Text", Georgia, serif',
+    bodyFont: '"Libre Caslon Text", Georgia, serif',
+  },
+  {
     // Safari: Fraunces (soft, round) for the name and headings, Nunito Sans for the text.
     id: "fraunces-nunito",
     label: "Fraunces & Nunito Sans",

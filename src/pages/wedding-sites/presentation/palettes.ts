@@ -170,6 +170,20 @@ export const palettes: PaletteOption[] = [
     swatches: ["#0b1522", "#f6f4ee", "#b9c3cf"],
   },
   {
+    // Simbahan: black ink on cotton stock, with rubric red (the church and its light are the
+    // design's own).
+    id: "simbahan",
+    label: "Missal Ink & Stone",
+    swatches: ["#f8f1e2", "#2a1c13", "#7a5b45"],
+  },
+  {
+    // Letterpress: ink-blue letterpress on cotton paper (the linen, the envelope, the wax and the
+    // foil are the design's own).
+    id: "letterpress",
+    label: "Ink Blue & Cotton",
+    swatches: ["#f7f2e7", "#243049", "#5f6676"],
+  },
+  {
     // Safari: paper colours (the savanna, the animals and the letters are the design's own).
     id: "safari",
     label: "Storybook Paper",
