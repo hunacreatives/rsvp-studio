@@ -10,6 +10,7 @@ import type { EventContent } from "../../content/types";
 import VenueLinks from "../shared/VenueLinks";
 import { AddItem, Field, HiddenSection, siteEdit } from "../shared/siteEdit";
 import { CashGifts, hasCashGifts } from "../shared/CashGifts";
+import { useFlowSnap } from "../shared/stopSnap";
 import { eventIsOver, longDate, timeOf } from "../under-glass/content";
 import { climbOf, crestAt, heroX, useMountain, type Sky } from "./mountain";
 import { markerSvg } from "./marker";
@@ -103,6 +104,9 @@ export default function SummitTemplate({ content, settings, editorPreview = fals
     vis.registry === false && { k: "registry", label: "Gifts" },
     vis.faqs === false && { k: "faqs", label: "Good to know" },
   ].filter(Boolean) as { k: string; label: string }[];
+
+  // one swipe, one stop: the hero, each camp, the summit
+  useFlowSnap(rootRef, moving && (live || demo), "[data-camp] > .sm-in", String(stops.length), stageRef);
 
   // each camp's height: where the altimeter reads when the camp is in the middle of the frame
   const [alts, setAlts] = useState<number[]>([]);

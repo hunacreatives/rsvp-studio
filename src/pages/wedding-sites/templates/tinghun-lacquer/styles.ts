@@ -14,7 +14,9 @@ export const LACQUER_CSS = `
 .lq-hint{opacity:.55}
 
 /* ---- the door ---- */
-.lq-hero{position:relative;overflow:clip;padding:clamp(28px,6cqw,64px) 0 0;--dw:min(92cqw,700px);--post:calc(var(--dw) * .045)}
+/* the door fits the first screen: its width (which sizes everything in it) is capped by the
+   screen's height as well as the page's width */
+.lq-hero{position:relative;overflow:clip;padding:min(clamp(28px,6cqw,64px),5svh) 0 0;--dw:min(92cqw,700px,calc((100svh - 120px) / 1.5));--post:calc(var(--dw) * .045)}
 .lq-gallery .lq-hero{--dw:min(92cqw,44cqw);padding-top:3.6cqw}
 .lq-gallery .lq-floor{height:12cqw}
 .lq-portal{position:relative;z-index:1;width:var(--dw);margin:0 auto}
@@ -57,7 +59,7 @@ export const LACQUER_CSS = `
   box-shadow:0 0 calc(var(--dw) * .02) calc(var(--dw) * .005) rgba(255,222,160,.9),0 0 calc(var(--dw) * .09) calc(var(--dw) * .01) rgba(255,206,130,.45)}
 .lq-sill{position:relative;height:calc(var(--dw) * .045);margin:0 calc(var(--dw) * -.035);background:var(--lac);box-shadow:inset 0 1px 0 var(--gold),0 calc(var(--dw) * .02) calc(var(--dw) * .03) calc(var(--dw) * -.02) rgba(30,8,4,.5)}
 .lq-sill::after{content:"";position:absolute;left:1.4%;right:1.4%;bottom:28%;border-top:1px solid var(--gold);opacity:.7}
-.lq-floor{position:relative;display:block;height:clamp(44px,9cqw,96px);background:linear-gradient(180deg,color-mix(in srgb,var(--lq-ink) 8%,var(--lq-bg)),var(--lq-bg))}
+.lq-floor{position:relative;display:block;height:min(clamp(44px,9cqw,96px),7svh);background:linear-gradient(180deg,color-mix(in srgb,var(--lq-ink) 8%,var(--lq-bg)),var(--lq-bg))}
 .lq-spill{position:absolute;left:50%;top:0;width:calc(var(--dw) * 1.12);height:100%;translate:-50% 0;clip-path:polygon(9% 0,91% 0,100% 100%,0 100%);
   background:linear-gradient(180deg,rgba(255,230,180,.55),rgba(255,230,180,0))}
 .lq-dark .lq-spill{background:linear-gradient(180deg,rgba(255,214,150,.34),rgba(255,214,150,0))}

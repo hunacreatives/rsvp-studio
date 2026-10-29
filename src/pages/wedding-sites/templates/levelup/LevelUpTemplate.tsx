@@ -54,6 +54,7 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
   const xpRef = useRef<HTMLElement>(null);
   const xpLabelRef = useRef<HTMLParagraphElement>(null);
   const whereRef = useRef<HTMLElement>(null);
+  const toastRef = useRef<HTMLDivElement>(null);
   const burstRef = useRef<HTMLCanvasElement>(null);
   const [giftsOpen, setGiftsOpen] = useState(false);
   const moving = !reduced && !editorPreview && !gallery;
@@ -96,9 +97,19 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
     vis.faqs === false && { k: "faqs", label: "Tips" },
   ].filter(Boolean) as { k: string; label: string }[];
   const all = gallery ? [] : [...stops, "rsvp"];
-  const route = [0, ...all.map((k) => VIEW_OF[SPOT[k].place])].join(",");
-  const where = ["The island", ...all.map((k) => SPOT[k].where)];
-  useQuest({ root: rootRef, stage: stageRef, gl: glRef, map: mapRef, xp: xpRef, xpLabel: xpLabelRef, where: whereRef, intro: introRef }, { routeKey: route, names: where, animate: moving });
+  // the title, then the quest log over the whole island, then each landmark
+  const route = (gallery ? [0] : [0, 0, ...all.map((k) => VIEW_OF[SPOT[k].place])]).join(",");
+  const where = ["The island", "The island", ...all.map((k) => SPOT[k].where)];
+  useQuest({ root: rootRef, stage: stageRef, gl: glRef, map: mapRef, xp: xpRef, xpLabel: xpLabelRef, where: whereRef, toast: toastRef, intro: introRef }, { routeKey: route, names: where, animate: moving });
+
+  // scroll so a stop's card sits in its dock (where every card pauses)
+  const goTo = useCallback((key: string) => {
+    const wrap = rootRef.current?.querySelector<HTMLElement>(`[data-lu-key="${key}"] .lu-dock`);
+    const card = wrap?.querySelector<HTMLElement>("[data-lu-dock]");
+    if (!wrap || !card) return;
+    const top = wrap.getBoundingClientRect().top + window.scrollY - (parseFloat(card.style.top) || 0);
+    window.scrollTo({ top: Math.max(0, top), behavior: moving ? "smooth" : "auto" });
+  }, [moving]);
 
   // PRESS START: a tap, a key or a scroll; the page can't scroll until then
   useEffect(() => {
@@ -115,7 +126,11 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
       const step = (now: number) => {
         introRef.current = Math.min(1, (now - t0) / D);
         if (introRef.current < 1) raf = requestAnimationFrame(step);
-        else setPhase("playing");
+        else {
+          setPhase("playing");
+          // landed: the quest log rises into its place
+          if (window.scrollY < 40) goTo("log");
+        }
       };
       raf = requestAnimationFrame(step);
     };
@@ -126,7 +141,7 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
       if (!done) html.style.overflow = prev;
     };
     // the swoop's frames run on after the title's listeners are gone
-  }, [phase]);
+  }, [phase, goTo]);
   useEffect(() => {
     if (live && window.location.hash === "#rsvp") setTimeout(() => document.getElementById("rsvp")?.scrollIntoView({ block: "start" }), 300);
   }, [live]);
@@ -150,7 +165,7 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
     requestAnimationFrame(fly);
   }, [reduced]);
 
-  const toRsvp = () => document.getElementById("rsvp")?.scrollIntoView({ behavior: moving ? "smooth" : "auto", block: "start" });
+  const toRsvp = () => goTo("rsvp");
   const longest = Math.max(4, ...name.split(/\s+/).map((w) => w.length));
   const vars = {
     ["--lu-hud" as string]: theme.displayFont,
@@ -165,15 +180,24 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
     </p>
   ) : null;
 
+  const questTitle = (k: string) =>
+    k === "day" ? customValue(content, "dayTitle") || "The day"
+    : k === "gear" ? customValue(content, "gearTitle") || "Gear up"
+    : k === "loot" ? customValue(content, "lootTitle") || "Loot"
+    : k === "tips" ? customValue(content, "tipsTitle") || "Tips"
+    : customValue(content, "rsvpTitle") || "Join the party?";
   const quest = (key: string, i: number) => {
     const card = (sec: string, inner: ReactNode) => (
-      <section key={key} className="lu-stop" data-lu-stop>
-        <div className="lu-quest lu-frame" {...ed.section(sec)}>
-          <p className="lu-qhead">
-            <span>◆ Quest {i + 1}</span>
-            <span>{SPOT[key].where}</span>
-          </p>
-          {inner}
+      <section key={key} className="lu-stop" data-lu-stop data-lu-key={key}>
+        <div className="lu-dock">
+          <div className="lu-quest lu-frame" data-lu-dock {...ed.section(sec)}>
+            <p className="lu-qhead">
+              <span>◆ Quest {i + 1}</span>
+              <span>{SPOT[key].where}</span>
+            </p>
+            {inner}
+          </div>
+          <div className="lu-hold" aria-hidden />
         </div>
       </section>
     );
@@ -288,6 +312,10 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
                 </p>
               </div>
             </div>
+            <div className="lu-toast" ref={toastRef}>
+              <b>✓ Quest complete</b>
+              <span />
+            </div>
             <div className="lu-mapbox lu-frame">
               <canvas ref={mapRef} width={320} height={320} />
               <b ref={whereRef}>The island</b>
@@ -327,13 +355,43 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
 
         {gallery ? null : (
           <>
+            <section className="lu-stop lu-logstop" data-lu-stop data-lu-key="log">
+              <div className="lu-dock">
+                <div className="lu-quest lu-frame lu-log" data-lu-dock>
+                  <p className="lu-qhead">
+                    <span>◆ Quest log</span>
+                    <span>{stops.length + 1} quests</span>
+                  </p>
+                  <Field as="h2" className="lu-h2" path="custom.logTitle" value={customValue(content, "logTitle")} fallback="Your quests" placeholder="" editor={E} />
+                  {when || venue ? <p className="lu-qline">{[when && at ? `${when}, ${at}` : when, venue].filter(Boolean).join(" · ")}</p> : null}
+                  <ol className="lu-loglist">
+                    {all.map((k, n) => (
+                      <li key={k}>
+                        <button type="button" onClick={E ? undefined : () => goTo(k)} tabIndex={E ? -1 : undefined}>
+                          <i aria-hidden>{k === "rsvp" ? "★" : n + 1}</i>
+                          <span>
+                            <b>{questTitle(k)}</b>
+                            <em>{SPOT[k].where}</em>
+                          </span>
+                          <span className="lu-go" aria-hidden>
+                            ›
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div className="lu-hold" aria-hidden />
+              </div>
+            </section>
             {stops.map(quest)}
             {hidden.map((h) => (
               <HiddenSection key={h.k} k={h.k} label={h.label} editor={E} />
             ))}
-            <section className="lu-stop lu-final" id="rsvp" data-lu-stop>
+            <section className="lu-stop lu-final" id="rsvp" data-lu-stop data-lu-key="rsvp">
+              <div className="lu-dock">
               {over ? (
-                <div className="lu-quest lu-frame">
+                <div className="lu-quest lu-frame" data-lu-dock>
                   <p className="lu-qhead">
                     <span>◆ Quest complete</span>
                     <span>The castle</span>
@@ -343,7 +401,7 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
                   {maker}
                 </div>
               ) : vis.rsvp !== false ? (
-                <div className="lu-quest lu-frame" {...ed.section("rsvp")}>
+                <div className="lu-quest lu-frame" data-lu-dock {...ed.section("rsvp")}>
                   <p className="lu-qhead">
                     <span>◆ Final quest</span>
                     <span>The castle</span>
@@ -353,9 +411,10 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
               ) : (
                 <>
                   <HiddenSection k="rsvp" label="RSVP" editor={E} />
-                  {maker ? <div className="lu-quest lu-frame">{maker}</div> : null}
+                  {maker ? <div className="lu-quest lu-frame" data-lu-dock>{maker}</div> : null}
                 </>
               )}
+              </div>
             </section>
           </>
         )}

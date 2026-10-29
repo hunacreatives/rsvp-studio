@@ -6,13 +6,15 @@ import RsvpQuestions from "../shared/RsvpQuestions";
 import { Field } from "../shared/siteEdit";
 
 // The reply, at the summit: coming or not, how many, the host's own
-// questions and an optional note.
+// questions and an optional note. Until the guest picks yes or no the card is just the question
+// and the two buttons, so the climber at the summit stays in view (the builder shows it all).
 
 export default function RsvpCard({ content, editorPreview, sample, credit, height }: { content: EventContent; editorPreview: boolean; sample: boolean; credit?: ReactNode; height: string }) {
   const form = useRsvpForm(content, editorPreview, { asksAttending: true });
   const [done, setDone] = useState(false);
   const id = useId();
   const going = form.values.attending === "yes";
+  const open = editorPreview || !!form.values.attending;
   const seats = Number(form.values.guests ?? 1) || 1;
   const reserved = form.invitee?.seatLimit && form.invitee.seats ? form.invitee.seats : sample ? 2 : 0;
 
@@ -65,6 +67,8 @@ export default function RsvpCard({ content, editorPreview, sample, credit, heigh
                   Sadly, no
                 </button>
               </div>
+              {open ? (
+                <div className="sm-open">
               <label htmlFor={`${id}-name`}>Your name</label>
               <input id={`${id}-name`} className="sm-field" type="text" autoComplete="name" autoCapitalize="words" enterKeyHint="next" value={form.values.name ?? ""} onChange={(e) => form.set("name", e.target.value)} />
               <label htmlFor={`${id}-contact`}>{form.contactMode === "mobile" ? "Mobile number" : "Email"}</label>
@@ -98,6 +102,8 @@ export default function RsvpCard({ content, editorPreview, sample, credit, heigh
                 {form.state === "submitting" ? "Sending…" : customValue(content, "rsvpButton") || "Send reply"}
               </button>
               {editorPreview ? <p className="sm-small">Preview only. Guests can reply once your site is published.</p> : null}
+                </div>
+              ) : null}
             </form>
           )}
         </>

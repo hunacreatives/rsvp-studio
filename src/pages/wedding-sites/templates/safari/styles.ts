@@ -73,11 +73,17 @@ export const SAFARI_CSS = `
 .sf-intro .sf-title > :not(.sf-letters) { opacity: 0; translate: 0 10px; }
 .sf-title > * { transition: opacity 0.8s ease 0.5s, translate 0.8s ease 0.5s; }
 
-/* ---- the stops: the animal tells the guest, in a paper speech bubble above it */
-.sf-stop { position: relative; min-height: calc(var(--frame) * 1.05); padding-top: 7svh; }
-.sf-say { width: min(470px, 40cqw); margin-left: calc(var(--at, 0.4) * 100cqw - min(470px, 40cqw) / 2); filter: drop-shadow(0 3px 3px rgba(88, 56, 22, 0.22)) drop-shadow(0 12px 18px rgba(88, 56, 22, 0.14)); }
+/* ---- the stops: the animal tells the guest, in a paper speech bubble above it. Every bubble
+   pauses in the same place (its dock, near the top: sticky for its hold); the gap before each
+   stop, a frame long, is the drive, so one bubble is on screen at a time. savanna.ts sets the
+   dock (the bubble's top) and stretches the tail down to the animal. */
+.sf-stop { position: relative; padding-top: var(--frame); }
+.sf-hero + .sf-stop { padding-top: calc(var(--frame) * 0.5); }
+.sf-dock { position: relative; }
+.sf-hold { height: calc(var(--frame) * 0.42); }
+.sf-say { position: sticky; top: 7svh; width: min(470px, 40cqw); margin-left: calc(var(--at, 0.4) * 100cqw - min(470px, 40cqw) / 2); filter: drop-shadow(0 3px 3px rgba(88, 56, 22, 0.22)) drop-shadow(0 12px 18px rgba(88, 56, 22, 0.14)); }
 .sf-bubble { position: relative; padding: 34px 32px 26px; border-radius: 30px; text-align: center; background-color: var(--tint); }
-.sf-bubble::after { content: ""; position: absolute; left: var(--tail, 50%); top: calc(100% - 1px); width: 46px; height: 30px; margin-left: -10px; background: inherit; clip-path: polygon(0 0, 100% 0, 14% 100%); }
+.sf-bubble::after { content: ""; position: absolute; left: var(--tail, 50%); top: calc(100% - 1px); width: 46px; height: var(--tailh, 30px); margin-left: -10px; background: inherit; clip-path: polygon(0 0, 100% 0, 14% 100%); }
 .sf-tab { position: absolute; left: 50%; top: -15px; translate: -50% 0; rotate: -2deg; padding: 6px 14px 5px; border-radius: 4px; background: var(--coral); color: #fff7ea; font: 700 11px var(--sf-sans); letter-spacing: 0.24em; text-transform: uppercase; white-space: nowrap; }
 .sf-h2 { font-family: var(--sf-display); font-weight: 700; font-variation-settings: "SOFT" 100, "opsz" 144; font-size: clamp(40px, 4cqw, 56px); line-height: 1; text-wrap: balance; }
 .sf-addr { font-size: 15.5px; margin-top: 8px !important; }
@@ -96,7 +102,7 @@ export const SAFARI_CSS = `
 .sf-gifts { margin-top: 16px; text-align: left; }
 
 /* ---- the reply: a safari pass, notched at its sides under the header, a perforation */
-.sf-last { position: relative; min-height: var(--frame); padding: 6svh 0 10svh; }
+.sf-last { position: relative; min-height: var(--frame); padding: calc(var(--frame) * 0.95) 0 10svh; }
 .sf-passwrap { width: min(460px, 40cqw); margin-left: calc(0.34 * 100cqw - min(460px, 40cqw) / 2); filter: drop-shadow(0 3px 3px rgba(88, 56, 22, 0.22)) drop-shadow(0 16px 22px rgba(88, 56, 22, 0.16)); }
 .sf-pass { border-radius: 16px; text-align: center; overflow: hidden;
   -webkit-mask: radial-gradient(circle 13px at 0 94px, transparent 12.5px, #000 13px) left / 51% 100% no-repeat, radial-gradient(circle 13px at 100% 94px, transparent 12.5px, #000 13px) right / 51% 100% no-repeat;
@@ -139,12 +145,12 @@ textarea.sf-field { resize: vertical; min-height: 88px; }
   .sf-ribbon { font-size: 23px; padding: 8px 30px 9px; }
   .sf-when { font-size: 15px; margin-top: 12px !important; }
   .sf-reply { margin-top: 14px; min-height: 46px; }
-  .sf-stop { padding-top: 6svh; }
+  .sf-hold { height: calc(var(--frame) * 0.34); }
   .sf-say, .sf-passwrap { width: calc(100cqw - 32px); margin-left: 16px; }
   .sf-bubble { padding: 30px 22px 22px; border-radius: 26px; }
   .sf-h2 { font-size: 40px; }
   .sf-legs > div { grid-template-columns: 72px minmax(0, 1fr); gap: 10px; padding: 9px 0; } .sf-legs b { font-size: 13.5px; } .sf-legs span { font-size: 15.5px; }
-  .sf-last { padding: 4svh 0 44svh; }
+  .sf-last { padding: calc(var(--frame) * 0.95) 0 44svh; }
   .sf-pass .sf-body { padding: 20px 20px 22px; } .sf-pass h2 { font-size: 32px; }
   .sf-sun { width: 84px; right: -22px; top: -22px; }
 }

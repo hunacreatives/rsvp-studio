@@ -1,20 +1,11 @@
 import type { EventContent } from "../../content/types";
 import { parseEventDate } from "../../content/parseEventDate";
-import { customValue } from "../../content/custom";
 
 /** "Alex & Diana" (first names). */
 export function coupleNames(content: EventContent): string {
   const f = content.hosts.map((h) => h.name.trim().split(/\s+/)[0]).filter(Boolean);
   if (f.length <= 1) return f[0] ?? "";
   return `${f.slice(0, -1).join(", ")} & ${f[f.length - 1]}`;
-}
-
-/** The seal's monogram: the host's own, or the first letters ("A & D"). */
-export function monogram(content: EventContent): string {
-  const own = customValue(content, "sealText");
-  if (own) return own;
-  const i = content.hosts.map((h) => h.name.trim()[0]?.toUpperCase()).filter(Boolean);
-  return i.length >= 2 ? `${i[0]} & ${i[1]}` : i[0] ?? "";
 }
 
 const valid = (iso: string) => {

@@ -35,8 +35,10 @@ export const LEVELUP_CSS = `
 
 /* ---- the title screen: the first section */
 .lu-title { position: relative; height: var(--frame); display: grid; place-items: center; text-align: center; padding: 0 20px;
-  background: radial-gradient(ellipse at 50% 55%, rgba(6, 14, 30, 0.12), rgba(6, 14, 30, 0.5)); transition: opacity 0.9s; }
+  background: radial-gradient(ellipse at 50% 55%, rgba(6, 14, 30, 0.12), rgba(6, 14, 30, 0.5)); transition: opacity 0.9s, background 0.9s; }
 .lu-started .lu-title > * { opacity: 0; transition: opacity 0.9s; pointer-events: none; }
+/* the title screen's shading goes with it (or its edge sits over the quest log as a dark band) */
+.lu-started .lu-title { background: transparent; }
 .lu-kick { font: 700 13px var(--lu-hud); letter-spacing: 0.4em; text-transform: uppercase; color: var(--cyan); text-shadow: 0 0 12px rgba(127,240,255,0.8), 0 1px 4px rgba(0,0,0,0.5); }
 .lu-logo { font: italic 700 var(--name-size, clamp(86px, 15cqw, 210px)) / 0.92 var(--lu-hud); letter-spacing: 0.02em; text-transform: uppercase; margin-top: 10px !important; text-wrap: balance;
   color: #fff; -webkit-text-stroke: 3px var(--navy); paint-order: stroke fill;
@@ -49,31 +51,52 @@ export const LEVELUP_CSS = `
 .lu-meta { position: absolute; left: 16px; right: 16px; bottom: 6svh; font: 600 13px var(--lu-hud); letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.88); text-shadow: 0 1px 6px rgba(0,0,0,0.55); text-wrap: balance; }
 .lu-meta span { white-space: nowrap; }
 
-/* ---- the quests: a card each, under the map (a sheet at the bottom on a phone) */
-.lu-stop { position: relative; min-height: calc(var(--frame) * 1.05); }
-.lu-quest { position: absolute; right: 22px; top: 214px; width: min(400px, 36cqw); padding: 22px 24px 20px; }
+/* ---- the quests: every card pauses in the same place (its dock: under the map; the bottom edge
+   on a phone). The card is sticky for its hold, then scrolls away; the gap before each stop is
+   the flight. quest.ts measures the dock and sets the card's top. */
+.lu-stop { position: relative; padding-top: var(--frame); }
+.lu-logstop { padding-top: 0; }
+.lu-dock { position: relative; }
+.lu-quest { position: sticky; top: 214px; width: min(460px, 38cqw); margin: 0 22px 0 auto; padding: 24px 26px 22px; }
+.lu-hold { height: calc(var(--frame) * 0.55); }
 .lu-qhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 700 12px var(--lu-hud); letter-spacing: 0.24em; text-transform: uppercase; color: var(--cyan); }
 .lu-qhead span:last-child { color: rgba(234,246,255,0.6); letter-spacing: 0.14em; text-align: right; }
-.lu-h2 { font: 700 34px / 1.05 var(--lu-hud); margin-top: 10px !important; letter-spacing: 0.01em; text-wrap: balance; }
-.lu-qline { font-size: 14px; color: rgba(234,246,255,0.78); margin-top: 6px !important; }
-.lu-obj { margin-top: 14px; display: grid; gap: 9px; }
-.lu-obj > div { display: grid; grid-template-columns: 18px 70px minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 15px; line-height: 1.4; }
+.lu-h2 { font: 700 38px / 1.05 var(--lu-hud); margin-top: 10px !important; letter-spacing: 0.01em; text-wrap: balance; }
+.lu-qline { font-size: 15px; color: rgba(234,246,255,0.8); margin-top: 8px !important; }
+.lu-obj { margin-top: 16px; display: grid; gap: 10px; }
+.lu-obj > div { display: grid; grid-template-columns: 18px 74px minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 16px; line-height: 1.4; }
 .lu-obj > div::before { content: ""; width: 12px; height: 12px; border: 2px solid var(--cyan); border-radius: 3px; translate: 0 1px; }
 .lu-obj b { font: 700 13px var(--lu-hud); letter-spacing: 0.06em; color: var(--lime); white-space: nowrap; }
 .lu-obj em { display: block; font-style: normal; font-size: 13px; color: rgba(234,246,255,0.65); }
-.lu-p { font-size: 16px; line-height: 1.5; margin-top: 12px !important; }
+.lu-p { font-size: 17px; line-height: 1.55; margin-top: 12px !important; }
 .lu-tip { padding: 11px 0; border-top: 1px solid rgba(140,230,255,0.18); }
 .lu-tip:first-of-type { margin-top: 12px; }
-.lu-tip b { display: block; font-weight: 700; font-size: 15px; }
-.lu-tip span { display: block; font-size: 14px; line-height: 1.45; color: rgba(234,246,255,0.75); margin-top: 2px; }
+.lu-tip b { display: block; font-weight: 700; font-size: 16px; }
+.lu-tip span { display: block; font-size: 15px; line-height: 1.45; color: rgba(234,246,255,0.78); margin-top: 2px; }
+
+/* ---- the quest log: over the whole island, the route ahead (each one jumps to its stop) */
+.lu-loglist { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 8px; }
+.lu-loglist button { width: 100%; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(140,230,255,0.2); background: rgba(255,255,255,0.05); color: inherit; text-align: left; cursor: pointer; font: inherit; transition: background 0.2s, border-color 0.2s; }
+.lu-loglist button:hover { background: rgba(127,240,255,0.12); border-color: var(--line); }
+.lu-loglist i { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font: 700 15px var(--lu-hud); font-style: normal; color: var(--navy); background: var(--cyan); }
+.lu-loglist li:last-child i { background: var(--gold); }
+.lu-loglist b { display: block; font: 700 16px var(--lu-hud); letter-spacing: 0.02em; }
+.lu-loglist em { display: block; font-style: normal; font-size: 13px; color: rgba(234,246,255,0.62); }
+.lu-go { font: 700 22px var(--lu-hud); color: var(--cyan); }
+
+/* ---- "Quest complete": a toast under the player card as each quest is left behind */
+.lu-toast { position: absolute; left: 22px; top: 104px; display: flex; flex-direction: column; gap: 2px; padding: 10px 16px; border-radius: 12px; background: linear-gradient(120deg, rgba(198,255,94,0.95), rgba(127,240,255,0.95)); color: var(--navy); box-shadow: 0 10px 30px -10px rgba(0,10,30,0.6); opacity: 0; translate: -12px 0; pointer-events: none; }
+.lu-toast b { font: 700 13px var(--lu-hud); letter-spacing: 0.16em; text-transform: uppercase; }
+.lu-toast span { font: 600 13px var(--lu-sans); }
+.lu-toast.is-on { animation: lu-toast 2.6s cubic-bezier(.2,.9,.3,1.2) both; }
+@keyframes lu-toast { 0% { opacity: 0; translate: -12px 0; } 12%, 78% { opacity: 1; translate: 0 0; } 100% { opacity: 0; translate: 0 -8px; } }
 .lu-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .lu-btn2 { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,0.08); color: #fff; font: 700 12px var(--lu-hud); letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; cursor: pointer; }
 .lu-gifts { margin-top: 14px; }
 
 /* ---- the final quest: the reply, a game dialog */
 /* the form grows with the host's questions: the card is in the flow, so the page grows with it */
-.lu-final .lu-quest { position: relative; top: auto; right: auto; width: min(440px, 40cqw); margin: 214px 22px 0 auto; }
-.lu-final { padding-bottom: 60px; }
+.lu-final { padding-bottom: 24px; }
 .lu-small { font-size: 14px; line-height: 1.5; color: rgba(234,246,255,0.78); margin-top: 8px !important; }
 .lu-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
 .lu-act { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 50px; padding: 0 8px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,0.06); color: #fff; font: 700 14px var(--lu-hud); letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
@@ -107,12 +130,16 @@ textarea.lu-field { resize: vertical; min-height: 84px; }
   .lu-avatar { width: 38px; height: 38px; font-size: 18px; }
   .lu-pname { font-size: 14px; } .lu-xp { width: 120px; }
   .lu-mapbox { right: 12px; top: 12px; width: 92px; height: 92px; padding: 4px; } .lu-mapbox b { display: none; }
-  /* the section runs 5% past the frame: the sheet sits on the frame's bottom edge */
-  .lu-quest, .lu-final .lu-quest { left: 12px; right: 12px; width: auto; top: auto; bottom: calc(var(--frame) * 0.05 + 12px); padding: 18px 18px 16px; }
-  .lu-final .lu-quest { position: relative; left: auto; right: auto; bottom: auto; margin: calc(var(--frame) * 0.14) 12px 0; }
-  .lu-final { padding-bottom: calc(var(--frame) * 0.08); }
+  .lu-quest { width: auto; margin: 0 12px; padding: 18px 18px 16px; }
+  /* the flight gap is a frame long, so only one card is on screen at a time */
+  .lu-stop { padding-top: calc(var(--frame) * 1.02); }
+  .lu-logstop { padding-top: 0; }
+  .lu-hold { height: calc(var(--frame) * 0.32); }
+  .lu-final { padding-bottom: 14px; }
   .lu-h2 { font-size: 28px; }
-  .lu-obj > div { grid-template-columns: 16px 64px minmax(0, 1fr); font-size: 14.5px; }
+  .lu-obj > div { grid-template-columns: 16px 64px minmax(0, 1fr); font-size: 15px; }
+  .lu-p { font-size: 16px; }
+  .lu-toast { left: 12px; top: 84px; }
   .lu-logo { -webkit-text-stroke: 2px var(--navy); font-size: var(--name-size-m, clamp(64px, 22cqw, 120px)); }
   .lu-start { font-size: 15px; }
 }

@@ -153,11 +153,14 @@ export default function SafariTemplate({ content, settings, editorPreview = fals
   const stop = (key: string, i: number) => {
     const bubble = (sec: string, inner: React.ReactNode) => (
       <section key={key} className="sf-stop" data-sf-stop>
-        <div className="sf-say" data-sf-say>
-          <div className="sf-bubble sf-paper" style={{ ["--tint" as string]: TINTS[i % TINTS.length] }} {...ed.section(sec)}>
-            <p className="sf-tab">Stop {i + 1}</p>
-            {inner}
+        <div className="sf-dock">
+          <div className="sf-say" data-sf-say>
+            <div className="sf-bubble sf-paper" style={{ ["--tint" as string]: TINTS[i % TINTS.length] }} {...ed.section(sec)}>
+              <p className="sf-tab">Stop {i + 1}</p>
+              {inner}
+            </div>
           </div>
+          <div className="sf-hold" aria-hidden />
         </div>
       </section>
     );

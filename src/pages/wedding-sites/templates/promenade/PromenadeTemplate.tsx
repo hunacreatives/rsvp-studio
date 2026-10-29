@@ -1,369 +1,375 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { TemplateProps } from "../../engine/registry";
 import { usePrefersReducedMotion } from "../../engine/motion";
 import { resolveEventTheme } from "../../engine/theme";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { CreditLine, useSiteCredit } from "../../engine/siteCredit";
 import { customValue } from "../../content/custom";
+import type { EventContent } from "../../content/types";
 import VenueLinks from "../shared/VenueLinks";
 import { CashGifts, hasCashGifts } from "../shared/CashGifts";
 import { Countdown } from "../shared/Countdown";
-import { EnvelopeBack, Flap, Pocket, STATIONERY_CSS, WaxSeal } from "../shared/stationery";
-import { Carousel, DressFigures, EMBOSS, READY, dressColours, paintingUrl, useBriefMode } from "./art";
-import { BriefDock, HeroArt, Painting, Pin } from "./lineart";
-import { coupleNames, dayMonth, eventIsOver, heroDate, monogram, storyEntries, timeOf } from "./content";
+import { AddItem, Field, HiddenSection, siteEdit } from "../shared/siteEdit";
+import { Carousel, DressFigures, dressColours } from "./art";
+import { coupleNames, eventIsOver, heroDate, storyEntries, timeOf } from "./content";
 import RsvpBlock from "./RsvpBlock";
+import { useStroll, type StopKey } from "./stroll";
 import { PROMENADE_CSS } from "./styles";
 
 /**
- * Promenade (wedding): a sealed white envelope with an embossed floral paper
- * and a gold monogram seal ("Skip intro" at the bottom). Tapping the seal opens
- * the flap and reveals the site: a full-screen hero (the couple's photo, or the
- * hero painting), then Countdown, Our Story (a dated timeline), Pictures (a
- * carousel), Program (a dot timeline), Dress Code (swatches), Venue, Where to
- * Stay, Gifts, FAQs (an accordion) and RSVP (gold confetti on a yes).
- *
- * The watercolours are painted by the studio's designers; until each arrives,
- * its slot is empty for guests. ?brief=1 turns the page into the designers'
- * brief (see art.tsx).
+ * Promenade (wedding): a formal estate garden seen from above at the end of a summer afternoon,
+ * drawn live in WebGL (garden.ts). The guest strolls down its long gravel promenade as they
+ * scroll, and each part of the day is a stop beside one feature of the garden: the parterre,
+ * the topiary lawn, the fountain, the rose garden, the lime walk, and the white rotunda at the
+ * end, where they reply.
+ *  - The opening (published page and design preview): high over the whole garden, the camera
+ *    comes down and round to the gate as the couple's names appear, set on the gravel of the
+ *    forecourt. Their initials are clipped in box in the court just inside the gate.
+ *  - Each stop's card is a cotton-paper card with a deckled edge, laid in the garden and lit by
+ *    its sun (its shadow falls the way the hedges' do). Every card pauses in the same place while
+ *    it's read; the camera glides on between them (stroll.ts).
+ *  - Builder, gallery card, reduced motion: the garden still, every card in its place.
  */
 
-const OPEN_MS = 1700;
-const INSIDE_HASHES = ["#details", "#rsvp"];
+const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+const PLACE: Record<Exclude<StopKey, "gate">, { key: string; fallback: string; sec?: string }> = {
+  story: { key: "placeStory", fallback: "The parterre", sec: "hostIntro" },
+  pictures: { key: "placePictures", fallback: "The topiary lawn", sec: "gallery" },
+  day: { key: "placeDay", fallback: "The fountain" },
+  dress: { key: "placeDress", fallback: "The rose garden", sec: "dress" },
+  details: { key: "placeDetails", fallback: "The lime walk" },
+  rsvp: { key: "placeRsvp", fallback: "The pavilion", sec: "rsvp" },
+};
 
-function useReveal(on: boolean) {
-  const ref = useRef<HTMLElement>(null);
-  const [shown, setShown] = useState(!on);
-  useEffect(() => {
-    if (!on) return setShown(true);
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          setShown(true);
-          io.disconnect();
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [on]);
-  return { ref, shown };
+/** "A&D": the initials clipped in the monogram court. */
+function initials(content: EventContent): string {
+  const own = customValue(content, "monogram").trim();
+  if (own) return own.slice(0, 5);
+  const names = customValue(content, "names").trim() || coupleNames(content);
+  const parts = names.split(/\s*(?:&|,|\band\b|\+)\s*/i).map((s) => s.trim()).filter(Boolean).slice(0, 3);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("&");
 }
 
-function Sec({ title, sub, reveal, children, band = "cream", id }: { title: string; sub?: string; reveal: boolean; children: ReactNode; band?: "cream" | "white"; id?: string }) {
-  const { ref, shown } = useReveal(reveal);
-  return (
-    <section id={id} ref={ref} className={`pm-sec pm-sec--${band}${shown ? " is-on" : ""}`}>
-      <div className="pm-sec__in">
-        <h2 className="pm-script pm-sec__title">{title}</h2>
-        {sub ? <p className="pm-sec__sub">{sub}</p> : null}
-        {children}
-      </div>
-    </section>
-  );
-}
-
-const Hint = ({ children }: { children: ReactNode }) => <p className="pm-hint">{children}</p>;
-
-export default function PromenadeTemplate({ content, settings, editorPreview = false, live = false }: TemplateProps<BaseTemplateSettings>) {
+export default function PromenadeTemplate({ content, settings, editorPreview = false, live = false, demo = false, gallery = false }: TemplateProps<BaseTemplateSettings>) {
   const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
   const reduced = usePrefersReducedMotion();
-  const motion = !reduced;
-  const reveal = live && motion;
-  const brief = useBriefMode();
+  const moving = !reduced && !editorPreview && !gallery;
   const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const glRef = useRef<HTMLCanvasElement>(null);
+  const [intro] = useState(() => (live || demo) && moving && (typeof window === "undefined" || window.location.hash !== "#rsvp"));
+  const ed = siteEdit(editorPreview);
+  const E = editorPreview;
 
-  const startInside = live && typeof window !== "undefined" && INSIDE_HASHES.includes(window.location.hash);
-  const [page, setPage] = useState<"intro" | "site">(startInside ? "site" : "intro");
-  const [opening, setOpening] = useState(false);
-  const showIntro = page === "intro";
-
-  const toTop = useCallback(() => {
-    if (live) window.scrollTo({ top: 0 });
-    else rootRef.current?.scrollIntoView({ block: "start" });
-  }, [live]);
-  useEffect(() => {
-    if (!live) return;
-    const onPop = () => {
-      setOpening(false);
-      setPage(INSIDE_HASHES.includes(window.location.hash) ? "site" : "intro");
-      window.scrollTo({ top: 0 });
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [live]);
-  useEffect(() => {
-    if (startInside && window.location.hash === "#rsvp") setTimeout(() => document.getElementById("rsvp")?.scrollIntoView({ block: "start" }), 300);
-  }, [startInside]);
-
-  const open = () => {
-    if (opening) return;
-    const go = () => {
-      setPage("site");
-      setOpening(false);
-      if (live) history.pushState(null, "", "#details");
-      toTop();
-    };
-    if (motion) {
-      setOpening(true);
-      setTimeout(go, OPEN_MS);
-    } else go();
-  };
-
-  const couple = coupleNames(content);
-  const mono = monogram(content) || (editorPreview ? "A & B" : "");
+  const vis = settings.sectionVisibility;
+  const couple = customValue(content, "names") || coupleNames(content);
   const date = heroDate(content.eventDate);
   const photos = (content.galleries[0]?.items ?? []).filter((g) => g.image?.masterUrl);
-  const heroPhoto = settings.heroImage?.masterUrl || photos[0]?.image.masterUrl;
-  const heroFocal = settings.heroImage?.masterUrl ? settings.heroImage.focalPoint : photos[0]?.image.focalPoint;
   const story = storyEntries(content.story);
-  const schedule = [...content.schedule].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const schedule = [...content.schedule].sort((a, b) => a.startTime.localeCompare(b.startTime)).filter((s) => E || s.label.trim());
   const dress = customValue(content, "dressCode");
   const swatches = (content.motifColors ?? []).filter((c) => /^#[0-9a-f]{3,8}$/i.test(c));
   const venue = content.primaryLocation.name?.trim() ?? "";
   const address = content.primaryLocation.addressLine?.trim() ?? "";
-  const stay = content.accommodations.filter((a) => a.name.trim());
-  const faqs = [...content.faqs].sort((a, b) => a.order - b.order).filter((f) => f.question.trim());
+  const stay = content.accommodations.filter((a) => E || a.name.trim());
+  const faqs = [...content.faqs].sort((a, b) => a.order - b.order).filter((f) => E || f.question.trim());
   const gifts = content.registryLinks.length > 0 || hasCashGifts(content);
-  const over = !editorPreview && eventIsOver(content.eventDate);
-  const vis = settings.sectionVisibility;
-  const slot = (name: Parameters<typeof Painting>[0]["name"], className?: string) => <Painting name={name} brief={brief} className={className} />;
+  const over = !E && eventIsOver(content.eventDate);
+
+  // the stops after the gate, each one only when there's something in it (all of them in the builder)
+  const show = {
+    story: vis.hostIntro !== false && (story.length > 0 || E),
+    pictures: vis.gallery !== false && (photos.length > 0 || E),
+    day: (vis.schedule !== false && (schedule.length > 0 || E)) || (vis.venue !== false && (!!venue || !!address || E)),
+    dress: vis.dress !== false && (!!dress || swatches.length > 0 || E),
+    details: (vis.accommodations !== false && (stay.length > 0 || E)) || (vis.registry !== false && (gifts || E)) || (vis.faqs !== false && (faqs.length > 0 || E)),
+    rsvp: over || vis.rsvp !== false,
+  };
+  const order: StopKey[] = ["gate", "story", "pictures", "day", "dress", "details", "rsvp"];
+  const stops = order.filter((k) => k === "gate" || (!gallery && show[k as Exclude<StopKey, "gate">]));
+  useStroll({ root: rootRef, stage: stageRef, gl: glRef }, { stops: stops.join(","), animate: moving, intro, monogram: initials(content), font: theme.displayFont, wide: gallery, snap: (live || demo) && moving });
+  useEffect(() => {
+    if (live && window.location.hash === "#rsvp") setTimeout(() => document.getElementById("rsvp")?.scrollIntoView({ block: "start" }), 300);
+  }, [live]);
 
   const vars = {
-    ["--pm-cream" as string]: theme.background,
     ["--pm-ink" as string]: theme.ink,
     ["--pm-gold" as string]: theme.muted,
-    ["--pm-script" as string]: theme.displayFont,
+    ["--pm-display" as string]: theme.displayFont,
     ["--pm-sans" as string]: theme.bodyFont,
-    ["--pm-serif" as string]: '"Playfair Display", Georgia, serif',
-    ["--st-paper" as string]: "#fffdf8",
-    ["--st-env" as string]: "#f2ede3",
-    ["--st-fold-shadow" as string]: ".16",
-    ["--st-flap-shadow" as string]: ".2",
-    ["--st-ink" as string]: theme.ink,
   } as CSSProperties;
+  const cls = ["pm-root", moving ? "pm-motion" : "", gallery ? "pm-gallery" : "", E ? "pm-editor" : ""].filter(Boolean).join(" ");
+
+  const card = (k: Exclude<StopKey, "gate">, children: ReactNode, sec?: string) => (
+    <section key={k} className={`pm-stop pm-stop--${k}`} data-pm-stop data-pm-key={k} id={k === "rsvp" ? "rsvp" : undefined}>
+      <div className="pm-dock">
+        <article className="pm-card" data-pm-dock {...(sec ? ed.section(sec) : {})}>
+          <div className="pm-paper">
+            <p className="pm-place">
+              <span className="pm-num" aria-hidden>
+                {ROMAN[stops.indexOf(k)] ?? ""}
+              </span>
+              <i aria-hidden />
+              <Field path={`custom.${PLACE[k].key}`} value={customValue(content, PLACE[k].key)} fallback={PLACE[k].fallback} placeholder="" editor={E} />
+            </p>
+            {children}
+          </div>
+        </article>
+        <div className="pm-hold" aria-hidden />
+      </div>
+    </section>
+  );
+  const title = (key: string, fallback: string) => <Field as="h2" className="pm-h2" path={`custom.${key}`} value={customValue(content, key)} fallback={fallback} placeholder="" editor={E} />;
+  const sub = (key: string, fallback: string) => <Field as="h3" className="pm-h3" path={`custom.${key}`} value={customValue(content, key)} fallback={fallback} placeholder="" editor={E} />;
 
   return (
-    <div ref={rootRef} className={`pm-root${motion ? " pm-motion" : ""}${opening ? " pm-opening" : ""}${brief ? " pm-briefing" : ""}`} style={vars}>
-      <style>{STATIONERY_CSS + PROMENADE_CSS}</style>
+    <div ref={rootRef} className={cls} style={vars}>
+      <style>{PROMENADE_CSS}</style>
 
-      {showIntro ? (
-        <header className="pm-intro" onClick={open} style={{ ["--emboss" as string]: `url("${READY.envelope ? paintingUrl("envelope") : EMBOSS}")` } as CSSProperties}>
-          <div className="pm-intro__env">
-            <EnvelopeBack />
-          </div>
-          <div className="pm-intro__env pm-intro__pocket">
-            <Pocket />
-          </div>
-          <div className="pm-intro__env pm-intro__flap">
-            <Flap />
-          </div>
-          <div className="pm-intro__paper" aria-hidden />
-          <button type="button" className="pm-intro__seal" onClick={(e) => (e.stopPropagation(), open())} aria-label="Open the invitation">
-            {READY.seal ? (
-              <span className="pm-seal-photo">
-                <img src={paintingUrl("seal")} alt="" />
-                <span>{mono}</span>
-              </span>
-            ) : (
-              <WaxSeal text={mono} tone="gold" />
-            )}
-          </button>
-          {brief ? (
-            <>
-              <Pin name="envelope" style={{ position: "absolute", left: "16%", top: "18%", zIndex: 7 }} />
-              <Pin name="seal" style={{ position: "absolute", left: "calc(50% + clamp(60px, 15cqw, 95px))", top: "calc(55.5% - clamp(60px, 15cqw, 95px))", zIndex: 7 }} />
-            </>
-          ) : null}
-          <button type="button" className="pm-skip" onClick={(e) => (e.stopPropagation(), open())}>
-            {customValue(content, "skipText") || "Skip intro"}
-          </button>
-        </header>
-      ) : (
-        <div className="pm-site">
-          <header className={`pm-hero${(heroPhoto && !brief) || READY.hero ? "" : " pm-hero--plain"}`}>
-            {heroPhoto && !brief ? (
-              <img className="pm-hero__img" src={heroPhoto} alt="" style={{ objectPosition: `${(heroFocal?.x ?? 0.5) * 100}% ${(heroFocal?.y ?? 0.4) * 100}%` }} />
-            ) : READY.hero ? (
-              <img className="pm-hero__img" src={paintingUrl("hero")} alt="" />
-            ) : (
-              <HeroArt />
-            )}
-            {brief ? <Pin name="hero" style={{ position: "absolute", right: "8%", top: "12%", zIndex: 3 }} /> : null}
-            {(
-              <div className="pm-hero__text">
-                <p className="pm-hero__kicker">{customValue(content, "heroKicker") || "We are getting married"}</p>
-                <h1 className={`pm-hero__names${couple ? "" : " pm-hint"}`}>{couple || (editorPreview ? "Your names" : "")}</h1>
-                <p className="pm-hero__line">{customValue(content, "heroLine") || "Join us to celebrate our special day"}</p>
-                {date ? <p className="pm-hero__date">{date}</p> : null}
-                <span className="pm-hero__arrow" aria-hidden>
-                  ↓
-                </span>
+      <div ref={stageRef} className="pm-stage" aria-hidden>
+        <canvas ref={glRef} className="pm-gl" />
+      </div>
+
+      <div className="pm-world">
+        {/* the forecourt: the names set on its gravel, the gate below them */}
+        <section className="pm-gate" data-pm-stop>
+          <div className="pm-words">
+            <Field as="p" className="pm-kick" path="custom.heroKicker" value={customValue(content, "heroKicker")} fallback="We are getting married" placeholder="" editor={E} />
+            <Field as="h1" className="pm-names" path="custom.names" value={customValue(content, "names")} fallback={coupleNames(content) || undefined} placeholder="Your names" editor={E} />
+            <p className="pm-rule" aria-hidden>
+              <i />
+              <b>{initials(content)}</b>
+              <i />
+            </p>
+            {date ? <p className="pm-date">{date}</p> : E ? <p className="pm-date">Your date</p> : null}
+            <Field as="p" className="pm-line" path="custom.heroLine" value={customValue(content, "heroLine")} fallback="Join us in the garden" placeholder="" editor={E} />
+            {vis.countdown !== false && content.eventDate && !over && !gallery ? (
+              <div className="pm-countwrap">
+                <Countdown iso={content.eventDate} live={live || E || demo} prefix="pm" />
               </div>
-            )}
-          </header>
+            ) : null}
+          </div>
+          {gallery ? null : (
+            <p className="pm-walkon">
+              <Field path="custom.walkOn" value={customValue(content, "walkOn")} fallback="Walk with us" placeholder="" editor={E} />
+              <i aria-hidden />
+            </p>
+          )}
+        </section>
+        {vis.countdown === false ? <HiddenSection k="countdown" label="Countdown" editor={E} /> : null}
 
-          {vis.countdown !== false && content.eventDate && !over ? (
-            <Sec title="Countdown" reveal={reveal} band="white">
-              {slot("clock", "pm-art--clock")}
-              <p className="pm-text">
-                {customValue(content, "countdownLine") || `We are excited to celebrate our wedding on ${dayMonth(content.eventDate) ?? "the day"}.`}
-              </p>
-              <Countdown iso={content.eventDate} live={live || editorPreview} prefix="pm" />
-            </Sec>
-          ) : null}
+        {gallery ? null : (
+          <>
+            {show.story ? (
+              card(
+                "story",
+                <>
+                  {title("storyTitle", "Our story")}
+                  {story.length ? (
+                    <ol className="pm-story">
+                      {story.map((s, i) => (
+                        <li key={i}>
+                          {s.year ? <span className="pm-story__year">{s.year}</span> : null}
+                          <span className="pm-story__body">
+                            {s.title ? <b>{s.title}</b> : null}
+                            {s.body}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="pm-hint">Tell your story in a few moments, under Our story. Start each paragraph with a line like “2021 · How we met”.</p>
+                  )}
+                </>,
+                "hostIntro",
+              )
+            ) : vis.hostIntro === false ? (
+              <HiddenSection k="hostIntro" label="Our story" editor={E} />
+            ) : null}
 
-          {vis.hostIntro !== false && (story.length || editorPreview || brief) ? (
-            <Sec title="Our Story" reveal={reveal}>
-              {slot("garland", "pm-art--garland")}
-              {story.length ? (
-                <ol className="pm-story">
-                  {story.map((s, i) => (
-                    <li key={i}>
-                      <span className="pm-story__dot" aria-hidden />
-                      {s.year ? <p className="pm-story__year">{s.year}</p> : null}
-                      {s.title ? <p className="pm-script pm-story__title">{s.title}</p> : null}
-                      <p className="pm-text pm-text--left">{s.body}</p>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <Hint>Tell your story in a few moments. Start each paragraph with a line like “2021 · How We Met”.</Hint>
-              )}
-            </Sec>
-          ) : null}
+            {show.pictures ? (
+              card(
+                "pictures",
+                <>
+                  {title("picturesTitle", "A few moments")}
+                  {photos.length ? (
+                    <Carousel items={photos.map((p) => ({ url: p.image.masterUrl, alt: p.image.alt || p.caption || "", focal: p.image.focalPoint }))} />
+                  ) : (
+                    <p className="pm-hint">Add your photos under Photos.</p>
+                  )}
+                </>,
+                "gallery",
+              )
+            ) : vis.gallery === false ? (
+              <HiddenSection k="gallery" label="Pictures" editor={E} />
+            ) : null}
 
-          {vis.gallery !== false && (photos.length || editorPreview) ? (
-            <Sec title="Pictures" sub={customValue(content, "picturesLine") || "A few moments from our journey together"} reveal={reveal}>
-              {photos.length ? (
-                <Carousel items={photos.map((p) => ({ url: p.image.masterUrl, alt: p.image.alt || p.caption || "", focal: p.image.focalPoint }))} />
-              ) : (
-                <Hint>Add your photos under Photos.</Hint>
-              )}
-            </Sec>
-          ) : null}
-
-          {vis.schedule !== false && (schedule.length || editorPreview) ? (
-            <Sec title="Program" reveal={reveal} band="white">
-              {schedule.length ? (
-                <ol className="pm-program">
-                  {schedule.map((s, i) => (
-                    <li key={s.id} className={i === 0 ? "is-first" : ""}>
-                      <span className="pm-program__dot" aria-hidden />
-                      <span className="pm-program__time">{timeOf(s.startTime)}</span>
-                      <span className="pm-program__what">
-                        {s.label}
-                        {s.description ? <em>{s.description}</em> : null}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <Hint>Add the order of the day under Schedule.</Hint>
-              )}
-            </Sec>
-          ) : null}
-
-          {vis.dress !== false && (dress || swatches.length || editorPreview || brief) ? (
-            <Sec title="Dress Code" reveal={reveal}>
-              <DressFigures {...dressColours(swatches, { suit: "#2f2c33", gowns: [theme.muted, "#d9a7a0"] })} />
-              {dress ? <p className="pm-text">{dress}</p> : <Hint>Add a dress code in the Promenade details, or switch this section off.</Hint>}
-              {swatches.length ? (
-                <div className="pm-swatches">
-                  {swatches.map((c) => (
-                    <span key={c}>
-                      <i style={{ background: c }} />
-                      <b>{c.toLowerCase()}</b>
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-            </Sec>
-          ) : null}
-
-          {vis.venue !== false && (venue || address || editorPreview || brief) ? (
-            <Sec title="Venue" reveal={reveal} band="white">
-              {slot("venue", "pm-art--venue")}
-              {venue ? <p className="pm-venue__name">{venue}</p> : editorPreview ? <Hint>Venue</Hint> : null}
-              {address ? <p className="pm-text">{address}</p> : null}
-              <VenueLinks content={content} font="var(--pm-sans)" color="var(--pm-ink)" size={14} />
-            </Sec>
-          ) : null}
-
-          {vis.accommodations !== false && (stay.length || brief) ? (
-            <Sec title="Accommodations" reveal={reveal}>
-              {slot("stay", "pm-art--stay")}
-              <p className="pm-text">{customValue(content, "stayLine") || "We’ve gathered a few places nearby for our guests."}</p>
-              <div className="pm-stays">
-                {stay.map((a) => (
-                  <div key={a.id} className="pm-stay">
-                    <p className="pm-stay__name">{a.name}</p>
-                    {a.addressLine ? <p className="pm-text pm-text--small">{a.addressLine}</p> : null}
-                    {a.notes ? <p className="pm-text pm-text--small pm-text--soft">{a.notes}</p> : null}
-                    {a.bookingUrl ? (
-                      <a className="pm-link" href={a.bookingUrl} target="_blank" rel="noopener noreferrer">
-                        Book a room
-                      </a>
+            {show.day
+              ? card(
+                  "day",
+                  <>
+                    {title("dayTitle", "The day")}
+                    {vis.venue !== false ? (
+                      <div className="pm-venue" {...ed.section("venue")}>
+                        {E ? (
+                          <>
+                            <Field as="p" className="pm-venue__name" path="primaryLocation.name" value={venue} placeholder="Venue" editor={E} />
+                            <Field as="p" className="pm-small" path="primaryLocation.addressLine" value={address} placeholder="Address" editor={E} />
+                          </>
+                        ) : (
+                          <>
+                            {venue ? <p className="pm-venue__name">{venue}</p> : null}
+                            {address ? <p className="pm-small">{address}</p> : null}
+                          </>
+                        )}
+                        {venue || address ? (
+                          <div className="pm-venue__links">
+                            <VenueLinks content={content} font="var(--pm-sans)" color="var(--pm-ink)" align="left" size={15} />
+                          </div>
+                        ) : null}
+                      </div>
                     ) : null}
-                  </div>
-                ))}
-              </div>
-            </Sec>
-          ) : null}
+                    {vis.schedule !== false ? (
+                      <ol className="pm-program" {...ed.section("schedule")} {...ed.list("schedule")}>
+                        {schedule.map((s) => (
+                          <li key={s.id} {...ed.item(s.id)}>
+                            <span className="pm-program__time">{timeOf(s.startTime) || (E ? "Time" : "")}</span>
+                            <span className="pm-program__what">
+                              <Field path="label" value={s.label} placeholder="What’s happening" editor={E} />
+                              {s.description || E ? <Field as="em" path="description" value={s.description} placeholder="A note (optional)" editor={E} multiline /> : null}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : null}
+                    {vis.schedule !== false ? <AddItem list="schedule" label={schedule.length ? "Add to the day" : "Add the day’s plan"} editor={E} /> : null}
+                  </>,
+                )
+              : null}
+            {vis.schedule === false ? <HiddenSection k="schedule" label="Program" editor={E} /> : null}
+            {vis.venue === false ? <HiddenSection k="venue" label="Venue" editor={E} /> : null}
 
-          {vis.registry !== false && gifts ? (
-            <Sec title="Gifts" reveal={reveal} band="white">
-              {content.cashGiftNote ? null : <p className="pm-text">Your presence is the greatest gift. Should you wish to give, here’s how.</p>}
-              {content.registryLinks.length ? (
-                <div className="pm-links">
-                  {content.registryLinks.map((r) => (
-                    <a key={r.id} className="pm-btn pm-btn--line" href={r.url || undefined} target="_blank" rel="noopener noreferrer">
-                      {r.storeName}
-                    </a>
-                  ))}
-                </div>
-              ) : null}
-              <CashGifts content={content} look={{ ink: "var(--pm-ink)", muted: "var(--pm-ink)", surface: "#fff", line: "color-mix(in srgb, var(--pm-gold) 50%, transparent)", bodyFont: "var(--pm-sans)", displayFont: "var(--pm-sans)", radius: 10 }} />
-            </Sec>
-          ) : null}
+            {show.dress ? (
+              card(
+                "dress",
+                <>
+                  {title("dressTitle", "What to wear")}
+                  <DressFigures {...dressColours(swatches, { suit: "#2f2c33", gowns: [theme.muted, "#d9a7a0"] })} />
+                  <Field as="p" className="pm-p" path="custom.dressCode" value={dress} placeholder="Formal. Gentlemen in dark suits, ladies in floor-length gowns." editor={E} multiline />
+                  {swatches.length ? (
+                    <div className="pm-swatches" aria-label="The colours of the day">
+                      {swatches.map((c) => (
+                        <i key={c} style={{ background: c }} />
+                      ))}
+                    </div>
+                  ) : null}
+                </>,
+                "dress",
+              )
+            ) : vis.dress === false ? (
+              <HiddenSection k="dress" label="Dress code" editor={E} />
+            ) : null}
 
-          {vis.faqs !== false && faqs.length ? (
-            <Sec title="FAQs" reveal={reveal} band="white">
-              <div className="pm-faqs">
-                {faqs.map((f) => (
-                  <details key={f.id}>
-                    <summary>{f.question}</summary>
-                    <p className="pm-text pm-text--left">{f.answer}</p>
-                  </details>
-                ))}
-              </div>
-            </Sec>
-          ) : null}
+            {show.details
+              ? card(
+                  "details",
+                  <>
+                    {title("detailsTitle", "Good to know")}
+                    {vis.accommodations !== false && (stay.length || E) ? (
+                      <div className="pm-part" {...ed.section("accommodations")}>
+                        {sub("stayTitle", "Where to stay")}
+                        <div {...ed.list("accommodations")}>
+                          {stay.map((a) => (
+                            <div key={a.id} className="pm-row" {...ed.item(a.id)}>
+                              <Field as="b" path="name" value={a.name} placeholder="Hotel" editor={E} />
+                              {a.addressLine || a.notes ? <span>{[a.addressLine, a.notes].filter(Boolean).join(" · ")}</span> : null}
+                              {a.bookingUrl ? (
+                                <a className="pm-link" href={a.bookingUrl} target="_blank" rel="noopener noreferrer">
+                                  Book a room
+                                </a>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                        <AddItem list="accommodations" label="Add a place to stay" editor={E} />
+                      </div>
+                    ) : null}
+                    {vis.registry !== false && (gifts || E) ? (
+                      <div className="pm-part" {...ed.section("registry")}>
+                        {sub("giftsTitle", "Gifts")}
+                        {content.cashGiftNote?.trim() ? null : <Field as="p" className="pm-small" path="custom.giftNote" value={customValue(content, "giftNote")} fallback="Your presence is the greatest gift. Should you wish to give, here’s how." placeholder="" editor={E} multiline />}
+                        {content.registryLinks.length ? (
+                          <div className="pm-links">
+                            {content.registryLinks.map((r) => (
+                              <a key={r.id} className="pm-btn pm-btn--line" href={r.url || undefined} target="_blank" rel="noopener noreferrer">
+                                {r.storeName}
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
+                        <CashGifts content={content} editor={E} look={{ ink: "var(--pm-ink)", muted: "var(--pm-ink)", surface: "#fffdf8", line: "rgba(90,70,50,0.18)", bodyFont: "var(--pm-sans)", displayFont: "var(--pm-display)", radius: 2 }} />
+                      </div>
+                    ) : null}
+                    {vis.faqs !== false && (faqs.length || E) ? (
+                      <div className="pm-part" {...ed.section("faqs")}>
+                        {sub("faqTitle", "Questions")}
+                        <div className="pm-faqs" {...ed.list("faqs")}>
+                          {faqs.map((f) => (
+                            <details key={f.id} {...ed.item(f.id)} open={E || undefined}>
+                              <summary>
+                                <Field path="question" value={f.question} placeholder="A question" editor={E} />
+                              </summary>
+                              <Field as="p" className="pm-small" path="answer" value={f.answer} placeholder="The answer" editor={E} multiline />
+                            </details>
+                          ))}
+                        </div>
+                        <AddItem list="faqs" label="Add a question" editor={E} />
+                      </div>
+                    ) : null}
+                  </>,
+                )
+              : null}
+            {vis.accommodations === false ? <HiddenSection k="accommodations" label="Where to stay" editor={E} /> : null}
+            {vis.registry === false ? <HiddenSection k="registry" label="Gifts" editor={E} /> : null}
+            {vis.faqs === false ? <HiddenSection k="faqs" label="Questions" editor={E} /> : null}
 
-          {over ? (
-            <Sec title="Thank You" reveal={reveal}>
-              <p className="pm-text">{customValue(content, "afterParty") || `Thank you for celebrating with ${couple || "us"}.`}</p>
-            </Sec>
-          ) : vis.rsvp !== false ? (
-            <Sec title="RSVP" reveal={reveal} id="rsvp">
-              <RsvpBlock content={content} editorPreview={editorPreview || brief} motion={motion} />
-            </Sec>
-          ) : null}
-
-          {brief ? <BriefDock /> : null}
-          {credit.show ? (
-            <footer className="pm-footer">
-              <p>
-                <CreditLine linkStyle={{ color: "inherit", textDecoration: "underline", fontWeight: 600 }} />
-              </p>
-            </footer>
-          ) : null}
-        </div>
-      )}
+            {show.rsvp ? (
+              card(
+                "rsvp",
+                <>
+                  {over ? (
+                    <>
+                      <h2 className="pm-h2">Thank you</h2>
+                      <p className="pm-p">{customValue(content, "afterParty") || `Thank you for celebrating with ${couple || "us"}.`}</p>
+                    </>
+                  ) : (
+                    <>
+                      {title("rsvpTitle", "Will you join us?")}
+                      <RsvpBlock content={content} editorPreview={E} motion={moving} />
+                    </>
+                  )}
+                  {credit.show ? (
+                    <p className="pm-maker">
+                      <CreditLine linkStyle={{ color: "inherit", textDecoration: "underline", fontWeight: 600 }} />
+                    </p>
+                  ) : null}
+                </>,
+                over ? undefined : "rsvp",
+              )
+            ) : (
+              <>
+                <HiddenSection k="rsvp" label="RSVP" editor={E} />
+                {credit.show ? (
+                  <p className="pm-maker pm-maker--end">
+                    <CreditLine linkStyle={{ color: "inherit", textDecoration: "underline", fontWeight: 600 }} />
+                  </p>
+                ) : null}
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

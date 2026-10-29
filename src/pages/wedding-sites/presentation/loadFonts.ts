@@ -22,6 +22,8 @@ const EXTRA: Record<string, string[]> = {
   "instrument-manrope": ["Instrument+Serif:ital@0;1", "Manrope:wght@400;500;600"],
   "cormorant-manrope": [CORMORANT, "Manrope:wght@400;500;600"],
   "chakra-manrope": ["Chakra+Petch:ital,wght@0,500;0,600;0,700;1,700", "Manrope:wght@400;500;600;700"],
+  "pressstart-pixelify": ["Press+Start+2P", "Pixelify+Sans:wght@400;500;600;700"],
+  "archivo-inter": ["Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900"],
   "fraunces-nunito": ["Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,0..100;1,9..144,400..700,0..100", "Nunito+Sans:wght@400;600;700;800"],
   "dmserif-jost": ["DM+Serif+Display:ital@0;1", "Jost:wght@400;500;600"],
   "yellowtail-jost": ["Yellowtail", "Jost:wght@400;500;600;700", "Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,700;1,9..144,800"],

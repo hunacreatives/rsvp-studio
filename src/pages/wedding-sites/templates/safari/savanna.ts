@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from "react";
 import * as A from "./art";
+import { centredSpans, createStopSnap } from "../shared/stopSnap";
 
 /**
  * Safari's diorama and the drive, built into the stage (a sticky frame inside the page):
@@ -8,9 +9,11 @@ import * as A from "./art";
  *    speed as the jeep drives (it drives left, so the land slides right, near layers faster).
  *  - The puppets: one or two at each stop (the hero is 0, the reply the last), on the plain.
  *  - The jeep on the track, its wheels rolling with the ground, bouncing while it moves.
- *  - The drive: each stop is a section ([data-sf-stop]); the jeep holds still while one is in
- *    view and drives between them, taking at least TRIP seconds whatever the scroll.
- *  - Each stop's speech bubble ([data-sf-say]) is placed just above its animal, its tail at it.
+ *  - The drive: each stop is a section ([data-sf-stop]). Every speech bubble ([data-sf-say])
+ *    pauses in the same place, its dock near the top of the scene (sticky for the length of its
+ *    hold); the jeep holds still while a bubble is docked and drives in the gap between bubbles,
+ *    taking at least TRIP seconds whatever the scroll.
+ *  - Each bubble sits over its animal, its tail stretched down to it.
  * `animate` false (builder, gallery card, reduced motion): no easing, the drive follows the
  * scroll exactly, the clouds stay put.
  */
@@ -184,32 +187,49 @@ export function useSavanna(
       jeep.style.zIndex = "7";
       ride = jeep.querySelector(".sf-ride") as HTMLDivElement;
       wheels = Array.from(jeep.querySelectorAll<SVGGElement>(".wheel"));
-      measure();
       layout();
+      measure();
       place();
     };
 
     // ---- the drive: stop positions, and where the jeep is for a scroll position
-    let centres: number[] = [0];
+    // each stop's hold: the scroll range [a, b] while its bubble is docked (the reply, which has
+    // no dock, holds from the moment its section reaches the frame's top)
+    let holds: { a: number; b: number }[] = [{ a: 0, b: 0 }];
     let stopCount = 0;
+    // one swipe, one stop (the live page and the design preview)
+    const snap = createStopSnap(root, animate && !onlyHero);
     const scrolled = () => stage.getBoundingClientRect().top - root.getBoundingClientRect().top;
     const measure = () => {
       const rt = root.getBoundingClientRect(), max = Math.max(0, rt.height - H);
       const stops = Array.from(root.querySelectorAll<HTMLElement>("[data-sf-stop]"));
       stopCount = stops.length;
-      centres = [0, ...stops.map((s) => { const r = s.getBoundingClientRect(); return Math.min(max, Math.max(0, r.top - rt.top + Math.min(r.height, H) / 2 - H / 2)); })];
+      const clamp = (v: number) => Math.min(max, Math.max(0, v));
+      holds = [{ a: 0, b: 0 }, ...stops.map((s) => {
+        const wrap = s.querySelector<HTMLElement>(".sf-dock"), say = wrap?.querySelector<HTMLElement>("[data-sf-say]");
+        if (!wrap || !say) { const r = s.getBoundingClientRect(); const y = clamp(r.top - rt.top + Math.min(r.height, H) / 2 - H / 2); return { a: y, b: y }; }
+        const w = wrap.getBoundingClientRect(), top = parseFloat(say.style.top) || 0, y0 = w.top - rt.top - top;
+        return { a: clamp(y0), b: clamp(y0 + w.height - say.offsetHeight) };
+      })];
       // the giraffe at the reply waits at the last stop (none without stops: the gallery card)
       for (const p of pieces) if (p.reply) p.at = stopCount || Number.MAX_SAFE_INTEGER;
+      // the reply's pass, after the last stop: centred, or a free zone when it's taller than the screen
+      const pass = root.querySelector<HTMLElement>(".sf-passwrap");
+      snap.update([...holds.map((h) => ({ from: h.a })), ...(pass ? centredSpans(root, [pass], H) : [])], H);
     };
+    // the jeep's place for a scroll position: parked while a bubble is docked, driving (eased)
+    // through the gap to the next stop, arriving a little before its bubble docks
     const driveAt = (y: number) => {
-      for (let i = 0; i < centres.length - 1; i++) {
-        const a = centres[i], b = centres[i + 1];
-        if (y <= b) { const t = Math.min(1, Math.max(0, (y - a) / Math.max(1, b - a))); const m = Math.min(1, Math.max(0, (t - 0.18) / 0.64)); return (i + m * m * (3 - 2 * m)) * D; }
+      if (y <= holds[0].b) return 0;
+      for (let i = 0; i < holds.length - 1; i++) {
+        const { b } = holds[i], { a } = holds[i + 1];
+        if (y <= a) { const t = Math.min(1, Math.max(0, (y - b) / Math.max(1, a - b))); const m = Math.min(1, t / 0.85); return (i + m * m * (3 - 2 * m)) * D; }
+        if (y <= holds[i + 1].b) return (i + 1) * D;
       }
-      return (centres.length - 1) * D;
+      return (holds.length - 1) * D;
     };
-    // each stop's bubble just above its tallest animal, its tail pointing at it (the section's top
-    // is the frame's top when the jeep stops there)
+    // every bubble docks at the same height near the top of the scene (lower only if it would
+    // cover its animal), over its animal, its tail stretched down to the animal's head
     const layout = () => {
       const stops = Array.from(root.querySelectorAll<HTMLElement>("[data-sf-stop]"));
       stops.forEach((s, i) => {
@@ -222,7 +242,10 @@ export function useSavanna(
         const bubble = say.firstElementChild as HTMLElement | null;
         bubble?.style.setProperty("--tail", `${Math.min(80, Math.max(14, ((sr.left + x * W - r.left) / Math.max(1, r.width)) * 100)).toFixed(1)}%`);
         const feetY = (PLAIN.top + 0.06) * H, tallest = Math.max(...here.map((p) => (small ? p.p.mh : p.p.h)));
-        s.style.paddingTop = Math.max(H * 0.045, feetY - tallest * H - say.offsetHeight - 44) + "px";
+        const head = feetY - tallest * H, h = say.offsetHeight;
+        const top = Math.max(8, Math.min(H * (small ? 0.05 : 0.07), head - h - 34));
+        say.style.top = `${Math.round(top)}px`;
+        bubble?.style.setProperty("--tailh", `${Math.round(Math.min(H * 0.16, Math.max(26, head - (top + h) - 8)))}px`);
       });
     };
 
@@ -278,7 +301,7 @@ export function useSavanna(
     build();
     target = driveAt(scrolled()); X = target;
     kick();
-    const ro = new ResizeObserver(() => { const r = stage.getBoundingClientRect(); if (Math.abs(r.width - W) > 1 || Math.abs(r.height - H) > 1) build(); else { measure(); layout(); } onScroll(); });
+    const ro = new ResizeObserver(() => { const r = stage.getBoundingClientRect(); if (Math.abs(r.width - W) > 1 || Math.abs(r.height - H) > 1) build(); else { layout(); measure(); } onScroll(); });
     ro.observe(stage); ro.observe(root);
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) kick(); });
     io.observe(stage);
@@ -286,6 +309,7 @@ export function useSavanna(
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     return () => {
+      snap.dispose();
       alive = false;
       cancelAnimationFrame(raf);
       ro.disconnect(); io.disconnect();

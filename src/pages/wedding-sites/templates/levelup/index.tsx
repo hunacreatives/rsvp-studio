@@ -37,6 +37,7 @@ export const levelUpTemplateDefinition: TemplateDefinition<BaseTemplateSettings>
     { key: "levelLine", label: "Line under the title", hint: "Leave empty for “Level 30” (from the age).", maxLength: 30 },
     { key: "heroLine", label: "Small line above the title", placeholder: "A birthday quest", maxLength: 40 },
     { key: "startLabel", label: "Start prompt", placeholder: "Press start", maxLength: 20 },
+    { key: "logTitle", label: "Quest log heading", hint: "Over the island, above the list of quests.", placeholder: "Your quests", maxLength: 30 },
     { key: "dayTitle", label: "Day heading", section: "schedule", placeholder: "The day", maxLength: 30 },
     { key: "gearTitle", label: "Gear up: heading", section: "dress", placeholder: "Gear up", maxLength: 30 },
     { key: "dressCode", label: "What to wear", section: "dress", placeholder: "Come as your favourite character, or in your comfiest gaming clothes.", multiline: true, maxLength: 220 },

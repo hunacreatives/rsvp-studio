@@ -21,7 +21,7 @@ export const openPlayTemplateDefinition: TemplateDefinition<BaseTemplateSettings
   cardImage: "/event-templates/cards/open-play.webp",
   component: OpenPlayTemplate,
   defaultSettings,
-  tier: "premium",
+  tier: "free",
   demoContent: openPlayDemo,
   uses: ["story", "dateVenue", "schedule", "gallery", "registry", "faqs"],
   // The card renders the court at nearly its full width, so it fills the card edge to edge.

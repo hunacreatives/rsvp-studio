@@ -40,5 +40,5 @@ export const promenadeDemo: EventContent = {
   rsvpTableName: "promenade_demo_rsvps",
   occasion: "wedding",
   motifColors: ["#1A1A2E", "#8B0000", "#C9A96E", "#F5F0E8"],
-  custom: { dressCode: "Formal. Gentlemen in dark suits or tuxedos, ladies in floor-length gowns. The ceremony and reception are both indoors; kindly avoid white or ivory." },
+  custom: { dressCode: "Garden formal. Gentlemen in dark suits, ladies in long dresses. The lawns are soft, so leave the stilettos at home, and kindly avoid white or ivory." },
 };

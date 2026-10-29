@@ -21,7 +21,7 @@ export const cinematicTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   cardImage: "/event-templates/cards/cinematic.webp",
   component: CinematicTemplate,
   defaultSettings,
-  tier: "premium",
+  tier: "free",
   demoContent: cinematicDemoBirthday,
   uses: ["story", "dateVenue", "schedule", "gallery", "registry", "faqs"],
   // Two polaroids in the hero, then up to six on the wall.

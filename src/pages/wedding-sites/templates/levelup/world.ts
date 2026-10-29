@@ -414,7 +414,11 @@ export function createWorld(cv: HTMLCanvasElement) {
   const camAt = (route: number[], s: number, tall: boolean): Camera => {
     const k = Math.max(0, Math.min(route.length - 1, s)), i = Math.max(0, Math.min(route.length - 2, Math.floor(k))), t = route.length > 1 ? k - i : 0;
     const A = VIEWS[route[i] ?? 0], B = VIEWS[route[Math.min(route.length - 1, i + 1)] ?? 0], e = ease(t);
-    const eye = lerp(tall ? A.tallEye : A.eye, tall ? B.tallEye : B.eye, e); eye[1] += Math.sin(Math.PI * t) * 14;
+    const eA = tall ? A.tallEye : A.eye, eB = tall ? B.tallEye : B.eye;
+    // the flight arcs up over the island, higher the further it goes (clear of the castle on the
+    // hill between the lighthouse and the windmill)
+    const far = Math.hypot(eB[0] - eA[0], eB[2] - eA[2]);
+    const eye = lerp(eA, eB, e); eye[1] += Math.sin(Math.PI * t) * Math.max(14, Math.min(48, far * 0.45));
     const at = lerp(tall ? A.tallAt : A.at, tall ? B.tallAt : B.at, ease(Math.min(1, t * 1.15)));
     return { eye, at };
   };

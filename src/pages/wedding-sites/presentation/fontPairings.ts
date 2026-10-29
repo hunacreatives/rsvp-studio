@@ -111,6 +111,22 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"Manrope", "Helvetica Neue", Arial, sans-serif',
   },
   {
+    // Pixel Quest: Press Start 2P (an 8-bit arcade face) for the title, the HUD and the
+    // headings; Pixelify Sans (a readable pixel face) for everything else.
+    id: "pressstart-pixelify",
+    label: "Press Start 2P & Pixelify Sans",
+    displayFont: '"Press Start 2P", "Courier New", monospace',
+    bodyFont: '"Pixelify Sans", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
+    // Rally: Archivo, condensed and heavy, for the name, the headings and the broadcast HUD;
+    // Inter to read.
+    id: "archivo-inter",
+    label: "Archivo & Inter",
+    displayFont: '"Archivo", "Helvetica Neue", Arial, sans-serif',
+    bodyFont: '"Inter", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
     // Safari: Fraunces (soft, round) for the name and headings, Nunito Sans for the text.
     id: "fraunces-nunito",
     label: "Fraunces & Nunito Sans",

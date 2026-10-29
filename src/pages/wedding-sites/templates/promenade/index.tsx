@@ -6,19 +6,20 @@ import { promenadeDemo } from "../../content/fixtures/promenade-demo";
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "cream-gold",
-  fontPairingId: "vibes-montserrat",
+  fontPairingId: "cormorant-manrope",
   sectionVisibility: { ...defaultSectionVisibility },
 };
 
-// A sealed white envelope opening onto a full-screen hero, then countdown, story
-// timeline, pictures, program, dress code, venue, stay, gifts, FAQs and RSVP.
-// Watercolours come from the studio's designers (see art.tsx; ?brief=1 is their brief).
+// A formal estate garden seen from above, drawn live: the names on the gravel of the forecourt,
+// the couple's initials clipped in box inside the gate, then one stop at each part of the garden
+// down the long promenade (the parterre, the topiary lawn, the fountain, the rose garden, the lime
+// walk) to the reply at the white pavilion at the end.
 export const promenadeTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "promenade",
   label: "Promenade",
   archetype: "formal-stationery",
-  previewThumbnailUrl: "/event-templates/promenade/thumbnail.jpg",
-  cardImage: "/event-templates/cards/promenade.webp",
+  previewThumbnailUrl: "/event-templates/cards/promenade.webp?v=4",
+  cardImage: "/event-templates/cards/promenade.webp?v=4",
   component: PromenadeTemplate,
   defaultSettings,
   tier: "free",
@@ -40,12 +41,19 @@ export const promenadeTemplateDefinition: TemplateDefinition<BaseTemplateSetting
     { key: "rsvp", label: "RSVP" },
   ],
   customFields: [
-    { key: "sealText", label: "On the wax seal", hint: "Leave empty to use your initials, like A & D.", placeholder: "A & D", maxLength: 7 },
-    { key: "skipText", label: "Button on the envelope", placeholder: "Skip intro", maxLength: 20 },
+    { key: "names", label: "Your names, as they appear", hint: "Leave empty to use the names on your event.", placeholder: "Andrea & Diego", maxLength: 40 },
     { key: "heroKicker", label: "Line above your names", placeholder: "We are getting married", maxLength: 40 },
-    { key: "heroLine", label: "Line under your names", placeholder: "Join us to celebrate our special day", maxLength: 60 },
-    { key: "countdownLine", label: "Countdown line", hint: "Leave empty to say “We are excited to celebrate our wedding on (date).”", maxLength: 90 },
-    { key: "picturesLine", label: "Line above your photos", placeholder: "A few moments from our journey together", maxLength: 60 },
+    { key: "heroLine", label: "Line under your names", placeholder: "Join us in the garden", maxLength: 60 },
+    { key: "walkOn", label: "Prompt at the bottom of the first screen", placeholder: "Walk with us", maxLength: 24 },
+    { key: "monogram", label: "Initials in the hedge", hint: "Clipped in box inside the gate. Leave empty to use your first initials.", placeholder: "A&D", maxLength: 5 },
+    { key: "storyTitle", label: "Our story: heading", section: "hostIntro", placeholder: "Our story", maxLength: 30 },
+    { key: "placeStory", label: "Our story: place in the garden", section: "hostIntro", placeholder: "The parterre", maxLength: 28 },
+    { key: "picturesTitle", label: "Pictures: heading", section: "gallery", placeholder: "A few moments", maxLength: 30 },
+    { key: "placePictures", label: "Pictures: place in the garden", section: "gallery", placeholder: "The topiary lawn", maxLength: 28 },
+    { key: "dayTitle", label: "The day: heading", section: "schedule", placeholder: "The day", maxLength: 30 },
+    { key: "placeDay", label: "The day: place in the garden", placeholder: "The fountain", maxLength: 28 },
+    { key: "dressTitle", label: "Dress code: heading", section: "dress", placeholder: "What to wear", maxLength: 30 },
+    { key: "placeDress", label: "Dress code: place in the garden", section: "dress", placeholder: "The rose garden", maxLength: 28 },
     {
       key: "dressCode",
       label: "Dress code",
@@ -55,7 +63,15 @@ export const promenadeTemplateDefinition: TemplateDefinition<BaseTemplateSetting
       maxLength: 240,
       section: "dress",
     },
-    { key: "stayLine", label: "Line above the hotels", placeholder: "We’ve gathered a few places nearby for our guests.", maxLength: 90 },
+    { key: "detailsTitle", label: "Good to know: heading", placeholder: "Good to know", maxLength: 30 },
+    { key: "placeDetails", label: "Good to know: place in the garden", placeholder: "The lime walk", maxLength: 28 },
+    { key: "stayTitle", label: "Where to stay: heading", section: "accommodations", placeholder: "Where to stay", maxLength: 30 },
+    { key: "giftsTitle", label: "Gifts: heading", section: "registry", placeholder: "Gifts", maxLength: 30 },
+    { key: "giftNote", label: "Gift note", section: "registry", placeholder: "Your presence is the greatest gift. Should you wish to give, here’s how.", multiline: true, maxLength: 220 },
+    { key: "faqTitle", label: "Questions: heading", section: "faqs", placeholder: "Questions", maxLength: 30 },
+    { key: "rsvpTitle", label: "RSVP heading", section: "rsvp", placeholder: "Will you join us?", maxLength: 40 },
+    { key: "placeRsvp", label: "RSVP: place in the garden", section: "rsvp", placeholder: "The pavilion", maxLength: 28 },
+    { key: "rsvpButton", label: "Send button", section: "rsvp", placeholder: "Send reply", maxLength: 24 },
     { key: "thankYou", label: "Thank-you message", hint: "Shown after a guest says yes.", placeholder: "We’re looking forward to seeing you.", maxLength: 90 },
     { key: "afterParty", label: "After the wedding", hint: "Replaces the RSVP the day after.", placeholder: "Thank you for celebrating with us.", maxLength: 160 },
   ],

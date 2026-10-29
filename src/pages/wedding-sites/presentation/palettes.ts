@@ -156,6 +156,20 @@ export const palettes: PaletteOption[] = [
     swatches: ["#0a1628", "#7ff0ff", "#c6ff5e"],
   },
   {
+    // Pixel Quest: cream words in night-blue pixel windows (the level and the HUD are the
+    // design's own).
+    id: "pixel-quest",
+    label: "Arcade Night",
+    swatches: ["#14112e", "#fff1d0", "#c4bce9"],
+  },
+  {
+    // Rally: white and optic yellow on the floodlit court (the court, the sky and the HUD are
+    // the design's own).
+    id: "rally",
+    label: "Court Lights",
+    swatches: ["#0b1522", "#f6f4ee", "#b9c3cf"],
+  },
+  {
     // Safari: paper colours (the savanna, the animals and the letters are the design's own).
     id: "safari",
     label: "Storybook Paper",

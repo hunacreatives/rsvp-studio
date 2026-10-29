@@ -10,6 +10,7 @@ import type { EventContent } from "../../content/types";
 import VenueLinks from "../shared/VenueLinks";
 import { AddItem, Field, HiddenSection, siteEdit } from "../shared/siteEdit";
 import { CashGifts, hasCashGifts } from "../shared/CashGifts";
+import { useFlowSnap } from "../shared/stopSnap";
 import { eventIsOver, longDate, timeOf } from "../under-glass/content";
 import { boatSvg } from "./boat";
 import RsvpCard from "./RsvpCard";
@@ -102,6 +103,8 @@ export default function FreediveTemplate({ content, settings, editorPreview = fa
     vis.registry === false && { k: "registry", label: "Gifts" },
     vis.faqs === false && { k: "faqs", label: "Good to know" },
   ].filter(Boolean) as { k: string; label: string }[];
+  // one swipe, one stop: the surface, each depth, the plate at the bottom
+  useFlowSnap(rootRef, moving && (live || demo), ".fd-stop, .fd-plate", String(stops.length));
   const depthAt = (i: number) => Math.max(1, Math.round((max * (i + 1)) / (stops.length + 1.2)));
 
   // the intro: the world starts below the surface and rises to it

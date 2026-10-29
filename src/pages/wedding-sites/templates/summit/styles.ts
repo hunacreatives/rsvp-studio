@@ -78,6 +78,8 @@ export const SUMMIT_CSS = `
 .sm-field { display: block; width: 100%; font: 17px var(--sm-sans); padding: 13px 14px; border: 0; border-radius: 10px; background: #fff; color: var(--ink); margin-top: 8px; box-shadow: inset 0 0 0 1.5px rgba(23, 34, 47, 0.18); letter-spacing: 0; text-transform: none; }
 textarea.sm-field { resize: vertical; min-height: 90px; }
 .sm-pills { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
+.sm-root .sm-open { animation: sm-open 0.5s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes sm-open { from { opacity: 0; transform: translateY(8px); } }
 .sm-pill { min-height: 50px; padding: 0 8px; border: 0; border-radius: 999px; font: 15px var(--sm-sans); background: #fff; color: var(--ink); box-shadow: inset 0 0 0 1.5px rgba(23, 34, 47, 0.25); cursor: pointer; }
 .sm-pill.is-on { background: var(--ink); color: #fff; box-shadow: none; }
 .sm-seats { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; font: 600 11px var(--sm-sans); letter-spacing: 0.2em; text-transform: uppercase; color: #55606c; }
@@ -123,6 +125,8 @@ textarea.sm-field { resize: vertical; min-height: 90px; }
   .sm-read { padding: 8px 12px; border-radius: 12px; background: rgba(5,15,35,0.4); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
   .sm-read b { font-size: 20px; }
   .sm-post { width: 36px; } .sm-climber { height: 30px; }
+  /* the reply's form is open: the altitude would sit on its fields */
+  .sm-gaugelane:has(~ * .sm-open), .sm-root:has(.sm-open) .sm-gauge { opacity: 0 !important; transition: opacity .3s; }
 }
 @media (prefers-reduced-motion: reduce) { .sm-root *, .sm-root *::before { animation: none !important; transition: none !important; } }
 `;

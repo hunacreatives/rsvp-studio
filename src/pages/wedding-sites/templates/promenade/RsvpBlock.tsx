@@ -6,9 +6,9 @@ import RsvpQuestions from "../shared/RsvpQuestions";
 import { Confetti } from "./art";
 import { coupleNames } from "./content";
 
-// The RSVP: Attending / Decline, name, contact, how many, the couple's own
-// questions and a note. Posts to the shared RSVP endpoint (useRsvpForm). A yes
-// ends with gold confetti and "Thank you!".
+// The RSVP: Attending / Decline first (so the gazebo stays in view), then name, contact, how
+// many, the couple's own questions and a note. Posts to the shared RSVP endpoint (useRsvpForm).
+// A yes ends with confetti and "Thank you".
 
 export default function RsvpBlock({ content, editorPreview, motion }: { content: EventContent; editorPreview: boolean; motion: boolean }) {
   const form = useRsvpForm(content, editorPreview, { asksAttending: true });
@@ -24,6 +24,7 @@ export default function RsvpBlock({ content, editorPreview, motion }: { content:
   }, [form.state, form.attending, motion]);
 
   const going = form.values.attending === "yes";
+  const open = editorPreview || !!form.values.attending;
   const choose = (v: "yes" | "no") => {
     form.set("attending", v);
     form.set("guests", v === "no" ? "0" : form.values.guests && form.values.guests !== "0" ? form.values.guests : "1");
@@ -34,7 +35,7 @@ export default function RsvpBlock({ content, editorPreview, motion }: { content:
     return (
       <div className="pm-thanks" role="status">
         {burst ? <Confetti key={burst} /> : null}
-        <p className="pm-thanks__big">{form.attending === "no" ? "We’ll miss you" : "Thank you!"}</p>
+        <p className="pm-thanks__big">{form.attending === "no" ? "We’ll miss you" : "Thank you"}</p>
         <p className="pm-text">{form.attending === "no" ? `Thank you for letting ${couple || "us"} know.` : customValue(content, "thankYou") || "We’re looking forward to seeing you."}</p>
         {form.copyNote ? <p className="pm-text pm-text--soft">{form.copyNote}</p> : null}
         <button type="button" className="pm-btn pm-btn--line" onClick={() => setDone(false)}>
@@ -53,18 +54,17 @@ export default function RsvpBlock({ content, editorPreview, motion }: { content:
   return (
     <form className="pm-form" onSubmit={form.submit} noValidate>
       <input type="text" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(e) => form.setWebsite(e.target.value)} style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} aria-hidden />
-      {form.replyBy ? <p className="pm-text pm-text--soft">{form.replyBy}</p> : null}
-      <div>
-        <p className="pm-label">Your response</p>
-        <div className="pm-pills" role="group" aria-label="Will you attend?">
-          <button type="button" className={`pm-pill${going ? " is-picked" : ""}`} aria-pressed={going} onClick={() => choose("yes")}>
-            Attending
-          </button>
-          <button type="button" className={`pm-pill${form.values.attending === "no" ? " is-picked" : ""}`} aria-pressed={form.values.attending === "no"} onClick={() => choose("no")}>
-            Decline
-          </button>
-        </div>
+      {form.replyBy ? <p className="pm-text pm-text--soft" style={{ textAlign: "center" }}>{form.replyBy}</p> : null}
+      <div className="pm-pills" role="group" aria-label="Will you attend?">
+        <button type="button" className={`pm-pill${going ? " is-picked" : ""}`} aria-pressed={going} onClick={() => choose("yes")}>
+          Joyfully accepts
+        </button>
+        <button type="button" className={`pm-pill${form.values.attending === "no" ? " is-picked" : ""}`} aria-pressed={form.values.attending === "no"} onClick={() => choose("no")}>
+          Regretfully declines
+        </button>
       </div>
+      {open ? (
+      <div className="pm-open">
       <div>
         <label className="pm-label" htmlFor={`${id}-name`}>Name</label>
         <input id={`${id}-name`} className="pm-field" type="text" autoComplete="name" autoCapitalize="words" placeholder="Your full name" value={form.values.name ?? ""} onChange={(e) => form.set("name", e.target.value)} />
@@ -99,8 +99,10 @@ export default function RsvpBlock({ content, editorPreview, motion }: { content:
         </p>
       ) : null}
       <button type="submit" className="pm-btn pm-btn--wide" disabled={form.state === "submitting" || editorPreview} title={editorPreview ? "Guests can reply once your site is published" : undefined}>
-        {form.state === "submitting" ? "Sending…" : "Send RSVP"}
+        {form.state === "submitting" ? "Sending…" : customValue(content, "rsvpButton") || "Send reply"}
       </button>
+      </div>
+      ) : null}
     </form>
   );
 }

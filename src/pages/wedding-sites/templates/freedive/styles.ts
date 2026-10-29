@@ -129,24 +129,31 @@ textarea.fd-field { resize: vertical; min-height: 90px; }
 .fd-gallery .fd-line { top: calc(-75cqw * (1 - var(--sf)) + 4px); }
 
 @container (max-width: 700px) {
-  .fd-root { --surf: 54%; --sf: 0.54; --line-x: 14%; }
-  .fd-sky { width: 100%; justify-content: flex-start; padding: 12svh 20px 0; }
-  .fd-boat { width: 112cqw; right: -46cqw; bottom: calc(100% - var(--surf) + 16px - 112cqw * 600 / 1400 * 0.156); }
+  /* on the root's children: a container query can't style the container itself */
+  .fd-root > * { --surf: 63%; --sf: 0.63; --line-x: 12%; }
+  .fd-sky { width: 100%; justify-content: flex-start; padding: 8svh 20px 0; }
+  /* the boat smaller and off to the right, so the words stay on open sky */
+  .fd-boat { width: 74cqw; right: -30cqw; bottom: calc(100% - var(--surf) + 10px - 74cqw * 600 / 1400 * 0.156); }
+  /* the lens droplets and the rising bubbles, sized for a small screen */
+  .fd-lens i, .fd-bubbles i { scale: 0.55; }
   .fd-buoy { left: calc(var(--line-x) - 13px); top: calc(var(--surf) - 12px); width: 26px; height: 19px; }
   .fd-line { bottom: 350px; }
-  .fd-diver { width: 38px; margin-left: calc(38px * -0.47); }
-  .fd-depths { margin-left: 26%; width: 68%; }
-  .fd-stop { min-height: 72svh; }
+  .fd-diver { width: 34px; margin-left: calc(34px * -0.47); }
+  .fd-depths { margin-left: calc(12% + 26px); width: calc(88% - 26px - 18px); }
+  .fd-stop { min-height: 62svh; }
   .fd-legs > div { grid-template-columns: 78px minmax(0, 1fr); gap: 10px; }
   .fd-legs b { font-size: 13.5px; } .fd-legs span { font-size: 15.5px; }
   .fd-bottom { padding: 0 14px 150px; }
-  .fd-plate { margin-left: 20%; width: 80%; padding: 32px 18px 30px; }
+  .fd-plate { margin-left: calc(12% + 14px); width: calc(88% - 14px); padding: 32px 18px 30px; }
   .fd-plate h2 { font-size: 36px; }
-  .fd-gaugelane { right: 12px; }
-  .fd-gauge { top: calc(100svh - 76px); flex-direction: row-reverse; }
-  .fd-read { padding: 8px 12px; border-radius: 12px; background: rgba(4, 30, 52, 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  /* the gauge: a small reading at the bottom left, under the diver, clear of the words */
+  .fd-gaugelane { right: auto; left: 6px; width: 64px; }
+  .fd-gauge { top: calc(100svh - 70px); flex-direction: row-reverse; justify-content: flex-start; }
+  .fd-read { padding: 6px 8px; border-radius: 12px; background: rgba(4, 30, 52, 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
   .fd-track { display: none; }
-  .fd-read b { font-size: 22px; }
+  .fd-read b { font-size: 17px; }
+  .fd-read { text-align: center; }
+  .fd-read > span { font-size: 9px; letter-spacing: 0.16em; }
 }
 @media (prefers-reduced-motion: reduce) { .fd-root *, .fd-root *::before { animation: none !important; } }
 `;
