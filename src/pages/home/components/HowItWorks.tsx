@@ -23,10 +23,7 @@ export default function HowItWorks() {
   return (
     <section className="py-16 md:py-32" style={{ background: "var(--warm-white)" }}>
       <div className="container-x text-center">
-        <Reveal as="p" className="eyebrow">
-          How It Works
-        </Reveal>
-        <Reveal as="h2" className="h-section mt-3 text-[var(--ink)]">
+        <Reveal as="h2" className="h-section text-[var(--ink)]">
           How we bring your story to life
         </Reveal>
       </div>

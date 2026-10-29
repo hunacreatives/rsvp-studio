@@ -39,24 +39,26 @@ export default function FooterSection() {
   const navigate = useNavigate();
   return (
     <footer style={{ background: "var(--ink)" }} className="text-white/80">
-      <div className="container-x pt-16 pb-8 md:pt-20 md:pb-10">
-        <div className="grid gap-12 md:grid-cols-[1.2fr_2fr]">
+      <div className="container-x pt-12 pb-6 md:pt-20 md:pb-10">
+        <div className="grid gap-8 md:gap-12 md:grid-cols-[1.2fr_2fr]">
           <div>
             <img
               src="/brand/logotype-white.png"
               alt="The RSVP Studio"
-              className="h-12 w-auto"
+              className="h-10 w-auto md:h-12"
             />
-            <p className="mt-5 max-w-xs font-display text-[17px] italic leading-snug text-white/90">
+            <p className="mt-4 max-w-xs font-display text-[17px] italic leading-snug text-white/90 md:mt-5">
               Your celebration is our celebration, too.
             </p>
+            {/* on a phone the email and the icons share a row */}
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 md:block">
             <a
               href="mailto:hello@thersvpstudio.com"
-              className="mt-3 inline-block py-2 text-[15px] md:text-sm text-white/80 underline underline-offset-4 [overflow-wrap:anywhere] hover:text-white"
+              className="inline-block py-2 text-[15px] md:mt-3 md:text-sm text-white/80 underline underline-offset-4 [overflow-wrap:anywhere] hover:text-white"
             >
               hello@thersvpstudio.com
             </a>
-            <div className="mt-3 -ml-2.5 flex gap-1 text-xl md:mt-4">
+            <div className="-mr-2.5 flex gap-1 text-xl md:mt-4 md:-ml-2.5 md:mr-0">
               <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid h-11 w-11 place-items-center hover:text-white">
                 <i className="ri-instagram-line" />
               </a>
@@ -67,20 +69,42 @@ export default function FooterSection() {
                 <i className="ri-messenger-line" />
               </a>
             </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-8 md:gap-8">
+          {/* a phone: each list folds into a row that opens on tap */}
+          <div className="md:hidden">
+            {COLUMNS.map((col) => (
+              <details key={col.title} className="group border-t border-white/10 last:border-b">
+                <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between text-[13px] font-semibold uppercase tracking-[0.18em] text-white/70 [&::-webkit-details-marker]:hidden">
+                  {col.title}
+                  <i className="ri-arrow-down-s-line text-xl transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <ul className="pb-3">
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      <button onClick={() => goTo(navigate, l.to)} className="block w-full py-2.5 text-left text-[15px] text-white/75 hover:text-white">
+                        {l.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </div>
+
+          <div className="hidden md:grid md:grid-cols-3 md:gap-8">
             {COLUMNS.map((col) => (
               <div key={col.title}>
-                <p className="text-[12px] md:text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60 md:text-white/50">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
                   {col.title}
                 </p>
-                <ul className="mt-2 md:mt-4 md:space-y-2.5">
+                <ul className="mt-4 space-y-2.5">
                   {col.links.map((l) => (
                     <li key={l.label}>
                       <button
                         onClick={() => goTo(navigate, l.to)}
-                        className="block w-full py-2 text-left text-[15px] text-white/75 transition-colors hover:text-white md:inline md:w-auto md:py-0 md:text-sm md:text-white/70"
+                        className="inline text-left text-sm text-white/70 transition-colors hover:text-white"
                       >
                         {l.label}
                       </button>
@@ -92,10 +116,10 @@ export default function FooterSection() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-white/10 pt-6 flex flex-col gap-3 text-[13px] md:text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
-            <span>© 2026 The RSVP Studio. All rights reserved.</span>
-            <span className="flex gap-5 sm:gap-4">
+        <div className="mt-6 flex flex-col gap-1 text-[13px] text-white/60 md:mt-12 md:border-t md:border-white/10 md:pt-6 md:text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-0 sm:gap-4">
+            <span>© 2026 The RSVP Studio</span>
+            <span className="flex gap-4">
               <Link to="/privacy" className="inline-block py-2.5 underline underline-offset-4 hover:text-white sm:py-0">
                 Privacy Policy
               </Link>

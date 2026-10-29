@@ -97,12 +97,12 @@ export default function Hero() {
   return (
     <section
       ref={root}
-      className="relative overflow-hidden pt-8 sm:pt-16 md:pt-24 pb-6 sm:pb-14 md:pb-24 max-sm:flex max-sm:h-[max(calc(100svh-var(--hero-top,96px)),640px)] max-sm:flex-col"
+      className="relative overflow-hidden pt-5 sm:pt-16 md:pt-24 pb-6 sm:pb-14 md:pb-24 max-sm:flex max-sm:h-[max(calc(100svh-var(--hero-top,96px)),640px)] max-sm:flex-col"
       style={{ background: "var(--warm-white)" }}
     >
       <div className="container-x relative z-10 shrink-0 text-center">
         {/* The greeting sits above the headline as a quiet label, changing language. */}
-        <p className="mb-4 flex justify-center text-[15px] text-[var(--slate)] md:text-[17px]" aria-label="Greetings in any language">
+        <p className="mb-2 flex justify-center text-[15px] text-[var(--slate)] sm:mb-4 md:text-[17px]" aria-label="Greetings in any language">
           <span className="relative inline-flex h-[1.5em] items-center overflow-hidden font-display italic">
             <span key={greetIdx} className="greet-swap block leading-none whitespace-nowrap">
               {GREETINGS[greetIdx]}
@@ -111,12 +111,13 @@ export default function Hero() {
         </p>
         <h1
           className="font-display font-semibold tracking-[-0.02em] leading-[1.12] mx-auto max-w-3xl text-[var(--ink)] text-balance"
-          style={{ fontSize: "clamp(2rem, 5vw, 2.9rem)" }}
+          style={{ fontSize: "clamp(1.6rem, 6.6vw, 2.9rem)" }}
         >
           Event websites, invitations and stationery for every celebration
         </h1>
-        <p className="mx-auto mt-4 max-w-[34rem] text-[15px] leading-relaxed text-[var(--slate)] text-balance md:text-[17px]">
-          Weddings, birthdays, christenings and more, with RSVPs built in. Websites from ₱3,000.
+        <p className="mx-auto mt-2.5 max-w-[34rem] text-[15px] leading-relaxed sm:mt-4 text-[var(--slate)] text-balance md:text-[17px]">
+          Weddings, birthdays, christenings and more, with RSVPs built in.{" "}
+          <span className="whitespace-nowrap">Websites from ₱3,000.</span>
         </p>
         {/* One button; doing it yourself is the quieter option beside it. */}
         {/* Phones skip these: the top bar has "Get a quote" and the menu has the builder,
@@ -134,7 +135,7 @@ export default function Hero() {
 
       {/* Parallax card field + phone */}
       {/* On phones this fills the rest of the screen, and the rows and phone size to it. */}
-      <div className="relative mt-7 sm:mt-14 md:mt-16 max-sm:mb-6 max-sm:min-h-0 max-sm:flex-1 max-sm:[container-type:size]">
+      <div className="relative mt-5 sm:mt-14 md:mt-16 max-sm:mb-6 max-sm:min-h-0 max-sm:flex-1 max-sm:[container-type:size]">
         {/* Two rows drifting opposite ways, softened so the phone carries the eye. */}
         {[UPPER, LOWER].map((row, r) => (
           <div key={r} className={`overflow-hidden ${r ? "mt-4 sm:mt-5 md:mt-7" : ""}`} style={EDGE_FADE} aria-hidden>

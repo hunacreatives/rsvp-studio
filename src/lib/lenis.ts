@@ -1,11 +1,9 @@
 import type Lenis from "lenis";
 
 /**
- * Shared reference to the app's single Lenis instance (set by
- * useSmoothScroll). Lenis keeps its own animated scroll target and will
- * fight a raw `window.scrollTo()` call, re-asserting its last position on
- * the next frame — code that needs to force-scroll (e.g. the mobile nav)
- * must go through Lenis itself instead.
+ * The site scrolls natively: the Lenis smooth scroll was taken out (Oct 29 2026) because its
+ * easing made scrolling feel late. This stays null, so every caller takes its native-scroll
+ * path; it's kept so a smooth scroll could be put back in one place.
  */
 export const lenisRef: { current: Lenis | null } = { current: null };
 

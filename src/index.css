@@ -66,17 +66,7 @@ body {
 p, li, dd, figcaption, blockquote { text-wrap: pretty; }
 h1, h2, h3, h4 { text-wrap: balance; }
 
-/* Lenis smooth-scroll wiring */
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
+
 
 ::selection {
   background: var(--acc-blue);

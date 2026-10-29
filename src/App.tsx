@@ -7,7 +7,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { trackPage } from "@/lib/analytics";
 import CharacterLoader from "@/components/CharacterLoader";
-import { useSmoothScroll } from "@/lib/useSmoothScroll";
+import LaunchGate from "@/components/LaunchGate";
 import { isCustomDomain } from "@/pages/wedding-sites/public/customDomain";
 // Only customers' own domains need the event-site code at startup: everyone else loads it on demand.
 const CustomDomainSite = lazy(() => import("@/pages/wedding-sites/public/CustomDomainSite"));
@@ -26,6 +26,7 @@ function Routes() {
     if (!/^\/(invite|internal)\//.test(window.location.pathname.slice(__BASE_PATH__.replace(/\/$/, "").length))) rememberVisit();
   }, []);
   return (
+    <LaunchGate pathname={pathname}>
     <ErrorBoundary resetKey={pathname}>
       {/* Guests opening an invite never see our studio cartoons — just a blank page. */}
       <Suspense
@@ -36,11 +37,11 @@ function Routes() {
         <AppRoutes />
       </Suspense>
     </ErrorBoundary>
+    </LaunchGate>
   );
 }
 
 function App() {
-  useSmoothScroll();
   // A customer's own web address: only their event site, whatever the path.
   if (isCustomDomain())
     return (

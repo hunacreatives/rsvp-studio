@@ -100,10 +100,7 @@ export default function Testimonials() {
     <section className="py-16 md:py-32 overflow-hidden" style={{ background: "var(--warm-white)" }}>
       <style>{CARD_CSS}</style>
       <div className="container-x text-center">
-        <Reveal as="p" className="eyebrow">
-          Testimonials
-        </Reveal>
-        <Reveal as="h2" className="h-section mt-3 text-[var(--ink)]">
+        <Reveal as="h2" className="h-section text-[var(--ink)]">
           What people are saying.
         </Reveal>
       </div>

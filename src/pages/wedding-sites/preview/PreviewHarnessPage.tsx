@@ -98,6 +98,8 @@ export default function PreviewHarnessPage() {
       ? resolveTemplate(buildPreviewPresentation(templateId))
       : undefined;
 
+  // ?bare=1: no toolbar (RSVP Template Studio's screenshots)
+  const bare = searchParams.get("bare") === "1";
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f2" }}>
       <div
@@ -105,7 +107,7 @@ export default function PreviewHarnessPage() {
           position: "sticky",
           top: 0,
           zIndex: 50,
-          display: "flex",
+          display: bare ? "none" : "flex",
           flexWrap: "wrap",
           gap: 12,
           alignItems: "center",

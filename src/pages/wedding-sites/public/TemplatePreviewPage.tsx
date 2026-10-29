@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTemplateCatalog } from "../engine/catalog";
 import { getTemplateDefinition } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
@@ -12,9 +12,16 @@ import { isabellaAndMateo } from "../content/fixtures/isabella-and-mateo";
 // before signing up. Sample content only; the RSVP form doesn't send anything
 // (templates only post RSVPs on a published page). "Use this design" goes back to
 // /build with the choice, which asks them to sign up and opens the builder with it.
+//
+// The design is shown in a frame under the bar (?frame=1 is the design alone), so it gets the
+// screen that's left: designs are built to fill a screen (100svh), and the bar would otherwise
+// cut off their bottom. Inside the frame, scrolling and the designs' one-swipe stops work as on a
+// published page.
 
 export default function TemplatePreviewPage() {
   const { templateId = "" } = useParams<{ templateId: string }>();
+  const [params] = useSearchParams();
+  const framed = params.get("frame") === "1";
   const navigate = useNavigate();
   const { ready } = useTemplateCatalog();
   const definition = getTemplateDefinition(templateId);
@@ -43,10 +50,16 @@ export default function TemplatePreviewPage() {
 
   const content = normalizeEventContent(definition.demoContent ?? isabellaAndMateo);
   const Template = resolved.definition.component;
+  // the design alone, for the frame
+  if (framed)
+    return (
+      <SiteCreditProvider value={{ show: true }}>
+        <Template content={content} settings={resolved.settings} demo />
+      </SiteCreditProvider>
+    );
   return (
-    <div className="min-h-[100svh] bg-[#f5f5f2]">
-      {/* The bar stays on top while they scroll the demo. */}
-      <div className="sticky top-0 z-50 flex items-center gap-3 border-b border-black/10 bg-white/95 px-4 py-2.5 backdrop-blur md:px-6">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#f5f5f2]">
+      <div className="relative z-50 flex shrink-0 items-center gap-3 border-b border-black/10 bg-white/95 px-4 py-2.5 backdrop-blur md:px-6">
         <Link to="/build#designs" className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 text-[14px] text-[var(--slate)] hover:text-[var(--ink)]">
           <i className="ri-arrow-left-line text-[18px]" aria-hidden /> <span className="hidden sm:inline">All designs</span><span className="sr-only sm:hidden">All designs</span>
         </Link>
@@ -63,9 +76,7 @@ export default function TemplatePreviewPage() {
           <span className="min-[380px]:hidden">Use design</span>
         </button>
       </div>
-      <SiteCreditProvider value={{ show: true }}>
-        <Template content={content} settings={resolved.settings} demo />
-      </SiteCreditProvider>
+      <iframe key={templateId} title={`${definition.label}, a sample`} src={`/build/preview/${encodeURIComponent(templateId)}?frame=1`} className="block min-h-0 w-full flex-1 border-0 bg-white" allow="fullscreen" />
     </div>
   );
 }
