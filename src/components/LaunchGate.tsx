@@ -91,7 +91,7 @@ export default function LaunchGate({ pathname, children }: { pathname: string; c
           {cell(left.s, "Seconds")}
         </div>
       )}
-      <form onSubmit={submit} className="mt-10 flex w-full max-w-[360px] flex-col gap-3">
+      <form onSubmit={submit} className="mt-10 flex w-full max-w-[360px] min-w-0 flex-col gap-3">
         <label htmlFor="launch-pass" className="text-[14px] text-[var(--slate)]">
           Have the password? Come in early.
         </label>
@@ -102,11 +102,11 @@ export default function LaunchGate({ pathname, children }: { pathname: string; c
             autoComplete="current-password"
             value={value}
             onChange={(e) => { setValue(e.target.value); setWrong(false); }}
-            className="min-h-12 flex-1 rounded-full border border-[var(--line)] bg-white px-5 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+            className="min-h-12 w-full min-w-0 flex-1 rounded-full border border-[var(--line)] bg-white px-5 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             placeholder="Password"
             aria-invalid={wrong || undefined}
           />
-          <button type="submit" className="btn btn-primary min-h-12 !px-6" disabled={checking}>
+          <button type="submit" className="btn btn-primary min-h-12 shrink-0 !px-6" disabled={checking}>
             Enter
           </button>
         </div>
