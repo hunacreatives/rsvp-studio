@@ -53,7 +53,7 @@ export function useShaker(
     const phone = root.clientWidth <= 700;
     const nav = navigator as Navigator & { deviceMemory?: number };
     const slow = (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory ?? 8) <= 3;
-    let budget = phone ? (slow ? 1500 : 2600) : slow ? 2600 : 4200;
+    let budget = phone ? (slow ? 2000 : 3600) : slow ? 2800 : 4800;
     const weights = colourWeights(flavour);
     const colours = flavour.sprinkles.map((s) => s.c);
     const sampleOpts = () => ({ budget, weights, dots: flavour.dots, dotSize: flavour.dotSize, density: phone ? 1.75 : 2.1 });

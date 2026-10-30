@@ -13,25 +13,30 @@ const defaultSettings: BaseTemplateSettings = {
   sectionVisibility: { ...defaultSectionVisibility },
 };
 
-// For birthdays, any age: a cake's frosting as the page, and every big heading made of real
-// sprinkles that pour in, tumble and settle into the letters as its section arrives (the name
-// and the age first), then fall away as the page moves on. A finger or the pointer nudges them.
-// Strawberry with rainbow sprinkles, chocolate with pastels, or vanilla with gold and white.
+// For birthdays, any age: a real cake, drawn in code. It opens on the top of the cake from above
+// (buttercream, a piped border, the age as a lit number candle, an edible photo print) with the
+// name poured on in sprinkles; blow the candle out and the page goes down the cut side, layer by
+// layer, every heading poured in sprinkles, the photos pressed into the buttercream, the reply on
+// the board. Strawberry, chocolate or vanilla: frosting, sponge, fillings and drip follow.
 export const sprinklesTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "sprinkles",
   label: "Sprinkles",
   archetype: "modern-minimal",
-  previewThumbnailUrl: "/event-templates/cards/sprinkles.webp?v=1",
-  cardImage: "/event-templates/cards/sprinkles.webp?v=1",
+  previewThumbnailUrl: "/event-templates/cards/sprinkles.webp?v=2",
+  cardImage: "/event-templates/cards/sprinkles.webp?v=2",
   component: SprinklesTemplate,
   defaultSettings,
   tier: "premium",
   entourage: false,
   demoContent: sprinklesDemo,
-  uses: ["dateVenue", "schedule", "registry", "faqs"],
+  uses: ["dateVenue", "schedule", "gallery", "registry", "faqs"],
+  // the first photo is the edible print on top of the cake; the next four are pressed into the
+  // buttercream layer
+  galleryLimit: 5,
   hideable: [
     { key: "schedule", label: "The party (date and plan)" },
     { key: "venue", label: "Where" },
+    { key: "gallery", label: "Photos (in the buttercream layer)" },
     { key: "dress", label: "What to wear" },
     { key: "registry", label: "Gifts" },
     { key: "faqs", label: "Good to know (FAQs)" },
@@ -50,13 +55,14 @@ export const sprinklesTemplateDefinition: TemplateDefinition<BaseTemplateSetting
       ],
     },
     { key: "names", label: "The name, in sprinkles", hint: "Leave empty to use the first name on your event.", placeholder: "Mia", maxLength: 24 },
-    { key: "milestone", label: "The age", hint: "Shown as “turns 7” under the name.", placeholder: "7", maxLength: 3 },
+    { key: "milestone", label: "The age", hint: "The number candle on the cake, and “turns 7” under the name.", placeholder: "7", maxLength: 3 },
     { key: "ageLine", label: "Line under the name", hint: "Leave empty for “turns 7” (from the age).", placeholder: "turns 7", maxLength: 24 },
     { key: "heroLine", label: "Small line above the name", placeholder: "You’re invited", maxLength: 40 },
-    { key: "cueLabel", label: "Prompt at the foot of the first screen", placeholder: "The details", maxLength: 24 },
+    { key: "cueLabel", label: "Prompt at the foot of the first screen", hint: "Leave empty for “Blow out the candle” (or “The details” without an age).", maxLength: 24 },
     { key: "partyTitle", label: "The party: heading", section: "schedule", placeholder: "The party", maxLength: 24 },
     { key: "whereTitle", label: "Where: heading", section: "venue", placeholder: "Where", maxLength: 24 },
     { key: "whereNote", label: "A note about getting there", section: "venue", placeholder: "Parking is free in the lot behind the building.", multiline: true, maxLength: 160 },
+    { key: "photosTitle", label: "Photos: heading", section: "gallery", hint: "Your first photo is the print on top of the cake; the next four are here.", placeholder: "Photos", maxLength: 24 },
     { key: "wearTitle", label: "What to wear: heading", section: "dress", placeholder: "What to wear", maxLength: 24 },
     { key: "dressCode", label: "What to wear", section: "dress", placeholder: "Party clothes you can play in. Something pink if you have it.", multiline: true, maxLength: 200 },
     { key: "giftsTitle", label: "Gifts: heading", section: "registry", placeholder: "Gifts", maxLength: 24 },

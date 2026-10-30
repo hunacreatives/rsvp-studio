@@ -134,13 +134,16 @@ export function useAisle(
     const evs = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
     if (introOn) {
       html.style.overflow = "hidden";
+      if (window.scrollY > 0) window.scrollTo(0, 0);
       root.classList.add("sb-intro");
       root.classList.remove("sb-named");
       evs.forEach((e) => window.addEventListener(e, skip, { passive: true }));
     } else root.classList.add("sb-named");
 
     // ---- the loop
-    let target = 0, X = 0, lastDraw = -1e9, raf = 0, visible = true, lastKey = "", adapt = 1, settled = 0;
+    let target = 0, X = 0, XV = 0, lastStep = performance.now(), lastFade = "", lastDraw = -1e9, raf = 0, visible = true, lastKey = "", adapt = 1, settled = 0;
+    // the camera's walk: a critically damped follow, about two seconds from one stop to the next
+    const WALK = 2.6;
     // the last time the page or a finger moved (the full drawing and the idle frames wait on it)
     let active = performance.now(), touching = false, lastFrac = 0;
     const IDLE_MS = 4000;
@@ -148,8 +151,22 @@ export function useAisle(
     const scale = () => Math.min(window.devicePixelRatio || 1, 1.25) * adapt;
     const loop = (now: number) => {
       raf = 0;
-      // the camera goes where the page is, the same frame (its walk between stops is already eased)
-      X = target;
+      // the opening looks straight down the aisle, wherever the page happens to start (Safari can
+      // restore a page part-way down: the camera would set off toward that stop, then swing back).
+      // After it, the camera walks to wherever the page is at its own unhurried pace (a phone's own
+      // snapping is quick), so the church between the stops can be seen; each card comes up as the
+      // camera arrives at it
+      if (introOn || !animate) { X = introOn ? 0 : target; XV = 0; }
+      else {
+        const dt = Math.min(0.05, Math.max(0.001, (now - lastStep) / 1000)), d = X - target, e = Math.exp(-WALK * dt), k = XV + WALK * d;
+        X = target + (d + k * dt) * e;
+        XV = (XV - k * WALK * dt) * e;
+        if (Math.abs(X - target) < 0.0015 && Math.abs(XV) < 0.01) { X = target; XV = 0; }
+      }
+      lastStep = now;
+      const arrive = 1 - Math.min(1, Math.max(0, (Math.abs(target - X) - 0.06) / 0.3));
+      const fade = arrive.toFixed(2);
+      if (fade !== lastFade) { root.style.setProperty("--sb-arrive", fade); lastFade = fade; }
       let view = viewAt(X), door = 1;
       if (introOn) {
         if (introStart === t0 && now - t0 < 60) introStart = now; // start on the first real frame

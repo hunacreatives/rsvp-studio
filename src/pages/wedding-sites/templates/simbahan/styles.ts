@@ -59,6 +59,7 @@ export const SIMBAHAN_CSS = `
 .sb-stop { position: relative; padding-top: var(--frame); }
 .sb-stop:last-child { padding-bottom: 2px; }
 .sb-dock { position: relative; }
+.sb-motion [data-sb-dock] { opacity: var(--sb-arrive, 1); }
 .sb-card { position: sticky; top: 90px; width: min(456px, 36cqw); margin: 0 6.5cqw 0 auto; isolation: isolate; transform: perspective(1800px) rotateY(-6deg) rotateX(1.2deg); transform-origin: 100% 50%; }
 .sb-hold { height: calc(var(--frame) * 0.5); }
 .sb-paper { position: relative; padding: 38px 50px 34px; border-radius: 1px; text-align: center;

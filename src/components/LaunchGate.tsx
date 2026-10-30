@@ -47,6 +47,10 @@ export default function LaunchGate({ pathname, children }: { pathname: string; c
   const [value, setValue] = useState("");
   const [wrong, setWrong] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  // the list for launch day (launch_signups, via the server): an email, once
+  const [email, setEmail] = useState("");
+  const [joined, setJoined] = useState<"idle" | "sending" | "done" | "error">("idle");
   const left = useCountdown();
   if (ok || OPEN.test(pathname)) return <>{children}</>;
 
@@ -67,6 +71,16 @@ export default function LaunchGate({ pathname, children }: { pathname: string; c
       setWrong(true);
       setValue("");
     }
+  };
+  const join = async (e: FormEvent) => {
+    e.preventDefault();
+    const v = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || joined === "sending") return;
+    setJoined("sending");
+    const src = new URLSearchParams(window.location.search).get("utm_source") || document.referrer.replace(/^https?:\/\//, "").split("/")[0] || "direct";
+    // the server adds it to the list and sends the thank-you (once per address)
+    const r = await fetch("/api/send-welcome-email?op=launch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: v, source: src.slice(0, 80) }) }).catch(() => null);
+    setJoined(r?.ok ? "done" : "error");
   };
   const cell = (n: number, label: string) => (
     <div className="flex min-w-[64px] flex-col items-center md:min-w-[84px]">
@@ -94,9 +108,44 @@ export default function LaunchGate({ pathname, children }: { pathname: string; c
           {cell(left.s, "Seconds")}
         </div>
       )}
-      <form onSubmit={submit} className="mt-10 flex w-full max-w-[360px] min-w-0 flex-col gap-3">
+      {joined === "done" ? (
+        <p className="mt-10 max-w-[360px] text-[16px] text-[var(--ink)] text-balance" role="status">
+          You’re on the list. We’ll write when the doors open.
+        </p>
+      ) : (
+        <form onSubmit={join} className="mt-10 flex w-full max-w-[360px] min-w-0 flex-col gap-3">
+          <label htmlFor="launch-email" className="text-[14px] text-[var(--slate)]">
+            Be first in. We’ll write on launch day.
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="launch-email"
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              required
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); if (joined === "error") setJoined("idle"); }}
+              className="min-h-12 w-full min-w-0 flex-1 rounded-full border border-[var(--line)] bg-white px-5 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+              placeholder="Your email"
+            />
+            <button type="submit" className="btn btn-primary min-h-12 shrink-0 !px-6" disabled={joined === "sending"}>
+              Notify me
+            </button>
+          </div>
+          <p className="min-h-[1.4em] text-[14px] text-[#c2412d]" role="status">
+            {joined === "error" ? "That didn’t go through. Try again." : ""}
+          </p>
+        </form>
+      )}
+      {!showPass ? (
+        <button type="button" onClick={() => setShowPass(true)} className="mt-2 text-[14px] text-[var(--slate)] underline underline-offset-4">
+          Have the password?
+        </button>
+      ) : (
+      <form onSubmit={submit} className="mt-2 flex w-full max-w-[360px] min-w-0 flex-col gap-3">
         <label htmlFor="launch-pass" className="text-[14px] text-[var(--slate)]">
-          Have the password? Come in early.
+          Come in early.
         </label>
         <div className="flex gap-2">
           <input
@@ -117,6 +166,7 @@ export default function LaunchGate({ pathname, children }: { pathname: string; c
           {wrong ? "That’s not it. Try again." : ""}
         </p>
       </form>
+      )}
     </main>
   );
 }

@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { esc, sendChecked } from "./_lib/email.js";
+import { clean, esc, isEmail, sendChecked } from "./_lib/email.js";
 import { navyButton } from "./_lib/support-mail.js";
 import { frame, h1, p, SITE } from "./_lib/enquiry-mail.js";
 
@@ -30,11 +30,58 @@ ${p(`Working with our studio? <a href="${SITE}/account" style="${link}">Your das
   });
 }
 
+/** The thank-you for joining the launch list (the launch page's "Notify me"). */
+export function renderLaunchEmail() {
+  return frame({
+    preheader: "We'll write the day the doors open. Until then, it stays a surprise.",
+    spot: "followup-draft.png",
+    spotAlt: "A friendly blue character waving",
+    footer: "You received this email because you joined the launch list at thersvpstudio.com.",
+    content: `<tr><td class="pad" align="center" style="padding:24px 56px 8px;text-align:center;">
+${h1("You’re on the list.")}
+${p("Thank you for signing up. We open the doors<br />on Monday, November&nbsp;2, and you’ll hear&nbsp;first.", 8)}
+${p("Event websites and invitations that open like a film. RSVPs, guests and seating, all in one&nbsp;link. That’s all we’ll say for&nbsp;now.", 26)}
+${p(`<span style="font-size:14px;color:#868697;">One email on launch day, then the occasional&nbsp;update.<br />Questions? Reply to this email. A real person reads every&nbsp;one.</span>`, 30)}
+</td></tr>`,
+  });
+}
+
+/** "Notify me" on the launch page: the email goes on the list, and gets one thank-you, ever. */
+async function launchSignup(req: VercelRequest, res: VercelResponse) {
+  const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body ?? {};
+  const email = clean(body.email, 254).toLowerCase();
+  if (!isEmail(email)) {
+    res.status(400).json({ error: "That doesn't look like an email" });
+    return;
+  }
+  const { data, error } = await supabaseAdmin
+    .from("launch_signups")
+    .upsert({ email, source: clean(body.source, 80) || null }, { onConflict: "email", ignoreDuplicates: true })
+    .select("id");
+  if (error) {
+    console.error(error);
+    res.status(500).json({ error: "Couldn't save that" });
+    return;
+  }
+  // already on the list: no second email
+  if (!data?.length || !resend) {
+    res.status(200).json({ ok: true });
+    return;
+  }
+  try {
+    await sendChecked(resend, { from: FROM, to: email, subject: "You’re on the list", html: renderLaunchEmail() });
+  } catch (err) {
+    console.error(err); // they're on the list either way
+  }
+  res.status(200).json({ ok: true });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
+  if (req.query.op === "launch") return launchSignup(req, res);
 
   // Only ever email the signed-in caller's own address — never an address
   // from the request body — so this can't be used to send branded mail to
