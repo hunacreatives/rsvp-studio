@@ -167,7 +167,29 @@ export function Stamp({ className = "" }: { className?: string }) {
   );
 }
 
+/**
+ * Phone-sized copies of the big props ("-m"): [its width, the full image's width, the prop's
+ * widest width on the table in inches (--u)]. On a phone an inch is 6.9% of the screen, so the
+ * copy has every pixel a 3× screen shows; computers keep the full image.
+ */
+const PHONE_COPY: Record<string, [number, number, number]> = {
+  "limonium.webp": [520, 1523, 5.2],
+  "grass.webp": [620, 1623, 6.2],
+  "ribbon.webp": [1560, 3000, 15.6],
+  "pen.webp": [540, 1491, 5.3],
+  "ribbon-tail.webp": [900, 2288, 9],
+  "rose.webp": [260, 696, 2.62], // set by its height (6.2in), this wide
+  "thistle.webp": [350, 988, 3.48], // set by its height (5.4in), this wide
+};
+
 /** A photographed or rendered thing lying on the table. */
 export function Prop({ src, className, alt = "" }: { src: string; className: string; alt?: string }) {
-  return <img className={`lp-prop ${className}`} src={`${ART}/${src}`} alt={alt} aria-hidden={alt ? undefined : true} decoding="async" draggable={false} />;
+  const copy = PHONE_COPY[src];
+  const pick = copy
+    ? {
+        srcSet: `${ART}/${src.replace(".webp", "-m.webp")} ${copy[0]}w, ${ART}/${src} ${copy[1]}w`,
+        sizes: `(max-width: 700px) ${(copy[2] * 6.9).toFixed(1)}vw, ${Math.round(copy[2] * 96)}px`,
+      }
+    : {};
+  return <img className={`lp-prop ${className}`} src={`${ART}/${src}`} {...pick} alt={alt} aria-hidden={alt ? undefined : true} decoding="async" draggable={false} />;
 }

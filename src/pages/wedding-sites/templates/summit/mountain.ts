@@ -13,7 +13,8 @@ import { useEffect, type RefObject } from "react";
  *  - Night → dawn → day, from the intro (sky.dawn, then sky.morning) and the climb; faint shafts
  *    of light in the haze.
  *  The altitude comes from the page: how far the sticky canvas has travelled down the root.
- *  Kept light: ≤30 frames a second, ≤1.25× pixels, only while on screen and the tab is shown.
+ *  Kept light: drawn only when the climb or the sky changes (every frame while the page moves,
+ *  nothing while it rests), ≤1.25× pixels, only while on screen and the tab is shown.
  *  `animate` false (builder, gallery card, reduced motion): one still frame, redrawn on scroll.
  */
 
@@ -306,7 +307,7 @@ export function useMountain(canvasRef: RefObject<HTMLCanvasElement | null>, root
     let raf = 0;
     let visible = true;
     let last = -1e9;
-    const t0 = performance.now();
+    let clock = 0, prevNow = 0;
     const size = () => {
       const r = cv.getBoundingClientRect();
       const d = Math.min(window.devicePixelRatio || 1, 1.25);
@@ -319,19 +320,30 @@ export function useMountain(canvasRef: RefObject<HTMLCanvasElement | null>, root
       const page = root.getBoundingClientRect();
       const sky = skyRef.current ?? { dawn: 1, morning: 1 };
       gl.uniform2f(uRes, cv.width, cv.height);
-      gl.uniform1f(uT, animate ? (now - t0) / 1000 : 20);
+      // the scene's own clock runs only while it's drawn, so the fog doesn't leap on after a rest
+      clock += prevNow ? Math.min(0.05, (now - prevNow) / 1000) : 0;
+      prevNow = now;
+      gl.uniform1f(uT, animate ? clock : 20);
       gl.uniform1f(uAlt, climbOf(c, page));
       gl.uniform1f(uDawn, sky.dawn);
       gl.uniform1f(uMorning, sky.morning);
       gl.uniform1f(uHeroX, heroX(c.width));
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
+    // drawn when something it shows has changed: the climb (every frame while the page moves, so
+    // the mountain keeps pace with the words) and the sky while it lightens; nothing while still
+    let moved = true, lastSky = "";
     const loop = (now: number) => {
-      if (now - last >= 32) {
+      raf = 0;
+      const sky = skyRef.current ?? { dawn: 1, morning: 1 };
+      const sk = `${sky.dawn.toFixed(4)}|${sky.morning.toFixed(4)}`;
+      if (moved || sk !== lastSky || last < 0) {
+        moved = false;
+        lastSky = sk;
         last = now;
         draw(now);
       }
-      if (animate && visible && !document.hidden) raf = requestAnimationFrame(loop);
+      if (animate && visible && !document.hidden && (sky.dawn < 1 || sky.morning < 1)) raf = requestAnimationFrame(loop);
     };
     const kick = () => {
       cancelAnimationFrame(raf);
@@ -356,7 +368,8 @@ export function useMountain(canvasRef: RefObject<HTMLCanvasElement | null>, root
     };
     document.addEventListener("visibilitychange", onVisibility);
     const onScroll = () => {
-      if (!animate) kick();
+      moved = true;
+      if (!raf && visible) raf = requestAnimationFrame(loop);
     };
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     return () => {

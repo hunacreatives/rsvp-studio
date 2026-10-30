@@ -199,7 +199,7 @@ textarea.pm-field { resize: vertical; min-height: 92px; }
 
 /* ---- a phone: the garden above, the card on the bottom edge */
 @container (max-width: 700px) {
-  .pm-words { top: 33%; width: calc(100% - 32px); }
+  .pm-words { top: 39%; width: calc(100% - 32px); }
   .pm-kick { font-size: 12px; letter-spacing: 0.34em; padding-left: 0.34em; }
   .pm-names { font-size: clamp(50px, 15.5cqw, 78px); margin-top: 14px !important; }
   .pm-rule { margin-top: 16px !important; }

@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import PoolsideTemplate from "./PoolsideTemplate";
 import { poolsideDemo } from "../../content/fixtures/poolside-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const PoolsideTemplate = lazyTemplate(() => import("./PoolsideTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "poolside",

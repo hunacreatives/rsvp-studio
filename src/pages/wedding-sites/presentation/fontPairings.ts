@@ -90,6 +90,14 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"Newsreader", Georgia, serif',
   },
   {
+    // Sprinkles: Bricolage Grotesque at its heaviest for the headings the sprinkles fill (wide,
+    // open strokes hold them well), DM Sans to read.
+    id: "bricolage-dmsans",
+    label: "Bricolage Grotesque & DM Sans",
+    displayFont: '"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif',
+    bodyFont: '"DM Sans", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
     // Calado: a flowing script for the stitched name, EB Garamond for everything else.
     id: "pinyon-garamond",
     label: "Pinyon Script & EB Garamond",
@@ -141,6 +149,14 @@ export const fontPairings: FontPairingOption[] = [
     label: "Libre Caslon Display & Text",
     displayFont: '"Libre Caslon Display", "Libre Caslon Text", Georgia, serif',
     bodyFont: '"Libre Caslon Text", Georgia, serif',
+  },
+  {
+    // Ink and vows: Pinyon Script (a pointed-pen copperplate) for everything the pen writes,
+    // Newsreader, an editorial text face with a fine italic, for everything set.
+    id: "pinyon-newsreader",
+    label: "Pinyon Script & Newsreader",
+    displayFont: '"Pinyon Script", cursive',
+    bodyFont: '"Newsreader", Georgia, serif',
   },
   {
     // Safari: Fraunces (soft, round) for the name and headings, Nunito Sans for the text.

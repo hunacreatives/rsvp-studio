@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import OpenPlayTemplate from "./OpenPlayTemplate";
 import { openPlayDemo } from "../../content/fixtures/open-play-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const OpenPlayTemplate = lazyTemplate(() => import("./OpenPlayTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "open-court",

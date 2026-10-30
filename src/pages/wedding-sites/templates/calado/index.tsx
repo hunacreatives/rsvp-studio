@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import CaladoTemplate from "./CaladoTemplate";
 import { caladoDemo } from "../../content/fixtures/calado-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const CaladoTemplate = lazyTemplate(() => import("./CaladoTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "calado-cotton",
@@ -22,7 +25,7 @@ export const caladoTemplateDefinition: TemplateDefinition<BaseTemplateSettings> 
   cardImage: "/event-templates/cards/calado.webp?v=2",
   component: CaladoTemplate,
   defaultSettings,
-  tier: "premium",
+  tier: "free",
   demoContent: caladoDemo,
   uses: ["story", "dateVenue", "schedule", "gallery", "registry", "faqs"],
   // One photo per month for the first year.

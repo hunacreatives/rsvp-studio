@@ -1,9 +1,12 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import TinghunRiceTemplate from "./TinghunRiceTemplate";
 import { tinghunDemo } from "../../content/fixtures/tinghun-demo";
 import { TINGHUN_FIELDS, TINGHUN_HIDEABLE } from "../tinghun/fields";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const TinghunRiceTemplate = lazyTemplate(() => import("./TinghunRiceTemplate"));
 
 // Rice Paper: a ting hun as fine stationery. Rice paper and ink, the two families' surnames
 // carved in a vermilion seal that presses onto the page as it opens, and one red thread that
@@ -23,7 +26,7 @@ export const tinghunRiceTemplateDefinition: TemplateDefinition<BaseTemplateSetti
   cardImage: "/event-templates/cards/tinghun-rice.webp?v=2",
   component: TinghunRiceTemplate,
   defaultSettings,
-  tier: "premium",
+  tier: "free",
   demoContent: tinghunDemo,
   uses: ["story", "dateVenue", "schedule", "gallery", "registry", "faqs"],
   galleryLimit: 6,

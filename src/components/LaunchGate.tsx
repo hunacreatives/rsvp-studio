@@ -15,6 +15,9 @@ const LAUNCH_AT = new Date("2026-11-02T00:00:00+08:00"); // Monday, 2 November 2
 const PASS_SHA256 = "41885a91374fbd4df15e04f827c4c093a021d7e4be364cb292f3805a6a9eef94";
 const KEY = "rsvp-launch-pass";
 const OPEN = /^\/(invite\/|tools\/seating-chart-maker\/(view|day)\/|internal\/)/;
+// a computer on the home network (trying the site on a phone over Wi-Fi): no gate, as on localhost
+// there's no other way in, since the browser only checks the password on https
+const LAN = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/;
 
 async function sha256(text: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -40,7 +43,7 @@ function useCountdown() {
 }
 
 export default function LaunchGate({ pathname, children }: { pathname: string; children: ReactNode }) {
-  const [ok, setOk] = useState(() => !LAUNCH_GATE || remembered());
+  const [ok, setOk] = useState(() => !LAUNCH_GATE || remembered() || LAN.test(window.location.hostname));
   const [value, setValue] = useState("");
   const [wrong, setWrong] = useState(false);
   const [checking, setChecking] = useState(false);

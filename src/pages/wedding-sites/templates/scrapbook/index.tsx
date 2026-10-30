@@ -1,9 +1,12 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import ScrapbookTemplate from "./ScrapbookTemplate";
 import { scrapbookDemoWedding } from "../../content/fixtures/scrapbook-demo";
 import { SB_SECTIONS } from "./sections";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const ScrapbookTemplate = lazyTemplate(() => import("./ScrapbookTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "maroon-linen",
@@ -35,6 +38,6 @@ export const scrapbookTemplateDefinition: TemplateDefinition<BaseTemplateSetting
     { key: "faqs", label: "FAQs" },
     { key: "rsvp", label: "RSVP form" },
   ],
-  tier: "premium",
+  tier: "free",
   demoContent: scrapbookDemoWedding,
 };

@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import PixelQuestTemplate from "./PixelQuestTemplate";
 import { pixelQuestDemo } from "../../content/fixtures/pixel-quest-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const PixelQuestTemplate = lazyTemplate(() => import("./PixelQuestTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "pixel-quest",

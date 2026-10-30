@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import PromenadeTemplate from "./PromenadeTemplate";
 import { promenadeDemo } from "../../content/fixtures/promenade-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const PromenadeTemplate = lazyTemplate(() => import("./PromenadeTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "cream-gold",
@@ -22,7 +25,7 @@ export const promenadeTemplateDefinition: TemplateDefinition<BaseTemplateSetting
   cardImage: "/event-templates/cards/promenade.webp?v=4",
   component: PromenadeTemplate,
   defaultSettings,
-  tier: "free",
+  tier: "premium",
   demoContent: promenadeDemo,
   uses: ["story", "dateVenue", "schedule", "gallery", "accommodations", "registry", "faqs"],
   galleryLimit: 8,

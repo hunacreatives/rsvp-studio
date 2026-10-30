@@ -1,9 +1,12 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import TinghunLacquerTemplate from "./TinghunLacquerTemplate";
 import { tinghunDemo } from "../../content/fixtures/tinghun-demo";
 import { TINGHUN_FIELDS, TINGHUN_HIDEABLE } from "../tinghun/fields";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const TinghunLacquerTemplate = lazyTemplate(() => import("./TinghunLacquerTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "lacquer-cinnabar",

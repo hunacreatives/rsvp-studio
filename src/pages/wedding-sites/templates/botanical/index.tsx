@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import BotanicalTemplate from "./BotanicalTemplate";
 import { isabellaAndMateo } from "../../content/fixtures/isabella-and-mateo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const BotanicalTemplate = lazyTemplate(() => import("./BotanicalTemplate"));
 
 // Burgundy/cream + script display font by default, matching the
 // reference invitation — but still just BaseTemplateSettings underneath,

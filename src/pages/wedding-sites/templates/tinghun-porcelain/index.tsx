@@ -1,9 +1,12 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import TinghunPorcelainTemplate from "./TinghunPorcelainTemplate";
 import { tinghunDemo } from "../../content/fixtures/tinghun-demo";
 import { TINGHUN_FIELDS, TINGHUN_HIDEABLE } from "../tinghun/fields";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const TinghunPorcelainTemplate = lazyTemplate(() => import("./TinghunPorcelainTemplate"));
 
 // Chinoiserie for a garden or hotel ting hun: blue-and-white porcelain linework (peony,
 // mandarin ducks, a plate for the names), and the programme on a handscroll that unrolls.
@@ -21,7 +24,7 @@ export const tinghunPorcelainTemplateDefinition: TemplateDefinition<BaseTemplate
   cardImage: "/event-templates/cards/tinghun-porcelain.webp?v=2",
   component: TinghunPorcelainTemplate,
   defaultSettings,
-  tier: "premium",
+  tier: "free",
   demoContent: tinghunDemo,
   uses: ["story", "dateVenue", "schedule", "gallery", "registry", "faqs"],
   galleryLimit: 6,

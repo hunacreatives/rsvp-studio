@@ -1191,9 +1191,12 @@ vec3 painted(vec3 c, vec3 wash, vec2 pp, float gEdge, float m, float sy){
   float d = clamp((0.9 - Lq) / 0.86, 0., 1.);
   d = d * d * (3. - 2. * d) * 0.9;
   if (!neutral) d = max(d, smoothstep(0.25, 0.75, sat) * 0.42);
-  // the gilding: always a deep gold wash, its brightest touches left as paper
-  // gold: a strong wash, its glints left as bare paper, deeper in the hollows
-  if (gilt) d = clamp(0.58 + 0.3 * (1. - Lr) - 0.55 * smoothstep(0.55, 0.95, lumi(c)), 0., 1.);
+  // the gilding, painted as a watercolourist paints gold: the render's own light decides it, from
+  // bare paper at the glints, through ochre on the carving, to deep sienna in the hollows; laid on
+  // unevenly (a wash that pooled here and thinned there), never one flat coat
+  float gl = clamp(lumi(c) * 1.15, 0., 1.);
+  float blot = textureLod(uDetail, pp * 0.9 + 0.23, 0.).r - 0.5;
+  if (gilt) d = clamp(0.9 - 0.42 * smoothstep(0.12, 0.78, gl) - 0.4 * smoothstep(0.82, 0.98, gl) + blot * 0.26, 0.05, 1.);
   // stone in the light still takes a pale, uneven ochre wash; only the brightest sun is bare paper
   if (neutral && m > 0.5) d = max(d, (0.13 + 0.1 * textureLod(uDetail, pp * 0.45 + 0.7, 0.).r) * (1. - smoothstep(0.93, 1.0, Lr) * 0.6));
   float shade = smoothstep(0.66, 0.2, Lq);
@@ -1208,8 +1211,14 @@ vec3 painted(vec3 c, vec3 wash, vec2 pp, float gEdge, float m, float sy){
     vec3 hue = clamp((w - mn) / max(mx - mn, 0.02), 0., 1.);
     pig = mix(vec3(0.74, 0.62, 0.5), hue * vec3(0.95, 0.82, 0.7) + vec3(0.05, 0.05, 0.04), smoothstep(0.1, 0.5, sat) * 0.85);
     pig = mix(pig, violet * 0.9, shade * 0.3);
-    // gold: raw sienna to a deep burnt gold in its hollows
-    if (abs(m - 5.) < 0.5 || abs(m - 14.) < 0.5) pig = mix(vec3(0.98, 0.72, 0.2), vec3(0.8, 0.42, 0.12), smoothstep(0.55, 0.9, d));
+    // gold: yellow ochre in the light, raw sienna on the turn, burnt sienna in the hollows,
+    // a hint of the red bole where the wash pooled: warm all through, as gold is
+    if (abs(m - 5.) < 0.5 || abs(m - 14.) < 0.5) {
+      vec3 ochreG = vec3(0.96, 0.74, 0.3), raw = vec3(0.88, 0.56, 0.18), burnt = vec3(0.7, 0.36, 0.14);
+      pig = mix(ochreG, raw, smoothstep(0.4, 0.72, d));
+      pig = mix(pig, burnt, smoothstep(0.72, 1., d));
+      pig = mix(pig, vec3(0.78, 0.38, 0.24), smoothstep(0.12, 0.3, blot) * 0.3 * smoothstep(0.35, 0.7, d));
+    }
   }
   // the darkest darks: a deep indigo-sepia, only where it is really dark
   if (!gilt) pig = mix(pig, vec3(0.26, 0.22, 0.3), smoothstep(0.84, 0.98, d) * 0.55);
@@ -1219,7 +1228,7 @@ vec3 painted(vec3 c, vec3 wash, vec2 pp, float gEdge, float m, float sy){
   float t = tooth(pp);
   d *= 1. + (0.5 - t) * 0.3 * smoothstep(0.1, 0.5, d) * (1. + shade * (neutral ? 0.7 : 0.3));
   d = clamp(d, 0., 1.);
-  vec3 col = PAPER * mix(vec3(1.), pig, d) * (1. - (gilt ? 0.12 : 0.3) * d * d);
+  vec3 col = PAPER * mix(vec3(1.), pig, d) * (1. - (gilt ? 0.14 : 0.3) * d * d);
   // the paper shows through everywhere: its tooth catches the light from the top left
   float tx = tooth(pp + vec2(0.0016, 0.)), ty = tooth(pp + vec2(0., 0.0016));
   col *= 1. + ((t - tx) + (ty - t)) * 0.45 - (0.5 - t) * 0.03;
@@ -1261,13 +1270,24 @@ void main(){
     float rel = max(max(abs(dR - D), abs(dL - D)), max(abs(dU - D), abs(dD - D))) / max(D, 0.5);
     float mat = step(0.01, max(max(abs(aR.b - a0.b), abs(aL.b - a0.b)), max(abs(aU.b - a0.b), abs(aD.b - a0.b))));
     float nor = max(max(abs(aR.a - a0.a), abs(aL.a - a0.a)), max(abs(aU.a - a0.a), abs(aD.a - a0.a)));
-    float line = max(smoothstep(0.05, 0.16, rel), max(mat * 0.75, smoothstep(0.08, 0.22, nor) * 0.7));
-    // broken, as a quick pen leaves it; not on everything
+    bool giltL = abs(m0 - 5.) < 0.5 || abs(m0 - 14.) < 0.5;
+    // on the gold, the carving's smaller turns are drawn too (a finer pen, picking out the relief)
+    float line = max(smoothstep(0.05, 0.16, rel), max(mat * 0.75, smoothstep(giltL ? 0.035 : 0.08, giltL ? 0.12 : 0.22, nor) * 0.7));
+    // broken, as a quick pen leaves it; not on everything (the gold's carving less so)
     float brk = textureLod(uDetail, pp * 3.2 + vec2(D * 0.01), 0.).r;
-    line *= smoothstep(0.36, 0.52, brk) * mix(smoothstep(46., 5., D), 0.55, smoothstep(50., 56., D)) * (a0.b * 32. > 0.5 ? 1. : 0.);
+    line *= smoothstep(giltL ? 0.22 : 0.36, giltL ? 0.38 : 0.52, brk) * mix(smoothstep(46., 5., D), 0.55, smoothstep(50., 56., D)) * (a0.b * 32. > 0.5 ? 1. : 0.);
     // nothing much drawn round the flowers' dabs and the leaves
     line *= (abs(m0 - 6.) < 0.5 || abs(m0 - 20.) < 0.5 || abs(m0 - 9.) < 0.5) ? 0.25 : 1.;
-    col = mix(col, vec3(0.3, 0.2, 0.13), line * 0.5);
+    col = mix(col, giltL ? vec3(0.36, 0.2, 0.1) : vec3(0.3, 0.2, 0.13), line * (giltL ? 0.58 : 0.5));
+  }
+  // ---- the gold's detail: the relief the wash would smooth away, given back as a painter does,
+  // with dark sienna touches in the crevices and sparks of bare paper where the carving catches
+  // the light (the render's fine detail against the soft wash beneath it)
+  if (abs(m0 - 5.) < 0.5 || abs(m0 - 14.) < 0.5) {
+    float hp = lumi(c) - l0;
+    float near = smoothstep(40., 8., D);
+    col = mix(col, vec3(0.5, 0.25, 0.1), smoothstep(0.02, 0.11, -hp) * 0.55 * near);
+    col = mix(col, PAPER * 1.01, smoothstep(0.05, 0.16, hp) * 0.75 * near);
   }
   // glow: the brightest washes go to paper
   float mg = floor(m0 + 0.5);

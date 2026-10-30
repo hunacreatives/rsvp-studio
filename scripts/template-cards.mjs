@@ -17,7 +17,7 @@ import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.BASE ?? "http://localhost:5173";
-const ALL = ["editorial-formal", "modern-minimal", "scrapbook", "cinematic", "pickleball", "open-play", "debut", "love-letter", "capiz", "promenade", "calado", "under-glass", "tinghun-rice", "tinghun-lacquer", "tinghun-porcelain", "debut-issue", "riviera", "poolside", "freedive", "summit", "safari", "levelup", "pixel-quest", "rally", "letterpress", "simbahan"];
+const ALL = ["editorial-formal", "modern-minimal", "scrapbook", "cinematic", "pickleball", "open-play", "debut", "love-letter", "capiz", "promenade", "calado", "under-glass", "tinghun-rice", "tinghun-lacquer", "tinghun-porcelain", "debut-issue", "riviera", "poolside", "freedive", "summit", "safari", "levelup", "pixel-quest", "rally", "letterpress", "simbahan", "inkvows", "sprinkles"];
 const ids = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const OUT = process.env.OUT_DIR ? new URL(`file://${process.env.OUT_DIR.replace(/\/?$/, "/")}`) : new URL("../public/event-templates/cards/", import.meta.url);
 mkdirSync(OUT, { recursive: true });

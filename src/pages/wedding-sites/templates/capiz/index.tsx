@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import CapizTemplate from "./CapizTemplate";
 import { capizDemo } from "../../content/fixtures/capiz-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const CapizTemplate = lazyTemplate(() => import("./CapizTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "capiz-plaster",
@@ -10,15 +13,17 @@ const defaultSettings: BaseTemplateSettings = {
   sectionVisibility: { ...defaultSectionVisibility },
 };
 
-// A Filipino wedding as a walk through an old house in lime plaster and narra: a capiz
-// window that slides open onto the couple, the entourage set in a great capiz window,
-// a reply card on the sill, and the house's stone base. Candlelight is its evening scheme.
+// A Filipino wedding at an old bahay na bato at dusk, travelled from the eaves down to the
+// street: a capiz window slides open onto the couple, then each part of the house holds a
+// part of the day (the ventanilla, a lime-washed pier, the plank wall, the calado, a marble
+// plaque in the stone, bougainvillea, the zaguan doors) to the reply card on the step.
+// Candlelight is its evening scheme.
 export const capizTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "capiz",
   label: "Capiz",
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/capiz/demo/pic-1.webp",
-  cardImage: "/event-templates/cards/capiz.webp?v=2",
+  cardImage: "/event-templates/cards/capiz.webp?v=4",
   component: CapizTemplate,
   defaultSettings,
   tier: "premium",

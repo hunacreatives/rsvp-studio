@@ -13,7 +13,8 @@ import { createStopSnap } from "../shared/stopSnap";
  *  - The camera holds still while a card is docked and flies in the gap between cards, taking at
  *    least TRIP seconds however fast the scroll (it catches up after a fast one).
  *  - `intro` (a ref, 0→1, the title screen's swoop) is read every frame.
- *  - Kept light: the world draws ≤30 frames a second at ≤1.25× pixels, only while on screen
+ *  - Kept light: the world draws every frame while the camera moves, ≤30 a second at rest, at
+ *    ≤1.25× pixels, only while on screen
  *    and the tab is shown. `animate` false (builder, gallery card, reduced motion): no easing,
  *    a still frame redrawn on scroll.
  */
@@ -117,7 +118,7 @@ export function useQuest(
       return holds.length - 1;
     };
 
-    let target = 0, X = 0, vel = 0, prevT = 0, lastDraw = -1e9, raf = 0, visible = true;
+    let target = 0, X = 0, vel = 0, prevT = 0, lastDraw = -1e9, raf = 0, visible = true, drawnX = NaN;
     const t0 = performance.now();
     // XP: each quest is worth its share, earned when the camera arrives at the next stop (stops
     // 0 and 1 are the title and the quest log; the last is the reply, worth its own +100 XP)
@@ -151,8 +152,10 @@ export function useQuest(
         vel += Math.max(-acc * dt, Math.min(acc * dt, want - vel));
         if (Math.abs(vel * dt) >= Math.abs(d) || (Math.abs(d) < 0.001 && Math.abs(vel) < 0.05)) { X = target; vel = 0; } else X += vel * dt;
       }
-      if (now - lastDraw >= 32) {
+      // every frame while the camera moves (it keeps pace with the page), ≤ 30 a second at rest
+      if (now - lastDraw >= (X !== drawnX ? 0 : 32)) {
         lastDraw = now;
+        drawnX = X;
         const cam = world ? world.draw({ route, at: X, intro: refs.intro.current ?? 1, time: animate ? (now - t0) / 1000 : 12 }) : null;
         drawMap(cam);
         hud();

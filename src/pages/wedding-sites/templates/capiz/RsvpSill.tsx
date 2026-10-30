@@ -4,9 +4,9 @@ import { customValue } from "../../content/custom";
 import { useRsvpForm } from "../../spec/runtime/useRsvpForm";
 import RsvpQuestions from "../shared/RsvpQuestions";
 
-// The reply card, resting on a narra window sill. On a guest's personal link it says how
-// many seats are reserved for them ("We've reserved 2 seats in your honour") and the count
-// stops there; the sample shows the line with two seats.
+// The reply, in the last lit room of the house. On a guest's personal link it says how many
+// seats are reserved for them ("We've reserved 2 seats in your honour") and the count stops
+// there; the sample shows the line with two seats.
 
 export default function RsvpSill({ content, editorPreview, sample }: { content: EventContent; editorPreview: boolean; sample: boolean }) {
   const form = useRsvpForm(content, editorPreview, { asksAttending: true });
@@ -22,6 +22,8 @@ export default function RsvpSill({ content, editorPreview, sample }: { content: 
   const seats = form.invitee?.seatLimit && form.invitee.seats ? form.invitee.seats : sample ? 2 : 0;
   const seatsLine = seats ? `We’ve reserved ${seats} ${seats === 1 ? "seat" : "seats"} in your honour.` : "";
   const going = form.values.attending === "yes";
+  // the two lines of an engraved reply first, so the window holds it; the rest once one is picked
+  const open = editorPreview || !!form.values.attending;
   const choose = (v: "yes" | "no") => {
     form.set("attending", v);
     form.set("guests", v === "no" ? "0" : form.values.guests && form.values.guests !== "0" ? form.values.guests : "1");
@@ -29,8 +31,7 @@ export default function RsvpSill({ content, editorPreview, sample }: { content: 
   const counts = Array.from({ length: Math.min(form.maxGuests, 6) }, (_, i) => i + 1);
 
   return (
-    <section id="rsvp" className="cz-rsvp" data-reveal>
-      <div className="cz-card">
+    <div className="cz-col cz-rsvp">
         {done ? (
           <div className="cz-done" role="status">
             <p className="cz-whisper">{form.attending === "no" ? "Salamat po" : "Maraming salamat po"}</p>
@@ -61,49 +62,51 @@ export default function RsvpSill({ content, editorPreview, sample }: { content: 
                     Regretfully declines
                   </button>
                 </div>
-                <div>
-                  <label htmlFor={`${id}-name`}>Your name</label>
-                  <input id={`${id}-name`} className="cz-field" type="text" autoComplete="name" autoCapitalize="words" enterKeyHint="next" value={form.values.name ?? ""} onChange={(e) => form.set("name", e.target.value)} />
-                </div>
-                <div>
-                  <label htmlFor={`${id}-contact`}>{form.contactMode === "mobile" ? "Mobile number" : "Email"}</label>
-                  <input id={`${id}-contact`} className="cz-field" {...form.contactProps} autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={form.values.contact ?? ""} onChange={(e) => form.set("contact", e.target.value)} />
-                  <button type="button" className="cz-link" onClick={() => form.toggleContact(`${id}-contact`)}>
-                    {form.contactToggleLabel}
-                  </button>
-                </div>
-                {going ? (
-                  <div>
-                    <label htmlFor={`${id}-guests`}>{seats > 1 ? "How many of your seats will you use?" : "How many are coming, including you?"}</label>
-                    <div className="cz-count-pick" id={`${id}-guests`} role="radiogroup" aria-label="How many are coming">
-                      {counts.map((n) => (
-                        <button key={n} type="button" role="radio" aria-checked={(form.values.guests ?? "1") === String(n)} className={`cz-count-pick__n${(form.values.guests ?? "1") === String(n) ? " is-picked" : ""}`} onClick={() => form.set("guests", String(n))}>
-                          {n}
-                        </button>
-                      ))}
+                {open ? (
+                  <div className="cz-open">
+                    <div>
+                      <label htmlFor={`${id}-name`}>Your name</label>
+                      <input id={`${id}-name`} className="cz-field" type="text" autoComplete="name" autoCapitalize="words" enterKeyHint="next" value={form.values.name ?? ""} onChange={(e) => form.set("name", e.target.value)} />
                     </div>
+                    <div>
+                      <label htmlFor={`${id}-contact`}>{form.contactMode === "mobile" ? "Mobile number" : "Email"}</label>
+                      <input id={`${id}-contact`} className="cz-field" {...form.contactProps} autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={form.values.contact ?? ""} onChange={(e) => form.set("contact", e.target.value)} />
+                      <button type="button" className="cz-link" onClick={() => form.toggleContact(`${id}-contact`)}>
+                        {form.contactToggleLabel}
+                      </button>
+                    </div>
+                    {going ? (
+                      <div>
+                        <label htmlFor={`${id}-guests`}>{seats > 1 ? "How many of your seats will you use?" : "How many are coming, including you?"}</label>
+                        <div className="cz-count-pick" id={`${id}-guests`} role="radiogroup" aria-label="How many are coming">
+                          {counts.map((n) => (
+                            <button key={n} type="button" role="radio" aria-checked={(form.values.guests ?? "1") === String(n)} className={`cz-count-pick__n${(form.values.guests ?? "1") === String(n) ? " is-picked" : ""}`} onClick={() => form.set("guests", String(n))}>
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {going ? <RsvpQuestions form={form} idPrefix={id} askPartyNames={content.askPartyNames} fieldClassName="cz-field" /> : null}
+                    <div>
+                      <label htmlFor={`${id}-note`}>A note for the couple (optional)</label>
+                      <textarea id={`${id}-note`} className="cz-field" rows={3} maxLength={500} value={form.values.message ?? ""} onChange={(e) => form.set("message", e.target.value)} />
+                    </div>
+                    {form.error ? (
+                      <p className="cz-error" role="alert">
+                        {form.error}
+                      </p>
+                    ) : null}
+                    <button type="submit" className="cz-btn cz-btn--block" disabled={form.state === "submitting" || editorPreview} title={editorPreview ? "Guests can reply once your site is published" : undefined}>
+                      {form.state === "submitting" ? "Sending…" : customValue(content, "rsvpButton") || "Send my reply"}
+                    </button>
                   </div>
                 ) : null}
-                {going ? <RsvpQuestions form={form} idPrefix={id} askPartyNames={content.askPartyNames} fieldClassName="cz-field" /> : null}
-                <div>
-                  <label htmlFor={`${id}-note`}>A note for the couple (optional)</label>
-                  <textarea id={`${id}-note`} className="cz-field" rows={3} maxLength={500} value={form.values.message ?? ""} onChange={(e) => form.set("message", e.target.value)} />
-                </div>
-                {form.error ? (
-                  <p className="cz-error" role="alert">
-                    {form.error}
-                  </p>
-                ) : null}
-                <button type="submit" className="cz-btn cz-btn--block" disabled={form.state === "submitting" || editorPreview} title={editorPreview ? "Guests can reply once your site is published" : undefined}>
-                  {form.state === "submitting" ? "Sending…" : customValue(content, "rsvpButton") || "Send my reply"}
-                </button>
                 {editorPreview ? <p className="cz-small">Preview only. Guests can reply once your site is published.</p> : null}
               </form>
             )}
           </>
         )}
-      </div>
-      <div className="cz-ledge cz-wood" aria-hidden />
-    </section>
+    </div>
   );
 }

@@ -4,6 +4,8 @@ import { useTemplateCatalog } from "../engine/catalog";
 import { getTemplateDefinition } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
 import { SiteCreditProvider } from "../engine/siteCredit";
+import { preloadTemplate, TemplateFallback } from "../engine/lazyTemplate";
+import SiteLoading from "./SiteLoading";
 import { scrollToTopNow } from "@/lib/lenis";
 import { normalizeEventContent } from "../content/normalize";
 import { isabellaAndMateo } from "../content/fixtures/isabella-and-mateo";
@@ -30,6 +32,10 @@ export default function TemplatePreviewPage() {
   useEffect(() => {
     scrollToTopNow();
   }, [templateId]);
+  // the bar's page fetches the design's code at once, so the frame below finds it ready
+  useEffect(() => {
+    if (!framed) preloadTemplate(getTemplateDefinition(templateId)?.component);
+  }, [templateId, framed]);
 
   if (!definition || !resolved) {
     return (
@@ -54,7 +60,9 @@ export default function TemplatePreviewPage() {
   if (framed)
     return (
       <SiteCreditProvider value={{ show: true }}>
-        <Template content={content} settings={resolved.settings} demo />
+        <TemplateFallback.Provider value={<SiteLoading />}>
+          <Template content={content} settings={resolved.settings} demo />
+        </TemplateFallback.Provider>
       </SiteCreditProvider>
     );
   return (

@@ -184,6 +184,31 @@ export const palettes: PaletteOption[] = [
     swatches: ["#f7f2e7", "#243049", "#5f6676"],
   },
   {
+    // Ink and vows: blue-black iron-gall ink on heavy cotton paper (the paper, the gold leaf and
+    // the wax are the design's own).
+    id: "inkvows",
+    label: "Iron Gall & Cotton",
+    swatches: ["#f4efe5", "#1b2130", "#6a6458"],
+  },
+  {
+    // Sprinkles: strawberry frosting with rainbow sprinkles (the sprinkles are the design's own).
+    id: "sprinkles",
+    label: "Strawberry Frosting",
+    swatches: ["#f7c6d1", "#4a1730", "#7d3f55"],
+  },
+  {
+    // Sprinkles' second cake: chocolate with pastel sprinkles.
+    id: "sprinkles-chocolate",
+    label: "Chocolate & Pastels",
+    swatches: ["#4b2a1d", "#fcefe2", "#dcc1ab"],
+  },
+  {
+    // Sprinkles' third cake: vanilla with gold and white sprinkles.
+    id: "sprinkles-vanilla",
+    label: "Vanilla & Gold",
+    swatches: ["#f5eee0", "#33281c", "#6f5e49"],
+  },
+  {
     // Safari: paper colours (the savanna, the animals and the letters are the design's own).
     id: "safari",
     label: "Storybook Paper",

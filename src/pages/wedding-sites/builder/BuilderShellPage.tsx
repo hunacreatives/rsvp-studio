@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getTemplateDefinition } from "../engine/registry";
+import { preloadAllTemplates } from "../engine/lazyTemplate";
 import { useTemplateCatalog } from "../engine/catalog";
 import { resolveTemplate } from "../engine/render";
 import { editorGroups } from "./ContentEditor";
@@ -67,6 +68,8 @@ export default function BuilderShellPage() {
   const [editorCollapsed, setEditorCollapsed] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  // any design may be picked next: their code comes in the background, so switching is instant
+  useEffect(() => preloadAllTemplates(), []);
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);

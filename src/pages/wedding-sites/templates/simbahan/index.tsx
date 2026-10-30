@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import SimbahanTemplate from "./SimbahanTemplate";
 import { simbahanDemo } from "../../content/fixtures/simbahan-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const SimbahanTemplate = lazyTemplate(() => import("./SimbahanTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "simbahan",
@@ -19,8 +22,8 @@ export const simbahanTemplateDefinition: TemplateDefinition<BaseTemplateSettings
   id: "simbahan",
   label: "Simbahan",
   archetype: "cinematic",
-  previewThumbnailUrl: "/event-templates/cards/simbahan.webp?v=1",
-  cardImage: "/event-templates/cards/simbahan.webp?v=1",
+  previewThumbnailUrl: "/event-templates/cards/simbahan.webp?v=2",
+  cardImage: "/event-templates/cards/simbahan.webp?v=2",
   component: SimbahanTemplate,
   defaultSettings,
   tier: "premium",

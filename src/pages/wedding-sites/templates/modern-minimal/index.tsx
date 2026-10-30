@@ -1,11 +1,14 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
 import { defaultPaletteId } from "../../presentation/palettes";
 import { defaultFontPairingId } from "../../presentation/fontPairings";
-import ModernMinimalTemplate from "./ModernMinimalTemplate";
 import { isabellaAndMateo } from "../../content/fixtures/isabella-and-mateo";
 import { MM_SECTIONS } from "./sections";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const ModernMinimalTemplate = lazyTemplate(() => import("./ModernMinimalTemplate"));
 
 // No template-specific settings extension needed — Modern Minimal's
 // entire identity is "no extra knobs," so BaseTemplateSettings alone is

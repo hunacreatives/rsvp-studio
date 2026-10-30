@@ -13,7 +13,7 @@ function Front({ p, seed, eager }: { p: Print; seed: number; eager?: boolean }) 
   return (
     <figure className={`ug-print ug-print--${era}`} style={era === "deckle" ? { clipPath: deckle(seed) } : undefined}>
       <span className="ug-print__photo" style={{ aspectRatio: era === "seventies" ? "1 / 1" : ratio }}>
-        <img src={p.image.masterUrl} alt={p.image.alt || p.label || ""} loading={eager ? "eager" : "lazy"} decoding="async" style={{ ...photoFit(p.image, 0.5, 0.4) }} />
+        <img src={p.image.masterUrl} alt={p.image.alt || p.label || ""} loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" style={{ ...photoFit(p.image, 0.5, 0.4) }} />
         {era === "gloss" && p.year ? <span className="ug-stamp">{dateStamp(p.year, seed)}</span> : null}
       </span>
     </figure>

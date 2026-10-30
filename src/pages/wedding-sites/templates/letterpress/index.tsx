@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import LetterpressTemplate from "./LetterpressTemplate";
 import { letterpressDemo } from "../../content/fixtures/letterpress-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const LetterpressTemplate = lazyTemplate(() => import("./LetterpressTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "letterpress",

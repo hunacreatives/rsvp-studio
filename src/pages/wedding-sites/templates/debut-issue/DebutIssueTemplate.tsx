@@ -225,7 +225,7 @@ export default function DebutIssueTemplate({ content, settings, editorPreview = 
     <article className={`di-cover${dark ? " di-cover--dark" : ""}`} aria-label={`${mast || "Her"} cover`} onClick={stacked && !open ? () => setOpen(true) : undefined}>
       <div className="di-cover__front">
         {coverImg?.masterUrl ? (
-          <img className="di-cover__photo" src={coverImg.masterUrl} alt={coverImg.alt || ""} decoding="async" style={{ ...photoFit(coverImg, 0.5, 0.3) }} />
+          <img className="di-cover__photo" src={coverImg.masterUrl} alt={coverImg.alt || ""} decoding="async" fetchPriority="high" style={{ ...photoFit(coverImg, 0.5, 0.3) }} />
         ) : (
           <PhotoSlot image={null} editorPreview={editorPreview} className="di-cover__photo di-cover__empty" label="Add your cover photo" />
         )}

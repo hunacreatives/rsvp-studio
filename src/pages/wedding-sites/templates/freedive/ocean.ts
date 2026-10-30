@@ -9,7 +9,8 @@ import { useEffect, type RefObject } from "react";
  *    depths, the water going from turquoise to the dark, and sand on the bottom.
  *  Positions come from the page: `[data-surface]` is the waterline, `[data-floor]` the seabed, in
  *  the root's coordinates, so the ocean moves with the page (and with the intro's rise).
- *  Kept light: ≤30 frames a second, ≤1.25× pixels, only while on screen and the tab is shown.
+ *  Kept light: every frame while the page moves, ≤30 a second at rest, ≤1.25× pixels, only while
+ *  on screen and the tab is shown.
  *  `animate` false (builder, gallery card, reduced motion): one still frame, redrawn on scroll.
  */
 
@@ -145,8 +146,11 @@ export function useOcean(canvasRef: RefObject<HTMLCanvasElement | null>, rootRef
       gl.uniform1f(uFloor, (floor.top - page.top) * k);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
+    // every frame while the page moves (the water keeps pace with the words), ≤ 30 a second at rest
+    let moved = true;
     const loop = (now: number) => {
-      if (now - last >= 32) {
+      if (moved || now - last >= 32) {
+        moved = false;
         last = now;
         draw(now);
       }
@@ -175,6 +179,7 @@ export function useOcean(canvasRef: RefObject<HTMLCanvasElement | null>, rootRef
     };
     document.addEventListener("visibilitychange", onVisibility);
     const onScroll = () => {
+      moved = true;
       if (!animate) kick();
     };
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });

@@ -1,10 +1,13 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
 import { defaultPaletteId } from "../../presentation/palettes";
-import EditorialFormalTemplate from "./EditorialFormalTemplate";
 import { isabellaAndMateo } from "../../content/fixtures/isabella-and-mateo";
 import { EF_SECTIONS } from "./sections";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const EditorialFormalTemplate = lazyTemplate(() => import("./EditorialFormalTemplate"));
 
 // This template's own settings extension. Curated and closed on purpose —
 // see docs/template-builder-decisions.md and the customization-boundary

@@ -14,6 +14,7 @@ import { definitionFromSpec } from "../spec/definitionFromSpec";
 import { SiteCreditProvider } from "../engine/siteCredit";
 import SiteEndedPage from "./SiteEndedPage";
 import SiteLoading from "./SiteLoading";
+import { TemplateFallback } from "../engine/lazyTemplate";
 import PasswordGate from "./PasswordGate";
 import { getSitePassword, setSitePassword } from "./sitePassword";
 import { InviteeProvider, inviteeToken, type Invitee } from "../engine/invitee";
@@ -196,7 +197,10 @@ export default function PublicEventSitePage({ slugOverride }: { slugOverride?: s
       >
         <InviteeProvider value={state.invitee}>
         {state.invitee ? <InviteeGreeting invitee={state.invitee} /> : null}
-        <resolved.definition.component content={content} settings={resolved.settings} live />
+        {/* the design's own code may still be on its way: the same quiet loading screen meanwhile */}
+        <TemplateFallback.Provider value={<SiteLoading />}>
+          <resolved.definition.component content={content} settings={resolved.settings} live />
+        </TemplateFallback.Provider>
       </InviteeProvider>
       </SiteCreditProvider>
     </ErrorBoundary>

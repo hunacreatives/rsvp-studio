@@ -10,14 +10,17 @@ import { createStopSnap } from "../shared/stopSnap";
  *    so it can be read to the end). The card is sticky there for its hold, then scrolls away; the
  *    dock is measured here and set as the card's `top` (as in Level Up).
  *  - The camera stands still while a card is docked and walks on in the gap to the next stop,
- *    following the page with a light smoothing only.
+ *    exactly where the page is each frame (the church and the cards move as one).
  *  - One swipe, one stop (shared/stopSnap.ts) on the live page and the design preview.
  *  - The opening (`intro`): outside, before the closed doors in the late sun; the doors swing
  *    open into the light, the names appear, and the camera steps inside to the head of the
  *    aisle. Any scroll, tap or key finishes it.
- *  - Kept light: ≤ 30 frames a second, ≤ 1.25 device pixels (less if the phone can't keep up),
- *    the church drawn at a fraction of the size while moving and in full once it stops; only
- *    the flames and the dust after that. Only while on screen and the tab is shown.
+ *  - Kept light: every frame while moving, ≤ 1.25 device pixels (less if the screen can't keep
+ *    up), the church drawn at a fraction of the size while moving (half on a phone) and in full
+ *    once it has stopped (on a phone, only once the page has rested a moment and no finger is
+ *    down, so the full drawing never lands on the next swipe); then only the flames and the dust,
+ *    at ≤ 10 frames a second, for a few seconds, and nothing after that until the page moves
+ *    again. Only while on screen and the tab is shown.
  *  - `animate` false (builder, gallery card, reduced motion): the doors open, no flicker, a still
  *    frame redrawn on scroll.
  */
@@ -32,7 +35,7 @@ const LOOK: Record<StopKey, [number, number]> = { door: [0, 3], story: [-3, 2], 
 export function viewOf(key: StopKey, phone: boolean, wide = false): View {
   const z = PLACE_Z[key], door = key === "door";
   const [yaw, pitch] = LOOK[key];
-  if (wide) return { x: 0, y: 1.7, z: -2.6, yaw: 0, pitch: 6 * DEG, fov: 58 * DEG, sx: 0, sy: 0 };
+  if (wide) return { x: 0, y: 1.66, z: 3.4, yaw: 0, pitch: 6 * DEG, fov: 48 * DEG, sx: 0, sy: 0 };
   return phone
     ? { x: 0, y: 1.62, z: door ? -0.6 : z, yaw: yaw * DEG * 0.5, pitch: (door ? 9 : pitch + 5) * DEG, fov: 66 * DEG, sx: 0, sy: door ? 0 : 0.36 }
     : { x: 0, y: 1.64, z, yaw: yaw * DEG, pitch: pitch * DEG, fov: (door ? 46 : 42) * DEG, sx: door ? 0 : -0.3, sy: 0 };
@@ -137,16 +140,16 @@ export function useAisle(
     } else root.classList.add("sb-named");
 
     // ---- the loop
-    let target = 0, X = 0, prevT = 0, lastDraw = -1e9, raf = 0, visible = true, lastKey = "", adapt = 1, settled = 0;
+    let target = 0, X = 0, lastDraw = -1e9, raf = 0, visible = true, lastKey = "", adapt = 1, settled = 0;
+    // the last time the page or a finger moved (the full drawing and the idle frames wait on it)
+    let active = performance.now(), touching = false, lastFrac = 0;
+    const IDLE_MS = 4000;
     const slow: number[] = [];
     const scale = () => Math.min(window.devicePixelRatio || 1, 1.25) * adapt;
     const loop = (now: number) => {
       raf = 0;
-      const dt = Math.min(0.1, prevT ? (now - prevT) / 1000 : 0.016);
-      prevT = now;
-      if (!animate) X = target;
-      // the camera keeps up with the page (its glide is already eased): a light smoothing only
-      else { const d = target - X; X = Math.abs(d) < 0.0004 ? target : X + d * (1 - Math.exp(-dt / 0.09)); }
+      // the camera goes where the page is, the same frame (its walk between stops is already eased)
+      X = target;
       let view = viewAt(X), door = 1;
       if (introOn) {
         if (introStart === t0 && now - t0 < 60) introStart = now; // start on the first real frame
@@ -168,28 +171,40 @@ export function useAisle(
       const key = `${view.x.toFixed(3)}|${view.y.toFixed(3)}|${view.z.toFixed(3)}|${view.pitch.toFixed(4)}|${view.yaw.toFixed(4)}|${view.fov.toFixed(4)}|${view.sx.toFixed(3)}|${view.sy.toFixed(3)}|${door.toFixed(4)}`;
       const still = key === lastKey;
       settled = still ? settled + 1 : 0;
-      // once the camera rests, only the flames and the dust move: a gentler pace for those
-      // while walking, every frame on a desktop (the cards move every frame: the church keeps pace)
-      const gap = still && settled > 2 ? 48 : phone ? 32 : 15;
+      if (!still) active = now;
+      // the church in full once the camera rests: on a computer a quarter second on; on a phone
+      // once the page has rested 0.7s with no finger down
+      const full = still && (phone ? !touching && now - active > 700 : settled > 14);
+      const refine = full && lastFrac !== 1;
+      // while walking, every frame, phones too (the cards move every frame: the church keeps pace);
+      // once the camera rests, only the flames and the dust move: ≤ 10 frames a second for those
+      const gap = !still || refine ? 0 : 100;
       if (church && now - lastDraw >= gap) {
-        // a phone that can't keep up draws fewer pixels
+        // a screen that can't keep up (frames slower than ~50 a second) draws fewer pixels
         if (!still && animate && lastDraw > 0) {
           slow.push(now - lastDraw);
           if (slow.length > 10) slow.shift();
-          if (slow.length === 10 && [...slow].sort((p, q) => p - q)[5] > 60 && adapt > 0.55) { adapt = Math.max(0.55, adapt * 0.85); slow.length = 0; church.size(scale()); }
+          if (slow.length === 10 && [...slow].sort((p, q) => p - q)[5] > 20 && adapt > 0.55) { adapt = Math.max(0.55, adapt * 0.85); slow.length = 0; church.size(scale()); }
         }
         // a hand-held camera at rest: the slowest drift, a few pixels at most (moved in the light
         // pass, so the church itself isn't redrawn for it)
         const ts = (now - t0) / 1000, hold = animate && !introOn ? 1 : 0;
         const sway: [number, number, number] = [hold * (Math.sin(ts * 0.37) * 0.0011 + Math.sin(ts * 0.83 + 1.3) * 0.0004), hold * (Math.sin(ts * 0.29 + 2.1) * 0.0009 + Math.sin(ts * 0.61) * 0.0003), 1.012];
-        church.draw(cam, { time: animate ? ts : 3, door, exposure: exposureAt(view.z), outside: view.z < -0.2, still, frac: still && settled > 14 ? 1 : 0.62, live: animate, focus: view.z < -0.2 ? 13 : 9, sway });
+        // at rest the church stays at the size it was last drawn at (the light pass reads it so)
+        const moving = phone ? 0.5 : 0.62, frac = refine ? 1 : still ? lastFrac || moving : moving;
+        church.draw(cam, { time: animate ? ts : 3, door, exposure: exposureAt(view.z), outside: view.z < -0.2, still, frac, live: animate, focus: view.z < -0.2 ? 13 : 9, sway });
+        lastFrac = frac;
         lastDraw = now;
         lastKey = key;
       }
-      if (visible && !document.hidden && (introOn || X !== target || animate || !still)) raf = requestAnimationFrame(loop);
+      // the flames and the dust run for a few seconds after the camera rests, then the frame holds
+      const idle = animate && now - active < IDLE_MS;
+      if (visible && !document.hidden && (introOn || X !== target || idle || !still)) raf = requestAnimationFrame(loop);
     };
-    const kick = () => { if (!raf) { prevT = 0; raf = requestAnimationFrame(loop); } };
-    const onScroll = () => { target = stopAt(scrolled()); kick(); };
+    const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
+    const wake = () => { active = performance.now(); kick(); };
+    const onScroll = () => { target = stopAt(scrolled()); wake(); };
+    const onTouch = (e: TouchEvent) => { touching = e.touches.length > 0; wake(); };
 
     church?.size(scale());
     measure();
@@ -204,6 +219,7 @@ export function useAisle(
     const onVis = () => { if (!document.hidden) kick(); };
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    for (const ev of ["touchstart", "touchend", "touchcancel"] as const) window.addEventListener(ev, onTouch, { passive: true });
     // the cards' heights change as fonts load and the reply form opens
     let mraf = 0;
     const mo = new MutationObserver(() => { if (!mraf) mraf = requestAnimationFrame(() => { mraf = 0; measure(); onScroll(); }); });
@@ -215,6 +231,7 @@ export function useAisle(
       ro.disconnect(); io.disconnect(); mo.disconnect();
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("scroll", onScroll, { capture: true });
+      for (const ev of ["touchstart", "touchend", "touchcancel"] as const) window.removeEventListener(ev, onTouch);
       evs.forEach((e) => window.removeEventListener(e, skip));
       if (introOn) { unlock(); root.classList.remove("sb-intro"); root.classList.add("sb-named"); }
       church?.dispose();

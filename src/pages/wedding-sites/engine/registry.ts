@@ -24,6 +24,8 @@ import { pixelQuestTemplateDefinition } from "../templates/pixel-quest";
 import { rallyTemplateDefinition } from "../templates/rally";
 import { simbahanTemplateDefinition } from "../templates/simbahan";
 import { letterpressTemplateDefinition } from "../templates/letterpress";
+import { inkvowsTemplateDefinition } from "../templates/inkvows";
+import { sprinklesTemplateDefinition } from "../templates/sprinkles";
 import { tinghunRiceTemplateDefinition } from "../templates/tinghun-rice";
 import { debutIssueTemplateDefinition } from "../templates/debut-issue";
 import { tinghunLacquerTemplateDefinition } from "../templates/tinghun-lacquer";
@@ -202,6 +204,8 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   rally: rallyTemplateDefinition,
   simbahan: simbahanTemplateDefinition,
   letterpress: letterpressTemplateDefinition,
+  inkvows: inkvowsTemplateDefinition,
+  sprinkles: sprinklesTemplateDefinition,
   "tinghun-rice": tinghunRiceTemplateDefinition,
   "tinghun-lacquer": tinghunLacquerTemplateDefinition,
   "tinghun-porcelain": tinghunPorcelainTemplateDefinition,
@@ -272,13 +276,14 @@ export function templateFitsEvent(template: Pick<TemplateDefinition, "occasions"
   return !eventType || o.length === 0 || o.includes(eventType);
 }
 
-/** Templates offered in the gallery: listed ones, in catalog order. Before
+/** Templates offered in the gallery: listed ones, Premium first, then in catalog order. Before
  *  the catalog loads (or if it can't), the hand-coded templates. */
+const premiumFirst = (a: { tier?: string }, b: { tier?: string }) => Number(b.tier === "premium") - Number(a.tier === "premium");
 export function listTemplateDefinitions(): TemplateDefinition[] {
-  if (!catalog) return Object.values(templateRegistry).filter((d) => d.offered !== false);
+  if (!catalog) return Object.values(templateRegistry).filter((d) => d.offered !== false).sort(premiumFirst);
   return Object.values(catalog)
     .filter((e) => e.status === "listed")
-    .sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label))
+    .sort((a, b) => premiumFirst(a, b) || a.sort - b.sort || a.label.localeCompare(b.label))
     .map((e) => getTemplateDefinition(e.id))
     .filter((d): d is TemplateDefinition => Boolean(d));
 }

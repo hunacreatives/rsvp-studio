@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import CinematicTemplate from "./CinematicTemplate";
 import { cinematicDemoBirthday } from "../../content/fixtures/cinematic-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const CinematicTemplate = lazyTemplate(() => import("./CinematicTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "blush-sage",

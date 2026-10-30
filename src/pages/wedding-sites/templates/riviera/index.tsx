@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import RivieraTemplate from "./RivieraTemplate";
 import { rivieraDemo } from "../../content/fixtures/riviera-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const RivieraTemplate = lazyTemplate(() => import("./RivieraTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "riviera",

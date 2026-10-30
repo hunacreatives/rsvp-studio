@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import UnderGlassTemplate from "./UnderGlassTemplate";
 import { underGlassDemo } from "../../content/fixtures/under-glass-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const UnderGlassTemplate = lazyTemplate(() => import("./UnderGlassTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "under-glass",

@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import PickleballTemplate from "./PickleballTemplate";
 import { pickleballDemoBirthday } from "../../content/fixtures/pickleball-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const PickleballTemplate = lazyTemplate(() => import("./PickleballTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "court-pink",

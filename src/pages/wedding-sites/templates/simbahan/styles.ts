@@ -180,6 +180,7 @@ textarea.sb-field { resize: vertical; min-height: 84px; }
 
 .sb-gallery { --frame: 75cqw; }
 .sb-gallery .sb-words { top: 30%; }
+.sb-gallery .sb-door::before { background: radial-gradient(ellipse 50% 24% at 50% 30%, rgba(247, 240, 225, 0.86), rgba(247, 240, 225, 0.5) 55%, rgba(247, 240, 225, 0) 82%); }
 .sb-nogl .sb-stage { background: radial-gradient(ellipse at 50% 45%, #f3e3c4, #d9c7a8 72%); }
 @media (prefers-reduced-motion: reduce) { .sb-root *, .sb-root *::before, .sb-root *::after { animation: none !important; transition: none !important; } }
 

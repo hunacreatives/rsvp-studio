@@ -2,8 +2,9 @@ import { useEffect, type RefObject } from "react";
 
 /**
  * One swipe, one stop: the scroll designs (Level Up, Safari, Pixel Quest, Summit, The Blue,
- * Letterpress, Simbahan; Promenade has its own copy in stroll.ts) rest only at their stops, never
- * halfway between two.
+ * Letterpress, Simbahan, Promenade, Ink and Vows, Capiz) rest only at their stops, never halfway
+ * between two. On a computer (wheel, trackpad, keys) a spring moves the page, as below; on a
+ * phone the browser does (nativeSnap).
  *  - The page is moved by one spring: each gesture sets where it's going (the next stop that way)
  *    and the page keeps its speed from one moment to the next, so it never stops and starts again,
  *    never jumps, and a second gesture on top of a glide just carries it on to the stop after.
@@ -21,12 +22,41 @@ import { useEffect, type RefObject } from "react";
  * `animate`): never in the builder, the gallery card or with reduced motion.
  * `gentle` (the wedding designs): a softer spring, for a page that should move like a card turned
  * by hand, not a slide deck.
+ *
+ * Phones and tablets (a coarse pointer) don't use the spring at all: the browser scrolls the page
+ * itself and lands it on the stops (CSS scroll snap, `scroll-snap-stop: always`, one stop a
+ * swipe), on the compositor at the screen's own rate. A page moved by script every frame fights
+ * iOS's own momentum and loses (Francis's iPhone, Oct 30: the page coasted past stops, stopped
+ * short of them, then jumped). See `nativeSnap` below.
  */
 
 export type SnapSpan = { from: number; to?: number };
+type Snap = { update: (spans: SnapSpan[], screen: number) => void; dispose: () => void };
 
-export function createStopSnap(root: HTMLElement, enabled: boolean, { gentle = false }: { gentle?: boolean } = {}) {
+/** The stops' resting positions (and the spans of stops taller than the screen), sorted. */
+function restsOf(spans: SnapSpan[], screen: number) {
+  const H = Math.max(1, screen);
+  const list: number[] = [];
+  for (const s of spans) {
+    const from = Math.max(0, s.from), to = Math.max(from, s.to ?? s.from);
+    list.push(from);
+    for (let y = from + H * 0.75; y < to - 8; y += H * 0.75) list.push(y);
+    if (to > from + 8) list.push(to);
+  }
+  const rests = list.map(Math.round).sort((a, b) => a - b).filter((v, i, a) => i === 0 || v - a[i - 1] > 4);
+  return rests.length ? rests : [0];
+}
+
+/** Native snapping (`?snap=js` or `?snap=native` forces a mode, for testing). */
+function touchFirst() {
+  const force = new URLSearchParams(window.location.search).get("snap");
+  if (force === "js" || force === "native") return force === "native";
+  return !!window.matchMedia?.("(pointer: coarse)").matches;
+}
+
+export function createStopSnap(root: HTMLElement, enabled: boolean, { gentle = false }: { gentle?: boolean } = {}): Snap {
   if (!enabled || typeof window === "undefined") return { update: () => {}, dispose: () => {} };
+  if (touchFirst()) return nativeSnap(root);
   let rests: number[] = [0];
   const here = () => -root.getBoundingClientRect().top;
   const nowMs = () => performance.now();
@@ -110,15 +140,16 @@ export function createStopSnap(root: HTMLElement, enabled: boolean, { gentle = f
     glide(dir === 9 ? rests[rests.length - 1] : dir === -9 ? 0 : next(dir));
   };
 
-  // ---- touch: the finger, then the spring at the finger's speed
+  // ---- touch (a touch screen on a computer; phones use nativeSnap): the finger, then the spring
+  // at the finger's speed
   let touchY = -1, touchX = 0, touchFrom = 0, dragging = false, settleT = 0, touchCatch = -1;
-  let track: [number, number][] = []; // the finger's last moments: time, page offset
+  let track: [number, number][] = []; // the finger's last moments: time (the event's own), page offset
   const onStart = (e: TouchEvent) => {
     if (e.touches.length !== 1 || locked()) { touchY = -1; return; }
     const was = anim ? origin : -1, wasV = v;
     stop();
     touchY = e.touches[0].clientY; touchX = e.touches[0].clientX; touchFrom = window.scrollY; dragging = false;
-    track = [[nowMs(), touchFrom]];
+    track = [[e.timeStamp, touchFrom]];
     // a finger that catches a glide and lets go without moving: it carries on where it was going
     touchCatch = was >= 0 && Math.abs(wasV) > 60 ? was : -1;
   };
@@ -133,11 +164,11 @@ export function createStopSnap(root: HTMLElement, enabled: boolean, { gentle = f
     e.preventDefault();
     const to = Math.max(0, Math.min(maxY(), touchFrom + dy));
     window.scrollTo(0, to);
-    const t = nowMs();
+    const t = e.timeStamp;
     track.push([t, to]);
     while (track.length > 2 && t - track[0][0] > 90) track.shift();
   };
-  const onEnd = () => {
+  const onEnd = (e: TouchEvent) => {
     if (touchY < 0) return;
     touchY = -1;
     if (!dragging) { if (touchCatch >= 0) glide(touchCatch); touchCatch = -1; return; }
@@ -145,7 +176,8 @@ export function createStopSnap(root: HTMLElement, enabled: boolean, { gentle = f
     touchCatch = -1;
     const moved = window.scrollY - touchFrom;
     const [t0, y0] = track[0], [t1, y1] = track[track.length - 1];
-    const speed = t1 - t0 > 8 ? ((y1 - y0) / (t1 - t0)) * 1000 : 0; // px/s at release
+    // px/s at release; none if the finger had come to rest before it lifted
+    const speed = t1 - t0 > 8 && e.timeStamp - t1 < 50 ? ((y1 - y0) / (t1 - t0)) * 1000 : 0;
     const from = here() - moved;
     const go = Math.abs(moved) > 36 || (Math.abs(speed) > 250 && Math.abs(moved) > 12);
     const to = go ? next(Math.sign(moved), from) : nearest(from);
@@ -172,16 +204,7 @@ export function createStopSnap(root: HTMLElement, enabled: boolean, { gentle = f
   return {
     /** The stops' resting positions (and the spans of stops taller than the screen). */
     update(spans: SnapSpan[], screen: number) {
-      const H = Math.max(1, screen);
-      const list: number[] = [];
-      for (const s of spans) {
-        const from = Math.max(0, s.from), to = Math.max(from, s.to ?? s.from);
-        list.push(from);
-        for (let y = from + H * 0.75; y < to - 8; y += H * 0.75) list.push(y);
-        if (to > from + 8) list.push(to);
-      }
-      rests = list.map(Math.round).sort((a, b) => a - b).filter((v, i, a) => i === 0 || v - a[i - 1] > 4);
-      if (!rests.length) rests = [0];
+      rests = restsOf(spans, screen);
       root.dataset.snapRests = rests.join(",");
     },
     dispose() {
@@ -194,6 +217,135 @@ export function createStopSnap(root: HTMLElement, enabled: boolean, { gentle = f
       window.removeEventListener("touchend", onEnd);
       window.removeEventListener("touchcancel", onEnd);
       window.removeEventListener("scroll", onAnyScroll);
+    },
+  };
+}
+
+const SNAP_CSS =
+  // scroll-padding: the app's 80px (under its header) would shift every stop
+  "html.ss-snap{scroll-snap-type:y mandatory;scroll-padding:0;overscroll-behavior-y:none}" +
+  "html.ss-hold,html.ss-hold body{touch-action:none;overscroll-behavior:none}" +
+  ".ss-marks{position:absolute;top:0;left:0;width:1px;height:0;pointer-events:none}" +
+  ".ss-mark{position:absolute;left:0;width:1px;height:1px;scroll-snap-align:start;scroll-snap-stop:always;pointer-events:none}";
+
+/**
+ * Phones: the browser scrolls (its own momentum, its own rate) and lands on the stops itself.
+ *  - Each stop is a marker (an empty 1px box at its resting position, laid on the page from
+ *    `<body>`) that the page snaps to, `scroll-snap-stop: always`: a flick, however hard, goes one
+ *    stop. Stops taller than the screen rest every ¾ screen (as on a computer), and the very end
+ *    of the page (the credit line under the reply) is a stop too.
+ *  - An opening holding the page (`overflow: hidden` on <html>): no snapping, and no touch moves
+ *    the page (`touch-action: none`, touchmove cancelled), so the swipe that opens or skips it
+ *    is spent: it can't scroll the page, even once the page is let go mid-swipe.
+ *  - No snapping while a field has the focus, a reply form that opened is on screen, an open
+ *    answer in the questions is on screen, or a `[data-snap-free]` element has the focus or is
+ *    "on": the page scrolls freely there, so typing or a growing form never makes it jump.
+ * Nothing here moves the page by script.
+ */
+function nativeSnap(root: HTMLElement): Snap {
+  const html = document.documentElement, body = document.body;
+  if (!document.getElementById("stop-snap-css")) {
+    const css = document.createElement("style");
+    css.id = "stop-snap-css";
+    css.textContent = SNAP_CSS;
+    document.head.appendChild(css);
+  }
+  const layer = document.createElement("div");
+  layer.className = "ss-marks";
+  layer.setAttribute("aria-hidden", "true");
+  body.appendChild(layer);
+  let rests: number[] = [0], marks: HTMLElement[] = [], raf = 0, held = false;
+  const locked = () => html.style.overflow === "hidden" || body.style.overflow === "hidden";
+  const FIELD = "input, textarea, select, [contenteditable], [data-snap-free]";
+  const FORM = "form input:not([type=hidden]):not([tabindex='-1']), form textarea, form select";
+  // a reply form that opens (fields that weren't there when the page came; some designs show
+  // theirs all along, and those pages snap until a field is touched)
+  let fieldsAtStart = root.querySelectorAll(FORM).length;
+  const inView = (el: Element) => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < window.innerHeight; };
+  const free = () => {
+    const a = document.activeElement;
+    if (a instanceof Element && a !== body && a.closest(FIELD)) return true;
+    if (root.querySelector("[data-snap-free='on']")) return true;
+    for (const d of root.querySelectorAll("details[open]")) if (inView(d)) return true;
+    const fields = root.querySelectorAll(FORM);
+    fieldsAtStart = Math.min(fieldsAtStart, fields.length);
+    if (fields.length > fieldsAtStart) for (const f of fields) if (inView(f)) return true;
+    return false;
+  };
+
+  // the markers, at the stops' places on the page
+  const place = () => {
+    const sy = window.scrollY, layerTop = layer.getBoundingClientRect().top + sy;
+    const rootTop = root.getBoundingClientRect().top + sy;
+    const max = Math.max(0, html.scrollHeight - window.innerHeight);
+    const ys = rests.map((r) => Math.min(max, Math.max(0, Math.round(rootTop + r))));
+    ys.push(Math.round(max));
+    // stops closer than about a third of a screen are one stop to a finger (a native swipe goes
+    // straight past the second, as with a card a little taller than the screen): they become one
+    // stop as tall as both, which the browser lets the finger read through freely, top to end
+    const H = window.innerHeight, near = H * 0.4, at: { y: number; to: number }[] = [];
+    for (const v of ys.sort((a, b) => a - b)) {
+      const last = at[at.length - 1];
+      if (!last || v - last.to > near) at.push({ y: v, to: v });
+      else last.to = v;
+    }
+    at.forEach(({ y, to }, i) => {
+      let m = marks[i];
+      if (!m) { m = document.createElement("div"); m.className = "ss-mark"; layer.appendChild(m); marks[i] = m; }
+      const top = `${y - layerTop}px`, height = to > y ? `${to - y + H}px` : "";
+      if (m.style.top !== top) m.style.top = top;
+      if (m.style.height !== height) m.style.height = height;
+    });
+    for (const m of marks.splice(at.length)) m.remove();
+  };
+  const kick = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; place(); apply(); }); };
+
+  // snapping on only while the page is free to move and nothing is being filled in
+  const stopTouch = (e: TouchEvent) => { if (e.cancelable && locked()) e.preventDefault(); };
+  const apply = () => {
+    const hold = locked();
+    if (hold !== held) {
+      held = hold;
+      if (hold) window.addEventListener("touchmove", stopTouch, { passive: false });
+      else window.removeEventListener("touchmove", stopTouch);
+    }
+    html.classList.toggle("ss-hold", hold);
+    html.classList.toggle("ss-snap", !hold && !free());
+  };
+  const later = () => window.setTimeout(apply, 0); // focusout: the focus has gone once this runs
+  // an open answer or form scrolled out of view: snapping again
+  let sraf = 0;
+  const onScroll = () => { if (!sraf) sraf = requestAnimationFrame(() => { sraf = 0; apply(); }); };
+  const styles = new MutationObserver(apply);
+  styles.observe(html, { attributes: true, attributeFilter: ["style"] });
+  styles.observe(body, { attributes: true, attributeFilter: ["style"] });
+  const inside = new MutationObserver(kick);
+  inside.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["open", "data-snap-free"] });
+  const ro = new ResizeObserver(kick);
+  ro.observe(root);
+  document.addEventListener("focusin", apply);
+  document.addEventListener("focusout", later);
+  window.addEventListener("resize", kick);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  apply();
+
+  return {
+    update(spans: SnapSpan[], screen: number) {
+      rests = restsOf(spans, screen);
+      root.dataset.snapRests = rests.join(",");
+      place();
+    },
+    dispose() {
+      cancelAnimationFrame(raf);
+      cancelAnimationFrame(sraf);
+      styles.disconnect(); inside.disconnect(); ro.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("focusin", apply);
+      document.removeEventListener("focusout", later);
+      window.removeEventListener("resize", kick);
+      window.removeEventListener("touchmove", stopTouch);
+      html.classList.remove("ss-snap", "ss-hold");
+      layer.remove();
     },
   };
 }

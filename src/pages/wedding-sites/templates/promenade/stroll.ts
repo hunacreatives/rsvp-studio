@@ -9,12 +9,12 @@ import { camOf, createGarden, FOUNTAIN, project, type Garden, type View } from "
  *    frame, on the bottom edge of a phone's (a card too tall for that docks by its bottom edge,
  *    so it can be read to the end). The card is sticky there for its hold, then scrolls away;
  *    the dock is measured here and set as the card's `top` (as in Level Up).
- *  - The camera holds while a card is docked and glides in the gap to the next stop, easing in
- *    behind the scroll, so the garden moves with the page and settles a beat after it.
+ *  - The camera holds while a card is docked and glides in the gap to the next stop (eased along
+ *    the gap), exactly where the page is each frame, so the garden and the cards move as one.
  *  - The opening (`intro`): high over the whole garden, turned across the frame, the camera comes
  *    down and round to the gate while the names appear. Any scroll, tap or key finishes it.
- *  - Kept light: ≤ 30 frames a second, ≤ 1.25 device pixels (less if the phone can't keep up),
- *    only while on screen and the tab is shown. The garden itself is redrawn only while the
+ *  - Kept light: every frame while the page moves (≤ 30 a second for the water at rest), ≤ 1.25
+ *    device pixels (less if the screen can't keep up), only while on screen and the tab is shown. The garden itself is redrawn only while the
  *    camera moves; between moves only the water is, and only while the fountain is in view.
  *  - `animate` false (builder, gallery card, reduced motion): no easing, no water moving, a still
  *    frame redrawn on scroll.
@@ -173,16 +173,14 @@ export function useStroll(
     } else root.classList.add("pm-named");
 
     // ---- the loop
-    let target = 0, X = 0, prevT = 0, lastDraw = -1e9, raf = 0, visible = true, lastKey = "", adapt = 1;
+    let target = 0, X = 0, lastDraw = -1e9, raf = 0, visible = true, lastKey = "", adapt = 1;
     const slow: number[] = [];
     const scale = () => Math.min(window.devicePixelRatio || 1, 1.25) * adapt;
     const loop = (now: number) => {
       raf = 0;
-      const dt = Math.min(0.1, prevT ? (now - prevT) / 1000 : 0.016);
-      prevT = now;
-      if (!animate) X = target;
-      // the camera keeps up with the page (its glide is already eased): a light smoothing only
-      else { const d = target - X; X = Math.abs(d) < 0.0004 ? target : X + d * (1 - Math.exp(-dt / 0.09)); }
+      // the camera goes where the page is, the same frame (its glide between stops is already eased;
+      // a smoothing on top of that left the garden trailing the cards)
+      X = target;
       let view = viewAt(X);
       let k = 1;
       if (introOn) {
@@ -204,13 +202,14 @@ export function useStroll(
       const still = key === lastKey;
       const f = project(cam, FOUNTAIN);
       const water = animate && f[2] > 0 && Math.abs(f[0]) < 1.25 && Math.abs(f[1]) < 1.35;
-      // while moving, every frame on a desktop (the cards move every frame: the garden keeps pace)
-      if (garden && now - lastDraw >= (still || phone ? 32 : 15)) {
-        // a phone that can't keep up draws fewer pixels
+      // while moving, every frame, phones too (the cards move every frame: the garden keeps pace);
+      // at rest only the water moves, at ≤ 30 frames a second
+      if (garden && now - lastDraw >= (still ? 32 : 0)) {
+        // a screen that can't keep up (frames slower than ~50 a second) draws fewer pixels
         if (!still && animate && lastDraw > 0) {
           slow.push(now - lastDraw);
           if (slow.length > 10) slow.shift();
-          if (slow.length === 10 && [...slow].sort((p, q) => p - q)[5] > 55 && adapt > 0.6) { adapt = Math.max(0.6, adapt * 0.85); slow.length = 0; garden.size(scale()); }
+          if (slow.length === 10 && [...slow].sort((p, q) => p - q)[5] > 20 && adapt > 0.6) { adapt = Math.max(0.6, adapt * 0.85); slow.length = 0; garden.size(scale()); }
         }
         if (!still || water || lastDraw < 0) garden.draw(cam, animate ? (now - t0) / 1000 : 4, still);
         lastDraw = now;
@@ -218,7 +217,7 @@ export function useStroll(
       }
       if (visible && !document.hidden && (introOn || X !== target || water || !still)) raf = requestAnimationFrame(loop);
     };
-    const kick = () => { if (!raf) { prevT = 0; raf = requestAnimationFrame(loop); } };
+    const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
     const onScroll = () => { target = stopAt(scrolled()); kick(); };
 
     garden?.size(scale());

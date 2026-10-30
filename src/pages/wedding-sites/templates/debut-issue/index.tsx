@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import DebutIssueTemplate from "./DebutIssueTemplate";
 import { debutIssueDemo } from "../../content/fixtures/debut-issue-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const DebutIssueTemplate = lazyTemplate(() => import("./DebutIssueTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "debut-issue",

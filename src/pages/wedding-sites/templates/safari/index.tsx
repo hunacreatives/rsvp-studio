@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import SafariTemplate from "./SafariTemplate";
 import { safariDemo } from "../../content/fixtures/safari-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const SafariTemplate = lazyTemplate(() => import("./SafariTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "safari",

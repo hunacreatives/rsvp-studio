@@ -1,8 +1,11 @@
+import { lazyTemplate } from "../../engine/lazyTemplate";
 import type { TemplateDefinition } from "../../engine/registry";
 import type { BaseTemplateSettings } from "../../presentation/types";
 import { defaultSectionVisibility } from "../../presentation/types";
-import FreediveTemplate from "./FreediveTemplate";
 import { freediveDemo } from "../../content/fixtures/freedive-demo";
+
+// the design itself loads on its own, when it is first shown (engine/lazyTemplate)
+const FreediveTemplate = lazyTemplate(() => import("./FreediveTemplate"));
 
 const defaultSettings: BaseTemplateSettings = {
   paletteId: "freedive",

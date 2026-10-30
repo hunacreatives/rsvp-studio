@@ -16,15 +16,16 @@ export const SUMMIT_CSS = `
 .sm-shadow { text-shadow: 0 2px 18px rgba(5, 15, 35, 0.45), 0 1px 3px rgba(5, 15, 35, 0.3); }
 
 /* the mist over the words: edgeless soft layers drifting apart */
-.sm-mist { position: absolute; inset: 0; overflow: hidden; opacity: var(--mist, 0.5); transition: opacity 1.6s ease;
+.sm-mist { position: absolute; inset: 0; overflow: hidden; opacity: var(--mist, 0.5);
   -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, #000 0%, rgba(0,0,0,0.5) 50%, transparent 100%); mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, #000 0%, rgba(0,0,0,0.5) 50%, transparent 100%); }
-.sm-mist i { position: absolute; inset: -55% -50%; }
-.sm-mist .a { background: radial-gradient(16% 10% at 14% 64%, rgba(255,255,255,0.45), transparent 65%), radial-gradient(18% 9% at 46% 74%, rgba(255,255,255,0.38), transparent 66%), radial-gradient(15% 11% at 74% 66%, rgba(255,255,255,0.42), transparent 65%), radial-gradient(17% 10% at 90% 78%, rgba(255,255,255,0.36), transparent 66%); }
-.sm-mist .b { background: radial-gradient(18% 10% at 26% 70%, rgba(255,255,255,0.36), transparent 66%), radial-gradient(16% 11% at 60% 80%, rgba(255,255,255,0.34), transparent 66%), radial-gradient(17% 10% at 84% 62%, rgba(255,255,255,0.34), transparent 66%); }
+/* each layer 1.16 frames tall (as much as its drift needs), the blobs where they always were */
+.sm-mist i { position: absolute; inset: -8% -50%; transition: opacity 1.6s ease; }
+.sm-mist .a { background: radial-gradient(16% 18.1% at 14% 87.41%, rgba(255,255,255,0.45), transparent 65%), radial-gradient(18% 16.29% at 46% 93.45%, rgba(255,255,255,0.38), transparent 66%), radial-gradient(15% 19.91% at 74% 78.97%, rgba(255,255,255,0.42), transparent 65%), radial-gradient(17% 18.1% at 90% 100.69%, rgba(255,255,255,0.36), transparent 66%); }
+.sm-mist .b { background: radial-gradient(18% 18.1% at 26% 86.21%, rgba(255,255,255,0.36), transparent 66%), radial-gradient(16% 19.91% at 60% 104.31%, rgba(255,255,255,0.34), transparent 66%), radial-gradient(17% 18.1% at 84% 71.72%, rgba(255,255,255,0.34), transparent 66%); }
 .sm-motion .sm-mist .a { animation: sm-driftA 34s ease-in-out infinite alternate; }
 .sm-motion .sm-mist .b { animation: sm-driftB 46s ease-in-out infinite alternate; }
-@keyframes sm-driftA { from { transform: translate3d(-24%, 2%, 0); } to { transform: translate3d(24%, -2%, 0); } }
-@keyframes sm-driftB { from { transform: translate3d(22%, -3%, 0); } to { transform: translate3d(-26%, 3%, 0); } }
+@keyframes sm-driftA { from { transform: translate3d(-24%, 3.621%, 0); } to { transform: translate3d(24%, -3.621%, 0); } }
+@keyframes sm-driftB { from { transform: translate3d(22%, -5.431%, 0); } to { transform: translate3d(-26%, 5.431%, 0); } }
 
 /* the summit marker and the climber, standing on the peak at the end of the climb */
 .sm-post { position: absolute; left: 0; top: 0; width: 52px; opacity: 0; transition: opacity 1s; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)); }
@@ -105,7 +106,9 @@ textarea.sm-field { resize: vertical; min-height: 90px; }
 .sm-read > span { display: block; font: 600 10px var(--sm-sans); letter-spacing: 0.26em; text-transform: uppercase; opacity: 0.85; }
 
 /* the intro: night to dawn at the foot of the mountain, the light reaching the summit first */
-.sm-intro .sm-words > *, .sm-intro .sm-gauge, .sm-intro .sm-mist { opacity: 0 !important; }
+.sm-intro .sm-words > *, .sm-intro .sm-gauge { opacity: 0 !important; }
+/* the mist fades in as the opening ends (on its layers: the mist's own opacity follows the climb at once) */
+.sm-intro .sm-mist i { opacity: 0; }
 .sm-words > * { transition: opacity 1.2s ease, transform 1.2s cubic-bezier(.2,.7,.2,1); }
 .sm-intro .sm-words > * { transform: translateY(16px); }
 .sm-words > *:nth-child(2) { transition-delay: .15s; } .sm-words > *:nth-child(3) { transition-delay: .3s; } .sm-words > *:nth-child(n+4) { transition-delay: .45s; }

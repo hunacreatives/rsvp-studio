@@ -19,7 +19,8 @@ import { createStopSnap } from "../shared/stopSnap";
  *    in the gap between cards, taking at least TRIP seconds however fast the scroll.
  *  - `spawn` (a ref): -1 while the title waits for Press start (no hero yet), then the time the
  *    hero dropped in; 0 for a hero simply standing there.
- *  - Kept light: a canvas a few hundred pixels wide, drawn ≤30 frames a second, only while on
+ *  - Kept light: a canvas a few hundred pixels wide, drawn every frame while the camera moves and
+ *    ≤30 frames a second at rest, only while on
  *    screen and the tab is shown. `animate` false (builder, gallery card, reduced motion): no
  *    easing, no idle motion, a still frame redrawn on scroll.
  */
@@ -255,7 +256,7 @@ export function useLevel(
       return at(holds.length - 1);
     };
 
-    let target = 0, X = 0, vel = 0, prevT = 0, lastDraw = -1e9, raf = 0, visible = true, face = 1, best = 0, reached = 0;
+    let target = 0, X = 0, vel = 0, prevT = 0, lastDraw = -1e9, raf = 0, visible = true, face = 1, best = 0, reached = 0, drawnX = NaN;
     let opened = animate ? 0 : 1, party = 0, partyT = 0;
     const pops: { x: number; y: number; t: number }[] = [];
     let bursts: { x: number; y: number; t: number; col: string[] }[] = [];
@@ -477,7 +478,8 @@ export function useLevel(
       // the chest opens once the hero stands at it
       const lootAt = pieces.indexOf("loot");
       if (lootAt > 0 && Math.abs(X - lootAt) < 0.02) opened = Math.min(1, opened + dt * 1.6);
-      if (now - lastDraw >= 32) { lastDraw = now; draw(now); hud(); }
+      // every frame while the camera moves (it keeps pace with the page), ≤ 30 a second at rest
+      if (now - lastDraw >= (X !== drawnX ? 0 : 32)) { lastDraw = now; drawnX = X; draw(now); hud(); }
       const busy = animate || X !== target;
       if (visible && !document.hidden && busy) raf = requestAnimationFrame(loop);
     };
