@@ -45,13 +45,16 @@ export const SIMBAHAN_CSS = `
 .sb-motion .sb-walkon i { animation: sb-line 2.6s ease-in-out infinite; transform-origin: 50% 0; }
 @keyframes sb-line { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
 /* the opening: the words come up in the light as the doors open */
-.sb-intro .sb-words > *, .sb-intro .sb-walkon, .sb-intro .sb-door::before { opacity: 0; transition: opacity 1.8s ease, filter 2s ease, translate 2.4s cubic-bezier(.2, .7, .2, 1); }
-.sb-intro .sb-words > * { filter: blur(7px); translate: 0 8px; }
-.sb-intro.sb-named .sb-words > *, .sb-intro.sb-named .sb-walkon, .sb-intro.sb-named .sb-door::before { opacity: 1; filter: blur(0); translate: 0 0; }
+/* (no blur: Safari draws a blurred, shadowed line of text as a pale box until the blur ends) */
+.sb-intro .sb-words > *, .sb-intro .sb-walkon, .sb-intro .sb-door::before { opacity: 0; transition: opacity 1.8s ease, translate 2.4s cubic-bezier(.2, .7, .2, 1); }
+.sb-intro .sb-words > * { translate: 0 10px; }
+.sb-intro.sb-named .sb-words > *, .sb-intro.sb-named .sb-walkon, .sb-intro.sb-named .sb-door::before { opacity: 1; }
+/* only the words rise into place (the prompt keeps its own centring translate) */
+.sb-intro.sb-named .sb-words > * { translate: 0 0; }
 .sb-intro.sb-named .sb-words > :nth-child(1) { transition-delay: 0s; }
 .sb-intro.sb-named .sb-words > :nth-child(2) { transition-delay: 0.3s; }
 .sb-intro.sb-named .sb-words > :nth-child(n+3) { transition-delay: 1.1s; }
-.sb-intro.sb-named .sb-walkon { transition-delay: 3.2s; }
+.sb-intro.sb-named .sb-walkon { transition-delay: 1.8s; }
 
 /* ---- the stops: a page of the programme each, every one pausing in the same place (its dock:
    high on the right; the bottom edge on a phone; aisle.ts sets its top). The gap before each

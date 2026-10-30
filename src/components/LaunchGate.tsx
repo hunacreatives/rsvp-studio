@@ -14,7 +14,8 @@ export const LAUNCH_GATE = true;
 const LAUNCH_AT = new Date("2026-11-02T00:00:00+08:00"); // Monday, 2 November 2026, Manila
 const PASS_SHA256 = "41885a91374fbd4df15e04f827c4c093a021d7e4be364cb292f3805a6a9eef94";
 const KEY = "rsvp-launch-pass";
-const OPEN = /^\/(invite\/|tools\/seating-chart-maker\/(view|day)\/|internal\/)/;
+// (and the creator invitation, shared before launch)
+const OPEN = /^\/(invite\/|tools\/seating-chart-maker\/(view|day)\/|internal\/|creators\/?$)/;
 // a computer on the home network (trying the site on a phone over Wi-Fi): no gate, as on localhost
 // there's no other way in, since the browser only checks the password on https
 const LAN = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/;

@@ -63,6 +63,10 @@
       "destination": "/api/invite-page?op=review&t=:token"
     },
     {
+      "source": "/creators",
+      "destination": "/api/invite-page?op=page&path=creators"
+    },
+    {
       "source": "/tools/seating-chart-maker/day/:token",
       "destination": "/api/invite-page?op=page&path=view"
     },

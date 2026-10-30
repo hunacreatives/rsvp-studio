@@ -48,9 +48,14 @@ function mixView(a: View, b: View, t: number): View {
 }
 const smooth = (k: number) => k * k * (3 - 2 * k);
 const easeInOut = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
-// the opening's beats (ms): a breath before the doors; the doors; the names; the step inside
-const DOOR_AT = 1000, DOOR_MS = 3200, NAMES_AT = 2800, WALK_AT = 4000, WALK_MS = 3800;
+// the opening's beats (ms): a breath before the doors; the doors; the step inside; the names, once
+// through the doors
+const DOOR_AT = 1000, DOOR_MS = 3200, WALK_AT = 4000, WALK_MS = 3800, NAMES_AT = 6300;
 const INTRO_MS = WALK_AT + WALK_MS;
+// when each page's opening began (or that it's over: -1), so the setup running again (React does
+// it twice in development; a change to the stops does it too) carries on with the same opening
+// rather than showing the names, hiding them and starting over
+const opened = new WeakMap<HTMLElement, number>();
 /** How bright the picture is set: for the shade outside, then the church's own light. */
 const exposureAt = (z: number) => lerp(0.6, 1.0, smooth(Math.min(1, Math.max(0, (z + 6) / 6.5))));
 
@@ -114,9 +119,10 @@ export function useAisle(
     };
 
     // ---- the opening
-    let introOn = intro && !!church;
+    const begun = opened.get(root);
+    let introOn = intro && !!church && begun !== -1;
     const t0 = performance.now();
-    let introStart = t0, skipFrom = -1, skipAt = 0, named = false;
+    let introStart = begun ?? t0, skipFrom = -1, skipAt = 0, named = begun !== undefined && root.classList.contains("sb-named");
     const html = document.documentElement, prevOverflow = html.style.overflow;
     const unlock = () => { html.style.overflow = prevOverflow; };
     const introK = (now: number) => {
@@ -136,7 +142,7 @@ export function useAisle(
       html.style.overflow = "hidden";
       if (window.scrollY > 0) window.scrollTo(0, 0);
       root.classList.add("sb-intro");
-      root.classList.remove("sb-named");
+      if (!named) root.classList.remove("sb-named");
       evs.forEach((e) => window.addEventListener(e, skip, { passive: true }));
     } else root.classList.add("sb-named");
 
@@ -169,7 +175,8 @@ export function useAisle(
       if (fade !== lastFade) { root.style.setProperty("--sb-arrive", fade); lastFade = fade; }
       let view = viewAt(X), door = 1;
       if (introOn) {
-        if (introStart === t0 && now - t0 < 60) introStart = now; // start on the first real frame
+        if (begun === undefined && introStart === t0 && now - t0 < 60) introStart = now; // start on the first real frame
+        if (opened.get(root) !== introStart) opened.set(root, introStart);
         const ms = introK(now);
         door = easeInOut(Math.min(1, Math.max(0, (ms - DOOR_AT) / DOOR_MS)));
         const w = easeInOut(Math.min(1, Math.max(0, (ms - WALK_AT) / WALK_MS)));
@@ -179,7 +186,8 @@ export function useAisle(
         if (ms >= NAMES_AT && !named) { named = true; root.classList.add("sb-named"); }
         if (ms >= INTRO_MS) {
           introOn = false;
-          root.classList.remove("sb-intro");
+          opened.set(root, -1);
+          // (the opening's class stays: the names are still coming up; once they're in it changes nothing)
           unlock();
           evs.forEach((ev) => window.removeEventListener(ev, skip));
         }
@@ -250,7 +258,8 @@ export function useAisle(
       window.removeEventListener("scroll", onScroll, { capture: true });
       for (const ev of ["touchstart", "touchend", "touchcancel"] as const) window.removeEventListener(ev, onTouch);
       evs.forEach((e) => window.removeEventListener(e, skip));
-      if (introOn) { unlock(); root.classList.remove("sb-intro"); root.classList.add("sb-named"); }
+      // the opening's classes stay as they are: if this runs again it carries on from here
+      if (introOn) unlock();
       church?.dispose();
     };
   }, [refs.root, refs.stage, refs.gl, stops, animate, intro, wide, snap]);

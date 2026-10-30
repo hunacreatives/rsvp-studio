@@ -18,9 +18,15 @@ import { ApplyForm } from "@/pages/partners/apply";
 //   clients), and here are the perks. Earning as a partner is one of them, applied for from
 //   inside their account (/account/partner), so Studio → Leads always sees a real account.
 //   Creators (?type=creator): the partner program on its own; sign up, then apply.
+//   /creators: the same, as an invitation to share (?to=Name greets them by name; the link's
+//   preview is set by api/invite-page.ts, which uses the same name rule).
 // Vendors and collaborations write in through /contact.
 
 const COORDINATOR_PATH = "/account?as=coordinator";
+
+/** The name from an invite link (?to=Maria): letters, spaces and . ' - only, at most 40. */
+export const inviteName = (search: string) =>
+  (new URLSearchParams(search).get("to") ?? "").replace(/[^\p{L}\p{M}\s.'’-]/gu, "").replace(/\s+/g, " ").trim().slice(0, 40);
 
 // "10% from your first paying client, 15% after 5, 20% after 15"
 const RATES = PARTNER_TIERS.map((t) =>
@@ -48,8 +54,10 @@ const PERKS = [
 ];
 
 export default function PartnerInquiry() {
-  const { search } = useLocation();
-  const forCreators = new URLSearchParams(search).get("type") === "creator";
+  const { search, pathname } = useLocation();
+  const invite = pathname.replace(/\/$/, "") === "/creators";
+  const forCreators = invite || new URLSearchParams(search).get("type") === "creator";
+  const to = invite ? inviteName(search) : "";
   // Coordinators ↔ creators is the same page with ?type=creator, so ScrollToTop (pathname
   // only) doesn't fire: start the other version at the top.
   const firstRender = useRef(true);
@@ -99,14 +107,16 @@ export default function PartnerInquiry() {
       <main style={{ background: "var(--warm-white)" }}>
         <section className="pb-4 pt-16 text-center md:pt-28">
           <div className="container-x mx-auto max-w-3xl">
-            {forCreators ? <p className="eyebrow">Creator program</p> : null}
+            {forCreators ? <p className="eyebrow">{invite ? (to ? `${to}, you’re invited` : "You’re invited") : "Creator program"}</p> : null}
             <h1
               className={`${forCreators ? "mt-4 " : ""}font-display font-semibold tracking-[-0.02em] text-[var(--ink)] text-balance`}
               style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
             >
-              {forCreators
-                ? "Share your code. Earn up to 20%."
-                : "For coordinators"}
+              {invite
+                ? "Be one of our first creators."
+                : forCreators
+                  ? "Share your code. Earn up to 20%."
+                  : "For coordinators"}
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-[var(--slate)] md:text-[17px]">
               {forCreators ? (
@@ -134,7 +144,8 @@ export default function PartnerInquiry() {
                 {forCreators ? applyLabel : coordinatorLabel}
               </button>
             </div>
-            <p className="mt-4 text-[14px] text-[var(--slate)]">
+            {/* (the invitation keeps to the one thing: applying) */}
+            {invite ? null : <p className="mt-4 text-[14px] text-[var(--slate)]">
               {forCreators ? (
                 <Link
                   to="/partners"
@@ -150,7 +161,7 @@ export default function PartnerInquiry() {
                   Creator or influencer? See the creator program
                 </Link>
               )}
-            </p>
+            </p>}
             {forCreators ? (
               <CharacterTrio className="mx-auto mt-8 w-[200px] md:w-[240px]" />
             ) : null}

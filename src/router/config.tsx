@@ -91,6 +91,7 @@ const routes: RouteObject[] = [
   { path: "/rate", element: <RatePage /> },
   { path: "/p/:code", element: <PartnerLink /> },
   { path: "/partners", element: <PartnerInquiry /> },
+  { path: "/creators", element: <PartnerInquiry /> },
   {
     path: "/account",
     element: <PortalLayout />,

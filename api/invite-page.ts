@@ -205,6 +205,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
  *  Shared plans (/view/<token>) get the plain app, kept out of search results. */
 function toolPage(req: VercelRequest, res: VercelResponse, shellHtml: string, origin: string) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
+  if (req.query.path === "creators") return creatorsPage(req, res, shellHtml, origin);
   if (req.query.path === "view") {
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
     res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
@@ -246,6 +247,40 @@ function toolPage(req: VercelRequest, res: VercelResponse, shellHtml: string, or
     .replace(/<meta\s+property="og:(title|description|type|url|site_name)"[\s\S]*?\/>/g, "")
     .replace("</head>", `    ${tags}\n  </head>`)
     .replace('<div id="root"></div>', `<div id="root">${body}</div>`);
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
+  return res.status(200).send(html);
+}
+
+/** /creators: the creator invitation. ?to=Maria puts their name in the link's preview (the page
+ *  greets them too: src/pages/enquire/partner.tsx, same name rule). Kept out of search results:
+ *  it's a link we send, and /partners?type=creator is the program's own page. */
+function creatorsPage(req: VercelRequest, res: VercelResponse, shellHtml: string, origin: string) {
+  const raw = typeof req.query.to === "string" ? req.query.to : "";
+  const to = raw.replace(/[^\p{L}\p{M}\s.'’-]/gu, "").replace(/\s+/g, " ").trim().slice(0, 40);
+  const title = to ? `${to}, you’re invited to be an RSVP Studio creator` : "You’re invited to be an RSVP Studio creator";
+  const description = "Share your code with the couples and families you work with. They get 10% off their event website, and you earn up to 20%.";
+  const url = `${origin}/creators${to ? `?to=${encodeURIComponent(to)}` : ""}`;
+  const tags = [
+    `<title>${esc(title)}</title>`,
+    `<meta name="description" content="${esc(description)}" />`,
+    `<meta name="robots" content="noindex" />`,
+    `<meta property="og:title" content="${esc(title)}" />`,
+    `<meta property="og:description" content="${esc(description)}" />`,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="The RSVP Studio" />`,
+    `<meta property="og:url" content="${esc(url)}" />`,
+    `<meta property="og:image" content="https://thersvpstudio.com/brand/og-creators.jpg?v=1" />`,
+    `<meta property="og:image:type" content="image/jpeg" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="The RSVP Studio: be one of our first creators" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+  ].join("\n    ");
+  const html = shellHtml
+    .replace(/<title>[\s\S]*?<\/title>/, "")
+    .replace(/<meta\s+name="description"[\s\S]*?\/>/, "")
+    .replace(/<meta\s+(property="og:[\w:]+"|name="twitter:[\w:]+")[\s\S]*?\/>/g, "")
+    .replace("</head>", `    ${tags}\n  </head>`);
   res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
   return res.status(200).send(html);
 }
