@@ -27,6 +27,7 @@ export const useStudio = () => useOutletContext<StudioOutlet>();
 const NAV: { to: string; label: string; icon: string; end?: boolean; ownerOnly?: boolean }[] = [
   { to: "/studio", label: "Overview", icon: "ri-dashboard-3-line", end: true },
   { to: "/studio/leads", label: "Leads", icon: "ri-user-star-line" },
+  { to: "/studio/emails", label: "Emails", icon: "ri-mail-star-line" },
   { to: "/studio/partners", label: "Partners", icon: "ri-hand-heart-line" },
   { to: "/studio/projects", label: "Projects", icon: "ri-folder-3-line" },
   { to: "/studio/inbox", label: "Inbox", icon: "ri-inbox-2-line" },

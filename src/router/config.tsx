@@ -52,6 +52,7 @@ const StudioClients = lazy(() => import("../pages/studio/pages/ClientsPage"));
 const StudioTeam = lazy(() => import("../pages/studio/pages/TeamPage"));
 const StudioSupport = lazy(() => import("../pages/studio/pages/SupportPage"));
 const StudioLeads = lazy(() => import("../pages/studio/pages/LeadsPage"));
+const StudioEmails = lazy(() => import("../pages/studio/pages/EmailsPage"));
 const StudioTemplates = lazy(() => import("../pages/studio/templates/TemplatesPage"));
 const StudioTemplateNew = lazy(() => import("../pages/studio/templates/TemplateNewPage"));
 const StudioTemplateDetail = lazy(() => import("../pages/studio/templates/TemplateDetailPage"));
@@ -121,6 +122,7 @@ const routes: RouteObject[] = [
       { path: "inbox", element: <StudioInboxPage /> },
       { path: "support", element: <StudioSupport /> },
       { path: "leads", element: <StudioLeads /> },
+      { path: "emails", element: <StudioEmails /> },
       { path: "partners", element: <StudioPartners /> },
       { path: "blog", element: <StudioBlog /> },
       { path: "website", element: <StudioWebsite /> },
