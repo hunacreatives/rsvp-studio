@@ -8,9 +8,10 @@ import { CharacterTrio } from "@/components/CharacterLoader";
  * as normal. Once the password is entered it's remembered on that browser.
  *
  * This is a soft gate to keep the site private until launch (the check runs in the browser), not
- * security. To open the site to everyone, set LAUNCH_GATE to false.
+ * security. To open the site to everyone, set LAUNCH_GATE to false. It also opens by itself once the countdown reaches
+ * zero, in every tab already showing it, so a launch never waits on a deploy.
  */
-export const LAUNCH_GATE = true;
+export const LAUNCH_GATE = false;
 const LAUNCH_AT = new Date("2026-11-02T00:00:00+08:00"); // Monday, 2 November 2026, Manila
 const PASS_SHA256 = "41885a91374fbd4df15e04f827c4c093a021d7e4be364cb292f3805a6a9eef94";
 const KEY = "rsvp-launch-pass";
@@ -53,7 +54,7 @@ export default function LaunchGate({ pathname, children }: { pathname: string; c
   const [email, setEmail] = useState("");
   const [joined, setJoined] = useState<"idle" | "sending" | "done" | "error">("idle");
   const left = useCountdown();
-  if (ok || OPEN.test(pathname)) return <>{children}</>;
+  if (ok || left.done || OPEN.test(pathname)) return <>{children}</>;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
