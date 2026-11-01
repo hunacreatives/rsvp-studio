@@ -187,14 +187,15 @@ function AppHeader({ onNewProject }: { onNewProject: () => void }) {
     <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-white/95 backdrop-blur">
       <div className="container-x flex h-16 items-center gap-3">
         <Link to="/" className="flex min-h-11 shrink-0 items-center" aria-label="The RSVP Studio website">
-          <img src="/brand/logotype-dark.png" alt="The RSVP Studio" className="h-8 w-auto md:h-9" />
+          <img src="/brand/logotype-dark.webp" alt="The RSVP Studio" className="h-8 w-auto md:h-9" />
         </Link>
         <span className="flex-1" />
         <button
           onClick={onNewProject}
-          className="hidden min-h-10 items-center gap-1.5 rounded-full bg-[var(--ink)] px-4 text-[14px] font-medium text-white transition-colors hover:bg-[#1b2148] lg:inline-flex"
+          aria-label="New event"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[var(--ink)] px-3 text-[14px] font-medium text-white transition-colors hover:bg-[#1b2148] sm:px-4"
         >
-          <i className="ri-add-line text-[17px]" /> New event
+          <i className="ri-add-line text-[17px]" /> <span className="hidden sm:inline">New event</span>
         </button>
         <Link to="/account/settings" aria-label="Your account" title={profile.full_name ?? "Your account"} className="grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-black/5">
           <img src={profile.avatar_url || defaultAvatar(profile.full_name)} alt="" className="h-9 w-9 rounded-full object-cover ring-1 ring-[rgba(0,7,39,0.1)]" />

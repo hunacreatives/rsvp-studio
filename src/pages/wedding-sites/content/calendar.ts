@@ -15,7 +15,15 @@ export function calendarUrl(content: EventContent): string | null {
   const hm = (x: Date) => `T${pad(x.getHours())}${pad(x.getMinutes())}00`;
   const hasTime = content.eventDate.includes("T");
   const end = new Date(d);
-  if (hasTime) end.setHours(d.getHours() + 4);
+  if (hasTime) {
+    // until the programme's last item ends (an hour after it starts when it gives no end), at least 4 hours
+    end.setHours(d.getHours() + 4);
+    for (const s of content.schedule ?? []) {
+      const last = new Date(s.endTime || s.startTime);
+      if (!s.endTime) last.setHours(last.getHours() + 1);
+      if (!Number.isNaN(last.getTime()) && last > end && last.getTime() - d.getTime() < 36 * 3_600_000) end.setTime(last.getTime());
+    }
+  }
   else end.setDate(d.getDate() + 1);
   const names = content.hosts.map((h) => h.name).filter(Boolean).join(" & ");
   const params = new URLSearchParams({

@@ -70,7 +70,9 @@ function Block({ title, reveal, children, id }: { title: string; reveal: boolean
 
 const Hint = ({ children }: { children: ReactNode }) => <p className="ll-hint">{children}</p>;
 
-export default function LoveLetterTemplate({ content, settings, editorPreview = false, live = false }: TemplateProps<BaseTemplateSettings>) {
+export default function LoveLetterTemplate({ content, settings, editorPreview = false, live: published = false, demo = false }: TemplateProps<BaseTemplateSettings>) {
+  // the design preview page is a whole page too, so it behaves like the published one
+  const live = published || demo;
   const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
   const reduced = usePrefersReducedMotion();

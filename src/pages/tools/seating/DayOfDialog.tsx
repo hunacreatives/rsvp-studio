@@ -73,7 +73,7 @@ export default function DayOfDialog({ chart, premium, onClose, onLink }: { chart
               <button className="sp-btn soft" onClick={onClose}>
                 Not now
               </button>
-              <Link className="sp-btn primary" to={`/account/projects/${chart.site!.eventId}?tab=website`}>
+              <Link className="sp-btn primary" to={`/account/events/${chart.site!.eventId}/site-builder`}>
                 See Premium
               </Link>
             </div>

@@ -12,7 +12,7 @@ export default function TierCards() {
           </p>
           <p className="mt-2 font-display text-[2.6rem] font-semibold leading-none">{t.rate}%</p>
           <p className="mt-3 text-[15px]">{t.at ? `After ${t.at} paying clients` : "From your first client"}</p>
-          <p className="mt-1 text-[14px] opacity-80">₱{((20000 * 0.9 * t.rate) / 100).toLocaleString("en-PH")} on a ₱20,000 booking</p>
+          <p className="mt-1 text-[14px] opacity-80">₱{((20000 * 0.9 * t.rate) / 100).toLocaleString("en-PH")} on a ₱20,000 booking <span className="whitespace-nowrap">(₱18,000 after their 10%&nbsp;off)</span></p>
         </li>
       ))}
     </ol>

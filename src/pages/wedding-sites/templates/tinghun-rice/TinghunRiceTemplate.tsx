@@ -163,7 +163,7 @@ export default function TinghunRiceTemplate({ content, settings, editorPreview =
     </section>
   );
 
-  const invitationFallback = showParents ? "request the pleasure of your company at the Ting Hun of their children" : "We request the pleasure of your company at our Ting Hun";
+  const invitationFallback = showParents ? "request the pleasure of your company at the Ting\u00a0Hun of their children" : "We request the pleasure of your company at our Ting\u00a0Hun";
 
   return (
     <div className={cls} style={vars}>

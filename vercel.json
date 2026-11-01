@@ -3,6 +3,13 @@
     "sin1"
   ],
   "outputDirectory": "out",
+  "redirects": [
+    {
+      "source": "/enquire/partner",
+      "destination": "/partners",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
@@ -69,6 +76,58 @@
     {
       "source": "/tools/seating-chart-maker/day/:token",
       "destination": "/api/invite-page?op=page&path=view"
+    },
+    {
+      "source": "/build",
+      "destination": "/api/invite-page?op=meta&p=/build"
+    },
+    {
+      "source": "/build/:rest*",
+      "destination": "/api/invite-page?op=meta&p=/build"
+    },
+    {
+      "source": "/partners",
+      "destination": "/api/invite-page?op=meta&p=/partners"
+    },
+    {
+      "source": "/faqs",
+      "destination": "/api/invite-page?op=meta&p=/faqs"
+    },
+    {
+      "source": "/collections",
+      "destination": "/api/invite-page?op=meta&p=/collections"
+    },
+    {
+      "source": "/services",
+      "destination": "/api/invite-page?op=meta&p=/services"
+    },
+    {
+      "source": "/services/:page",
+      "destination": "/api/invite-page?op=meta&p=/services/:page"
+    },
+    {
+      "source": "/portfolio",
+      "destination": "/api/invite-page?op=meta&p=/portfolio"
+    },
+    {
+      "source": "/portfolio/:slug",
+      "destination": "/api/invite-page?op=meta&p=/portfolio/:slug"
+    },
+    {
+      "source": "/contact",
+      "destination": "/api/invite-page?op=meta&p=/contact"
+    },
+    {
+      "source": "/enquire",
+      "destination": "/api/invite-page?op=meta&p=/enquire"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/api/invite-page?op=meta&p=/privacy"
+    },
+    {
+      "source": "/terms",
+      "destination": "/api/invite-page?op=meta&p=/terms"
     },
     {
       "source": "/(.*)",

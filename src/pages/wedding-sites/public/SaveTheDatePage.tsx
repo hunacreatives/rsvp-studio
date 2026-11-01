@@ -126,7 +126,7 @@ function Signup({ slug, names, preview }: { slug: string; names: string; preview
       /STD_NAME/.test(m)
         ? "Please add your name."
         : /STD_CONTACT/.test(m)
-          ? "Please add an email address or a mobile number."
+          ? "Please add your email address."
           : /STD_BUSY/.test(m)
             ? "Lots of people are signing up right now. Please try again in a minute."
             : /STD_CLOSED/.test(m)
@@ -152,8 +152,8 @@ function Signup({ slug, names, preview }: { slug: string; names: string; preview
         <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" autoCapitalize="words" maxLength={120} required />
       </label>
       <label>
-        <span>Email or mobile number</span>
-        <input value={contact} onChange={(e) => setContact(e.target.value)} autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} maxLength={254} required />
+        <span>Email</span>
+        <input type="email" value={contact} onChange={(e) => setContact(e.target.value)} autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} maxLength={254} required />
       </label>
       {error ? <p className="stdp-error">{error}</p> : null}
       <button type="submit" className="stdp-btn" disabled={state === "sending"}>

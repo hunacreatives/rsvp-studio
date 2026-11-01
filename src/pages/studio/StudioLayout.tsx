@@ -119,7 +119,7 @@ function Shell() {
       <aside className="hidden bg-[var(--ink)] text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[244px] lg:shrink-0 lg:flex-col">
         <div className="px-6 py-7">
           <Link to="/studio" className="block">
-            <img src="/brand/logotype-white.png" alt="The RSVP Studio" className="h-9 w-auto" />
+            <img src="/brand/logotype-white.webp" alt="The RSVP Studio" className="h-9 w-auto" />
             <span className="mt-2 block text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">Studio Console</span>
           </Link>
         </div>
@@ -159,7 +159,7 @@ function Shell() {
         {demo ? <div className="bg-[var(--acc-yellow)] py-1.5 text-center text-[12px] font-medium text-[var(--ink)]">Demo data — read-only</div> : null}
         <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--line)] bg-[#f6f6f3]/90 px-4 py-2 backdrop-blur sm:px-5 md:px-8 lg:py-3">
           <Link to="/studio" className="flex min-h-[44px] shrink-0 items-center gap-2 lg:hidden" aria-label="Studio overview">
-            <img src="/brand/logotype-dark.png" alt="The RSVP Studio" className="h-7 w-auto" />
+            <img src="/brand/logotype-dark.webp" alt="The RSVP Studio" className="h-7 w-auto" />
             <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--slate)]">Console</span>
           </Link>
           <p className="hidden whitespace-nowrap text-[13px] text-[var(--slate)] sm:block">

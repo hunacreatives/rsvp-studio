@@ -87,6 +87,30 @@ export function markdownToHtml(source: string): string {
   return out.join("\n");
 }
 
+/** Markdown to plain text, for structured data. */
+const plain = (md: string) =>
+  md.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)\s]+\)/g, "$1").replace(/\*\*([^*]+)\*\*|\*([^*]+)\*/g, "$1$2").replace(/\s+/g, " ").trim();
+
+/** A post's "## Frequently asked questions" section: each "### question" and the text under it
+ *  (FAQPage data, so search engines and AI answers can read them as questions and answers). */
+function faqOf(body: string): { q: string; a: string }[] {
+  const out: { q: string; a: string[] }[] = [];
+  let inFaq = false;
+  for (const raw of body.replace(/\r\n/g, "\n").split("\n")) {
+    const t = raw.trim();
+    if (/^##\s/.test(t)) inFaq = /^##\s+(frequently asked questions|faqs?)\s*$/i.test(t);
+    else if (inFaq && /^###\s/.test(t)) out.push({ q: t.replace(/^###\s+/, ""), a: [] });
+    else if (inFaq && t && out.length) out[out.length - 1].a.push(t);
+  }
+  return out.filter((f) => f.a.length).map((f) => ({ q: plain(f.q), a: plain(f.a.join(" ")) }));
+}
+
+/** The cover and every photo in the article, as full URLs (for Google Images). */
+function imagesOf(post: Post, cover: string): string[] {
+  const inBody = [...post.body.matchAll(/^\s*!\[[^\]]*\]\(([^)\s]+)\)\s*$/gm)].map((m) => (m[1].startsWith("/") ? `${SITE}${m[1]}` : m[1]));
+  return [cover, ...inBody].filter((u) => /^https:\/\//.test(u));
+}
+
 const strip = (html: string) =>
   html
     .replace(/<title>[\s\S]*?<\/title>/, "")
@@ -120,6 +144,8 @@ export async function blogPage(db: SupabaseClient, slugParam: unknown, res: Verc
   const title = post.seo_title?.trim() || post.title;
   const description = post.seo_description?.trim() || post.excerpt?.trim() || "";
   const image = post.cover_url && /^https:\/\//.test(post.cover_url) ? post.cover_url : "";
+  const images = imagesOf(post, image);
+  const faq = faqOf(post.body);
   const ld = {
     "@context": "https://schema.org",
     "@graph": [
@@ -127,7 +153,7 @@ export async function blogPage(db: SupabaseClient, slugParam: unknown, res: Verc
         "@type": "BlogPosting",
         headline: post.title,
         description: description || undefined,
-        image: image || undefined,
+        image: images.length ? images : undefined,
         datePublished: post.published_at,
         dateModified: post.updated_at,
         articleSection: post.category,
@@ -143,6 +169,9 @@ export async function blogPage(db: SupabaseClient, slugParam: unknown, res: Verc
           { "@type": "ListItem", position: 3, name: post.title, item: url },
         ],
       },
+      ...(faq.length
+        ? [{ "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }]
+        : []),
     ],
   };
   const tags = [

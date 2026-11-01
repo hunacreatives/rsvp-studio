@@ -2,7 +2,7 @@
 // background), --op-line its lines and text (the palette's ink), --op-out the area around it.
 // The ball is always optic yellow. Container units, so the scaled builder preview matches.
 export const OP_CSS = `
-.op{--op-ball:#d8ee4c;--op-card:#ffffff;--op-ink-on-card:#14213a;position:relative;min-height:100svh;padding:clamp(18px,5cqw,56px) clamp(10px,3cqw,40px) 0;overflow-x:clip;container-type:inline-size;
+.op{text-wrap:pretty;--op-ball:#d8ee4c;--op-card:#ffffff;--op-ink-on-card:#14213a;position:relative;min-height:100svh;padding:clamp(18px,5cqw,56px) clamp(10px,3cqw,40px) 0;overflow-x:clip;container-type:inline-size;
   background:var(--op-out);background-image:radial-gradient(color-mix(in srgb,#fff 6%,transparent) 1px,transparent 1.4px);background-size:7px 7px;color:var(--op-line);font-family:var(--op-body);-webkit-font-smoothing:antialiased}
 .op *{box-sizing:border-box}
 .op p,.op li{text-wrap:pretty}
@@ -197,5 +197,7 @@ export const OP_CSS = `
 .op .photo-slot__label{display:grid;justify-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 
 @container (max-width:460px){.op-hero{grid-template-columns:1.05fr 1fr}.op-headline{font-size:clamp(1.9rem,11cqw,2.6rem)}.op-rounds li{grid-template-columns:36px 66px 1fr}}
+/* short lines: no single word left on the last line */
+.op p.op-text{text-wrap:balance}
 @media (prefers-reduced-motion:reduce){.op *,.op{animation:none!important;transition:none!important}.op-net{opacity:1;transform:none}.op-line__paint,.op-center--v{transform:none}}
 `;

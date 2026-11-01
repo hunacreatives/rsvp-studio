@@ -69,9 +69,6 @@ export default function RsvpCard({ content, editorPreview }: { content: EventCon
           <div>
             <label className="sb-label" htmlFor={`${id}-contact`}>{form.contactMode === "mobile" ? "Mobile number" : "Email"}</label>
             <input id={`${id}-contact`} className="sb-field" {...form.contactProps} autoCapitalize="none" autoCorrect="off" spellCheck={false} value={form.values.contact ?? ""} onChange={(e) => form.set("contact", e.target.value)} />
-            <button type="button" className="sb-link" onClick={() => form.toggleContact(`${id}-contact`)}>
-              {form.contactToggleLabel}
-            </button>
           </div>
           {going || editorPreview ? (
             <div>

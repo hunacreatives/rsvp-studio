@@ -15,11 +15,29 @@ export type Invitee = { id: string; name: string; contact: string | null; party_
 
 /** "Maria Santos, maria@email.com, 2, Table 5" — name, then (optional, any order) an email
  *  or mobile, a party size, and a table. */
+// One pasted line into its cells: tabs (copied from Excel or Sheets), or commas and semicolons with "quoted" cells
+// kept whole ("Lopez, Maria" is one name)
+function cellsOf(line: string) {
+  if (line.includes("\t")) return line.split("\t").map((p) => p.trim().replace(/^"(.*)"$/, "$1").trim());
+  const out: string[] = [];
+  let cur = "", quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { if (quoted && line[i + 1] === '"') { cur += '"'; i++; } else quoted = !quoted; }
+    else if ((ch === "," || ch === ";") && !quoted) { out.push(cur.trim()); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
+}
+// A header row from a spreadsheet ("Name, Email, Party size"): not a guest
+const isHeader = (parts: string[]) => /^(names?|guests?|guest names?|full names?|pangalan)$/i.test(parts[0] ?? "") && parts.slice(1).every((p) => !p.includes("@") && !/\d/.test(p));
+
 export function parseInviteLines(text: string) {
   return text
     .split(/\r?\n/)
-    .map((line) => line.split(/\t|,|;/).map((p) => p.trim()).filter(Boolean))
-    .filter((parts) => parts.length && parts[0].length <= 120)
+    .map((line) => cellsOf(line).filter(Boolean))
+    .filter((parts) => parts.length && parts[0].length <= 120 && !isHeader(parts))
     .map((parts) => {
       const [name, ...rest] = parts;
       const contact = rest.find((p) => p.includes("@") || phoneKey(p)) ?? null;

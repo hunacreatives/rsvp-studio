@@ -8,7 +8,7 @@ import AuthModal from "./AuthModal";
 import { defaultAvatar } from "@/pages/account/portal/format";
 import { goTo } from "@/lib/goTo";
 
-const LOGO = "/brand/logotype-dark.png";
+const LOGO = "/brand/logotype-dark.webp";
 
 // Every page mounts its own <Navbar/>, so each navigation would otherwise
 // start from "logged out" and flash the Login/Sign Up button until the
@@ -624,6 +624,10 @@ const SEARCH_INDEX = [
     ...(i.mega?.groups ?? []).flatMap((g) => g.links.map((l) => ({ label: l.label, to: l.to, where: `${i.label} · ${g.title}`, text: `${l.label} ${g.title} ${i.label}` }))),
   ]),
   ...FAQ_CATEGORIES.flatMap((c) => c.items.map((it) => ({ label: it.q, to: `/faqs#${c.slug}`, where: `FAQ · ${c.category}`, text: `${it.q} ${it.a}` }))),
+  // words people search with that the pages don't use
+  { label: "Prices: Build Your Website", to: "/build#pricing", where: "Page", text: "price prices pricing cost costs how much fee fees peso premium free plan plans" },
+  { label: "Get a quote", to: "/enquire#start", where: "Page", text: "price prices pricing cost quote how much package packages custom invitation" },
+  { label: "Mesa: free seating charts", to: "/tools/seating-chart-maker", where: "Page", text: "seating chart table plan seat guests mesa" },
 ];
 function siteSearch(q: string) {
   const words = q.toLowerCase().split(/\s+/).filter((w) => w.length > 1);

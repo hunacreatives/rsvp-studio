@@ -83,7 +83,7 @@ function CollectionsGrid() {
                 <h3 className="mt-3 font-display text-lg font-semibold leading-snug text-[var(--ink)] sm:mt-4 sm:text-xl">
                   {c.name}
                 </h3>
-                <p className="mt-1 text-pretty text-[13px] leading-snug text-[var(--slate)] sm:text-sm sm:leading-normal">{c.tagline}</p>
+                <p className="mt-1 text-balance text-[13px] leading-snug text-[var(--slate)] sm:text-sm sm:leading-normal">{c.tagline}</p>
                 {/* Touch screens have no hover, so the card's action is spelled out. */}
                 <span className="mt-2 inline-block text-[13px] font-medium text-[var(--acc-blue)] [@media(hover:hover)]:hidden">
                   Have us make this →

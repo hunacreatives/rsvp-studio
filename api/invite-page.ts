@@ -5,6 +5,7 @@ import { sitemap } from "./_lib/sitemap.js";
 import { qrHandler } from "./_lib/qr.js";
 import { FACEBOOK_REVIEWS_URL, readReviewToken } from "./_lib/support-mail.js";
 import { blogPage } from "./_lib/blog-page.js";
+import { metaFor } from "./_lib/page-meta.js";
 import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_H1, SEATING_LAYOUT, SEATING_PATH, SEATING_STEPS, SEATING_SUB, SEATING_TITLE } from "./_lib/seating-copy.js";
 
 // /invite/:slug, served with the event's own title, description and photo in the
@@ -146,12 +147,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!shell) {
     // Couldn't fetch the app shell: send people to the plain page instead (no preview tags).
     res.setHeader("Cache-Control", "no-store");
-    return res.status(503).send(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="2"><p style="font-family:sans-serif">Loading the invitation…</p>`);
+    return res.status(503).send(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="2"><p style="font-family:sans-serif">${req.query.op === "meta" ? "Loading…" : "Loading the invitation…"}</p>`);
   }
   let html = shell.html;
 
   // Our own tool pages (?op=page): their title, description and text in the HTML itself.
   if (req.query.op === "page") return toolPage(req, res, html, origin);
+  // The site's main pages (?op=meta&p=/build): their own title and description in the preview.
+  if (req.query.op === "meta") return metaPage(req, res, html, origin);
   // Blog articles (?op=blog): their own title, description, preview and text in the HTML.
   if (req.query.op === "blog") return blogPage(db, req.query.slug, res, html);
 
@@ -250,6 +253,33 @@ function toolPage(req: VercelRequest, res: VercelResponse, shellHtml: string, or
     .replace(/<meta\s+property="og:(title|description|type|url|site_name)"[\s\S]*?\/>/g, "")
     .replace("</head>", `    ${tags}\n  </head>`)
     .replace('<div id="root"></div>', `<div id="root">${body}</div>`);
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
+  return res.status(200).send(html);
+}
+
+/** The site's own pages (vercel.json sends the main ones here): the same title and description the
+ *  app sets (api/_lib/page-meta.ts), in the HTML, since link previews don't run the app. The
+ *  preview image stays the site's. */
+function metaPage(req: VercelRequest, res: VercelResponse, shellHtml: string, origin: string) {
+  const raw = typeof req.query.p === "string" ? req.query.p : "/";
+  const path = /^\/[a-z0-9/-]{0,120}$/.test(raw) ? raw.replace(/(.)\/$/, "$1") : "/";
+  const { title, description } = metaFor(path);
+  const url = `${origin}${path}`;
+  const tags = [
+    `<title>${esc(title)}</title>`,
+    `<meta name="description" content="${esc(description)}" />`,
+    `<meta property="og:title" content="${esc(title)}" />`,
+    `<meta property="og:description" content="${esc(description)}" />`,
+    `<meta property="og:url" content="${esc(url)}" />`,
+    `<link rel="canonical" href="${esc(url)}" />`,
+  ].join("\n    ");
+  const html = shellHtml
+    .replace(/<title>[\s\S]*?<\/title>/, "")
+    .replace(/<meta\s+name="description"[\s\S]*?\/>/, "")
+    .replace(/<meta\s+property="og:(title|description|url)"[\s\S]*?\/>/g, "")
+    .replace(/<link\s+rel="canonical"[^>]*>/, "")
+    .replace("</head>", `    ${tags}\n  </head>`);
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
   return res.status(200).send(html);
 }

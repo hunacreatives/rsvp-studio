@@ -291,10 +291,11 @@ textarea.pg-field{padding:10px 12px;border:1px solid color-mix(in srgb,var(--pg-
 .pg-alive .pg-ripple--2{animation-duration:7.5s;animation-direction:alternate-reverse}
 @keyframes pg-ripple{0%,100%{translate:0 0}50%{translate:6px 0}}
 .pg-petals{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.pg-fall{position:absolute;top:-6%;width:calc(clamp(10px,1.6cqw,18px) * var(--ps,1));animation:pg-fall linear infinite;opacity:0}
+.pg-fall{position:absolute;top:0;height:100%;width:calc(clamp(10px,1.6cqw,18px) * var(--ps,1));animation:pg-fall linear infinite;opacity:0}
 .pg-fall__petal{display:block;width:100%;height:auto;animation:pg-flutter 3.2s ease-in-out infinite}
 .pg-fall__petal path{fill:color-mix(in srgb,var(--pg-peony,#e4a3a3) 70%,transparent);stroke:var(--pg-line);stroke-width:.6}
-@keyframes pg-fall{0%{top:-6%;translate:0 0;opacity:0}8%{opacity:.85}50%{translate:-28px 0}92%{opacity:.85}100%{top:104%;translate:18px 0;opacity:0}}
+@keyframes pg-fall{0%{translate:0 -6%;opacity:0}8%{opacity:.85}50%{translate:-28px 49%}92%{opacity:.85}100%{translate:18px 104%;opacity:0}}
+.pg-away .pg-hero *{animation-play-state:paused}
 @keyframes pg-flutter{0%,100%{rotate:-25deg;scale:1 1}50%{rotate:35deg;scale:.75 1}}
 @media (prefers-reduced-motion:reduce){.pg-root *,.pg-root *::before,.pg-root *::after{animation:none!important;transition:none!important}}
 `;

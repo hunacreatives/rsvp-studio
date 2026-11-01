@@ -160,12 +160,20 @@ export function useOcean(
       } else gl.uniform1f(uBeam, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
+    // While the page scrolls the sea follows it every frame; on its own, 30 frames a second is plenty.
+    let last = -1e9;
+    let moved = true;
     const loop = (now: number) => {
-      draw(now);
+      if (moved || now - last >= 32) {
+        moved = false;
+        last = now;
+        draw(now);
+      }
       if (animate && visible) raf = requestAnimationFrame(loop);
     };
     const kick = () => {
       cancelAnimationFrame(raf);
+      last = -1e9;
       raf = requestAnimationFrame(loop);
     };
 
@@ -200,6 +208,7 @@ export function useOcean(
     io.observe(cv);
     // A still sea still has to follow the page when it scrolls.
     const onScroll = () => {
+      moved = true;
       if (!animate) kick();
     };
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });

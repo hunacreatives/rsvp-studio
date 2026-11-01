@@ -27,6 +27,15 @@ export const LOVE_LETTER_CSS = `
 .ll-intro__open{position:absolute;left:50%;bottom:12svh;z-index:3;min-height:44px;padding:10px 18px;border:none;background:none;translate:-50% 0;font-size:clamp(14px,3.4cqw,19px);white-space:nowrap;cursor:pointer;}
 .ll-intro__open::after{content:"";display:block;width:36px;height:1px;margin:10px auto 0;background:currentColor;opacity:.6;}
 .ll-intro__credit{position:absolute;left:0;right:0;bottom:10px;z-index:3;margin:0;text-align:center;font-size:12px;color:#d9d0b8;opacity:.8;}
+/* a phone on its side: the names go up and shrink, the ribbon and seal drop below them */
+@media (orientation:landscape) and (max-height:560px){
+.ll-intro__top{top:7svh;}
+.ll-intro__names{margin-top:4px;font-size:clamp(34px,13svh,64px);}
+.ll-intro__ribbon{top:62svh;height:52px;}
+.ll-intro__seal{width:clamp(76px,25svh,120px);}
+.ll-intro__open{bottom:9svh;min-height:40px;padding:6px 18px;}
+.ll-intro__open::after{margin-top:6px;}
+}
 
 /* ---------- Page 2: the invitation ---------- */
 .ll-inside{position:relative;background:var(--ll-cream);}

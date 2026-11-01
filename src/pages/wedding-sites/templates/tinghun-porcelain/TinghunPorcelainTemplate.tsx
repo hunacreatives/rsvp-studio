@@ -88,14 +88,15 @@ function useHandscroll(enabled: boolean, ref: RefObject<HTMLElement | null>, onO
       (entries) => {
         for (const e of entries) {
           if (!e.isIntersecting) continue;
-          if (e.intersectionRatio >= 0.4 || e.intersectionRect.height > window.innerHeight * 0.45) {
+          // on a phone the paper is taller than the screen, so a third of the screen is enough
+          if (e.intersectionRatio >= 0.4 || e.intersectionRect.height > window.innerHeight * 0.3) {
             measure();
             onOpen();
             io.disconnect();
           }
         }
       },
-      { threshold: [0, 0.2, 0.4, 0.6] },
+      { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.6] },
     );
     io.observe(el);
     window.addEventListener("resize", measure);
@@ -210,14 +211,24 @@ export default function TinghunPorcelainTemplate({ content, settings, editorPrev
   // Always a little alive on the published page and the preview: the branches sway, petals
   // drift, the plate turns, the ducks bob. Never in the builder, on the card, or with less motion.
   const alive = motion && !gallery;
-  const cls = ["pg-root", celadon ? "pg-celadon" : "", gallery ? "pg-gallery" : "", play ? "pg-play" : "", play && !deepLink ? "pg-draw" : "", alive ? "pg-alive" : ""].filter(Boolean).join(" ");
+  // ...and only while the hero is on screen: scrolled past it, the garden holds still
+  const heroRef = useRef<HTMLElement>(null);
+  const [heroAway, setHeroAway] = useState(false);
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!alive || !el) return;
+    const io = new IntersectionObserver(([e]) => setHeroAway(!e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [alive]);
+  const cls = ["pg-root", celadon ? "pg-celadon" : "", gallery ? "pg-gallery" : "", play ? "pg-play" : "", play && !deepLink ? "pg-draw" : "", alive ? "pg-alive" : "", heroAway ? "pg-away" : ""].filter(Boolean).join(" ");
 
   return (
     <div className={cls} style={vars}>
       <style>{PORCELAIN_CSS}</style>
       <div ref={pageRef} className="pg-page">
         {/* ---- The hero: a framed panel, peony at two corners, the names in a porcelain plate ---- */}
-        <header className="pg-hero">
+        <header ref={heroRef} className="pg-hero">
           <div className="pg-hero__panel pg-frame">
             <Corner className="pg-corner--tl" />
             <Corner className="pg-corner--tr" />
@@ -319,7 +330,7 @@ export default function TinghunPorcelainTemplate({ content, settings, editorPrev
               ) : vis.parents === false ? (
                 <HiddenSection k="parents" label="The families" editor={editorPreview} />
               ) : null}
-              <Field as="p" className="pg-invite__line" path="custom.invitation" value={customValue(content, "invitation")} fallback="request the pleasure of your company at the Ting Hun of their children" placeholder="" editor={editorPreview} multiline />
+              <Field as="p" className="pg-invite__line" path="custom.invitation" value={customValue(content, "invitation")} fallback="request the pleasure of your company at the Ting Hun of their children" placeholder="" editor={editorPreview} multiline />
             </div>
             <Ducks />
           </section>

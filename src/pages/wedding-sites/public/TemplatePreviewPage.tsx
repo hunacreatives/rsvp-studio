@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTemplateCatalog } from "../engine/catalog";
-import { getTemplateDefinition } from "../engine/registry";
+import { getTemplateDefinition, isOffered } from "../engine/registry";
 import { resolveTemplate } from "../engine/render";
 import { SiteCreditProvider } from "../engine/siteCredit";
 import { preloadTemplate, TemplateFallback } from "../engine/lazyTemplate";
@@ -27,7 +27,8 @@ export default function TemplatePreviewPage() {
   const framed = params.get("frame") === "1";
   const navigate = useNavigate();
   const { ready } = useTemplateCatalog();
-  const definition = getTemplateDefinition(templateId);
+  // a design that's no longer offered (hidden from the gallery) has no preview to start from
+  const definition = !ready || isOffered(templateId) ? getTemplateDefinition(templateId) : undefined;
   const resolved = definition ? resolveTemplate({ activeTemplateId: templateId, byTemplate: {} }) : undefined;
 
   useEffect(() => {

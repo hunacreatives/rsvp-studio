@@ -11,6 +11,8 @@ export interface CreateEventInput {
   hostNames: string[]; // 1 or 2, depending on eventType — see CreateEventForm
   venueName?: string; // omitted if "still deciding"
   eventDate?: string; // omitted if "still deciding"
+  /** The word after the name when it isn't the event type's own: "Debut" for a debut design (still a birthday). */
+  occasionLabel?: string;
   /** "Add a client": who to send the hand-over invite to, right after (optional). */
   clientEmail?: string;
 }
@@ -27,8 +29,9 @@ const EVENT_TYPE_LABEL: Record<EventType, string> = {
 function buildEventName(input: CreateEventInput): string {
   const names = input.hostNames.filter(Boolean);
   if (names.length >= 2) return `${names[0]} & ${names[1]}`;
-  if (names.length === 1) return `${names[0]}'s ${EVENT_TYPE_LABEL[input.eventType]}`;
-  return EVENT_TYPE_LABEL[input.eventType];
+  const label = input.occasionLabel ?? EVENT_TYPE_LABEL[input.eventType];
+  if (names.length === 1) return `${names[0]}'s ${label}`;
+  return label;
 }
 
 /**

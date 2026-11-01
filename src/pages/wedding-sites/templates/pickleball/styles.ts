@@ -4,7 +4,7 @@
 // opening under .pb-opening (published page only), the page turn under .pb-turning.
 
 export const PICKLEBALL_CSS = `
-.pb-root{position:relative;container-type:inline-size;overflow-x:clip;min-height:100%;background:var(--pb-cream);color:var(--pb-ink);font-family:var(--pb-sans);-webkit-font-smoothing:antialiased;}
+.pb-root{text-wrap:pretty;position:relative;container-type:inline-size;overflow-x:clip;min-height:100%;background:var(--pb-cream);color:var(--pb-ink);font-family:var(--pb-sans);-webkit-font-smoothing:antialiased;}
 .pb-root *{box-sizing:border-box;}
 .pb-root p,.pb-root li,.pb-root h1,.pb-root h2{text-wrap:pretty;}
 .pb-stripes{position:absolute;inset:0;z-index:0;-webkit-mask-image:url(/event-templates/pickleball/stripes-mask.webp);mask-image:url(/event-templates/pickleball/stripes-mask.webp);-webkit-mask-size:clamp(700px,100cqw,1400px) auto;mask-size:clamp(700px,100cqw,1400px) auto;-webkit-mask-repeat:repeat;mask-repeat:repeat;}
@@ -185,6 +185,9 @@ textarea.pb-field{resize:vertical;min-height:96px;}
 .pb-motion .pb-arch{animation:pb-rise .9s cubic-bezier(.2,.8,.2,1) .1s both;}
 
 /* ---------- The page turn (card → inside) ---------- */
+/* a phone on its side: keep the card's own proportions (the fit then scales it down whole),
+   so the button stays inside the frame instead of riding its bottom edge */
+@media (orientation:landscape) and (max-height:560px){.pb-card{width:min(100%,560px);padding:56px 60px 72px;}}
 .pb-turning .pb-card{animation:pb-card-out .65s cubic-bezier(.6,0,.4,1) both;}
 .pb-turning .pb-st{animation:pb-st-out .6s ease-in both !important;}
 .pb-turning .pb-intro__credit{opacity:0;transition:opacity .3s;}
@@ -229,4 +232,6 @@ textarea.pb-field{resize:vertical;min-height:96px;}
 .pb-shot:hover{transform:rotate(0) translateY(-4px) scale(1.03);z-index:3}
 .pb-shots .photo-slot--empty{display:grid;place-items:center;width:100%;height:100%;color:var(--pb-ink);font-size:11px;font-weight:600}
 .pb-shots .photo-slot__label{display:grid;justify-items:center;gap:6px}
+/* short lines: no single word left on the last line */
+.pb-root .pb-arch__title,.pb-root .pb-plan__what{text-wrap:balance}
 `;

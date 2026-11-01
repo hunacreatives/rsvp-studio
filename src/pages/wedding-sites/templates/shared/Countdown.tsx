@@ -16,6 +16,16 @@ export function Countdown({ iso, live, prefix = "ll" }: { iso: string; live: boo
   if (Number.isNaN(target)) return null;
   const left = Math.max(0, target - now);
   const d = Math.floor(left / 86_400_000), h = Math.floor(left / 3_600_000) % 24, m = Math.floor(left / 60_000) % 60, s = Math.floor(left / 1000) % 60;
+  // the day itself: not a row of zeros (the designs hide the countdown from the next day)
+  if (left === 0)
+    return (
+      <div className={`${prefix}-count`} role="timer" aria-label="It’s today">
+        <div className={`${prefix}-count__cell`}>
+          <span className={`${prefix}-count__n`}>Today</span>
+          <span className={`${prefix}-count__l`}>The day is here</span>
+        </div>
+      </div>
+    );
   const cell = (v: number, label: string) => (
     <div className={`${prefix}-count__cell`}>
       <span className={`${prefix}-count__n`}>{String(v).padStart(2, "0")}</span>

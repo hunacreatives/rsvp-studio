@@ -1190,7 +1190,7 @@ export default function Editor({ look, setLook, autoSeat, onStartOver }: { look:
         {siteEvent && eventPremium === false ? (
           <p className="sp-upsell">
             Replies update your seating plan with Premium.{" "}
-            <Link className="sp-link soft" to={`/account/projects/${siteEvent}?tab=website`}>
+            <Link className="sp-link soft" to={`/account/events/${siteEvent}/site-builder`}>
               See Premium
             </Link>
           </p>

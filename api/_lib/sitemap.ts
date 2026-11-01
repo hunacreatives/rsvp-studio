@@ -9,7 +9,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const SITE = "https://thersvpstudio.com";
 const PAGES = [
   "/", "/build", "/services", "/services/milestone", "/services/monogram", "/services/save-the-date", "/services/stationery",
-  "/services/rsvp", "/tools/seating-chart-maker", "/collections", "/portfolio", "/blog", "/faqs", "/contact", "/enquire", "/enquire/partner", "/partners", "/privacy", "/terms",
+  "/services/rsvp", "/tools/seating-chart-maker", "/collections", "/portfolio", "/faqs", "/contact", "/enquire", "/partners", "/privacy", "/terms",
+  // (/blog joins once it has a published article: it's added below with them; /enquire/partner is /partners)
 ];
 // Only works with a case-study page (a live site); the others redirect to the inquiry form.
 const PORTFOLIO = ["claudy-at-30", "tercel-at-41", "gel-at-30", "frances-jash", "carlo-and-trixia"];
@@ -25,6 +26,7 @@ export async function sitemap(db: SupabaseClient, res: VercelResponse) {
   const lines = [
     ...PAGES.map((p) => url(p)),
     ...PORTFOLIO.map((s) => url(`/portfolio/${s}`)),
+    ...((posts.data ?? []).length ? [url("/blog")] : []),
     ...((posts.data ?? []) as { slug: string; updated_at: string | null; published_at: string | null }[]).map((p) => url(`/blog/${p.slug}`, p.updated_at ?? p.published_at)),
     ...((templates.data ?? []) as { id: string }[]).map((t) => url(`/build/preview/${encodeURIComponent(t.id)}`)),
   ];

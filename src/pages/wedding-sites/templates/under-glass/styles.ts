@@ -37,7 +37,7 @@ const RIM_A = tear(11, 2.4);
 const RIM_C = tear(13, 3);
 
 export const UNDER_GLASS_CSS = `
-.ug-root{container-type:inline-size;position:relative;overflow-x:clip;color:var(--ug-ink);font-family:var(--ug-serif);font-size:18px;font-weight:450;
+.ug-root{text-wrap:pretty;container-type:inline-size;position:relative;overflow-x:clip;color:var(--ug-ink);font-family:var(--ug-serif);font-size:18px;font-weight:450;
   /* the whole page is the table (text always sits on paper on it) */
   background-color:#3a2216;background-image:linear-gradient(90deg,rgba(0,0,0,.28),rgba(0,0,0,0) 18%,rgba(0,0,0,0) 82%,rgba(0,0,0,.28)),var(--ug-wood);background-size:auto,1600px auto;background-repeat:no-repeat,repeat;
   --ug-paper:#fdfaf3;

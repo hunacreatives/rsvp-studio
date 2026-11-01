@@ -3,7 +3,7 @@
 // fixed to the window (the scene, the mist, the marker, the climber and the altimeter are
 // sticky inside the page).
 export const SUMMIT_CSS = `
-.sm-root { --ink: #17222f; --frame: 100svh;
+.sm-root { text-wrap: pretty; --ink: #17222f; --frame: 100svh;
   position: relative; container-type: inline-size; overflow: clip; isolation: isolate; color: #fff;
   font-family: var(--sm-sans); -webkit-font-smoothing: antialiased; background: #0a1220; }
 .sm-root *, .sm-root *::before, .sm-root *::after { box-sizing: border-box; }

@@ -43,7 +43,7 @@ export default function FooterSection() {
         <div className="grid gap-8 md:gap-12 md:grid-cols-[1.2fr_2fr]">
           <div>
             <img
-              src="/brand/logotype-white.png"
+              src="/brand/logotype-white.webp"
               alt="The RSVP Studio"
               className="h-10 w-auto md:h-12"
             />

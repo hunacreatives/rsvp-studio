@@ -73,9 +73,6 @@ export default function RsvpCard({ content, editorPreview, sample, credit, heigh
               <input id={`${id}-name`} className="sm-field" type="text" autoComplete="name" autoCapitalize="words" enterKeyHint="next" value={form.values.name ?? ""} onChange={(e) => form.set("name", e.target.value)} />
               <label htmlFor={`${id}-contact`}>{form.contactMode === "mobile" ? "Mobile number" : "Email"}</label>
               <input id={`${id}-contact`} className="sm-field" {...form.contactProps} autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={form.values.contact ?? ""} onChange={(e) => form.set("contact", e.target.value)} />
-              <button type="button" className="sm-link" onClick={() => form.toggleContact(`${id}-contact`)}>
-                {form.contactToggleLabel}
-              </button>
               {going ? (
                 <div className="sm-seats">
                   <span>Guests</span>

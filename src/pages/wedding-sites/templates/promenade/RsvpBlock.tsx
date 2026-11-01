@@ -72,9 +72,6 @@ export default function RsvpBlock({ content, editorPreview, motion }: { content:
       <div>
         <label className="pm-label" htmlFor={`${id}-contact`}>{form.contactMode === "mobile" ? "Mobile number" : "Email"}</label>
         <input id={`${id}-contact`} className="pm-field" {...form.contactProps} autoCapitalize="none" autoCorrect="off" spellCheck={false} value={form.values.contact ?? ""} onChange={(e) => form.set("contact", e.target.value)} />
-        <button type="button" className="pm-link" onClick={() => form.toggleContact(`${id}-contact`)}>
-          {form.contactToggleLabel}
-        </button>
       </div>
       {going ? (
         <div>

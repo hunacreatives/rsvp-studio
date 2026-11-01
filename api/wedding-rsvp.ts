@@ -111,7 +111,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   if (!email && !phone) {
-    res.status(400).json({ error: "Please enter your email or mobile number (e.g. 0917 123 4567)." });
+    res.status(400).json({ error: "Please enter your email." });
     return;
   }
 

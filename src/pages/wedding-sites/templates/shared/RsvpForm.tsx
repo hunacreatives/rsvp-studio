@@ -6,7 +6,7 @@ import { calendarUrl } from "../../content/calendar";
 
 // The RSVP form for every built-in template. Each template passes a "skin"
 // (its fonts, colours and CSS classes) so the design keeps its look, while
-// guests always get the same plain questions: name, email OR mobile, are you
+// guests always get the same plain questions: name, email, are you
 // coming, how many, food needs, a note. In the builder preview it can't submit —
 // a host testing their draft must not create real RSVPs.
 
@@ -31,7 +31,7 @@ const MAX_PARTY = 10;
 
 export default function RsvpForm({ content, editorPreview, skin }: { content: EventContent; editorPreview?: boolean; skin: RsvpSkin }) {
   const form = useRsvpForm(content, editorPreview, { asksAttending: true });
-  const { values, set, state, error, website, setWebsite, attending, submit, copyNote, closed, replyBy, closedText, contactMode, contactProps, toggleContact, contactToggleLabel, invitee, maxGuests } = form;
+  const { values, set, state, error, website, setWebsite, attending, submit, copyNote, closed, replyBy, closedText, contactMode, contactProps, invitee, maxGuests } = form;
   const id = useId();
   const first = (values.name ?? "").trim().split(" ")[0];
 
@@ -63,7 +63,7 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
             </a>
           </p>
         ) : null}
-        <p style={{ margin: "10px 0 0", fontSize: 14, color: skin.muted }}>Need to change your answer? Send this form again with the same email or mobile number.</p>
+        <p style={{ margin: "10px 0 0", fontSize: 14, color: skin.muted }}>Need to change your answer? Send this form again with the same email.</p>
       </div>
     );
   }
@@ -99,13 +99,6 @@ export default function RsvpForm({ content, editorPreview, skin }: { content: Ev
           onChange={(e) => set("contact", e.target.value)}
           {...field()}
         />
-        <button
-          type="button"
-          onClick={() => toggleContact(`${id}-contact`)}
-          style={{ ...text, display: "inline-flex", alignItems: "center", minHeight: 40, padding: 0, marginTop: 4, border: "none", background: "none", fontSize: 14, color: skin.muted, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}
-        >
-          {contactToggleLabel}
-        </button>
       </div>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>

@@ -276,6 +276,10 @@ export function templateFitsEvent(template: Pick<TemplateDefinition, "occasions"
   return !eventType || o.length === 0 || o.includes(eventType);
 }
 
+/** Whether a design can be started now (it's in the gallery). Designs no longer offered still render the sites
+ *  already made with them. */
+export const isOffered = (id: string | undefined) => !!id && listTemplateDefinitions().some((d) => d.id === id);
+
 /** Templates offered in the gallery: listed ones, Premium first, then in catalog order. Before
  *  the catalog loads (or if it can't), the hand-coded templates. */
 const premiumFirst = (a: { tier?: string }, b: { tier?: string }) => Number(b.tier === "premium") - Number(a.tier === "premium");

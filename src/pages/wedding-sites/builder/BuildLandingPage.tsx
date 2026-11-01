@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { offerOn, PREMIUM_AFTER } from "@/lib/premiumOffer";
 import ServiceCta from "@/components/ServiceCta";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -10,7 +11,7 @@ import CreateEventModal from "@/pages/account/components/CreateEventModal";
 import { FAQ_CATEGORIES } from "@/pages/faqs/faq-data";
 import { inquiryLink } from "@/pages/enquire/prefill";
 import { useTemplateCatalog } from "../engine/catalog";
-import { getTemplateDefinition, templateFitsEvent, type TemplateDefinition } from "../engine/registry";
+import { getTemplateDefinition, isOffered, templateFitsEvent, type TemplateDefinition } from "../engine/registry";
 import TemplateMockupPreview from "./components/TemplateMockupPreview";
 import { trackEvent } from "@/lib/analytics";
 
@@ -70,7 +71,7 @@ function DesignCard({ t, price }: { t: TemplateDefinition; price: number | undef
         {/* Phones: name over price (two designs per row); wider: side by side. */}
         <span className="mt-2 flex flex-col sm:mt-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
           <span className="font-display text-[15px] font-semibold leading-snug text-[var(--ink)] group-hover:underline sm:text-[1.2rem]">{t.label}</span>
-          <span className="shrink-0 text-[13px] text-[var(--slate)] sm:text-[14px]">{t.tier === "premium" ? (price ? peso(price) : "Premium") : "Free"}</span>
+          <span className="shrink-0 text-[13px] text-[var(--slate)] sm:text-[14px]">{t.tier === "premium" ? (offerOn(price) ? "Free until Nov 27" : price ? peso(price) : "Premium") : "Free"}</span>
         </span>
       </Link>
     </li>
@@ -123,11 +124,12 @@ export default function BuildLandingPage() {
   const start = (templateId?: string) => {
     trackEvent("start_building", { template: templateId ?? "none" });
     if (signedIn === false) {
-      pendingStart.current = templateId ?? "";
+      pendingStart.current = isOffered(templateId) ? templateId ?? "" : "";
       setAuthOpen(true);
       return;
     }
-    setCreating({ templateId });
+    // a design that's no longer offered can't be started from an old link: the event starts with no design picked
+    setCreating({ templateId: isOffered(templateId) ? templateId : undefined });
   };
   // ?start=<id> (from a design preview, or back from signing up).
   useEffect(() => {
@@ -365,7 +367,7 @@ export default function BuildLandingPage() {
       </section>
 
       {/* Free vs Premium */}
-      <section className="container-x py-12 sm:py-16 md:py-24">
+      <section id="pricing" className="container-x scroll-mt-24 py-12 sm:py-16 md:py-24">
         <h2 className="text-center font-display text-[1.6rem] font-semibold text-[var(--ink)] md:text-[1.9rem]">Free, or Premium</h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[15px] text-[var(--slate)]">Every site gets RSVPs and a guest list. Premium adds the extras, once per event.</p>
         <div className="mx-auto mt-8 max-w-3xl">
@@ -378,7 +380,9 @@ export default function BuildLandingPage() {
                 <th className="w-[27%] rounded-t-2xl bg-[#fff4cf] px-1 pb-3 pt-3 text-center align-bottom font-display text-[1rem] font-semibold text-[var(--ink)] sm:w-[30%] sm:text-[1.05rem] md:w-[28%] md:text-[1.15rem]">
                   <span className="mb-1.5 inline-block rounded-full bg-[var(--acc-yellow)] px-2.5 py-0.5 font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ink)]">Recommended</span>
                   <span className="block">Premium</span>
-                  {premiumPrice ? <span className="block font-sans text-[12px] font-normal leading-snug text-[var(--slate)] md:text-[13px]">{peso(premiumPrice)} per event <span className="block md:inline">({peso(Math.floor(premiumPrice * 0.9))} for your first)</span></span> : null}
+                  {offerOn(premiumPrice) ? (
+                    <span className="block font-sans text-[12px] font-normal leading-snug text-[var(--slate)] md:text-[13px]">Free until Nov 27 <span className="block md:inline">(then {peso(PREMIUM_AFTER)})</span></span>
+                  ) : premiumPrice ? <span className="block font-sans text-[12px] font-normal leading-snug text-[var(--slate)] md:text-[13px]">{peso(premiumPrice)} per event <span className="block md:inline">({peso(Math.floor(premiumPrice * 0.9))} for your first)</span></span> : null}
                 </th>
               </tr>
             </thead>

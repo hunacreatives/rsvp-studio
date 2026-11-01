@@ -103,7 +103,7 @@ export default function CaladoTemplate({ content, settings, editorPreview = fals
       <div ref={pageRef} className="cl-page">
         {/* The hoop */}
         {/* The day fades up as the running stitch starts (art.tsx: 0.9s, then 1.85s per line). */}
-        <header className="cl-hero" style={{ ["--words-at" as string]: `${(0.9 + Math.max(1, lines.length) * 1.85).toFixed(2)}s` } as CSSProperties}>
+        <header className="cl-hero" style={{ ["--words-at" as string]: `${Math.min(2.6, 0.9 + Math.max(1, lines.length) * 1.85).toFixed(2)}s` } as CSSProperties}>
           <Hoop className="cl-hero__hoop">
             <p className="cl-eyebrow">{customValue(content, "heroLine") || w.eyebrow}</p>
             {lines.length ? <StitchedName lines={lines} play={play} label={name} /> : <p className="cl-hint cl-name-hint">{editorPreview ? "Your baby’s name" : ""}</p>}

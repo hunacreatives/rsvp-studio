@@ -32,7 +32,7 @@ function FaqItem({ q, a, id }: { q: string; a: string; id: string }) {
         aria-controls={id}
       >
         <span
-          className={`font-display text-[17px] leading-snug ${
+          className={`font-display text-[17px] leading-snug text-pretty ${
             open ? "text-[var(--ink)]" : "text-[var(--ink)]/80"
           }`}
         >
@@ -169,7 +169,13 @@ export default function FaqsPage() {
       const el = document.getElementById(c.slug);
       if (el) io.observe(el);
     }
-    return () => io.disconnect();
+    // back at the top: the first category again (no section crosses the band up there)
+    const onScroll = () => { if (window.scrollY < 200) setActive(FAQ_CATEGORIES[0]?.slug ?? ""); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // a link to a section (/faqs#rsvp from an email or another site): go to it once the page has settled
+    const hash = decodeURIComponent(window.location.hash.slice(1));
+    const t = hash ? window.setTimeout(() => document.getElementById(hash)?.scrollIntoView({ block: "start" }), 250) : 0;
+    return () => { io.disconnect(); window.removeEventListener("scroll", onScroll); window.clearTimeout(t); };
   }, []);
   useEffect(() => {
     const bar = barRef.current;

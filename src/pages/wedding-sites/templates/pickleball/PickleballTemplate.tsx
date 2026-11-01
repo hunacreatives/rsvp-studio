@@ -84,7 +84,9 @@ function TitleWords({ text }: { text: string }) {
 
 const Hint = ({ children }: { children: ReactNode }) => <p className="pb-hint">{children}</p>;
 
-export default function PickleballTemplate({ content, settings, editorPreview = false, live = false, gallery = false }: TemplateProps<BaseTemplateSettings>) {
+export default function PickleballTemplate({ content, settings, editorPreview = false, live: published = false, demo = false, gallery = false }: TemplateProps<BaseTemplateSettings>) {
+  // the design preview page is a whole page too, so it behaves like the published one
+  const live = published || demo;
   const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
   const reduced = usePrefersReducedMotion();

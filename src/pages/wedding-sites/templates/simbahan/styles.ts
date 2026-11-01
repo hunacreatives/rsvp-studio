@@ -12,7 +12,7 @@ const GRAIN = svg(
   240,
 );
 export const SIMBAHAN_CSS = `
-.sb-root { --frame: 100svh; --sb-red: #8a2116; --paper: #f8f1e2; --soft: color-mix(in srgb, var(--sb-ink) 72%, #8a7257); --rule: rgba(74, 46, 24, 0.2); --cream: #f8eedb;
+.sb-root { text-wrap: pretty; --frame: 100svh; --sb-red: #8a2116; --paper: #f8f1e2; --soft: color-mix(in srgb, var(--sb-ink) 72%, #8a7257); --rule: rgba(74, 46, 24, 0.2); --cream: #f8eedb;
   position: relative; container-type: inline-size; overflow: clip; isolation: isolate; color: var(--sb-ink);
   font-family: var(--sb-text); -webkit-font-smoothing: antialiased; background: #f6efe0; }
 .sb-root *, .sb-root *::before, .sb-root *::after { box-sizing: border-box; }
@@ -186,6 +186,8 @@ textarea.sb-field { resize: vertical; min-height: 84px; }
 .sb-gallery .sb-words { top: 30%; }
 .sb-gallery .sb-door::before { background: radial-gradient(ellipse 50% 24% at 50% 30%, rgba(247, 240, 225, 0.86), rgba(247, 240, 225, 0.5) 55%, rgba(247, 240, 225, 0) 82%); }
 .sb-nogl .sb-stage { background: radial-gradient(ellipse at 50% 45%, #f3e3c4, #d9c7a8 72%); }
+/* short lines: no single word left on the last line */
+.sb-people li, .sb-time { text-wrap: balance; }
 @media (prefers-reduced-motion: reduce) { .sb-root *, .sb-root *::before, .sb-root *::after { animation: none !important; transition: none !important; } }
 
 /* ---- a phone: the church above, the page on the bottom edge */

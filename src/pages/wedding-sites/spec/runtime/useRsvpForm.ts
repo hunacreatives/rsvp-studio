@@ -41,6 +41,7 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   const { closed, replyBy, closedText } = rsvpWindow(content);
   // "Email or mobile": one field, but the right keyboard. Phones open a number pad for a
   // mobile number (lolos and lolas without email) and an email keyboard otherwise.
+  // Email only for now: texting guests isn't on yet (the toggle comes back with it; the server still accepts a number)
   const [contactMode, setContactMode] = useState<"email" | "mobile">("email");
   const contactProps =
     contactMode === "mobile"

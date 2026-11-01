@@ -123,8 +123,9 @@ export const NAV_ITEMS: NavItem[] = [
           title: "The Journal",
           links: [
             { label: "Latest articles", to: "/blog" },
+            { label: "Weddings", to: "/blog?topic=Wedding" },
             { label: "Planning", to: "/blog?topic=Planning" },
-            { label: "Tips & Guides", to: "/blog?topic=Tips+%26+Guides" },
+            { label: "Debuts", to: "/blog?topic=Debut" },
           ],
         },
       ],

@@ -2,7 +2,7 @@
 // width (container units), never the window's. Anything that moves only moves by transform,
 // on its own layer (will-change), so its shadow is drawn once and the motion stays smooth.
 export const POOLSIDE_CSS = `
-.ps-root { --pool: min(780px, calc(100cqw - 64px)); --top: 150px; --foot: var(--ps-end, 600px); --cope: 26px;
+.ps-root { text-wrap: pretty; --pool: min(780px, calc(100cqw - 64px)); --top: 150px; --foot: var(--ps-end, 600px); --cope: 26px;
   --ink: #0e3555; --coral: #e8483a; --deck-ink: #5d4a42;
   position: relative; container-type: inline-size; overflow: clip; isolation: isolate; color: var(--ink);
   font-family: var(--ps-sans); -webkit-font-smoothing: antialiased; background: #6fc7d6; }
@@ -124,5 +124,7 @@ textarea.ps-field { resize: vertical; min-height: 90px; }
   .ps-fr { width: 62px; right: auto; left: 2px; top: 34px; }
   .ps-fb { width: 46px; right: 12%; top: 30px; }
 }
+/* short lines: no single word left on the last line */
+.ps-legs span { text-wrap: balance; }
 @media (prefers-reduced-motion: reduce) { .ps-root *, .ps-root *::before { animation: none !important; } }
 `;

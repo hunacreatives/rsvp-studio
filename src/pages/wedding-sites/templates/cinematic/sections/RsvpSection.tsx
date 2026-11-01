@@ -117,9 +117,6 @@ export default function RsvpSection({ content, editorPreview, reveal, dress: wit
                   value={form.values.contact ?? ""}
                   onChange={(e) => form.set("contact", e.target.value)}
                 />
-                <button type="button" onClick={() => form.toggleContact(`${id}-contact`)} style={{ display: "inline-flex", alignItems: "center", minHeight: 40, padding: 0, marginTop: 4, border: "none", background: "none", font: "inherit", fontSize: 14, opacity: 0.75, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", color: "inherit" }}>
-                  {form.contactToggleLabel}
-                </button>
               </div>
               <div>
                 <label htmlFor={`${id}-guests`}>Will you be bringing anyone?</label>

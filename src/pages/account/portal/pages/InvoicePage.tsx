@@ -103,7 +103,7 @@ export default function InvoicePage() {
       <article className="invoice-print rounded-[24px] border border-[rgba(0,7,39,0.16)] bg-white p-6 md:p-10">
         <header className="flex flex-wrap items-start justify-between gap-6">
           <div>
-            <img src="/brand/logotype-dark.png" alt="The RSVP Studio" className="h-9 w-auto" onError={(e) => (e.currentTarget.style.display = "none")} />
+            <img src="/brand/logotype-dark.webp" alt="The RSVP Studio" className="h-9 w-auto" onError={(e) => (e.currentTarget.style.display = "none")} />
             <p className="mt-3 text-[13px] leading-relaxed text-[var(--slate)]">
               The RSVP Studio · a brand of Huna Creatives
               <br />

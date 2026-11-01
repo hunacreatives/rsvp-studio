@@ -24,7 +24,7 @@ const BILLING: QA[] = [
 ];
 
 const PLANNERS: QA[] = [
-  { q: "Do you work with event planners and venues?", a: "Yes. We offer referral partnerships, white-label builds, and one-off collaborations for specific events. Tell us how you work through the partner form and we’ll set up a call." },
+  { q: "Do you work with event planners and venues?", a: "Yes. We offer referral partnerships, white-label builds, and one-off collaborations for specific events. See the partner program and tell us how you work, and we’ll set up a call." },
   { q: "Can we manage several client events from one account?", a: "Yes. Each event has its own place in your dashboard, with its own website, guest list, messages, and invoices." },
 ];
 
@@ -36,16 +36,15 @@ export const TOPICS: Topic[] = [
   { slug: "invitations", title: "Digital Invitations", blurb: "Designs, sending, and guest RSVPs.", icon: "ri-mail-line", tint: "#ecdcfb", items: [...faq("invitations"), ...faq("rsvp")] },
   { slug: "billing", title: "Billing & Payments", blurb: "Invoices, payments, and receipts.", icon: "ri-bank-card-line", tint: "#fbd5ef", items: BILLING },
   { slug: "stationery", title: "Stationery Design", blurb: "Customization, proofs, and printing.", icon: "ri-quill-pen-line", tint: "#ecfbcc", items: faq("stationery") },
-  { slug: "planners", title: "For Event Planners", blurb: "Partnerships and collaboration.", icon: "ri-team-line", tint: "#ffe7a3", items: PLANNERS, link: { to: "/enquire/partner", label: "Become a partner" } },
+  { slug: "planners", title: "For Event Planners", blurb: "Partnerships and collaboration.", icon: "ri-team-line", tint: "#ffe7a3", items: PLANNERS, link: { to: "/partners", label: "Become a partner" } },
 ];
 
-/** Shown before a topic is picked. */
+/** Shown before a topic is picked: building your own site first, then working with the studio. */
 export const TOP_QUESTIONS: QA[] = [
-  ...faq("booking").filter((i) => /get started/i.test(i.q)),
-  { q: "What information do you need to get started?", a: "Your event type, date, venue (if booked), guest count, the services you’re interested in, and any inspiration you love. The inquiry form walks you through it, and you can attach mood-board images." },
-  { q: "How long does the design process take?", a: "It depends on your package, scope, and event date — we confirm your timeline at kickoff. Your event’s next step and its due date are always shown under Events." },
-  ...faq("website").filter((i) => /revisions/i.test(i.q)),
-  { q: "How do guests RSVP on my event website?", a: "Guests fill in the RSVP form on your website. Responses appear instantly under your event’s Guests tab, where you can search them and export a CSV." },
+  { q: "How do I make my website?", a: "Choose New event, say what you’re celebrating, and pick a design. The builder opens with a live preview. Fill in your details, then publish when you’re happy. Nothing is public until you do." },
+  ...faq("build").filter((i) => /premium include|more than one/i.test(i.q)),
+  { q: "How do guests RSVP on my event website?", a: "Guests fill in the RSVP form on your website with their email. Responses appear instantly under your event’s Guests tab, where you can search them and export a CSV." },
+  { q: "Working with our studio on a custom site?", a: "Tell us about your event through the inquiry form. We confirm your timeline at kickoff, and your event’s next step and its due date are always shown under Events." },
 ];
 
 export type Guide = { slug: string; title: string; summary: string; icon: string; sections: { heading: string; body: string }[] };
@@ -54,13 +53,13 @@ export const GUIDES: Guide[] = [
   {
     slug: "getting-started",
     title: "Getting Started Guide",
-    summary: "How your RSVP Studio dashboard works, from first message to launch day.",
+    summary: "How your RSVP Studio dashboard works, from your first event to launch day.",
     icon: "ri-compass-3-line",
     sections: [
-      { heading: "Your events", body: "Each celebration we work on together is listed under Events. Its row shows what we’re working on, how far along it is, and the next step — usually something we need from you, with a due date." },
-      { heading: "Tasks", body: "When we need your input (a guest list, photo picks, a design approval) it appears under Upcoming Tasks. Tick it off when you’re done and we’ll see it on our side." },
-      { heading: "Messages", body: "Use Messages for anything about your event — feedback, questions, files. Everything stays in one thread per event, so nothing gets lost in email. Attach images or PDFs up to 10 MB each." },
-      { heading: "Billing", body: "Invoices appear under Billing as soon as we issue them. Open one to see how to pay, and download a receipt once it’s marked Paid." },
+      { heading: "Start an event", body: "Choose New event, say what you’re celebrating and who it’s for, then pick a design. You can switch designs later without losing your details." },
+      { heading: "Build and publish", body: "The builder shows a live preview as you type. Everything saves as a draft, and guests see nothing until you publish. Then copy your link from the Website tab and send it." },
+      { heading: "Your guests", body: "Replies land in the Guests tab the moment they come in. Search them, see who left a message, and export a CSV for your caterer or planner." },
+      { heading: "Working with our studio", body: "If we’re designing for you, each event shows what we’re working on and the next step, usually something we need from you, with a due date. Requests for input appear under Upcoming Tasks, and Messages keeps one thread per event for feedback and files (images or PDFs up to 10 MB each). Invoices appear under Billing as soon as we issue them." },
       { heading: "Invite codes", body: "If we set up an event for you, we’ll send an invite code. Use New event → I have an invite code to link it to your account. Each code works once — if a partner or co-host should follow along too, message us and we’ll send them their own." },
     ],
   },

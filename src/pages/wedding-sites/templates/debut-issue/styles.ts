@@ -4,7 +4,7 @@
 // magazine opening (.di-stacked → .di-open → .di-turned), plus quiet reveals.
 
 export const DEBUT_ISSUE_CSS = `
-.di-root{container-type:inline-size;position:relative;overflow-x:clip;color:var(--di-ink);background:var(--di-bg);font-family:var(--di-body);font-optical-sizing:auto;
+.di-root{text-wrap:pretty;container-type:inline-size;position:relative;overflow-x:clip;color:var(--di-ink);background:var(--di-bg);font-family:var(--di-body);font-optical-sizing:auto;
   --di-soft:color-mix(in srgb,var(--di-muted) 70%,var(--di-ink));
   --di-line:color-mix(in srgb,var(--di-ink) 14%,transparent);
   --di-paper:color-mix(in srgb,#fff 55%,var(--di-bg));
@@ -279,5 +279,7 @@ textarea.di-field{padding:10px 12px;border:1px solid var(--di-line);resize:verti
 .rv-on [data-reveal]{opacity:0;transform:translateY(16px);transition:opacity 1.1s cubic-bezier(.2,.7,.2,1),transform 1.1s cubic-bezier(.2,.7,.2,1)}
 .rv-on [data-reveal].is-in{opacity:1;transform:none}
 
+/* short lines: no single word left on the last line */
+.di-run__l{text-wrap:balance}
 @media (prefers-reduced-motion:reduce){.di-root *,.di-root *::before,.di-root *::after{animation:none!important;transition:none!important}}
 `;

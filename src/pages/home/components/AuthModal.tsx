@@ -613,13 +613,18 @@ function AuthForm({
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
 
+  // sending the reset link takes a few seconds: the button says so, and a second tap waits for the first
+  const [sendingReset, setSendingReset] = useState(false);
   const handleForgot = async () => {
+    if (sendingReset) return;
     setError(null);
     setEmailError(null);
     if (!email) return setEmailError("Enter your email above first.");
+    setSendingReset(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/account/settings?reset=1`,
     });
+    setSendingReset(false);
     if (error) return setEmailError(friendlyAuthError(error.message));
     setResetSent(true);
   };
@@ -850,10 +855,12 @@ function AuthForm({
                 <button
                   type="button"
                   onClick={handleForgot}
+                  disabled={sendingReset}
+                  aria-busy={sendingReset || undefined}
                   className={`-mr-1 inline-flex min-h-[44px] items-center rounded-full px-1 text-[14px] underline underline-offset-2 transition-colors md:min-h-0 md:py-1 md:text-[12.5px] ${wrongTries >= 3 ? "bg-[#fff3c4] px-2 font-semibold" : ""}`}
                   style={{ color: "#0835FF" }}
                 >
-                  Forgot password?
+                  {sendingReset ? "Sending link…" : "Forgot password?"}
                 </button>
               )}
             </div>

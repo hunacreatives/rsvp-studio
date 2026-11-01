@@ -99,9 +99,6 @@ export default function RsvpReply({ content, editorPreview, reveal, motion }: { 
                 <div>
                   <label htmlFor={`${id}-contact`}>{form.contactMode === "mobile" ? "Mobile number" : "Email"}</label>
                   <input id={`${id}-contact`} className="db-field" {...form.contactProps} autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={form.values.contact ?? ""} onChange={(e) => form.set("contact", e.target.value)} />
-                  <button type="button" className="db-link" onClick={() => form.toggleContact(`${id}-contact`)}>
-                    {form.contactToggleLabel}
-                  </button>
                 </div>
 
                 {going ? (

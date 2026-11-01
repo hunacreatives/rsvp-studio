@@ -93,7 +93,7 @@ export default function LaunchGate({ pathname, children }: { pathname: string; c
 
   return (
     <main className="flex min-h-[100dvh] flex-col items-center justify-center px-6 py-12 text-center" style={{ background: "var(--warm-white)" }}>
-      <img src="/brand/logotype-dark.png" alt="The RSVP Studio" className="h-11 w-auto md:h-12" />
+      <img src="/brand/logotype-dark.webp" alt="The RSVP Studio" className="h-11 w-auto md:h-12" />
       <CharacterTrio className="mt-10 w-[min(300px,72vw)]" />
       <h1 className="mt-8 font-display text-[30px] font-semibold leading-tight text-[var(--ink)] text-balance md:text-[40px]">
         {left.done ? "We’re opening the doors" : (

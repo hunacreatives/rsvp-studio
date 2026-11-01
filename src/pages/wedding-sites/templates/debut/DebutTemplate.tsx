@@ -73,7 +73,9 @@ function Section({ title, reveal, children, icon, id, sheet = {}, className = ""
 
 const Hint = ({ children }: { children: ReactNode }) => <p className="db-hint">{children}</p>;
 
-export default function DebutTemplate({ content, settings, editorPreview = false, live = false }: TemplateProps<BaseTemplateSettings>) {
+export default function DebutTemplate({ content, settings, editorPreview = false, live: published = false, demo = false }: TemplateProps<BaseTemplateSettings>) {
+  // the design preview page is a whole page too, so it behaves like the published one
+  const live = published || demo;
   const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
   const reduced = usePrefersReducedMotion();

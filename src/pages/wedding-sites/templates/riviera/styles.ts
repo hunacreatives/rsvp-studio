@@ -2,7 +2,7 @@
 // page's own width (container units), never the window's, so the builder's scaled preview and
 // the phone preview lay out like the real thing.
 export const RIVIERA_CSS = `
-.rv-root { --beam: min(600px, calc(100cqw - 30px)); --white: #fff; --deck: #fbfbf9; --shade: #cdd6dd; --chrome: #b5bfc8;
+.rv-root { text-wrap: pretty; --beam: min(600px, calc(100cqw - 30px)); --white: #fff; --deck: #fbfbf9; --shade: #cdd6dd; --chrome: #b5bfc8;
   --cushion: #e7e1d7; --seam: #d2c9bb; --glass: #2a333e; --ink: #1b2a38; --ink-2: #5a6876; --gold: #a98450;
   --rv-teak: url("/event-templates/riviera/teak.jpg") 0 0 / 110px auto repeat;
   position: relative; container-type: inline-size; overflow-x: clip; isolation: isolate; color: var(--ink);
@@ -136,6 +136,8 @@ textarea.rv-field { resize: vertical; min-height: 96px; }
   .rv-legs b { font-size: 15.5px; }
   .rv-wake-room { height: 260px; }
 }
+/* short lines: no single word left on the last line */
+.rv-form label { text-wrap: balance; }
 @media (prefers-reduced-motion: reduce) {
   .rv-root *, .rv-root *::before, .rv-root *::after { animation: none !important; }
 }

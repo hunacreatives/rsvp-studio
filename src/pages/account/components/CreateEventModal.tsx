@@ -77,7 +77,8 @@ export default function CreateEventModal({ onClose, templateId, forClient = fals
 
   const toDesigns = (eventId: string) => navigate(`/account/events/${eventId}/site-builder${templateId ? `?template=${encodeURIComponent(templateId)}` : ""}`);
   async function handleSubmit(input: CreateEventInput) {
-    const eventId = await createEvent(input);
+    const debut = input.eventType === "birthday" && (picked?.occasions ?? []).includes("debut");
+    const eventId = await createEvent(debut ? { ...input, occasionLabel: "Debut" } : input);
     if (eventId) {
       if (forClient && input.clientEmail) {
         setInviting(true);

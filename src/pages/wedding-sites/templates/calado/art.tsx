@@ -72,7 +72,7 @@ export function StitchedName({ lines, play, label }: { lines: string[]; play: bo
             {boxes.map((b, i) => (
               <rect key={i} className="cl-sweep" x={b.x - 12} y={b.y - 20} width={b.w + 24} height={b.h + 40} fill="#fff" style={{ animationDelay: `${0.9 + i * (STITCH + 0.25)}s`, animationDuration: `${STITCH}s` }} />
             ))}
-            <rect className="cl-sweep" x={ux0 - 10} y={underlineY - 12} width={ux1 - ux0 + 20} height="24" fill="#fff" style={{ animationDelay: `${0.9 + lines.length * (STITCH + 0.25)}s`, animationDuration: "1.3s", animationTimingFunction: "steps(14, end)" }} />
+            <rect className="cl-sweep" x={ux0 - 10} y={underlineY - 12} width={Math.max(0, ux1 - ux0 + 20)} height="24" fill="#fff" style={{ animationDelay: `${0.9 + lines.length * (STITCH + 0.25)}s`, animationDuration: "1.3s", animationTimingFunction: "steps(14, end)" }} />
           </mask>
         ) : null}
       </defs>
