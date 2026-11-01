@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Navbar from "@/pages/home/components/Navbar";
 import FooterSection from "@/pages/home/components/FooterSection";
@@ -6,6 +7,16 @@ import FooterSection from "@/pages/home/components/FooterSection";
 export default function NotFound() {
   const { pathname } = useLocation();
   const isInvite = pathname.startsWith("/invite/");
+  // not a page: kept out of search results, and no canonical pointing at it
+  useEffect(() => {
+    const robots = document.createElement("meta");
+    robots.name = "robots";
+    robots.content = "noindex";
+    document.head.appendChild(robots);
+    const canonical = document.head.querySelector('link[rel="canonical"]');
+    canonical?.remove();
+    return () => robots.remove();
+  }, [pathname]);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>

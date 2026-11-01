@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { Resend } from "resend";
-import { esc, sendChecked } from "./email.js";
+import { esc, sendChecked, withRateRetry } from "./email.js";
 
 // Shared by the email-sending functions (notify, support-cron, support-rating):
 // the branded email layout, support request wording, and signed rating links.
@@ -27,10 +27,7 @@ export function makeSendMail(resend: Resend | null) {
     if (!resend) return Promise.resolve(console.warn(`RESEND_API_KEY not set — skipped email "${payload.subject}" to ${payload.to}`));
     if (!idempotencyKey) return sendChecked(resend, payload);
     // Resend drops a repeat send with the same key for 24h — a double cron run can't double-email.
-    return resend.emails.send(payload, { idempotencyKey }).then(({ data, error }) => {
-      if (error) throw new Error(`Resend: ${error.message}`);
-      return data;
-    });
+    return withRateRetry(() => resend.emails.send(payload, { idempotencyKey }) as Promise<{ data: unknown; error: { name?: string; message?: string; statusCode?: number | null } | null }>);
   };
 }
 

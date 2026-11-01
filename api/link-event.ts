@@ -20,8 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { code, accessToken } = req.body as Body;
-  if (!code || !accessToken) {
+  const { code, accessToken } = (req.body && typeof req.body === "object" ? req.body : {}) as Body;
+  if (typeof code !== "string" || typeof accessToken !== "string" || !code || !accessToken) {
     res.status(400).json({ error: "Code and access token required" });
     return;
   }

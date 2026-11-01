@@ -48,7 +48,13 @@ ${p(`<span style="font-size:14px;color:#868697;">One email on launch day, then t
 
 /** "Notify me" on the launch page: the email goes on the list, and gets one thank-you, ever. */
 async function launchSignup(req: VercelRequest, res: VercelResponse) {
-  const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body ?? {};
+  // JSON from our own page only (a form on another site can't send JSON without asking first), and nothing
+  // that isn't an object
+  if (!String(req.headers["content-type"] ?? "").includes("application/json") || !req.body || typeof req.body !== "object") {
+    res.status(400).json({ error: "Send it as JSON" });
+    return;
+  }
+  const body = req.body as Record<string, unknown>;
   const email = clean(body.email, 254).toLowerCase();
   if (!isEmail(email)) {
     res.status(400).json({ error: "That doesn't look like an email" });
@@ -63,8 +69,11 @@ async function launchSignup(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: "Couldn't save that" });
     return;
   }
-  // already on the list: no second email
-  if (!data?.length || !resend) {
+  // already on the list: no second email. And a flood (a script signing up addresses that aren't theirs):
+  // past 30 new addresses in 10 minutes they're still listed, but nobody is emailed
+  const { count: recent } = await supabaseAdmin.from("launch_signups").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 600_000).toISOString());
+  if ((recent ?? 0) > 30) console.warn("launch list: signup flood, thank-you emails paused", recent);
+  if (!data?.length || !resend || (recent ?? 0) > 30) {
     res.status(200).json({ ok: true });
     return;
   }

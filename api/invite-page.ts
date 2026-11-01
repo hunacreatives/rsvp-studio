@@ -155,11 +155,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Blog articles (?op=blog): their own title, description, preview and text in the HTML.
   if (req.query.op === "blog") return blogPage(db, req.query.slug, res, html);
 
+  // an invitation that doesn't exist answers 404 (the page still shows "This invitation isn't available")
+  let missing = false;
   if (/^[a-z0-9-]{1,80}$/.test(slug)) {
     const { data } = await db.rpc("get_public_site", { p_slug: slug });
     const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: Presentation; std?: Std | null; std_live?: boolean } | null;
     // A studio Save the Date (supabase/save-the-date.sql): the card itself is the preview.
     const std = row?.std_live && row.std?.image?.url ? row.std : null;
+    missing = !row && req.query.domain !== "1";
     if (std || row?.published_content) {
       const c = row?.published_content ?? {};
       const ended = row?.state === "ended";
@@ -196,8 +199,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
-  return res.status(200).send(html);
+  res.setHeader("Cache-Control", missing ? "public, s-maxage=60" : "public, s-maxage=300, stale-while-revalidate=3600");
+  return res.status(missing ? 404 : 200).send(html);
 }
 
 /** /tools/seating-chart-maker: the Seat Planner's head tags, structured data and its guide and

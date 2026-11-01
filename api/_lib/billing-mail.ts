@@ -27,7 +27,9 @@ const METHOD_LABEL: Record<string, string> = {
 };
 export const methodLabel = (m: string | null | undefined) => (m ? (METHOD_LABEL[m.toLowerCase()] ?? m) : "");
 
-async function billingRecipients(db: SupabaseClient, eventId: string) {
+// `receipt`: a payment's receipt goes to the payers whatever their "Billing updates" setting (that setting is for
+// invoices and reminders; nobody should pay and get no receipt)
+async function billingRecipients(db: SupabaseClient, eventId: string, receipt = false) {
   const ids = new Set<string>();
   const { data: ev } = await db.from("events").select("owner_id, name").eq("id", eventId).maybeSingle();
   if (ev?.owner_id) ids.add(ev.owner_id);
@@ -37,7 +39,7 @@ async function billingRecipients(db: SupabaseClient, eventId: string) {
   if (!ids.size) return { to: [] as string[], eventName: (ev?.name as string) ?? "" };
   const { data } = await db.from("profiles").select("email, billing_email, is_staff, notify_billing_updates").in("id", [...ids]);
   const to = (data ?? [])
-    .filter((p) => !p.is_staff && p.notify_billing_updates !== false && (p.billing_email || p.email))
+    .filter((p) => !p.is_staff && (receipt || p.notify_billing_updates !== false) && (p.billing_email || p.email))
     .map((p) => (p.billing_email || p.email) as string);
   return { to, eventName: (ev?.name as string) ?? "" };
 }
@@ -54,7 +56,7 @@ export async function sendInvoiceEmail(
     .eq("id", opts.invoiceId)
     .maybeSingle();
   if (!inv) throw new Error("Invoice not found");
-  const { to, eventName } = await billingRecipients(db, inv.event_id);
+  const { to, eventName } = await billingRecipients(db, inv.event_id, opts.kind === "payment");
   if (!to.length) return 0;
 
   const amount = peso(Number(inv.amount));
@@ -108,5 +110,8 @@ export async function sendInvoiceEmail(
       }),
     ),
   );
-  return results.filter((r) => r.status === "fulfilled").length;
+  const sent = results.filter((r) => r.status === "fulfilled").length;
+  // a receipt that reached nobody is worth knowing about (the studio alert still says the payer has one)
+  if (to.length && !sent) console.error("invoice email reached nobody", { invoiceId: opts.invoiceId, kind: opts.kind, reasons: results.map((r) => (r.status === "rejected" ? String(r.reason) : "ok")) });
+  return sent;
 }

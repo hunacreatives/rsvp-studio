@@ -16,10 +16,21 @@ export const safeUrl = (s: string | undefined | null) => (s && /^https?:\/\//i.t
  * Resend v6 reports failures in the return value instead of throwing, so a
  * plain try/catch never sees them. This throws so callers can react.
  */
+// Resend allows a few requests a second: a batch (reminders, a broadcast, invites) that goes past it is told to
+// wait. Each send waits and tries again, up to three times, instead of being lost.
+const isRateLimited = (e: { name?: string; message?: string; statusCode?: number | null } | null | undefined) =>
+  !!e && (e.statusCode === 429 || /rate.?limit|too many requests/i.test(`${e.name ?? ""} ${e.message ?? ""}`));
+export async function withRateRetry<T>(send: () => Promise<{ data: T; error: { name?: string; message?: string; statusCode?: number | null } | null }>) {
+  for (let attempt = 0; ; attempt++) {
+    const { data, error } = await send();
+    if (!error) return data;
+    if (!isRateLimited(error) || attempt >= 3) throw new Error(`Resend: ${error.message}`);
+    await new Promise((r) => setTimeout(r, 700 * (attempt + 1) + Math.random() * 300));
+  }
+}
+
 export async function sendChecked(resend: Resend, payload: Parameters<Resend["emails"]["send"]>[0]) {
-  const { data, error } = await resend.emails.send(payload);
-  if (error) throw new Error(`Resend: ${error.message}`);
-  return data;
+  return withRateRetry(() => resend.emails.send(payload) as Promise<{ data: unknown; error: { name?: string; message?: string; statusCode?: number | null } | null }>);
 }
 
 /** Trim and cap a free-text field from a request body. */

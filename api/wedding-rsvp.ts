@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, esc, isEmail, normalizePhone, sendChecked } from "./_lib/email.js";
@@ -49,6 +50,14 @@ const BURST_WINDOW_MIN = 10;
 const BURST_MAX = 200; // RSVPs (new or updated) per event per window (a link posted to a big group chat)
 const UPDATE_MAX = 5; // changes per guest per hour
 const GUEST_EMAILS_PER_DAY = 60; // confirmation emails per event per day
+// One sender (a script, a prank) can't spend the day's email allowance: past these, replies are still saved, only
+// the confirmation email is skipped (supabase/rsvp-ip-hash.sql)
+const GUEST_EMAILS_PER_IP_HOUR = 6; // across every site
+const GUEST_EMAILS_PER_EVENT_10MIN = 25;
+const ipHashOf = (req: VercelRequest) => {
+  const ip = String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || "";
+  return ip ? createHash("sha256").update(`rsvp:${ip}:${process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""}`).digest("hex").slice(0, 32) : null;
+};
 const LEGACY_TABLE = /^[a-z0-9_]+_rsvps$/;
 // Skipped when matching a name to an invitee ("Tita Lorna" = "Lorna Reyes").
 const HONORIFICS = new Set(["tita", "tito", "ate", "kuya", "lola", "lolo", "ninang", "ninong", "manang", "manong", "mr", "mrs", "ms", "miss", "dr", "atty", "engr", "sir", "maam"]);
@@ -66,7 +75,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const body = (req.body ?? {}) as Record<string, unknown>;
+  const body = (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, unknown>;
+  const ipHash = ipHashOf(req);
   // Honeypot: real guests never see or fill this field.
   if (clean(body.website, 200)) {
     res.status(200).json({ ok: true });
@@ -276,6 +286,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...(prior ? { update_count: recentChange ? (prior.update_count ?? 0) + 1 : 1 } : {}),
         ...(invitee ? { invitee_id: invitee.id } : {}),
         ...(hasAnswers ? { answers } : {}),
+        ...(!prior && ipHash ? { ip_hash: ipHash } : {}),
       };
   const legacyMessage = [details, message].filter(Boolean).join(" — ") || null;
   const row = legacy ? { name, message: legacyMessage } : { name, message: message || null, ...extra };
@@ -370,6 +381,18 @@ ${[
       .gte("created_at", new Date(Date.now() - 86_400_000).toISOString());
     underDailyCap = (today ?? 0) <= GUEST_EMAILS_PER_DAY;
     if (!underDailyCap) console.warn("RSVP guest email cap reached", site.event_id);
+    // a burst from one sender, or at one event: the replies stand, the confirmations stop
+    if (underDailyCap) {
+      const tenMin = new Date(Date.now() - 600_000).toISOString(), hour = new Date(Date.now() - 3_600_000).toISOString();
+      const [atEvent, fromIp] = await Promise.all([
+        supabaseAdmin.from("rsvps").select("id", { count: "exact", head: true }).eq("event_id", site.event_id).not("email", "is", null).gte("created_at", tenMin),
+        ipHash ? supabaseAdmin.from("rsvps").select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", hour) : Promise.resolve({ count: 0 }),
+      ]);
+      if ((atEvent.count ?? 0) > GUEST_EMAILS_PER_EVENT_10MIN || (fromIp.count ?? 0) > GUEST_EMAILS_PER_IP_HOUR) {
+        underDailyCap = false;
+        console.warn("RSVP guest email burst", { event: site.event_id, atEvent: atEvent.count, fromIp: fromIp.count });
+      }
+    }
   }
   let guestSend: Promise<unknown> | null = null;
   if (!prior && email && underDailyCap && (await claimRsvpEmails(supabaseAdmin, "guest", premium, site.event_id, 1))) {
