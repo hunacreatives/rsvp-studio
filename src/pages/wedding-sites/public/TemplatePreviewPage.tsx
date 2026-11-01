@@ -6,13 +6,14 @@ import { resolveTemplate } from "../engine/render";
 import { SiteCreditProvider } from "../engine/siteCredit";
 import { preloadTemplate, TemplateFallback } from "../engine/lazyTemplate";
 import SiteLoading from "./SiteLoading";
+import { RsvpSampleContext } from "../spec/runtime/useRsvpForm";
 import { scrollToTopNow } from "@/lib/lenis";
 import { normalizeEventContent } from "../content/normalize";
 import { isabellaAndMateo } from "../content/fixtures/isabella-and-mateo";
 
 // /build/preview/:templateId — anyone can open a design as a full demo site
 // before signing up. Sample content only; the RSVP form doesn't send anything
-// (templates only post RSVPs on a published page). "Use this design" goes back to
+// (RsvpSampleContext: it thanks the guest and says it's a sample). "Use this design" goes back to
 // /build with the choice, which asks them to sign up and opens the builder with it.
 //
 // The design is shown in a frame under the bar (?frame=1 is the design alone), so it gets the
@@ -61,7 +62,9 @@ export default function TemplatePreviewPage() {
     return (
       <SiteCreditProvider value={{ show: true }}>
         <TemplateFallback.Provider value={<SiteLoading />}>
-          <Template content={content} settings={resolved.settings} demo />
+          <RsvpSampleContext.Provider value>
+            <Template content={content} settings={resolved.settings} demo />
+          </RsvpSampleContext.Provider>
         </TemplateFallback.Provider>
       </SiteCreditProvider>
     );

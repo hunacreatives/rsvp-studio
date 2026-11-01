@@ -50,6 +50,8 @@ export const LEVELUP_CSS = `
 @keyframes lu-blink { 50% { opacity: 0.25; } }
 .lu-meta { position: absolute; left: 16px; right: 16px; bottom: 6svh; font: 600 13px var(--lu-hud); letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.88); text-shadow: 0 1px 6px rgba(0,0,0,0.55); text-wrap: balance; }
 .lu-meta span { white-space: nowrap; }
+/* a long venue may wrap (on a phone it would otherwise run off the screen) */
+.lu-meta .lu-meta__v { white-space: normal; }
 
 /* ---- the quests: every card pauses in the same place (its dock: under the map; the bottom edge
    on a phone). The card is sticky for its hold, then scrolls away; the gap before each stop is

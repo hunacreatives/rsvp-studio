@@ -99,7 +99,8 @@ export default function PromenadeTemplate({ content, settings, editorPreview = f
     ["--pm-display" as string]: theme.displayFont,
     ["--pm-sans" as string]: theme.bodyFont,
   } as CSSProperties;
-  const cls = ["pm-root", moving ? "pm-motion" : "", gallery ? "pm-gallery" : "", E ? "pm-editor" : ""].filter(Boolean).join(" ");
+  // the opening's class is on from the first paint, so the names never show before the garden opens (as Simbahan)
+  const cls = ["pm-root", moving ? "pm-motion" : "", intro ? "pm-intro" : "pm-named", gallery ? "pm-gallery" : "", E ? "pm-editor" : ""].filter(Boolean).join(" ");
 
   const card = (k: Exclude<StopKey, "gate">, children: ReactNode, sec?: string) => (
     <section key={k} className={`pm-stop pm-stop--${k}`} data-pm-stop data-pm-key={k} id={k === "rsvp" ? "rsvp" : undefined}>

@@ -349,7 +349,7 @@ export default function LevelUpTemplate({ content, settings, editorPreview = fal
           <p className="lu-meta">
             {when ? <span>{when}</span> : editorPreview ? "Your date" : null}
             {at ? <span>{` · ${at}`}</span> : null}
-            {venue || town ? <span>{` · ${venue && town && venue !== town ? `${venue}, ${town}` : venue || town}`}</span> : null}
+            {venue || town ? <span className="lu-meta__v">{` · ${venue && town && venue !== town ? `${venue}, ${town}` : venue || town}`}</span> : null}
           </p>
         </section>
 

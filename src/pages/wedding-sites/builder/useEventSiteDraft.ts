@@ -66,6 +66,12 @@ interface EventInfo {
   event_type: string | null;
 }
 
+// What's on the live site, as a string to compare with the draft: the content normalized the same way on both
+// sides (what comes back from the database has its keys in another order, and defaults filled in), keys sorted.
+const sorted = (v: unknown): unknown =>
+  Array.isArray(v) ? v.map(sorted) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v as object).sort().filter((k) => (v as Record<string, unknown>)[k] !== undefined).map((k) => [k, sorted((v as Record<string, unknown>)[k])])) : v;
+const snapshot = (content: unknown, presentation: unknown, slug: string, occasion: Occasion) =>
+  JSON.stringify(sorted([{ ...normalizeEventContent(content), occasion, slug }, presentation]));
 const asOccasion = (t: string | null): Occasion => (t === "wedding" || t === "birthday" || t === "anniversary" || t === "baby" || t === "engagement" ? t : "other");
 
 export type DraftStatus = "loading" | "ready" | "error";
@@ -124,7 +130,8 @@ export function useEventSiteDraft(eventId: string | undefined) {
           draftPresentation && draftPresentation.activeTemplateId ? draftPresentation : defaultPresentation()
         );
         setPublishedAt(existing.published_at);
-        setLive(existing.published_at ? JSON.stringify([existing.published_content, existing.published_presentation]) : null);
+        const pub = (existing.published_content ?? {}) as { slug?: string };
+        setLive(existing.published_at ? snapshot(existing.published_content, existing.published_presentation, pub.slug || existing.slug, asOccasion(event.event_type)) : null);
         setStatus("ready");
         return;
       }
@@ -292,7 +299,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
       return { ok: false, paymentRequired, message: paymentRequired ? "" : "Couldn’t publish — please try again." };
     }
     setPublishedAt(nowIso);
-    setLive(JSON.stringify([publishedContent, presentation]));
+    setLive(snapshot(publishedContent, presentation, publishedContent.slug, content.occasion));
     setSaveStatus("saved");
     return { ok: true };
   }, [siteId, content, presentation, slug]);
@@ -393,7 +400,7 @@ export function useEventSiteDraft(eventId: string | undefined) {
   );
 
   // Edits not yet on the live site (compared with what was last published).
-  const hasUnpublishedChanges = !!live && live !== JSON.stringify([{ ...content, slug: slug || content.slug }, presentation]);
+  const hasUnpublishedChanges = !!live && live !== snapshot(content, presentation, slug || content.slug, content.occasion);
 
   return {
     status,

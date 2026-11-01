@@ -177,13 +177,19 @@ export default function RallyTemplate({ content, settings, editorPreview = false
       if (["ArrowRight", "ArrowDown", "PageDown"].includes(e.key) || (e.key === " " && !(e.target as HTMLElement | null)?.closest?.("button, a"))) { e.preventDefault(); step(1); }
       else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); step(-1); }
     };
-    let sx = 0, sy = 0, st: EventTarget | null = null;
-    const onStart = (e: TouchEvent) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = e.target; };
+    let sx = 0, sy = 0, st: EventTarget | null = null, cardTop = -1;
+    const onStart = (e: TouchEvent) => {
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = e.target;
+      const c = (st as HTMLElement | null)?.closest?.(".ra-card") as HTMLElement | null;
+      cardTop = c ? c.scrollTop : -1;
+    };
     const onEnd = (e: TouchEvent) => {
       const t = e.changedTouches[0], dx = sx - t.clientX, dy = sy - t.clientY;
       if (Math.max(Math.abs(dx), Math.abs(dy)) < 48) return;
       const d = Math.abs(dy) > Math.abs(dx) ? Math.sign(dy) : Math.sign(dx);
-      if (Math.abs(dy) > Math.abs(dx) && (st as HTMLElement | null)?.closest?.(".ra-card")) return;
+      // a swipe on a card that scrolled it was the card's own; one on a card with nothing (more) to scroll is the next shot
+      const c = (st as HTMLElement | null)?.closest?.(".ra-card") as HTMLElement | null;
+      if (Math.abs(dy) > Math.abs(dx) && c && cardTop >= 0 && Math.abs(c.scrollTop - cardTop) > 2) return;
       step(d);
     };
     // a tap on the court itself (not on a card, a button or a link) is the next shot

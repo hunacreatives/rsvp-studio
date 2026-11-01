@@ -332,7 +332,7 @@ export default function ScrapbookTemplate({ content, settings, editorPreview = f
               <details key={f.id} {...ed.item(f.id)} open={ed.on || undefined}>
                 <summary>
                   <Field path="question" value={f.question} placeholder="A question guests ask" editor={editorPreview} />
-                  <span aria-hidden>+</span>
+                  <span className="sb-faq__x" aria-hidden>+</span>
                 </summary>
                 <Field as="p" path="answer" value={f.answer} placeholder="The answer" editor={editorPreview} multiline />
               </details>

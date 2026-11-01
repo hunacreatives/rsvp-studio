@@ -174,6 +174,17 @@ textarea.ra-field { resize: vertical; min-height: 84px; }
 .ra-gallery { --frame: 75cqw; }
 .ra-gallery .ra-hero { bottom: calc(var(--frame) * 0.1); }
 @media (prefers-reduced-motion: reduce) { .ra-root *, .ra-root *::before, .ra-root *::after { animation: none !important; transition: none !important; } }
+/* a mid-width screen (a tablet, a phone on its side): the card would run under the shot strip, so it sits above it */
+@container (min-width: 701px) and (max-width: 1100px) {
+  .ra-deck .ra-stop { bottom: 92px; }
+  .ra-deck .ra-card { max-height: calc(var(--frame) - 200px); }
+}
+/* a short screen (a phone on its side): the title comes down clear of the scoreboard, the card sits above the strip */
+@media (max-height: 520px) {
+  .ra-deck .ra-hero { bottom: 28px; }
+  .ra-deck .ra-stop { bottom: 84px; }
+  .ra-deck .ra-card { max-height: calc(var(--frame) - 150px); }
+}
 
 @container (max-width: 700px) {
   .ra-bug { left: 12px; top: 12px; min-width: 0; max-width: calc(100% - 170px); }

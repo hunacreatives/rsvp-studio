@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { createContext, useContext, useState, type FormEvent } from "react";
 import type { EventContent } from "../../content/types";
 import { rsvpWindow } from "../../content/rsvpDeadline";
 import { getSitePassword } from "../../public/sitePassword";
 import { useInvitee } from "../../engine/invitee";
 
 export type SubmitState = "idle" | "submitting" | "success" | "error";
+
+/** A design's sample (the gallery's preview page): the form works, but nothing is sent and no one is told. */
+export const RsvpSampleContext = createContext(false);
 
 /**
  * A design's own RSVP form (website section or traced canvas): the values
@@ -16,6 +19,7 @@ export type SubmitState = "idle" | "submitting" | "success" | "error";
 export function useRsvpForm(content: EventContent, editorPreview: boolean | undefined, opts: { asksAttending: boolean }) {
   // A personal link: their name already in, and (Premium) their seats as the most they can bring.
   const invitee = useInvitee();
+  const sample = useContext(RsvpSampleContext);
   const [values, setValues] = useState<Record<string, string>>(() => (invitee ? { name: invitee.name } : {}));
   const maxGuests = invitee?.seatLimit && invitee.seats ? Math.max(1, invitee.seats) : 10;
   // The hosts' own questions (answers go in as q:<id>; party names as "partyNames").
@@ -26,7 +30,13 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   // True only when the server actually sent the guest a confirmation email (or, with texting on, a text).
   const [emailed, setEmailed] = useState(false);
   const [texted, setTexted] = useState(false);
-  const set = (k: string, v: string) => setValues((cur) => ({ ...cur, [k]: v }));
+  // Typing clears the last error; changing anything after a sent reply makes it a new reply to send (a design's
+  // "Change my reply" then waits for its Send, rather than taking the new answer as already sent).
+  const set = (k: string, v: string) => {
+    setValues((cur) => ({ ...cur, [k]: v }));
+    setError(null);
+    setState((s) => (s === "success" || s === "error" ? "idle" : s));
+  };
   const attending = values.attending === "yes" ? "yes" : values.attending === "no" ? "no" : null;
   const { closed, replyBy, closedText } = rsvpWindow(content);
   // "Email or mobile": one field, but the right keyboard. Phones open a number pad for a
@@ -63,6 +73,13 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
     const missing = attending !== "no" ? questions.find((q) => q.required && !(values[`q:${q.id}`] ?? "").trim()) : undefined;
     if (missing) {
       setError(`Please answer: ${missing.label}`);
+      return;
+    }
+    // The sample: a moment's pause, then the thank-you, with nothing sent.
+    if (sample) {
+      setState("submitting");
+      setError(null);
+      setTimeout(() => setState("success"), 450);
       return;
     }
     setState("submitting");
@@ -119,6 +136,6 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   }
 
   // The line every design shows under "you're on the list", when a copy really went out.
-  const copyNote = emailed ? "A copy is on its way to your email." : texted ? "A copy is on its way to your phone." : null;
+  const copyNote = sample ? "This is a sample. On your site, replies come to you." : emailed ? "A copy is on its way to your email." : texted ? "A copy is on its way to your phone." : null;
   return { values, set, state, error, website, setWebsite, attending, submit, emailed, copyNote, closed: closed && !editorPreview, replyBy, closedText, contactMode, contactProps, toggleContact, contactToggleLabel, invitee, maxGuests, questions };
 }

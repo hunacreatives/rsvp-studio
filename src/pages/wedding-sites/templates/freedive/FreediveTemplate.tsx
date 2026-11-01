@@ -104,7 +104,8 @@ export default function FreediveTemplate({ content, settings, editorPreview = fa
     vis.faqs === false && { k: "faqs", label: "Good to know" },
   ].filter(Boolean) as { k: string; label: string }[];
   // one swipe, one stop: the surface, each depth, the plate at the bottom
-  useFlowSnap(rootRef, moving && (live || demo), ".fd-stop, .fd-plate", String(stops.length));
+  // (measured again once the opening has risen to the surface: during it the world is moved off its place)
+  useFlowSnap(rootRef, moving && (live || demo), ".fd-stop, .fd-plate", `${stops.length}|${phase === "intro" ? "rising" : "here"}`);
   const depthAt = (i: number) => Math.max(1, Math.round((max * (i + 1)) / (stops.length + 1.2)));
 
   // the intro: the world starts below the surface and rises to it

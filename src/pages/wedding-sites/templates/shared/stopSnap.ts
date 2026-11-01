@@ -254,7 +254,7 @@ function nativeSnap(root: HTMLElement): Snap {
   layer.className = "ss-marks";
   layer.setAttribute("aria-hidden", "true");
   body.appendChild(layer);
-  let rests: number[] = [0], marks: HTMLElement[] = [], raf = 0, held = false;
+  let rests: number[] = [0], spans: SnapSpan[] = [{ from: 0 }], marks: HTMLElement[] = [], raf = 0, held = false;
   const locked = () => html.style.overflow === "hidden" || body.style.overflow === "hidden";
   const FIELD = "input, textarea, select, [contenteditable], [data-snap-free]";
   const FORM = "form input:not([type=hidden]):not([tabindex='-1']), form textarea, form select";
@@ -278,16 +278,20 @@ function nativeSnap(root: HTMLElement): Snap {
     const sy = window.scrollY, layerTop = layer.getBoundingClientRect().top + sy;
     const rootTop = root.getBoundingClientRect().top + sy;
     const max = Math.max(0, html.scrollHeight - window.innerHeight);
-    const ys = rests.map((r) => Math.min(max, Math.max(0, Math.round(rootTop + r))));
-    ys.push(Math.round(max));
+    const at0 = (v: number) => Math.min(max, Math.max(0, Math.round(rootTop + v)));
+    // a stop taller than the screen is one tall stop (its top to its end), which the browser lets the finger read
+    // through freely: its in-between rests are for the wheel and the keys only (as 1px marks a fling went straight
+    // past the card's end on Android)
+    const ivs = spans.map((sp) => { const f = at0(sp.from); return { y: f, to: Math.max(f, at0(Math.max(sp.from, sp.to ?? sp.from))) }; });
+    ivs.push({ y: Math.round(max), to: Math.round(max) });
     // stops closer than about a third of a screen are one stop to a finger (a native swipe goes
     // straight past the second, as with a card a little taller than the screen): they become one
     // stop as tall as both, which the browser lets the finger read through freely, top to end
     const H = window.innerHeight, near = H * 0.4, at: { y: number; to: number }[] = [];
-    for (const v of ys.sort((a, b) => a - b)) {
+    for (const v of ivs.sort((a, b) => a.y - b.y)) {
       const last = at[at.length - 1];
-      if (!last || v - last.to > near) at.push({ y: v, to: v });
-      else last.to = v;
+      if (!last || v.y - last.to > near) at.push({ ...v });
+      else last.to = Math.max(last.to, v.to);
     }
     at.forEach(({ y, to }, i) => {
       let m = marks[i];
@@ -312,7 +316,12 @@ function nativeSnap(root: HTMLElement): Snap {
     html.classList.toggle("ss-hold", hold);
     html.classList.toggle("ss-snap", !hold && !free());
   };
-  const later = () => window.setTimeout(apply, 0); // focusout: the focus has gone once this runs
+  // focusout: the focus has gone once this runs. Leaving a field to tap a button (Send) is not the moment to snap:
+  // the page snapping under the finger would eat the tap. Snapping comes back on with the next touch's end.
+  let touching = false, pendingApply = false;
+  const later = () => window.setTimeout(() => { if (touching) pendingApply = true; else apply(); }, 0);
+  const onTouchStart = () => { touching = true; };
+  const onTouchEnd = () => { touching = false; if (pendingApply) { pendingApply = false; window.setTimeout(apply, 350); } };
   // an open answer or form scrolled out of view: snapping again
   let sraf = 0;
   const onScroll = () => { if (!sraf) sraf = requestAnimationFrame(() => { sraf = 0; apply(); }); };
@@ -325,12 +334,16 @@ function nativeSnap(root: HTMLElement): Snap {
   ro.observe(root);
   document.addEventListener("focusin", apply);
   document.addEventListener("focusout", later);
+  window.addEventListener("touchstart", onTouchStart, { passive: true, capture: true });
+  window.addEventListener("touchend", onTouchEnd, { passive: true, capture: true });
+  window.addEventListener("touchcancel", onTouchEnd, { passive: true, capture: true });
   window.addEventListener("resize", kick);
   window.addEventListener("scroll", onScroll, { passive: true });
   apply();
 
   return {
-    update(spans: SnapSpan[], screen: number) {
+    update(next: SnapSpan[], screen: number) {
+      spans = next.length ? next : [{ from: 0 }];
       rests = restsOf(spans, screen);
       root.dataset.snapRests = rests.join(",");
       place();
@@ -342,6 +355,9 @@ function nativeSnap(root: HTMLElement): Snap {
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("focusin", apply);
       document.removeEventListener("focusout", later);
+      window.removeEventListener("touchstart", onTouchStart, { capture: true });
+      window.removeEventListener("touchend", onTouchEnd, { capture: true });
+      window.removeEventListener("touchcancel", onTouchEnd, { capture: true });
       window.removeEventListener("resize", kick);
       window.removeEventListener("touchmove", stopTouch);
       html.classList.remove("ss-snap", "ss-hold");

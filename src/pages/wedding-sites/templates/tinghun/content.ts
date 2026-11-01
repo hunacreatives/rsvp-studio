@@ -26,7 +26,9 @@ export function lunarDate(content: EventContent): string {
     const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
     const year = get("yearName");
     const month = get("month");
-    const day = DAYS[Number(get("day"))] ?? "";
+    // Chrome gives the day as a number ("6"), Safari already in words ("初六")
+    const raw = get("day"), n = Number(raw);
+    const day = Number.isFinite(n) && raw !== "" ? DAYS[n] ?? "" : raw;
     return year && month && day ? `${year}年${month}${day}` : "";
   } catch {
     return ""; // a browser without the Chinese calendar: the line just doesn't show

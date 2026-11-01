@@ -215,7 +215,11 @@ export function useSavanna(
       for (const p of pieces) if (p.reply) p.at = stopCount || Number.MAX_SAFE_INTEGER;
       // the reply's pass, after the last stop: centred, or a free zone when it's taller than the screen
       const pass = root.querySelector<HTMLElement>(".sf-passwrap");
-      snap.update([...holds.map((h) => ({ from: h.a })), ...(pass ? centredSpans(root, [pass], H) : [])], H);
+      // the stops a guest rests on: the hero, each docked bubble, then the pass (the reply section, which has no
+      // bubble, keeps its place in holds for the jeep but gets no rest of its own: it would be the empty ground above
+      // the pass)
+      const docked = holds.filter((_, i) => i === 0 || !!stops[i - 1]?.querySelector(".sf-dock [data-sf-say]"));
+      snap.update([...docked.map((h) => ({ from: h.a })), ...(pass ? centredSpans(root, [pass], H) : [])], H);
     };
     // the jeep's place for a scroll position: parked while a bubble is docked, driving (eased)
     // through the gap to the next stop, arriving a little before its bubble docks

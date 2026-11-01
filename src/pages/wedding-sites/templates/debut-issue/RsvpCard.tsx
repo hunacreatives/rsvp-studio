@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { EventContent } from "../../content/types";
 import { customValue } from "../../content/custom";
 import { useRsvpForm } from "../../spec/runtime/useRsvpForm";
@@ -20,6 +20,13 @@ export default function RsvpCard({ content, editorPreview, sample, celebrant }: 
   useEffect(() => {
     if (form.state === "success") setDone(true);
   }, [form.state]);
+  // the long form folds into a short thank-you: bring it into view (on a small phone it would sit above the screen)
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!done || editorPreview) return;
+    const el = cardRef.current;
+    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [done, editorPreview]);
 
   const choose = (v: "yes" | "no") => {
     form.set("attending", v);
@@ -28,7 +35,7 @@ export default function RsvpCard({ content, editorPreview, sample, celebrant }: 
   const setSeats = (n: number) => form.set("guests", String(Math.min(form.maxGuests, Math.max(1, n))));
 
   return (
-    <div className="di-card">
+    <div className="di-card" ref={cardRef}>
       <span className="di-card__perf" aria-hidden />
       {done ? (
         <div className="di-done" role="status">

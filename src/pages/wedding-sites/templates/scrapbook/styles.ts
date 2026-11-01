@@ -172,8 +172,10 @@ export const SB_CSS = `
 .sb-notebook details{border-bottom:1px solid transparent}
 .sb-notebook summary{display:flex;justify-content:space-between;gap:14px;min-height:56px;align-items:center;list-style:none;cursor:pointer;font-family:var(--sb-body);font-style:italic;font-weight:600;font-size:clamp(1.1rem,4cqw,1.3rem)}
 .sb-notebook summary::-webkit-details-marker{display:none}
-.sb-notebook summary span{flex:none;font-family:var(--sb-body);font-size:22px;font-weight:300;transition:transform .3s}
-.sb-notebook details[open] summary span{transform:rotate(45deg)}
+/* the + that turns to an x (the question is a span too, so the icon has a class of its own) */
+.sb-notebook summary .sb-faq__x{flex:none;font-family:var(--sb-body);font-size:22px;font-style:normal;font-weight:300;transition:transform .3s}
+.sb-notebook details[open] summary .sb-faq__x{transform:rotate(45deg)}
+.sb-notebook summary > :first-child{min-width:0;overflow-wrap:anywhere}
 .sb-notebook p{margin:0 0 14px;font-size:16px;line-height:2;color:var(--sb-text2)}
 
 /* rsvp */

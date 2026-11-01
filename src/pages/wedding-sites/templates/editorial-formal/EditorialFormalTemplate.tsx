@@ -38,6 +38,14 @@ const timeOf = (iso: string) => {
   const d = parseEventDate(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 };
+// a schedule item on another day than the event (the welcome drinks the evening before) says which day
+const dayOf = (iso: string, eventIso?: string) => {
+  if (!iso || !eventIso || iso.slice(0, 10) === eventIso.slice(0, 10)) return "";
+  const d = parseEventDate(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + " · ";
+};
+// in time order (the builder keeps the host's own order while editing)
+const byTime = <T extends { startTime: string }>(list: T[], editing: boolean) => (editing ? list : [...list].sort((a, b) => a.startTime.localeCompare(b.startTime)));
 
 function Names({ content, editor }: { content: EventContent; editor?: boolean }) {
   const ed = siteEdit(editor);
@@ -148,9 +156,10 @@ export default function EditorialFormalTemplate({ content, settings, editorPrevi
         <section className="ef-sec ef-sec--tint" {...ed.section("schedule")}>
           <Title kicker={w ? `${w.weekday}, ${w.day} ${w.month}` : undefined}>The day</Title>
           <ol className="ef-timeline" data-reveal {...ed.list("schedule")}>
-            {content.schedule.map((s, i) => (
+            {byTime(content.schedule, editorPreview).map((s, i) => (
               <li key={s.id} {...ed.item(s.id)} data-reveal style={{ transitionDelay: `${i * 90}ms` }}>
                 <time>
+                  {dayOf(s.startTime, content.eventDate)}
                   {timeOf(s.startTime)}
                   {s.endTime ? ` – ${timeOf(s.endTime)}` : ""}
                 </time>

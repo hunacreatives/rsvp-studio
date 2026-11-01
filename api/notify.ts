@@ -191,13 +191,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 body: `${esc(who)} invited you to help with <strong>${esc(evName)}</strong> on The RSVP Studio as ${role === "cohost" ? "a co-host" : `the ${esc(role)}`}.<br><br>${esc(what)}<br><br>${signIn}`,
                 button: "Accept the invite",
               };
-      await sendMail({
-        from: FROM,
-        to,
-        subject: mail.subject,
-        html: layout(mail.title, mail.body, { label: mail.button, url }, role === "owner" ? `Not expecting this? You can ignore it; nothing changes unless you accept.` : `Not expecting this? You can ignore it; nothing happens unless you accept.`),
-        replyTo: caller.email && isEmail(caller.email) ? caller.email : STUDIO_INBOX,
-      });
+      try {
+        await sendMail({
+          from: FROM,
+          to,
+          subject: mail.subject,
+          html: layout(mail.title, mail.body, { label: mail.button, url }, role === "owner" ? `Not expecting this? You can ignore it; nothing changes unless you accept.` : `Not expecting this? You can ignore it; nothing happens unless you accept.`),
+          replyTo: caller.email && isEmail(caller.email) ? caller.email : STUDIO_INBOX,
+        });
+      } catch (err) {
+        // the email didn't go: the invite goes too, so the event never shows one as sent that nobody received
+        console.error("event_invite email", err);
+        await supabaseAdmin.from("event_invites").delete().eq("id", (made as { id: string }).id);
+        return res.status(502).json({ error: "We couldn’t email that address. Check it and try again." });
+      }
       return res.status(200).json({ id: (made as { id: string }).id });
     }
 
