@@ -37,8 +37,9 @@ export async function sendRsvpDigests(db: SupabaseClient, sendMail: SendMail, si
 
   for (const eventId of eventIds) {
     try {
-      const { data: ev } = await db.from("events").select("id, name, managed_by_studio, rsvp_digest_sent_at").eq("id", eventId).maybeSingle();
-      if (!ev || ev.managed_by_studio || (await isPremium(db, eventId))) continue;
+      const { data: ev } = await db.from("events").select("id, name, managed_by_studio, rsvp_digest_sent_at, deleted_at").eq("id", eventId).maybeSingle();
+      // Deleted sites are offline: no summaries (their replies stay until the purge).
+      if (!ev || ev.deleted_at || ev.managed_by_studio || (await isPremium(db, eventId))) continue;
       const { data: siteRow } = await db.from("wedding_sites").select("published_at, published_content").eq("event_id", eventId).maybeSingle();
       const since = (ev.rsvp_digest_sent_at as string | null) ?? (siteRow?.published_at as string | null) ?? new Date(Date.now() - 86_400_000).toISOString();
 

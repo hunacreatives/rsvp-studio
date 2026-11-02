@@ -170,7 +170,9 @@ function Shell() {
             <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--slate)]">Console</span>
           </Link>
           <p className="hidden whitespace-nowrap text-[13px] text-[var(--slate)] sm:block">
-            {projects.filter((p) => p.project_status === "in_progress").length} active projects
+            {/* Studio jobs and customers' own sites counted apart (DIY sites never get "completed"). */}
+            {projects.filter((p) => p.managed_by_studio !== false && p.project_status === "in_progress").length} active studio projects ·{" "}
+            {projects.filter((p) => p.managed_by_studio === false).length} DIY sites
             {unread ? (
               <>
                 {" · "}
