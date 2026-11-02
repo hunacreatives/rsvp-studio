@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { gsap } from "gsap";
 import { Reveal } from "@/lib/Reveal";
 import { inquiryLink } from "@/pages/enquire/prefill";
 import { lenisRef } from "@/lib/lenis";
@@ -341,27 +342,94 @@ function AdditionsPanel() {
 }
 
 export default function ExploreSuites() {
+  // tab = the pressed tab (the pill moves at once); shown = the panel on screen, which
+  // swaps once the old one has slid out. dir: +1 slides toward a tab on the right, -1 left.
   const [tab, setTab] = useState(TABS[0]);
-  const active = SUITES.find((s) => s.tab === tab);
+  const [shown, setShown] = useState(TABS[0]);
+  const active = SUITES.find((s) => s.tab === shown);
+  const panel = useRef<HTMLDivElement | null>(null);
+  const dir = useRef(0);
+
+  // The pill sits behind the active tab and slides between them (2×2 grid on phones,
+  // one row from sm, so it tracks top/left as well as size).
+  const bar = useRef<HTMLDivElement | null>(null);
+  const btns = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [pill, setPill] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [pillMoves, setPillMoves] = useState(false);
+  useLayoutEffect(() => {
+    const place = () => {
+      const b = btns.current[tab];
+      if (b) setPill({ x: b.offsetLeft, y: b.offsetTop, w: b.offsetWidth, h: b.offsetHeight });
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    if (bar.current) ro.observe(bar.current);
+    return () => ro.disconnect();
+  }, [tab]);
+
+  const pick = (t: string) => {
+    if (t === tab) return;
+    setPillMoves(true);
+    setTab(t);
+    const el = panel.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      dir.current = 0;
+      setShown(t);
+      return;
+    }
+    dir.current = Math.sign(TABS.indexOf(t) - TABS.indexOf(shown)) || 1;
+    gsap.killTweensOf(el);
+    gsap.to(el, {
+      x: -dir.current * 56,
+      autoAlpha: 0,
+      duration: 0.22,
+      ease: "power2.in",
+      onComplete: () => setShown(t),
+    });
+  };
+
+  // The new panel comes in from the side of the tab that was pressed.
+  useLayoutEffect(() => {
+    const el = panel.current;
+    if (!el || !dir.current) return;
+    gsap.fromTo(
+      el,
+      { x: dir.current * 56, autoAlpha: 0 },
+      { x: 0, autoAlpha: 1, duration: 0.5, ease: "power3.out", clearProps: "transform,opacity,visibility" },
+    );
+  }, [shown]);
 
   return (
-    <section className="py-16 md:py-32" style={{ background: "var(--paper)" }}>
+    <section className="overflow-x-clip py-16 md:py-32" style={{ background: "var(--paper)" }}>
       <div className="container-x">
         <Reveal as="h2" className="h-section text-center text-[var(--ink)]">
           Explore the Suites
         </Reveal>
 
         <div className="mt-10 flex justify-center">
-          <div className="grid w-full max-w-sm grid-cols-2 gap-1 rounded-[22px] bg-white p-1.5 shadow-[0_10px_30px_-18px_rgba(0,7,39,0.3)] sm:flex sm:w-auto sm:max-w-none sm:justify-center sm:rounded-full">
+          <div
+            ref={bar}
+            className="relative grid w-full max-w-sm grid-cols-2 gap-1 rounded-[22px] bg-white p-1.5 shadow-[0_10px_30px_-18px_rgba(0,7,39,0.3)] sm:flex sm:w-auto sm:max-w-none sm:justify-center sm:rounded-full"
+          >
+            {pill && (
+              <span
+                aria-hidden="true"
+                className={`absolute left-0 top-0 rounded-full bg-[var(--ink)] ${
+                  pillMoves ? "transition-[transform,width,height] duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none" : ""
+                }`}
+                style={{ width: pill.w, height: pill.h, transform: `translate(${pill.x}px, ${pill.y}px)` }}
+              />
+            )}
             {TABS.map((t) => (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                ref={(el) => {
+                  btns.current[t] = el;
+                }}
+                onClick={() => pick(t)}
                 aria-pressed={tab === t}
-                className={`min-h-11 rounded-full px-4 py-2.5 text-sm font-medium transition-colors sm:px-5 ${
-                  tab === t
-                    ? "bg-[var(--ink)] text-white"
-                    : "text-[var(--slate)] hover:text-[var(--ink)]"
+                className={`relative min-h-11 rounded-full px-4 py-2.5 text-sm font-medium transition-colors duration-300 sm:px-5 ${
+                  tab === t ? "text-white" : "text-[var(--slate)] hover:text-[var(--ink)]"
                 }`}
               >
                 {t}
@@ -370,7 +438,7 @@ export default function ExploreSuites() {
           </div>
         </div>
 
-        <div className="mt-14">
+        <div ref={panel} className="mt-14">
           {active ? <SuitePanel key={active.id} suite={active} /> : <AdditionsPanel />}
         </div>
       </div>
