@@ -9,21 +9,31 @@ gsap.registerPlugin(ScrollTrigger);
 // The collage: a real flat-lay. The pieces overlap like a stationery collection laid on a
 // table, layered by z. On load they start as one neat stack in the middle and are dealt out
 // into the pile, each turning to its own angle; then they bob gently, drift on scroll, and
-// (with a mouse) shift a little by depth. Positions are % of a 16:10 box, so it scales.
+// (with a mouse) shift a little by depth. Two layouts, both % of their box so they scale:
+//   wide (md and up): spread across a 1160×640 box, pieces just touching.
+//   phone: the tight cluster from Francis's "Stationery Design (Essentials)" mockup, 800×683.
 //   depth: how far it follows the mouse. float: seconds per bob. z: stacking order.
-type Piece = { src: string; x: number; y: number; w: number; z: number; rot: number; drift: number; depth: number; float: number };
+type Spot = { x: number; y: number; w: number; z: number; rot: number };
+type Piece = { src: string; wide: Spot; phone: Spot; drift: number; depth: number; float: number };
 const PIECES: Piece[] = [
-  { src: "/services/stationery/hero-building.png", x: 29, y: 66, w: 42, z: 1, rot: 0, drift: -4, depth: 0.4, float: 9 },
-  { src: "/services/stationery/hero-map.webp", x: 5, y: 12, w: 40, z: 2, rot: -7, drift: -6, depth: 0.6, float: 7 },
-  { src: "/services/stationery/hero-heart.png", x: 59, y: 1, w: 22, z: 2, rot: 9, drift: 5, depth: 0.9, float: 6 },
-  { src: "/services/stationery/hero-palm-invite.webp", x: 37, y: 5, w: 24, z: 4, rot: -2, drift: -5, depth: 0.8, float: 8 },
-  { src: "/services/stationery/hero-ornate-invite.webp", x: 60, y: 25, w: 24, z: 5, rot: 6, drift: 6, depth: 0.9, float: 7 },
-  { src: "/services/stationery/hero-rsvp-oval.png", x: 15, y: 43, w: 21, z: 5, rot: -9, drift: 6, depth: 0.9, float: 7.5 },
-  { src: "/services/stationery/hero-flower.png", x: 31, y: 4, w: 11, z: 6, rot: 14, drift: 10, depth: 1.5, float: 5 },
-  { src: "/services/stationery/hero-coconut.png", x: 34, y: 60, w: 11, z: 6, rot: -8, drift: -8, depth: 1.4, float: 5.5 },
-  { src: "/services/stationery/hero-turtle.png", x: 67, y: 73, w: 16, z: 6, rot: 12, drift: 7, depth: 1.3, float: 6.5 },
-  { src: "/services/stationery/hero-sparkle.png", x: 84, y: 12, w: 5, z: 6, rot: 0, drift: 14, depth: 1.8, float: 3.5 },
+  { src: "/services/stationery/hero-sun-lucia.webp", wide: { x: 0, y: 61.19, w: 31.9, z: 2, rot: -10 }, phone: { x: 60.7, y: 65.1, w: 34.97, z: 5, rot: 18.8 }, drift: 7, depth: 1.3, float: 6.5 },
+  { src: "/services/stationery/hero-hibiscus-daniela.webp", wide: { x: 2.16, y: 7.01, w: 24.14, z: 1, rot: -6 }, phone: { x: 4.16, y: 6.82, w: 31.68, z: 2, rot: -6.7 }, drift: -6, depth: 0.6, float: 7 },
+  { src: "/services/stationery/hero-orchid-isabella.webp", wide: { x: 19.18, y: 14.05, w: 32.33, z: 3, rot: 12 }, phone: { x: 21.56, y: 10.86, w: 42.99, z: 3, rot: 19.1 }, drift: -5, depth: 0.8, float: 8 },
+  { src: "/services/stationery/hero-tassel-alessandra.webp", wide: { x: 24.57, y: 42.95, w: 17.24, z: 4, rot: 5 }, phone: { x: 12.77, y: 41.95, w: 21.49, z: 9, rot: -8.4 }, drift: 6, depth: 1.2, float: 7.5 },
+  { src: "/services/stationery/hero-fan-natalia.webp", wide: { x: 40.3, y: 16.41, w: 29.74, z: 5, rot: 4 }, phone: { x: 41.85, y: 15.05, w: 36.26, z: 10, rot: 7.8 }, drift: -6, depth: 1.4, float: 6 },
+  { src: "/services/stationery/hero-lace-camille.webp", wide: { x: 34.91, y: 46.86, w: 33.62, z: 7, rot: -3 }, phone: { x: 29.83, y: 36.59, w: 43.15, z: 1, rot: 0 }, drift: -4, depth: 0.4, float: 9 },
+  { src: "/services/stationery/hero-heart-sofia.webp", wide: { x: 62.07, y: 14.23, w: 22.41, z: 8, rot: 8 }, phone: { x: 61.63, y: 3.92, w: 24.51, z: 4, rot: 9.4 }, drift: 5, depth: 0.9, float: 6 },
+  { src: "/services/stationery/hero-shore-andrea.webp", wide: { x: 57.54, y: 51.04, w: 28.02, z: 6, rot: 6 }, phone: { x: 29.76, y: 68.22, w: 32.41, z: 7, rot: 3.9 }, drift: -8, depth: 1.1, float: 5.5 },
+  { src: "/services/stationery/hero-diamond-bianca.webp", wide: { x: 79.09, y: 11.9, w: 19.4, z: 9, rot: 9 }, phone: { x: 64.25, y: 25.33, w: 23.56, z: 6, rot: 11.1 }, drift: 6, depth: 0.9, float: 7 },
+  { src: "/services/stationery/hero-orchid-gabriela.webp", wide: { x: 77.16, y: 54.08, w: 22.41, z: 10, rot: -6 }, phone: { x: 54.34, y: 55.91, w: 24.52, z: 8, rot: 0 }, drift: 10, depth: 1.5, float: 5 },
 ];
+
+// The CSS variables stationery-hero.css reads; it switches from phone to wide at 768px.
+const spotVars = ({ wide: d, phone: m }: Piece) =>
+  ({
+    "--x": `${d.x}%`, "--y": `${d.y}%`, "--w": `${d.w}%`, "--z": d.z, "--r": `${d.rot}deg`,
+    "--mx": `${m.x}%`, "--my": `${m.y}%`, "--mw": `${m.w}%`, "--mz": m.z, "--mr": `${m.rot}deg`,
+  }) as React.CSSProperties;
 
 export default function StationeryHero() {
   const root = useRef<HTMLDivElement | null>(null);
@@ -40,9 +50,10 @@ export default function StationeryHero() {
         const b = box.getBoundingClientRect();
         const cx = b.left + b.width / 2;
         const cy = b.top + b.height / 2;
+        const wide = window.matchMedia("(min-width: 768px)").matches;
         imgs.forEach((el, i) => {
           const r = el.getBoundingClientRect();
-          const rot = Number(el.dataset.rot || 0);
+          const rot = Number((wide ? el.dataset.rot : el.dataset.mrot) || 0);
           gsap.from(el, {
             x: cx - (r.left + r.width / 2),
             y: cy - (r.top + r.height / 2) + 30,
@@ -111,19 +122,15 @@ export default function StationeryHero() {
       </div>
 
       <div className="container-x mt-8 md:mt-10">
-        <div ref={stage} className="relative mx-auto aspect-[16/10] w-full max-w-[1000px] max-sm:w-[112%] max-sm:-mx-[6%]">
+        <div ref={stage} className="relative mx-auto aspect-[800/683] w-full max-w-[800px] max-sm:w-[112%] max-sm:-mx-[6%] md:aspect-[1160/640] md:max-w-[1160px]">
           {PIECES.map((p, i) => (
-            <div
-              key={p.src}
-              data-depth={p.depth}
-              className="pointer-events-none absolute"
-              style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z, rotate: `${p.rot}deg` }}
-            >
+            <div key={p.src} data-depth={p.depth} className="sth-piece pointer-events-none absolute" style={spotVars(p)}>
               <div className="sth-float" style={{ animationDuration: `${p.float}s`, animationDelay: `${-i * 0.9}s` }}>
                 <img
                   data-piece
                   data-drift={p.drift}
-                  data-rot={p.rot}
+                  data-rot={p.wide.rot}
+                  data-mrot={p.phone.rot}
                   src={p.src}
                   alt=""
                   aria-hidden="true"

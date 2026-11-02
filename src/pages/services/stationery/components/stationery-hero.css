@@ -6,3 +6,9 @@
   to { transform: translateY(-9px) rotate(0.8deg); }
 }
 @media (prefers-reduced-motion: reduce) { .sth-float { animation: none; } }
+/* Each piece's spot comes from CSS variables (StationeryHero.tsx): the phone cluster first,
+   the wide spread from 768px. */
+.sth-piece { left: var(--mx); top: var(--my); width: var(--mw); z-index: var(--mz); rotate: var(--mr); }
+@media (min-width: 768px) {
+  .sth-piece { left: var(--x); top: var(--y); width: var(--w); z-index: var(--z); rotate: var(--r); }
+}
