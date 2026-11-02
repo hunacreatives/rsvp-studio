@@ -24,7 +24,7 @@ export type StudioOutlet = {
 
 export const useStudio = () => useOutletContext<StudioOutlet>();
 
-const NAV: { to: string; label: string; icon: string; end?: boolean; ownerOnly?: boolean }[] = [
+const NAV: { to: string; label: string; icon: string; end?: boolean; ownerOnly?: boolean; costs?: boolean }[] = [
   { to: "/studio", label: "Overview", icon: "ri-dashboard-3-line", end: true },
   { to: "/studio/leads", label: "Leads", icon: "ri-user-star-line" },
   { to: "/studio/emails", label: "Emails", icon: "ri-mail-star-line" },
@@ -34,6 +34,7 @@ const NAV: { to: string; label: string; icon: string; end?: boolean; ownerOnly?:
   { to: "/studio/support", label: "Support", icon: "ri-customer-service-2-line" },
   { to: "/studio/invoices", label: "Invoices", icon: "ri-file-list-3-line" },
   { to: "/studio/revenue", label: "Revenue", icon: "ri-line-chart-line", ownerOnly: true },
+  { to: "/studio/costs", label: "Costs", icon: "ri-wallet-3-line", costs: true },
   { to: "/studio/clients", label: "Clients", icon: "ri-group-line" },
   { to: "/studio/templates", label: "Templates", icon: "ri-layout-masonry-line" },
   { to: "/studio/blog", label: "Blog", icon: "ri-quill-pen-line" },
@@ -99,6 +100,12 @@ function Shell() {
     else studio.isOwner().then(setOwner);
   }, [demo]);
 
+  // Costs: the owner and the partners' shared login (supabase/studio-costs.sql).
+  const [costs, setCosts] = useState(false);
+  useEffect(() => {
+    if (!demo) studio.canSeeCosts().then(setCosts);
+  }, [demo]);
+
   // Clients who wander here get their own dashboard instead.
   if (!profile.is_staff && !demo) return <Navigate to="/account" replace />;
 
@@ -110,7 +117,7 @@ function Shell() {
     navigate("/");
   };
 
-  const nav = NAV.filter((n) => !n.ownerOnly || owner);
+  const nav = NAV.filter((n) => (!n.ownerOnly || owner) && (!n.costs || costs));
   const badgeFor = (to: string) => (to === "/studio/leads" ? newLeads : to === "/studio/inbox" ? unread : to === "/studio/support" ? needsReply : 0);
 
   return (

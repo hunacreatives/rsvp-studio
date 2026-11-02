@@ -671,6 +671,48 @@ export async function loadPayouts(from: Date, to: Date): Promise<{ paid_at: stri
   return ((data ?? []) as { paid_at: string; amount: number; partner: string; note: string | null }[]).map((r) => ({ ...r, amount: Number(r.amount) }));
 }
 
+// ── Costs (owner + the shared hello@ login; supabase/studio-costs.sql) ────────
+export type CostCategory = "ads" | "software" | "domain" | "other";
+export type Cost = {
+  id: string;
+  spent_on: string;
+  vendor: string;
+  category: CostCategory;
+  note: string | null;
+  amount: number;
+  currency: "PHP" | "USD";
+  monthly: boolean;
+  paid_by: string | null;
+  settled_on: string | null;
+};
+export type CostInput = Omit<Cost, "id" | "settled_on">;
+
+let costsCheck: Promise<boolean> | null = null;
+/** Can the signed-in account see Studio → Costs? Cached per page load. */
+export function canSeeCosts(): Promise<boolean> {
+  costsCheck ??= Promise.resolve(supabase.rpc("can_see_costs")).then(({ data }) => data === true);
+  return costsCheck;
+}
+/** null = the costs table isn't on this database yet. */
+export async function loadCosts(): Promise<Cost[] | null> {
+  const { data, error } = await supabase.from("studio_costs").select("id, spent_on, vendor, category, note, amount, currency, monthly, paid_by, settled_on").order("spent_on", { ascending: false }).order("created_at", { ascending: false });
+  if (error) return null;
+  return ((data ?? []) as Cost[]).map((c) => ({ ...c, amount: Number(c.amount) }));
+}
+export async function saveCost(input: CostInput, id?: string) {
+  const { error } = id ? await supabase.from("studio_costs").update(input).eq("id", id) : await supabase.from("studio_costs").insert(input);
+  if (error) throw error;
+}
+export async function deleteCost(id: string) {
+  const { error } = await supabase.from("studio_costs").delete().eq("id", id);
+  if (error) throw error;
+}
+/** Settle up: every open cost that has a payer is marked settled today. */
+export async function settleCosts(ids: string[]) {
+  const { error } = await supabase.from("studio_costs").update({ settled_on: new Date().toLocaleDateString("en-CA") }).in("id", ids);
+  if (error) throw error;
+}
+
 let ownerCheck: Promise<boolean> | null = null;
 /** Is the signed-in staff member the owner? (Revenue is owner-only.) Cached per page load. */
 export function isOwner(): Promise<boolean> {

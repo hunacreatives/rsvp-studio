@@ -9,6 +9,7 @@ import * as api from "./api";
 import { demoMessages, demoSnapshot, isDemoMode } from "./demo";
 import type { Message, Profile, SupportCategory, Thread, ThreadKind } from "./types";
 import { claimSignupRef } from "@/lib/signupRef";
+import { trackEvent } from "@/lib/analytics";
 
 type Ctx = api.PortalSnapshot & {
   demo: boolean;
@@ -72,7 +73,10 @@ export function PortalProvider({ children, fallback, demoAs = "client" }: { chil
     // first visit (their account is minutes old and has never been welcomed).
     const viaProvider = user.app_metadata?.provider && user.app_metadata.provider !== "email";
     const brandNew = Date.now() - new Date(user.created_at).getTime() < 15 * 60 * 1000;
-    if ((user.user_metadata?.welcomed === false && user.email_confirmed_at) || (viaProvider && brandNew && user.user_metadata?.welcomed === undefined)) {
+    const newViaProvider = viaProvider && brandNew && user.user_metadata?.welcomed === undefined;
+    if ((user.user_metadata?.welcomed === false && user.email_confirmed_at) || newViaProvider) {
+      // Email sign-ups count as sign_up on the form (AuthModal); Google ones count here.
+      if (newViaProvider) trackEvent("sign_up", { method: String(user.app_metadata.provider) });
       supabase.auth.updateUser({ data: { welcomed: true } });
       fetch("/api/send-welcome-email", {
         method: "POST",

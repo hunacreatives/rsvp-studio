@@ -25,6 +25,7 @@ const RatePage = lazy(() => import("../pages/rate/page"));
 const BlogPost = lazy(() => import("../pages/blog/post"));
 const StudioBlog = lazy(() => import("../pages/studio/pages/BlogPage"));
 const StudioRevenue = lazy(() => import("../pages/studio/pages/RevenuePage"));
+const StudioCosts = lazy(() => import("../pages/studio/pages/CostsPage"));
 const PartnerLink = lazy(() => import("../pages/partners/PartnerLink"));
 const PortalPartner = lazy(() => import("../pages/account/portal/pages/PartnerPage"));
 const StudioPartners = lazy(() => import("../pages/studio/pages/PartnersPage"));
@@ -127,6 +128,7 @@ const routes: RouteObject[] = [
       { path: "blog", element: <StudioBlog /> },
       { path: "website", element: <StudioWebsite /> },
       { path: "revenue", element: <StudioRevenue /> },
+      { path: "costs", element: <StudioCosts /> },
       { path: "invoices", element: <StudioInvoices /> },
       { path: "clients", element: <StudioClients /> },
       { path: "team", element: <StudioTeam /> },
