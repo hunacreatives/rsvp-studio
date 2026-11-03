@@ -146,7 +146,7 @@ export default function GuestSettings({ eventId, slug, premium, onUpgrade, price
               <p style={{ margin: 0 }}>
                 Guests add photos at{" "}
                 <a href={photosUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#2f61d5", wordBreak: "break-all" }}>
-                  {photosUrl.replace("https://", "")}
+                  {photosUrl}
                 </a>
                 . It’s linked at the bottom of your website. Print the QR code for your tables.
               </p>

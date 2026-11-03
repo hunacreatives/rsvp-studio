@@ -201,7 +201,7 @@ export function PublishDialog({ flow, slug, upsell, canPay = true, onHelp }: { f
             >
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>Publish free</span>
-                <span style={{ display: "block", marginTop: 2, fontSize: 13, color: "#c9cbe0", overflowWrap: "anywhere" }}>thersvpstudio.com/invite/{slug}</span>
+                <span style={{ display: "block", marginTop: 2, fontSize: 13, color: "#c9cbe0", overflowWrap: "anywhere" }}>https://thersvpstudio.com/invite/{slug}</span>
               </span>
               <span aria-hidden style={{ flexShrink: 0, fontSize: 18 }}>→</span>
             </button>
@@ -319,7 +319,7 @@ export function PublishDialog({ flow, slug, upsell, canPay = true, onHelp }: { f
             <div style={{ marginTop: 18, padding: 14, borderRadius: 16, background: "#f5f7ff", border: "1px solid #dbe4fb" }}>
               <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#2f61d5" }}>Your link</p>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 15, fontWeight: 600, color: "#000727" }}>{url.replace(/^https?:\/\//, "")}</span>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 15, fontWeight: 600, color: "#000727" }}>{url}</span>
                 <button onClick={copy} className="rb-tap44" style={{ ...btn(true), background: "#2f61d5", padding: "9px 16px", fontSize: 13.5 }}>
                   {copied ? "Copied" : "Copy"}
                 </button>

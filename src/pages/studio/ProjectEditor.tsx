@@ -198,6 +198,9 @@ function DeleteCard({ project, onDeleted }: { project: Project; onDeleted: () =>
   );
 }
 
+/** "slug.thersvpstudio.com" → "https://slug.thersvpstudio.com": Messenger only makes a preview of links with https://. */
+const withHttps = (u: string) => (u.trim() ? (/^https?:\/\//i.test(u.trim()) ? u.trim() : `https://${u.trim()}`) : null);
+
 // A DIY website's cover, link and details come from what the customer built (their builder),
 // so those show here read-only instead of the studio's own cover / site URL fields.
 function DetailsCard({ project, site }: { project: Project; site?: { slug: string; publishedAt: string | null; heroUrl: string | null } }) {
@@ -237,7 +240,7 @@ function DetailsCard({ project, site }: { project: Project; site?: { slug: strin
               <p className="mb-1.5 text-[14px] font-medium text-[var(--ink)]">Website</p>
               {site?.slug ? (
                 <p className="py-2.5 text-[14px]">
-                  <a href={`/invite/${site.slug}`} target="_blank" rel="noreferrer" className="break-all text-[var(--acc-blue)] hover:underline">thersvpstudio.com/invite/{site.slug}</a>
+                  <a href={`/invite/${site.slug}`} target="_blank" rel="noreferrer" className="break-all text-[var(--acc-blue)] hover:underline">https://thersvpstudio.com/invite/{site.slug}</a>
                   <span className="text-[var(--slate)]">{site.publishedAt ? " · live" : " · draft"}</span>
                 </p>
               ) : (
@@ -299,7 +302,7 @@ function DetailsCard({ project, site }: { project: Project; site?: { slug: strin
         disabled={busy || !name.trim()}
         onClick={() =>
           run(async () => {
-            await studio.updateProject(project.id, { name: name.trim(), event_type: type, event_date: date || null, services, ...(diy ? {} : { site_url: siteUrl.trim() || null }) });
+            await studio.updateProject(project.id, { name: name.trim(), event_type: type, event_date: date || null, services, ...(diy ? {} : { site_url: withHttps(siteUrl) }) });
             if (partner !== undefined && partner !== savedPartner) {
               await studio.setProjectPartner(project.id, partner);
               setSavedPartner(partner);

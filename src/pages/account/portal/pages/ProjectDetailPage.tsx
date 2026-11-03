@@ -306,7 +306,7 @@ function WebsiteTab({ project }: { project: Project }) {
         <p className="eyebrow">Your website</p>
         <p className="mt-2 font-display text-2xl font-semibold text-[var(--ink)]">Designed and hosted by our studio</p>
         <a href={project.site_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 break-all text-[15px] text-[var(--acc-blue)] hover:underline">
-          {project.site_url.replace(/^https?:\/\//, "")} <i className="ri-external-link-line" />
+          {project.site_url} <i className="ri-external-link-line" />
         </a>
         <p className="mt-4 text-[14px] text-[var(--slate)]">Need a change? Message us and we’ll update it for you.</p>
         <div className="mt-5">
