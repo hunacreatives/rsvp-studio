@@ -13,6 +13,7 @@ import { broadcastText, phNumber, segmentsOf, sendTexts } from "./_lib/sms.js";
 import { formatHostNames } from "./_lib/hosts.js";
 import { coordinatorEmail } from "./_lib/followup-mail.js";
 import { refreshPreview } from "./_lib/link-preview.js";
+import { leadReply } from "./_lib/enquiry-mail.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -99,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Every link in these emails points at the live site, even when the action came from a
   // preview deployment or localhost (those addresses would be broken for the person reading it).
   const origin = "https://thersvpstudio.com";
-  const body = req.body as { kind: string; role?: string; chartId?: string; partnerId?: string; note?: string | null; code?: string; email?: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string; audience?: string; channel?: string; message?: string; preview?: boolean };
+  const body = req.body as { kind: string; role?: string; chartId?: string; partnerId?: string; note?: string | null; code?: string; email?: string; messageId?: string; eventId?: string; title?: string; detail?: string | null; invoiceId?: string; inviteId?: string; profileId?: string; threadId?: string; audience?: string; channel?: string; message?: string; preview?: boolean; enquiryId?: string; subject?: string };
   const sends: Promise<unknown>[] = [];
 
   try {
@@ -438,6 +439,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }),
         );
       }
+    } else if (body.kind === "lead_reply" && body.enquiryId && caller.is_staff) {
+      // Studio → Leads → Reply: a branded email to someone who sent a form (no account needed).
+      // From and reply-to hello@, with a BCC there so their answer arrives in the same thread.
+      // `preview` returns the email without sending it. Each send is kept on the lead.
+      const { data: lead } = await supabaseAdmin.from("enquiries").select("id, email, status").eq("id", body.enquiryId).maybeSingle();
+      const to = (lead?.email ?? "").trim().toLowerCase();
+      if (!lead || !isEmail(to)) return res.status(404).json({ error: "This lead has no email address." });
+      const subject = clean(body.subject ?? "", 150).replace(/\s+/g, " ") || "Your inquiry with The RSVP Studio";
+      const message = String(body.message ?? "").replace(/\r\n?/g, "\n").slice(0, 8000);
+      if (!message.trim()) return res.status(400).json({ error: "Write a message first." });
+      // The shared hello@ login signs as the team; everyone else by first name.
+      const first = (caller.full_name ?? "").trim().split(/\s+/)[0] ?? "";
+      const sender = caller.email === STUDIO_INBOX || !first || /rsvp/i.test(caller.full_name ?? "") ? null : first;
+      const html = leadReply(message, sender);
+      if (body.preview) return res.status(200).json({ html });
+      try {
+        await sendMail({ from: FROM, to, bcc: STUDIO_INBOX, replyTo: STUDIO_INBOX, subject, html });
+      } catch (err) {
+        console.error("lead_reply send failed", err);
+        return res.status(502).json({ error: "The email didn’t send. Please try again." });
+      }
+      const { error: logErr } = await supabaseAdmin.from("enquiry_replies").insert({ enquiry_id: lead.id, sent_by: caller.id, sender_name: sender ?? caller.full_name, subject, body: message });
+      if (logErr) console.error("lead_reply log failed", logErr);
+      if (lead.status === "new") await supabaseAdmin.from("enquiries").update({ status: "contacted" }).eq("id", lead.id);
+      return res.status(200).json({ sent: 1, failed: 0 });
     } else if (body.kind === "broadcast" && body.eventId) {
       return await broadcast(caller, body, res);
     } else if ((body.kind === "site_live" || body.kind === "std_invite" || body.kind === "preview_refresh") && body.eventId) {

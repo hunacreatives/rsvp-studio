@@ -170,3 +170,21 @@ ${signoff()}
     }),
   };
 }
+
+/** A reply to a lead, written in Studio → Leads (api/notify.ts → lead_reply): their words in
+ *  the branded frame, URLs linked, our sign-off with the sender's name. Plain text in. */
+export function leadReply(message: string, sender: string | null): string {
+  const linked = (s: string) => esc(s).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" style="color:#2f61d5!important;">${u}</a>`);
+  const paras = message.trim().split(/\n\s*\n/).map((para) => p(linked(para.trim()).replace(/\n/g, "<br />")));
+  const preview = message.trim().replace(/^hi\b[^,\n]*,?\s*/i, "").replace(/\s+/g, " ").slice(0, 120);
+  return frame({
+    preheader: preview,
+    spot: "confirm-spot.png",
+    spotAlt: "An RSVP card in an envelope",
+    content: `<tr><td class="pad" style="padding:26px 56px 6px;">
+${paras.join("\n")}
+<p class="fi" style="margin:26px 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;">Talk soon,</p>
+<p class="fb" style="margin:0 0 30px;color:${BODY}!important;font-size:15px;">${sender ? `${esc(sender)}<br />` : ""}The RSVP Studio${sender ? "" : " team"}</p>
+</td></tr>`,
+  });
+}

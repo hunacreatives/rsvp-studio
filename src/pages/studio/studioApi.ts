@@ -461,6 +461,29 @@ export async function restoreProject(id: string) {
   if (error) throw new Error(/RESTORE_WINDOW_PASSED/.test(error.message) ? "It’s been more than 30 days since this project was deleted, so it can’t be restored." : "Couldn’t restore the project — please try again.");
 }
 
+export type LeadReply = { id: string; enquiry_id: string; sender_name: string | null; subject: string; body: string; created_at: string };
+
+/** Replies sent from Studio, per lead (supabase/lead-replies.sql). Empty until that's run. */
+export async function loadLeadReplies(): Promise<Record<string, LeadReply[]>> {
+  const { data, error } = await supabase.from("enquiry_replies").select("id, enquiry_id, sender_name, subject, body, created_at").order("created_at").limit(1000);
+  const out: Record<string, LeadReply[]> = {};
+  for (const r of error ? [] : ((data ?? []) as LeadReply[])) (out[r.enquiry_id] ??= []).push(r);
+  return out;
+}
+
+/** The branded reply (api/notify.ts → lead_reply). `preview` returns the email's HTML instead of sending. */
+export async function sendLeadReply(o: { enquiryId: string; subject: string; message: string; preview?: boolean }): Promise<{ html?: string }> {
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch("/api/notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    body: JSON.stringify({ kind: "lead_reply", ...o }),
+  }).catch(() => null);
+  const out = (await res?.json().catch(() => ({}))) as { html?: string; error?: string } | undefined;
+  if (!res?.ok) throw new Error(out?.error ?? "Couldn’t reach us. Check your connection and try again.");
+  return out ?? {};
+}
+
 export async function setLeadStatus(id: string, status: LeadStatus, eventId?: string) {
   must(await supabase.from("enquiries").update({ status, ...(eventId ? { event_id: eventId } : {}) }).eq("id", id));
 }

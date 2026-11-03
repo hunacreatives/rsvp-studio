@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { formatDate } from "@/pages/account/portal/format";
-import { FilterTabs, PillButton } from "@/pages/account/portal/ui";
+import { ErrorText, Field, FilterTabs, Input, Modal, PillButton, PrimaryButton, Textarea } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
+import SavedReplies from "../SavedReplies";
 import * as studio from "../studioApi";
 
 // Studio → Leads. Everyone who filled in an inquiry form (project, partner, or a
-// question from the FAQ page). Reply from your own email, mark them contacted, and
-// turn them into a project when you start working together.
+// question from the FAQ page). Reply from here in our branded email (it's kept on the lead
+// and marks them contacted), and turn them into a project when you start working together.
 
 type Filter = "new" | "contacted" | "converted" | "archived" | "all";
 const FORM_LABEL: Record<string, string> = { "project-inquiry": "Project inquiry", "partner-inquiry": "Partner inquiry", "faq-question": "Question (FAQ page)" };
@@ -25,7 +26,13 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<studio.Lead[] | null>(null);
   const [filter, setFilter] = useState<Filter>("new");
   const [busy, setBusy] = useState<string | null>(null);
-  const reload = () => studio.loadLeads().then((l) => setLeads(l ?? []));
+  const [replies, setReplies] = useState<Record<string, studio.LeadReply[]>>({});
+  const [saved, setSaved] = useState<studio.SavedReply[]>([]);
+  const [replying, setReplying] = useState<studio.Lead | null>(null);
+  // Unsent replies, per lead: closing the dialog by accident keeps what you wrote.
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const reload = () => Promise.all([studio.loadLeads().then((l) => setLeads(l ?? [])), studio.loadLeadReplies().then(setReplies)]);
+  const reloadSaved = () => studio.loadSavedReplies().then(setSaved);
   // Partner applicants: already on the desk? (Helps decide.)
   const [applicants, setApplicants] = useState<Record<string, studio.Applicant>>({});
   useEffect(() => {
@@ -35,6 +42,7 @@ export default function LeadsPage() {
   useEffect(() => {
     if (demo) return setLeads([]);
     reload();
+    reloadSaved();
   }, [demo]);
 
   const counts = useMemo(() => {
@@ -56,7 +64,7 @@ export default function LeadsPage() {
 
   return (
     <>
-      <StudioHeader title="Leads" sub="Everyone who filled in an inquiry form. Reply from your email, then turn them into a project when you start working together." />
+      <StudioHeader title="Leads" sub="Everyone who filled in an inquiry form. Reply from here in our branded email, then turn them into a project when you start working together." />
       <div className="mb-5">
         <FilterTabs<Filter>
           value={filter}
@@ -77,7 +85,6 @@ export default function LeadsPage() {
         {shown.map((l) => {
           const v = l.values ?? {};
           const keys = [...ORDER.filter((k) => k in v), ...Object.keys(v).filter((k) => !ORDER.includes(k) && !HIDDEN.has(k))].filter((k) => (Array.isArray(v[k]) ? v[k].length : v[k]));
-          const mailto = `mailto:${l.email}?subject=${encodeURIComponent("Your inquiry with The RSVP Studio")}&body=${encodeURIComponent(`Hi ${(l.name ?? "").split(" ")[0] || "there"},\n\n`)}`;
           return (
             <article key={l.id} className="rounded-[22px] border border-[var(--line)] bg-white p-5">
               <header className="flex flex-wrap items-start justify-between gap-3">
@@ -91,19 +98,12 @@ export default function LeadsPage() {
                     <p className="text-[13px] text-[var(--slate)]">{applicantLine(applicants[l.email.toLowerCase()], v.account_verified === "yes")}</p>
                   ) : null}
                   <p className="mt-1 text-[14px] [overflow-wrap:anywhere]">
-                    {l.email ? <a href={mailto} className="text-[var(--acc-blue)] hover:underline">{l.email}</a> : null}
+                    {l.email ? <span className="text-[var(--ink)]">{l.email}</span> : null}
                     {l.phone ? <span className="text-[var(--slate)]"> · {l.phone}</span> : null}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {l.email ? (
-                    <a
-                      href={mailto}
-                      className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-[var(--ink)] bg-white px-4 py-1.5 text-[13px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--ink)] hover:text-white md:min-h-0"
-                    >
-                      Reply by email
-                    </a>
-                  ) : null}
+                  {l.email ? <PillButton onClick={() => setReplying(l)}>Reply</PillButton> : null}
                   {l.status === "new" ? <PillButton disabled={busy === l.id} onClick={() => setStatus(l, "contacted")}>Mark contacted</PillButton> : null}
                   {l.status !== "converted" && l.form === "partner-inquiry" ? (
                     <PillButton tone="dark" disabled={busy === l.id} onClick={() => navigate("/studio/partners", { state: { fromLead: l } })}>
@@ -147,6 +147,19 @@ export default function LeadsPage() {
                 </dl>
               ) : null}
               {l.attachments?.length ? <p className="mt-3 text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">Files (in the hello@ email): {l.attachments.join(", ")}</p> : null}
+              {replies[l.id]?.length ? (
+                <div className="mt-4 space-y-1 border-t border-[var(--line)] pt-3">
+                  {replies[l.id].map((r) => (
+                    <details key={r.id} className="text-[13px]">
+                      <summary className="cursor-pointer text-[var(--slate)] [overflow-wrap:anywhere]">
+                        Replied {formatDate(r.created_at)}
+                        {r.sender_name ? ` by ${r.sender_name}` : ""} · <span className="text-[var(--ink)]">{r.subject}</span>
+                      </summary>
+                      <p className="mt-2 whitespace-pre-line rounded-xl bg-[var(--paper)] p-3 text-[14px] text-[var(--ink)] [overflow-wrap:anywhere]">{r.body}</p>
+                    </details>
+                  ))}
+                </div>
+              ) : null}
             </article>
           );
         })}
@@ -156,7 +169,109 @@ export default function LeadsPage() {
           </div>
         ) : null}
       </div>
+      {replying ? (
+        <ReplyDialog
+          lead={replying}
+          last={replies[replying.id]?.at(-1)}
+          draft={drafts[replying.id]}
+          onDraft={(d) => setDrafts((all) => ({ ...all, [replying.id]: d }))}
+          saved={saved}
+          reloadSaved={reloadSaved}
+          onClose={() => setReplying(null)}
+          onSent={() => {
+            setDrafts(({ [replying.id]: _, ...rest }) => rest);
+            setReplying(null);
+            reload();
+          }}
+        />
+      ) : null}
     </>
+  );
+}
+
+type Draft = { subject: string; message: string };
+const SUBJECT: Record<string, string> = {
+  "project-inquiry": "Your inquiry with The RSVP Studio",
+  "partner-inquiry": "Your partner application with The RSVP Studio",
+  "faq-question": "Your question to The RSVP Studio",
+};
+
+/** Write a reply, see it in the branded email, send it. Sent from hello@; their answer comes back there. */
+function ReplyDialog({ lead, last, draft, onDraft, saved, reloadSaved, onClose, onSent }: {
+  lead: studio.Lead;
+  last?: studio.LeadReply;
+  draft?: Draft;
+  onDraft: (d: Draft) => void;
+  saved: studio.SavedReply[];
+  reloadSaved: () => void;
+  onClose: () => void;
+  onSent: () => void;
+}) {
+  const first = (lead.name ?? "").trim().split(/\s+/)[0] ?? "";
+  const d = draft ?? {
+    subject: last ? (/^re:/i.test(last.subject) ? last.subject : `Re: ${last.subject}`) : (SUBJECT[lead.form] ?? SUBJECT["project-inquiry"]),
+    message: `Hi ${first || "there"},\n\n`,
+  };
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const run = async (work: () => Promise<void>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await work();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const ready = d.subject.trim() && d.message.replace(/^hi\b[^,\n]*,?/i, "").trim();
+  // A saved reply starts with its own "Hi {name}," — it replaces an untouched greeting.
+  const insert = (text: string) => {
+    const rest = d.message.replace(/^hi\b[^,\n]*,?\s*/i, "");
+    onDraft({ ...d, message: /^hi\b/i.test(text) && !rest.trim() ? text : `${d.message.trimEnd()}${d.message.trim() ? "\n\n" : ""}${text}` });
+  };
+  return (
+    <Modal open onClose={onClose} title={`Reply to ${lead.name || lead.email}`} width={640}>
+      {preview ? (
+        <div className="space-y-4">
+          <p className="text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">
+            To {lead.email} · {d.subject}
+          </p>
+          <iframe title="Email preview" srcDoc={preview} sandbox="" className="h-[60dvh] w-full rounded-xl border border-[var(--line)]" />
+          <ErrorText>{error}</ErrorText>
+          <div className="flex flex-wrap justify-end gap-2">
+            <PillButton onClick={() => setPreview(null)}>Back to editing</PillButton>
+            <PrimaryButton disabled={busy} onClick={() => run(async () => (await studio.sendLeadReply({ enquiryId: lead.id, ...d }), onSent()))}>
+              {busy ? "Sending…" : "Send"}
+            </PrimaryButton>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">To {lead.email} · from hello@thersvpstudio.com</p>
+          <Field label="Subject">
+            <Input value={d.subject} onChange={(e) => onDraft({ ...d, subject: e.target.value })} maxLength={150} />
+          </Field>
+          <Field label="Message" hint="We add the logo, your sign-off and our footer. Links become clickable.">
+            <Textarea value={d.message} onChange={(e) => onDraft({ ...d, message: e.target.value })} rows={10} maxLength={8000} autoFocus />
+          </Field>
+          <ErrorText>{error}</ErrorText>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <SavedReplies replies={saved} reload={reloadSaved} firstName={first} onPick={insert} />
+            <div className="flex flex-wrap gap-2">
+              <PillButton disabled={busy || !ready} onClick={() => run(async () => setPreview((await studio.sendLeadReply({ enquiryId: lead.id, ...d, preview: true })).html ?? null))}>
+                {busy ? "Loading…" : "Preview"}
+              </PillButton>
+              <PrimaryButton disabled={busy || !ready} onClick={() => run(async () => (await studio.sendLeadReply({ enquiryId: lead.id, ...d }), onSent()))}>
+                {busy ? "Sending…" : "Send"}
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
