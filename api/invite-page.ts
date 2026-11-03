@@ -6,7 +6,6 @@ import { qrHandler } from "./_lib/qr.js";
 import { FACEBOOK_REVIEWS_URL, readReviewToken } from "./_lib/support-mail.js";
 import { blogPage } from "./_lib/blog-page.js";
 import { metaFor } from "./_lib/page-meta.js";
-import { tagInvitePage } from "./_lib/link-preview.js";
 import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_H1, SEATING_LAYOUT, SEATING_PATH, SEATING_STEPS, SEATING_SUB, SEATING_TITLE } from "./_lib/seating-copy.js";
 
 // /invite/:slug, served with the event's own title, description and photo in the
@@ -202,8 +201,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // Publishing drops this cached page (api/_lib/link-preview.ts), so a re-read sees the new one.
-  await tagInvitePage(slug);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", missing ? "public, s-maxage=60" : "public, s-maxage=300, stale-while-revalidate=3600");
   return res.status(missing ? 404 : 200).send(html);

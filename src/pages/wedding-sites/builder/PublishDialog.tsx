@@ -54,10 +54,7 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
   // The first time it goes live: "Your website is live" to the hosts (sent once, server-side).
   const announced = useRef(false);
   useEffect(() => {
-    if (step.kind !== "live" || !eventId) return;
-    // Every publish: Facebook and Messenger re-read the link, so its preview matches what's live.
-    void api.notify({ kind: "preview_refresh", eventId });
-    if (!firstPublish || announced.current) return;
+    if (step.kind !== "live" || !firstPublish || !eventId || announced.current) return;
     announced.current = true;
     void api.notify({ kind: "site_live", eventId });
   }, [step.kind, firstPublish, eventId]);
