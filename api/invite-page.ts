@@ -138,11 +138,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
   }
 
-  // The app's own index.html (cached for a few minutes per instance).
-  if (!shell || Date.now() - shell.at > 5 * 60_000) {
-    const r = await fetch(`${origin}/index.html`).catch(() => null);
+  // The app's own index.html (kept a minute per instance). Only one whose app script really
+  // exists: around a deploy the old index.html can point at files that are already gone, and
+  // guests then get a blank page.
+  if (!shell || Date.now() - shell.at > 60_000) {
+    const r = await fetch(`${origin}/index.html?at=${Date.now()}`, { cache: "no-store" }).catch(() => null);
     const text = r?.ok ? await r.text() : "";
-    if (text.includes("<div id=\"root\">")) shell = { html: text, at: Date.now() };
+    const entry = /src="(\/assets\/index-[^"]+\.js)"/.exec(text)?.[1];
+    const js = entry ? await fetch(`${origin}${entry}`, { method: "HEAD" }).catch(() => null) : null;
+    if (text.includes("<div id=\"root\">") && js?.ok && /javascript/.test(js.headers.get("content-type") ?? "")) shell = { html: text, at: Date.now() };
+    else shell = null;
   }
   if (!shell) {
     // Couldn't fetch the app shell: send people to the plain page instead (no preview tags).
