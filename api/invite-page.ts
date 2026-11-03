@@ -6,6 +6,7 @@ import { qrHandler } from "./_lib/qr.js";
 import { FACEBOOK_REVIEWS_URL, readReviewToken } from "./_lib/support-mail.js";
 import { blogPage } from "./_lib/blog-page.js";
 import { metaFor } from "./_lib/page-meta.js";
+import { tagInvitePage } from "./_lib/link-preview.js";
 import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_H1, SEATING_LAYOUT, SEATING_PATH, SEATING_STEPS, SEATING_SUB, SEATING_TITLE } from "./_lib/seating-copy.js";
 
 // /invite/:slug, served with the event's own title, description and photo in the
@@ -18,7 +19,7 @@ import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_
 const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_ANON_KEY!);
 let shell: { html: string; at: number } | null = null;
 
-type Img = { masterUrl?: string; width?: number; height?: number; alt?: string };
+type Img = { masterUrl?: string; width?: number; height?: number; alt?: string; focalPoint?: { x: number; y: number } };
 type Content = {
   hosts?: { name?: string }[];
   eventDate?: string;
@@ -80,17 +81,50 @@ async function ogImage(req: VercelRequest, res: VercelResponse) {
   const { data } = await db.rpc("get_public_site", { p_slug: slug });
   const row = (Array.isArray(data) ? data[0] : data) as { state?: string; published_content?: Content; published_presentation?: Presentation; std?: Std | null; std_live?: boolean } | null;
   if (!row || row.state === "ended") return fail();
-  const url = row.std_live && row.std?.image?.url ? row.std.image.url : row.published_content ? coverOf(row.published_content, row.published_presentation)?.masterUrl : undefined;
+  const card = row.std_live && row.std?.image?.url ? row.std.image.url : undefined;
+  const cover = card || !row.published_content ? undefined : coverOf(row.published_content, row.published_presentation);
+  const url = card ?? cover?.masterUrl;
   if (!url || !/^https:\/\//.test(url)) return fail();
   const r = await fetch(url).catch(() => null);
   const type = r?.headers.get("content-type") ?? "";
   if (!r?.ok || !type.startsWith("image/")) return fail();
-  const body = Buffer.from(await r.arrayBuffer());
-  if (body.length > 8_000_000) return fail(); // Facebook's limit
-  res.setHeader("Content-Type", type);
+  const original = Buffer.from(await r.arrayBuffer());
+  if (original.length > 8_000_000) return fail(); // Facebook's limit
+  // One shape and a light file for every app (iMessage showed tall covers full height; WhatsApp,
+  // Viber and some Messenger views skip heavy photos). The original still goes out if this fails.
+  const small = await previewImage(original, card ? "whole" : cover?.focalPoint).catch(() => null);
+  const body = small ?? original;
+  res.setHeader("Content-Type", small ? "image/jpeg" : type);
   res.setHeader("Content-Length", String(body.length));
   res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800");
   res.status(200).send(body);
+}
+
+/**
+ * The preview photo: 1200×630 (the shape Facebook, Messenger, iMessage and WhatsApp all show
+ * whole), as a ~100KB JPEG. A cover is cropped around the focal point the host set; a Save the
+ * Date card is shown whole on a blurred copy of itself, so none of its words are cut off.
+ */
+const OG_W = 1200;
+const OG_H = 630;
+async function previewImage(img: Buffer, fit: "whole" | { x: number; y: number } | undefined) {
+  // Loaded here, not at the top: invite pages share this function and don't need it.
+  const sharp = (await import("sharp")).default;
+  const jpeg = { quality: 80, mozjpeg: true };
+  if (fit === "whole") {
+    const back = await sharp(img).rotate().resize(OG_W, OG_H, { fit: "cover" }).blur(40).modulate({ brightness: 0.85 }).toBuffer();
+    const front = await sharp(img).rotate().resize(OG_W - 80, OG_H - 60, { fit: "inside" }).toBuffer();
+    return sharp(back).composite([{ input: front, gravity: "center" }]).jpeg(jpeg).toBuffer();
+  }
+  const { data, info } = await sharp(img).rotate().toBuffer({ resolveWithObject: true });
+  const cw = Math.min(info.width, Math.round((info.height * OG_W) / OG_H));
+  const ch = Math.min(info.height, Math.round((info.width * OG_H) / OG_W));
+  const at = (f: number | undefined, size: number, crop: number) => Math.max(0, Math.min(size - crop, Math.round((f ?? 0.5) * size - crop / 2)));
+  return sharp(data)
+    .extract({ left: at(fit?.x, info.width, cw), top: at(fit?.y, info.height, ch), width: cw, height: ch })
+    .resize(OG_W, OG_H)
+    .jpeg(jpeg)
+    .toBuffer();
 }
 
 function coverOf(c: Content, pres: Presentation | undefined): Img | undefined {
@@ -189,11 +223,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Served from thersvpstudio.com (/og/<slug>.jpg), not the storage host: Supabase storage
         // answers "x-robots-tag: none, private" and Messenger skips images like that. ?v= changes
         // with the photo, so a new cover gets a new preview instead of Facebook's cached one.
-        image ? `<meta property="og:image" content="${esc(`https://thersvpstudio.com/og/${slug}.jpg?v=${shortHash(image.masterUrl!)}`)}" />` : "",
+        image ? `<meta property="og:image" content="${esc(`https://thersvpstudio.com/og/${slug}.jpg?v=${shortHash(`${image.masterUrl}|${OG_W}x${OG_H}`)}`)}" />` : "",
         image ? `<meta property="og:image:type" content="image/jpeg" />` : "",
         // Its size, so Messenger and Facebook show the photo the first time a link is shared.
-        image?.width && image.height ? `<meta property="og:image:width" content="${Math.round(image.width)}" />` : "",
-        image?.width && image.height ? `<meta property="og:image:height" content="${Math.round(image.height)}" />` : "",
+        image ? `<meta property="og:image:width" content="${OG_W}" />` : "",
+        image ? `<meta property="og:image:height" content="${OG_H}" />` : "",
         image?.alt ? `<meta property="og:image:alt" content="${esc(image.alt)}" />` : "",
         image ? `<meta name="twitter:card" content="summary_large_image" />` : "",
       ].join("\n    ");
@@ -206,6 +240,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // Publishing drops this cached page (api/_lib/link-preview.ts), so a re-read sees the new one.
+  await tagInvitePage(slug);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", missing ? "public, s-maxage=60" : "public, s-maxage=300, stale-while-revalidate=3600");
   return res.status(missing ? 404 : 200).send(html);

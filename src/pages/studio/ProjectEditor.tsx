@@ -153,7 +153,7 @@ export default function ProjectEditor({
   const std = project.services.includes("Digital Save the Date") || Boolean(sites[project.id]?.std);
   return (
     <div className="space-y-5">
-      <DetailsCard project={project} />
+      <DetailsCard project={project} site={project.managed_by_studio ? undefined : sites[project.id]} />
       <ProgressCard project={project} />
       {std ? <SaveTheDateEditor project={project} /> : null}
       <ClientCard project={project} owner={owner} members={members} onOpenInbox={onOpenInbox} />
@@ -198,7 +198,9 @@ function DeleteCard({ project, onDeleted }: { project: Project; onDeleted: () =>
   );
 }
 
-function DetailsCard({ project }: { project: Project }) {
+// A DIY website's cover, link and details come from what the customer built (their builder),
+// so those show here read-only instead of the studio's own cover / site URL fields.
+function DetailsCard({ project, site }: { project: Project; site?: { slug: string; publishedAt: string | null; heroUrl: string | null } }) {
   const [name, setName] = useState(project.name);
   const [type, setType] = useState(project.event_type ?? "other");
   const [date, setDate] = useState(project.event_date ?? "");
@@ -206,6 +208,11 @@ function DetailsCard({ project }: { project: Project }) {
   const [siteUrl, setSiteUrl] = useState(project.site_url ?? "");
   const [cover, setCover] = useState(project.cover_image_url);
   const fileRef = useRef<HTMLInputElement>(null);
+  const diy = !project.managed_by_studio;
+  const [facts, setFacts] = useState<studio.DiyFacts | null>(null);
+  useEffect(() => {
+    if (diy) studio.loadDiyFacts(project.id).then(setFacts);
+  }, [diy, project.id]);
   const { busy, error, run } = useAction();
   // undefined = revenue.sql not run yet (the field stays hidden)
   const [partner, setPartner] = useState<string | null | undefined>(undefined);
@@ -225,9 +232,31 @@ function DetailsCard({ project }: { project: Project }) {
             </Select>
           </Field>
           <Field label="Event date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-          <Field label="Live site URL" hint="For studio-built sites (shown on the client’s Website tab)">
-            <Input value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} placeholder="https://slug.thersvpstudio.com" />
-          </Field>
+          {diy ? (
+            <div>
+              <p className="mb-1.5 text-[14px] font-medium text-[var(--ink)]">Website</p>
+              {site?.slug ? (
+                <p className="py-2.5 text-[14px]">
+                  <a href={`/invite/${site.slug}`} target="_blank" rel="noreferrer" className="break-all text-[var(--acc-blue)] hover:underline">thersvpstudio.com/invite/{site.slug}</a>
+                  <span className="text-[var(--slate)]">{site.publishedAt ? " · live" : " · draft"}</span>
+                </p>
+              ) : (
+                <p className="py-2.5 text-[14px] text-[var(--slate)]">Not started yet</p>
+              )}
+            </div>
+          ) : (
+            <Field label="Live site URL" hint="For studio-built sites (shown on the client’s Website tab)">
+              <Input value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} placeholder="https://slug.thersvpstudio.com" />
+            </Field>
+          )}
+          {diy && facts
+            ? ([["Hosts", facts.hosts], ["Time", facts.time], ["Venue", facts.venue]] as const).map(([label, value]) => (
+                <div key={label}>
+                  <p className="mb-1.5 text-[14px] font-medium text-[var(--ink)]">{label}</p>
+                  <p className={`py-2.5 text-[14px] ${value ? "text-[var(--ink)]" : "text-[var(--slate)]"}`}>{value || "Not filled in"}</p>
+                </div>
+              ))
+            : null}
           {partner !== undefined ? (
             <Field label="Referred by (partner code)" hint="Their commission is counted on this project’s paid invoices">
               <Input value={partner ?? ""} onChange={(e) => setPartner(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") || null)} placeholder="None" />
@@ -236,8 +265,12 @@ function DetailsCard({ project }: { project: Project }) {
         </div>
         <div>
           <p className="mb-1.5 text-[14px] font-medium text-[var(--ink)]">Cover</p>
-          <Cover url={cover} name={name} className="aspect-[4/3] rounded-2xl" />
-          <PillButton className="mt-2 w-full" onClick={() => fileRef.current?.click()} disabled={busy}>Upload cover</PillButton>
+          <Cover url={diy ? site?.heroUrl ?? cover : cover} name={name} className="aspect-[4/3] rounded-2xl" />
+          {diy ? (
+            <p className="mt-2 text-[12px] text-[var(--slate)]">From their website</p>
+          ) : (
+            <PillButton className="mt-2 w-full" onClick={() => fileRef.current?.click()} disabled={busy}>Upload cover</PillButton>
+          )}
           <input
             ref={fileRef}
             type="file"
@@ -266,7 +299,7 @@ function DetailsCard({ project }: { project: Project }) {
         disabled={busy || !name.trim()}
         onClick={() =>
           run(async () => {
-            await studio.updateProject(project.id, { name: name.trim(), event_type: type, event_date: date || null, services, site_url: siteUrl.trim() || null });
+            await studio.updateProject(project.id, { name: name.trim(), event_type: type, event_date: date || null, services, ...(diy ? {} : { site_url: siteUrl.trim() || null }) });
             if (partner !== undefined && partner !== savedPartner) {
               await studio.setProjectPartner(project.id, partner);
               setSavedPartner(partner);

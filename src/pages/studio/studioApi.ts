@@ -490,6 +490,21 @@ export async function loadDiySites(eventIds: string[]) {
   return out;
 }
 
+/** What a DIY customer put on their website, for the Studio's project page (the live version, else the draft). */
+export type DiyFacts = { hosts: string; time: string; venue: string };
+export async function loadDiyFacts(eventId: string): Promise<DiyFacts | null> {
+  const { data } = await supabase.from("wedding_sites").select("published_content, draft_content").eq("event_id", eventId).maybeSingle();
+  type C = { hosts?: { name?: string }[]; schedule?: { label?: string; startTime?: string }[]; primaryLocation?: { name?: string; addressLine?: string } };
+  const c = (data?.published_content ?? data?.draft_content) as C | null;
+  if (!c) return null;
+  const venue = c.primaryLocation;
+  return {
+    hosts: (c.hosts ?? []).map((h) => h.name?.trim()).filter(Boolean).join(", "),
+    time: (c.schedule ?? []).map((x) => x.label?.trim() || x.startTime?.trim()).filter(Boolean).join(" · "),
+    venue: [venue?.name?.trim(), venue?.addressLine?.trim()].filter(Boolean).join(", "),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Custom domains (supabase/custom-domains.sql, api/_lib/domains.ts)
 
