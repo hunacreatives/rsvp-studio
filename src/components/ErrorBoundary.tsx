@@ -20,7 +20,7 @@ export default class ErrorBoundary extends Component<Props, { failed: boolean }>
     // After a new deploy, an open tab can ask for a page file that no longer exists.
     // Reload once to pick up the new version instead of showing an error.
     const msg = error instanceof Error ? error.message : String(error);
-    if (/dynamically imported module|Importing a module script failed|Loading chunk/i.test(msg)) {
+    if (/dynamically imported module|Importing a module script failed|Loading chunk|not a valid JavaScript MIME type/i.test(msg)) {
       try {
         if (!sessionStorage.getItem("rs-reloaded")) {
           sessionStorage.setItem("rs-reloaded", "1");

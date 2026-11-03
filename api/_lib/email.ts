@@ -29,8 +29,25 @@ export async function withRateRetry<T>(send: () => Promise<{ data: T; error: { n
   }
 }
 
-export async function sendChecked(resend: Resend, payload: Parameters<Resend["emails"]["send"]>[0]) {
-  return withRateRetry(() => resend.emails.send(payload) as Promise<{ data: unknown; error: { name?: string; message?: string; statusCode?: number | null } | null }>);
+// Test accounts (example.com, *.test …) can't receive mail, and Resend rejects the whole send
+// for them. They're dropped; a send left with nobody is skipped, not an error.
+const UNDELIVERABLE = /@(?:[^@]+\.)?(?:example\.(?:com|net|org)|[^@]+\.(?:test|example|invalid|localhost))$/i;
+export const deliverable = (addr: string) => !UNDELIVERABLE.test(addr.trim());
+type Payload = Parameters<Resend["emails"]["send"]>[0];
+/** The payload with test addresses removed, or null when nobody real is left. */
+export function realRecipients<P extends Payload>(payload: P): P | null {
+  const to = (Array.isArray(payload.to) ? payload.to : [payload.to]).filter(deliverable);
+  if (!to.length) {
+    console.warn(`skipped email "${payload.subject}": only test addresses`);
+    return null;
+  }
+  return { ...payload, to: Array.isArray(payload.to) ? to : to[0] };
+}
+
+export async function sendChecked(resend: Resend, payload: Payload) {
+  const real = realRecipients(payload);
+  if (!real) return null;
+  return withRateRetry(() => resend.emails.send(real) as Promise<{ data: unknown; error: { name?: string; message?: string; statusCode?: number | null } | null }>);
 }
 
 /** Trim and cap a free-text field from a request body. */

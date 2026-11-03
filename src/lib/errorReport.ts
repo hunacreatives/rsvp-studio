@@ -25,7 +25,8 @@ const NOISE = [
   /Failed to fetch|NetworkError|Load failed|network connection was lost/i,
   /AbortError|The operation was aborted/i,
   /Non-Error promise rejection captured/i,
-  /dynamically imported module|Importing a module script failed|Loading chunk/i, // an old tab after a deploy: it reloads itself
+  /dynamically imported module|Importing a module script failed|Loading chunk/i, // an old tab after a deploy: it reloads itself (Safari's "MIME type" version stays reported: it also means a broken deploy)
+  /Java object is gone|_META\.IABInnerFrame|xbrowser is not defined|swbrowser is not defined/i, // scripts Facebook, Instagram and phone browsers inject, not ours
 ];
 
 /** Chrome / Firefox / Safari stack lines → Sentry frames (oldest call first). */
