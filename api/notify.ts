@@ -12,6 +12,7 @@ import { claimRsvpEmails } from "./_lib/rsvp-budget.js";
 import { broadcastText, phNumber, segmentsOf, sendTexts } from "./_lib/sms.js";
 import { formatHostNames } from "./_lib/hosts.js";
 import { coordinatorEmail } from "./_lib/followup-mail.js";
+import { refreshPreview } from "./_lib/link-preview.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -439,7 +440,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } else if (body.kind === "broadcast" && body.eventId) {
       return await broadcast(caller, body, res);
-    } else if ((body.kind === "site_live" || body.kind === "std_invite") && body.eventId) {
+    } else if ((body.kind === "site_live" || body.kind === "std_invite" || body.kind === "preview_refresh") && body.eventId) {
       // From the host's own dashboard / builder: only someone hosting the event (not a viewer).
       const { data: ev } = await supabaseAdmin.from("events").select("id, name, owner_id, managed_by_studio").eq("id", body.eventId).maybeSingle();
       const { data: member } = ev ? await supabaseAdmin.from("event_members").select("profile_id").eq("event_id", ev.id).eq("profile_id", caller.id).neq("role", "viewer").maybeSingle() : { data: null };
@@ -448,6 +449,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!site?.published_at) return res.status(409).json({ error: "The website isn’t live yet" });
       const link = `${origin}/invite/${site.slug}`;
 
+      if (body.kind === "preview_refresh") {
+        // After every publish: the link's preview shows what's live now (api/_lib/link-preview.ts).
+        const { data: dom } = await supabaseAdmin.from("site_domains").select("domain").eq("event_id", ev.id).eq("status", "active").limit(1).maybeSingle();
+        return res.status(200).json(await refreshPreview(site.slug, dom?.domain ? [link, `https://${dom.domain}/`] : [link]));
+      }
       if (body.kind === "site_live") {
         // "Your website is live": once per event, ever (followup_log, email-additions.sql).
         const { error: claimErr } = await supabaseAdmin.from("followup_log").insert({ event_id: ev.id, kind: "site_live" });
