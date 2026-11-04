@@ -116,18 +116,18 @@ export default function RevenuePage() {
     studio.loadRevenue(months[0], new Date(months[11].getFullYear(), months[11].getMonth() + 1, 1)).then((x) => setYear(x ?? []));
   }, [owner, demo, months]);
 
-  if (owner === null) return <StudioHeader title="Revenue" sub="Loading…" />;
+  if (owner === null) return <StudioHeader title="Finances" tabs="finances" sub="Loading…" />;
   if (!owner)
     return (
       <>
-        <StudioHeader title="Revenue" />
+        <StudioHeader title="Finances" tabs="finances" />
         <p className="text-[14px] text-[var(--slate)]">Only the studio owner can see revenue.</p>
       </>
     );
   if (items === null)
     return (
       <>
-        <StudioHeader title="Revenue" />
+        <StudioHeader title="Finances" tabs="finances" />
         <p className="text-[14px] text-[var(--slate)]">Run supabase/revenue-report.sql on the live database to switch on the revenue report.</p>
       </>
     );
@@ -164,7 +164,8 @@ export default function RevenuePage() {
   return (
     <>
       <StudioHeader
-        title="Revenue"
+        title="Finances"
+        tabs="finances"
         action={
           list.length ? (
             <PillButton

@@ -4,7 +4,7 @@ import { formatDate } from "@/pages/account/portal/format";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { StudioHeader } from "../StudioLayout";
 
-// Emails: the newsletter list, everyone who left their email with "Notify me"
+// Mailing list: the newsletter list, everyone who left their email with "Notify me"
 // (launch_signups, written by the server; staff read it: supabase/launch-signups-staff.sql).
 type Signup = { id: string; email: string; source: string | null; created_at: string };
 
@@ -48,8 +48,8 @@ export default function EmailsPage() {
   return (
     <>
       <StudioHeader
-        title="Emails"
-        sub={rows ? `The newsletter list: ${rows.length} ${rows.length === 1 ? "person" : "people"}${today ? `, ${today} today` : ""}.` : "The newsletter list: everyone who signed up with their email."}
+        title="Mailing list"
+        sub={rows ? `Everyone who signed up for news: ${rows.length} ${rows.length === 1 ? "person" : "people"}${today ? `, ${today} today` : ""}.` : "Everyone who signed up for news with their email."}
       />
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <input

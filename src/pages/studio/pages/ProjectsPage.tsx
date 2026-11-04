@@ -90,6 +90,7 @@ export default function ProjectsPage() {
     <>
       <StudioHeader
         title="Projects"
+        tabs="projects"
         hideOnPhone={editing}
         sub={filter === "diy" ? "Websites customers built themselves with Build Your Website." : "Every client project — set progress, tasks, invoices, and access."}
         action={

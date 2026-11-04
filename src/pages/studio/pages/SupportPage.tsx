@@ -126,7 +126,8 @@ export default function SupportPage() {
   return (
     <>
       <StudioHeader
-        title="Support"
+        title="Messages"
+        tabs="messages"
         sub={`${counts.needs_reply} need a reply${counts.overdue ? ` · ${counts.overdue} overdue` : ""} · we promise a reply within 1 business day (Mon–Fri, 9 AM–6 PM Manila).`}
         hideOnPhone={!!active}
         action={

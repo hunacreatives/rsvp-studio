@@ -8,7 +8,7 @@ export default function InboxPage() {
   const [params] = useSearchParams();
   return (
     <>
-      <StudioHeader title="Inbox" sub="Project conversations with clients. Support requests are under Support." hideOnPhone={!!params.get("thread")} />
+      <StudioHeader title="Messages" sub="Conversations with clients about their projects." tabs="messages" hideOnPhone={!!params.get("thread")} />
       <StudioInbox owners={owners} />
     </>
   );

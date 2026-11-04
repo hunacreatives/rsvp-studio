@@ -25,7 +25,7 @@ export default function ClientsPage() {
 
   return (
     <>
-      <StudioHeader title="Clients" sub="Everyone with a client account. To link someone to a project, open the project and send them an invite code." />
+      <StudioHeader title="Projects" tabs="projects" sub="Everyone with a client account. To link someone to a project, open the project and send them an invite code." />
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}

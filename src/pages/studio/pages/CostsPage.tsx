@@ -70,18 +70,18 @@ export default function CostsPage() {
     return [...latest.values()].filter((c) => monthKey(c.spent_on) < thisMonth);
   }, [list, thisMonth]);
 
-  if (allowed === null) return <StudioHeader title="Costs" sub="Loading…" />;
+  if (allowed === null) return <StudioHeader title="Finances" tabs="finances" sub="Loading…" />;
   if (!allowed)
     return (
       <>
-        <StudioHeader title="Costs" />
+        <StudioHeader title="Finances" tabs="finances" />
         <p className="text-[14px] text-[var(--slate)]">Only the owner and the partners’ shared account can see costs.</p>
       </>
     );
   if (costs === null)
     return (
       <>
-        <StudioHeader title="Costs" />
+        <StudioHeader title="Finances" tabs="finances" />
         <p className="text-[14px] text-[var(--slate)]">Run supabase/studio-costs.sql on the live database to switch on Costs.</p>
       </>
     );
@@ -122,7 +122,8 @@ export default function CostsPage() {
   return (
     <>
       <StudioHeader
-        title="Costs"
+        title="Finances"
+        tabs="finances"
         sub="Split 50/50 between the partners."
         action={
           <div className="flex flex-wrap gap-2">
