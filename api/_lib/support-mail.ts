@@ -12,6 +12,11 @@ export const STUDIO_INBOX = "hello@thersvpstudio.com";
 // the /api/support-inbound webhook, then SUPPORT_EMAIL_REPLIES=on in Vercel.
 export const REPLY_DOMAIN = "reply.thersvpstudio.com";
 export const emailRepliesOn = () => process.env.SUPPORT_EMAIL_REPLIES === "on";
+/** Leads (Studio → Leads): their replies come back through lead-<key>@reply.thersvpstudio.com, which tells
+ *  us they answered (stopping follow-ups) and forwards their email to hello@. Needs incoming email on the
+ *  reply domain (the same setup as support replies) and LEAD_EMAIL_REPLIES=on. */
+export const leadRepliesOn = () => process.env.LEAD_EMAIL_REPLIES === "on";
+export const leadReplyAddress = (key: string) => `lead-${key}@${REPLY_DOMAIN}`;
 
 export const SERVICE_FOOTER = "You’re receiving this because you contacted The RSVP Studio support. To reply, open your dashboard.";
 /** Footer for emails about a request: says replying by email works once it does. */
@@ -288,6 +293,14 @@ export function tipsToken(profileId: string) {
 export const FACEBOOK_REVIEWS_URL = "https://www.facebook.com/profile.php?id=61590604769707&sk=reviews";
 /** The signed part of /go/review/<token>: which event's email the click came from. */
 export const reviewToken = (eventId: string) => tipsToken(`review:${eventId}`);
+
+/** A lead's "stop these emails" link (their follow-ups only; never a profile's). */
+export const leadToken = (enquiryId: string) => tipsToken(`lead:${enquiryId}`);
+export function readLeadToken(token: string): string | null {
+  const v = readSigned(token);
+  const id = v?.startsWith("lead:") ? v.slice(5) : null;
+  return id && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+}
 
 /** The person an unsubscribe link is for, if the link is genuine. */
 export function readTipsToken(token: string): string | null {

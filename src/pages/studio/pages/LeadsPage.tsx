@@ -7,6 +7,7 @@ import { StudioHeader } from "../StudioLayout";
 import SavedReplies from "../SavedReplies";
 import EmailEditor, { EMAIL_SHELL_MESSAGE, type EmailEditorHandle } from "../EmailEditor";
 import * as studio from "../studioApi";
+import { dayDate, manilaDay, nextFollowup } from "../../../../api/_lib/lead-followup-plan";
 
 // Studio → Leads. Everyone who filled in an inquiry form (project, partner, or a
 // question from the FAQ page). Reply from here in our branded email (it's kept on the lead
@@ -63,6 +64,16 @@ export default function LeadsPage() {
     }
   };
 
+  const act = async (l: studio.Lead, work: (id: string) => Promise<void>) => {
+    setBusy(l.id);
+    try {
+      await work(l.id);
+      await reload();
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <>
       <StudioHeader title="Leads" sub="Everyone who filled in an inquiry form. Reply from here in our branded email, then turn them into a project when you start working together." />
@@ -102,6 +113,7 @@ export default function LeadsPage() {
                     {l.email ? <span className="text-[var(--ink)]">{l.email}</span> : null}
                     {l.phone ? <span className="text-[var(--slate)]"> · {l.phone}</span> : null}
                   </p>
+                  <FollowupLine lead={l} replies={replies[l.id] ?? []} busy={busy === l.id} act={(work) => act(l, work)} />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {l.email ? <PillButton onClick={() => setReplying(l)}>Reply</PillButton> : null}
@@ -191,10 +203,12 @@ export default function LeadsPage() {
 }
 
 type Draft = { subject: string; message: string };
+// Our first reply answers the instant email they got (api/_lib/enquiry-mail.ts → enquiryReceipt), so it
+// lands in the same thread: one conversation, not two.
 const SUBJECT: Record<string, string> = {
-  "project-inquiry": "Your inquiry with The RSVP Studio",
-  "partner-inquiry": "Your partner application with The RSVP Studio",
-  "faq-question": "Your question to The RSVP Studio",
+  "project-inquiry": "Re: We got your RSVP — The RSVP Studio",
+  "partner-inquiry": "Re: Your application is in — The RSVP Studio partners",
+  "faq-question": "Re: We got your question — The RSVP Studio",
 };
 
 /** Write a reply, see it in the branded email, send it. Sent from hello@; their answer comes back there. */
@@ -292,6 +306,46 @@ function ReplyDialog({ lead, last, draft, onDraft, saved, reloadSaved, onClose, 
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** Where their follow-ups stand (api/_lib/lead-followup-plan.ts, the same rules the daily job sends by),
+ *  with Stop, and Mark replied for an answer that came some other way (a call, Instagram). */
+function FollowupLine({ lead, replies, busy, act }: { lead: studio.Lead; replies: studio.LeadReply[]; busy: boolean; act: (work: (id: string) => Promise<void>) => void }) {
+  const sent = lead.enquiry_followups ?? [];
+  const next = nextFollowup(lead, replies, sent);
+  const open = (lead.status === "new" || lead.status === "contacted") && replies.length > 0;
+  const manilaHour = new Date(Date.now() + 8 * 3_600_000).getUTCHours();
+  let text: string | null = null;
+  if (lead.replied_at) text = `Replied ${formatDate(lead.replied_at)}`;
+  else if (next.state === "scheduled") {
+    const today = manilaDay(Date.now());
+    const when = next.day <= today ? (manilaHour < 9 ? "today at 9 AM" : "tomorrow at 9 AM") : `on ${formatDate(dayDate(next.day).toISOString())}`;
+    text = `Follow-up ${next.nth} of ${next.total} goes out ${when}`;
+  } else if (next.state === "stopped") {
+    text = { finished: `Follow-ups finished (${sent.length} sent)`, unsubscribed: "Unsubscribed from follow-ups", stopped: `Follow-ups stopped${sent.length ? ` (${sent.length} sent)` : ""}`, replied: "Replied", event: sent.length ? "Follow-ups done: their event is close" : null, project: null, archived: null }[next.reason] ?? null;
+  }
+  if (!text && !open) return null;
+  const link = "min-h-[32px] font-medium text-[var(--acc-blue)] hover:underline disabled:opacity-50";
+  return (
+    <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[var(--slate)]">
+      {text ? (
+        <span>
+          <i className="ri-mail-send-line mr-1" />
+          {text}
+        </span>
+      ) : null}
+      {next.state === "scheduled" ? (
+        <button className={link} disabled={busy} onClick={() => act(studio.stopLeadFollowups)}>
+          Stop follow-ups
+        </button>
+      ) : null}
+      {open && !lead.replied_at ? (
+        <button className={link} disabled={busy} onClick={() => act(studio.markLeadReplied)}>
+          Mark replied
+        </button>
+      ) : null}
+    </p>
   );
 }
 

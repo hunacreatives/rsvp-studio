@@ -19,6 +19,8 @@ export type InboundDeps = { db: SupabaseClient; receiving: Receiving; sendMail: 
 export type InboundResult = { outcome: string; reason?: string; threadId?: string };
 
 const REPLY_ADDR = new RegExp(`^sup-(\\d+)\\.([a-f0-9]{12})@${REPLY_DOMAIN.replace(/\./g, "\\.")}$`, "i");
+// A lead's reply address (Studio → Leads; api/_lib/lead-followups.ts): lead-<key>@reply.thersvpstudio.com
+const LEAD_ADDR = new RegExp(`^lead-([a-f0-9]{16})@${REPLY_DOMAIN.replace(/\./g, "\\.")}$`, "i");
 const KEY_REF = /<sup-(\d+)\.([a-f0-9]{12})@thersvpstudio\.com>/gi;
 const SUBJECT_REF = /\[(?:SUP-|Request #)(\d+)\]/i;
 const MAX_FILES = 5;
@@ -128,6 +130,13 @@ async function handle(emailId: string, deps: InboundDeps, finish: Finish): Promi
   let thread: Thread | null = null;
   let matchedBy = "";
   const recipients = [...(email.to ?? []), ...(email.cc ?? []), ...((email as { received_for?: string[] }).received_for ?? [])].map(addressOf);
+  // A lead writing back: note it (their follow-ups stop) and pass it on to hello@, files and all.
+  for (const r of recipients) {
+    const key = r.match(LEAD_ADDR)?.[1]?.toLowerCase();
+    if (!key) continue;
+    const { data: lead } = await db.from("enquiries").select("id, name, email").eq("reply_key", key).maybeSingle();
+    if (lead) return leadReplyIn(emailId, deps, finish, lead as { id: string; name: string | null; email: string | null }, email, subject, extra);
+  }
   for (const r of recipients) {
     const m = r.match(REPLY_ADDR);
     if (!m) continue;
@@ -241,6 +250,43 @@ async function handle(emailId: string, deps: InboundDeps, finish: Finish): Promi
     ),
   }).catch((e) => console.error("unmatched alert failed", e));
   return finish({ outcome: "unmatched", reason: !thread && matchedBy === "subject" ? "subject mentions a request but the sender couldn’t be verified" : "no matching request", extra });
+}
+
+async function leadReplyIn(emailId: string, deps: InboundDeps, finish: Finish, lead: { id: string; name: string | null; email: string | null }, email: { from: string; text: string | null; html: string | null }, subject: string, extra: Record<string, unknown>) {
+  const { db, receiving, sendMail } = deps;
+  const fromHeader = email.from;
+  const text = visibleText(email.text, email.html);
+  const files: { filename: string; content: Buffer }[] = [];
+  const skipped: string[] = [];
+  const { data: list } = await receiving.attachments.list({ emailId });
+  for (const a of (list?.data ?? []).filter((x) => x.content_disposition !== "inline")) {
+    if (files.length >= MAX_FILES || a.size > MAX_FILE_BYTES) {
+      skipped.push(a.filename ?? "file");
+      continue;
+    }
+    const res = await fetch(a.download_url);
+    if (res.ok) files.push({ filename: a.filename || "attachment", content: Buffer.from(await res.arrayBuffer()) });
+    else skipped.push(a.filename ?? "file");
+  }
+  const now = new Date().toISOString();
+  await db.from("enquiries").update({ replied_at: now }).eq("id", lead.id);
+  await db.from("enquiries").update({ followups_stopped: "replied" }).eq("id", lead.id).is("followups_stopped", null);
+  const who = lead.name || addressOf(fromHeader);
+  await sendMail({
+    from: FROM,
+    to: STUDIO_INBOX,
+    replyTo: addressOf(fromHeader),
+    subject: subject || `Reply from ${who}`,
+    attachments: files.length ? files : undefined,
+    html: layout(
+      `${esc(who)} replied`,
+      `${esc(text || "(No message, just attachments.)").replace(/\n/g, "<br>")}${skipped.length ? `<br><br><span style="color:#868697">Not attached (too many or too large): ${esc(skipped.join(", "))}. Ask them to send these another way.</span>` : ""}<br><br><span style="color:#868697">Hit reply to answer ${esc(lead.name?.split(" ")[0] || "them")} directly, or reply from Studio → Leads to keep it on their lead. Their follow-up emails have stopped.</span>`,
+      null,
+      "A lead’s reply, passed on by thersvpstudio.com.",
+      { ad: false },
+    ),
+  });
+  return finish({ outcome: "lead_reply", matched_by: "lead_address", extra: { ...extra, enquiry_id: lead.id } });
 }
 
 async function newRequest(db: SupabaseClient, profileId: string, eventId: string | null, category: string | null, subject: string) {

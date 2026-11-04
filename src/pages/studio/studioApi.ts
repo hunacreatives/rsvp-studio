@@ -330,7 +330,7 @@ export type InboundEmail = {
   created_at: string;
   from_address: string | null;
   subject: string | null;
-  outcome: "processing" | "posted" | "new_request" | "note" | "unmatched" | "ignored" | "error";
+  outcome: "processing" | "posted" | "new_request" | "note" | "unmatched" | "ignored" | "error" | "lead_reply";
   reason: string | null;
   thread_id: string | null;
 };
@@ -386,11 +386,28 @@ export type Lead = {
   status: LeadStatus;
   event_id: string | null;
   created_at: string;
+  // follow-ups (supabase/lead-followups.sql; when: api/_lib/lead-followup-plan.ts)
+  replies_tracked?: boolean;
+  replied_at?: string | null;
+  followups_stopped?: string | null;
+  enquiry_followups?: { step: number; sent_at: string }[];
 };
 
+const LEAD_COLS = "id, form, name, email, phone, values, attachments, status, event_id, created_at";
 export async function loadLeads() {
-  const { data, error } = await supabase.from("enquiries").select("id, form, name, email, phone, values, attachments, status, event_id, created_at").order("created_at", { ascending: false }).limit(300);
-  return error ? null : ((data ?? []) as Lead[]);
+  const q = (cols: string) => supabase.from("enquiries").select(cols).order("created_at", { ascending: false }).limit(300);
+  let { data, error } = await q(`${LEAD_COLS}, replies_tracked, replied_at, followups_stopped, enquiry_followups(step, sent_at)`);
+  if (error) ({ data, error } = await q(LEAD_COLS)); // before lead-followups.sql
+  return error ? null : ((data ?? []) as unknown as Lead[]);
+}
+
+/** They wrote back some other way (phone, Instagram): no more follow-ups. */
+export async function markLeadReplied(id: string) {
+  must(await supabase.from("enquiries").update({ replied_at: new Date().toISOString() }).eq("id", id));
+  await supabase.from("enquiries").update({ followups_stopped: "replied" }).eq("id", id).is("followups_stopped", null);
+}
+export async function stopLeadFollowups(id: string) {
+  must(await supabase.from("enquiries").update({ followups_stopped: "stopped" }).eq("id", id));
 }
 
 /** For partner applications: whether each applicant already has an account, uses the
@@ -461,13 +478,15 @@ export async function restoreProject(id: string) {
   if (error) throw new Error(/RESTORE_WINDOW_PASSED/.test(error.message) ? "It’s been more than 30 days since this project was deleted, so it can’t be restored." : "Couldn’t restore the project — please try again.");
 }
 
-export type LeadReply = { id: string; enquiry_id: string; sender_name: string | null; subject: string; body: string; created_at: string };
+export type LeadReply = { id: string; enquiry_id: string; sender_name: string | null; subject: string; body: string; created_at: string; tracked?: boolean };
 
 /** Replies sent from Studio, per lead (supabase/lead-replies.sql). Empty until that's run. */
 export async function loadLeadReplies(): Promise<Record<string, LeadReply[]>> {
-  const { data, error } = await supabase.from("enquiry_replies").select("id, enquiry_id, sender_name, subject, body, created_at").order("created_at").limit(1000);
+  const q = (cols: string) => supabase.from("enquiry_replies").select(cols).order("created_at").limit(1000);
+  let { data, error } = await q("id, enquiry_id, sender_name, subject, body, created_at, tracked");
+  if (error) ({ data, error } = await q("id, enquiry_id, sender_name, subject, body, created_at")); // before lead-followups.sql
   const out: Record<string, LeadReply[]> = {};
-  for (const r of error ? [] : ((data ?? []) as LeadReply[])) (out[r.enquiry_id] ??= []).push(r);
+  for (const r of error ? [] : ((data ?? []) as unknown as LeadReply[])) (out[r.enquiry_id] ??= []).push(r);
   return out;
 }
 

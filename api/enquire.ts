@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, esc, isEmail, sendChecked } from "./_lib/email.js";
 import { enquiryReceipt } from "./_lib/enquiry-mail.js";
+import { leadRepliesOn, leadReplyAddress } from "./_lib/support-mail.js";
 import { captureError } from "./_lib/sentry.js";
 
 // The site's contact forms: the project inquiry, the partner inquiry, and the FAQ
@@ -125,6 +126,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { heading, icon } = FORMS[form];
+  // their own reply address (lead-<key>@reply…): a reply to any of our emails is seen, so follow-ups stop
+  const replyKey = randomBytes(8).toString("hex");
+  const tracked = leadRepliesOn();
   const { error: saveError } = await supabaseAdmin.from("enquiries").insert({
     form,
     name,
@@ -133,6 +137,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     values,
     attachments: included.map((a) => a.filename),
     ip_hash: hash,
+    reply_key: replyKey,
+    replies_tracked: tracked,
   });
   if (saveError) console.error("enquiry save failed", saveError);
 
@@ -164,7 +170,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         to: email,
         // Branded receipt (api/_lib/enquiry-mail.ts): an RSVP reply card + things to browse while they wait.
         ...enquiryReceipt(form, values, name),
-        replyTo: TO,
+        replyTo: tracked && !saveError ? leadReplyAddress(replyKey) : TO,
       }),
     ]);
 

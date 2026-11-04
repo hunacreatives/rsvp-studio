@@ -302,6 +302,7 @@ const OUTCOME: Record<studio.InboundEmail["outcome"], { label: string; tone: str
   unmatched: { label: "Couldn’t match", tone: "bg-[#fff1d6] text-[#8a5a00]" },
   ignored: { label: "Ignored", tone: "bg-[var(--paper)] text-[var(--slate)]" },
   error: { label: "Error", tone: "bg-[#fde4df] text-[#c2412d]" },
+  lead_reply: { label: "Lead replied", tone: "bg-[#e6f4e6] text-[#2f6b2f]" },
   processing: { label: "Processing", tone: "bg-[var(--paper)] text-[var(--slate)]" },
 };
 

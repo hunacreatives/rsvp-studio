@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, esc, isEmail, normalizePhone } from "./_lib/email.js";
-import { customerReplyTo, reqCode, FROM, firstName, layout, partnerLayout, makeSendMail, ratingButtons, readTipsToken, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
+import { customerReplyTo, reqCode, FROM, firstName, layout, leadRepliesOn, leadReplyAddress, partnerLayout, makeSendMail, ratingButtons, readLeadToken, readTipsToken, serviceFooter, STUDIO_INBOX, SUPPORT_TOPIC, threadHeaders } from "./_lib/support-mail.js";
 import { customerMessageEmails } from "./_lib/support-notify.js";
 import { sendInvoiceEmail } from "./_lib/billing-mail.js";
 import { captureError } from "./_lib/sentry.js";
@@ -58,9 +58,10 @@ async function recipientsFor(eventId: string | null, extraProfileId: string | nu
 async function unsubscribe(req: VercelRequest, res: VercelResponse) {
   const t = String(req.query.t ?? "");
   const profileId = readTipsToken(t);
+  const leadId = profileId ? null : readLeadToken(t);
   const page = (heading: string, body: string) =>
     res
-      .status(profileId ? 200 : 400)
+      .status(profileId || leadId ? 200 : 400)
       .setHeader("Content-Type", "text/html; charset=utf-8")
       .setHeader("Cache-Control", "no-store")
       .send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${heading} · The RSVP Studio</title></head>
@@ -70,6 +71,19 @@ async function unsubscribe(req: VercelRequest, res: VercelResponse) {
 <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:26px;line-height:1.25;">${heading}</h1>
 ${body}
 </main></body></html>`);
+  // a lead's follow-ups (Studio → Leads): same confirm-then-POST, so link scanners can't stop them
+  if (leadId) {
+    if (req.method === "POST") {
+      const { error } = await supabaseAdmin.from("enquiries").update({ followups_stopped: "unsubscribed" }).eq("id", leadId);
+      if (error) return res.status(500).send("Couldn’t update your settings. Please try again.");
+      return page("You’re unsubscribed", `<p style="color:#4a4b63;line-height:1.6;margin:0;">We won’t follow up about your inquiry again. If you’d still like help, just email hello@thersvpstudio.com.</p>`);
+    }
+    return page(
+      "Stop these emails?",
+      `<p style="color:#4a4b63;line-height:1.6;margin:0 0 24px;">We’ll stop following up about your inquiry.</p>
+<form method="post" action="/api/notify?op=unsubscribe&amp;t=${encodeURIComponent(t)}"><button type="submit" style="border:0;border-radius:999px;background:#000727;color:#fff;font-size:15px;padding:14px 28px;cursor:pointer;">Stop these emails</button></form>`,
+    );
+  }
   if (!profileId) return page("That link didn’t work", `<p style="color:#4a4b63;line-height:1.6;">Turn these emails off under Account → Notifications instead.</p>`);
   if (req.method === "POST") {
     const { error } = await supabaseAdmin.from("profiles").update({ notify_tips: false }).eq("id", profileId);
@@ -441,9 +455,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } else if (body.kind === "lead_reply" && body.enquiryId && caller.is_staff) {
       // Studio → Leads → Reply: a branded email to someone who sent a form (no account needed).
-      // From and reply-to hello@, with a BCC there so their answer arrives in the same thread.
+      // From hello@ with a BCC there. Their answer goes to their own reply address once incoming email is
+      // on (seen, so follow-ups stop, then forwarded to hello@: api/_lib/support-inbound.ts), else to hello@.
       // `preview` returns the email without sending it. Each send is kept on the lead.
-      const { data: lead } = await supabaseAdmin.from("enquiries").select("id, email, status").eq("id", body.enquiryId).maybeSingle();
+      const { data: lead } = await supabaseAdmin.from("enquiries").select("id, email, status, reply_key").eq("id", body.enquiryId).maybeSingle();
       const to = (lead?.email ?? "").trim().toLowerCase();
       if (!lead || !isEmail(to)) return res.status(404).json({ error: "This lead has no email address." });
       const subject = clean(body.subject ?? "", 150).replace(/\s+/g, " ") || "Your inquiry with The RSVP Studio";
@@ -454,13 +469,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const sender = caller.email === STUDIO_INBOX || !first || /rsvp/i.test(caller.full_name ?? "") ? null : first;
       const html = leadReply(message, sender);
       if (body.preview) return res.status(200).json({ html });
+      // their answer comes back through their own reply address (seen, then forwarded to hello@)
+      const tracked = leadRepliesOn() && !!lead.reply_key;
       try {
-        await sendMail({ from: FROM, to, bcc: STUDIO_INBOX, replyTo: STUDIO_INBOX, subject, html });
+        await sendMail({ from: FROM, to, bcc: STUDIO_INBOX, replyTo: tracked ? leadReplyAddress(lead.reply_key) : STUDIO_INBOX, subject, html });
       } catch (err) {
         console.error("lead_reply send failed", err);
         return res.status(502).json({ error: "The email didn’t send. Please try again." });
       }
-      const { error: logErr } = await supabaseAdmin.from("enquiry_replies").insert({ enquiry_id: lead.id, sent_by: caller.id, sender_name: sender ?? caller.full_name, subject, body: message });
+      const { error: logErr } = await supabaseAdmin.from("enquiry_replies").insert({ enquiry_id: lead.id, sent_by: caller.id, sender_name: sender ?? caller.full_name, subject, body: message, tracked });
       if (logErr) console.error("lead_reply log failed", logErr);
       if (lead.status === "new") await supabaseAdmin.from("enquiries").update({ status: "contacted" }).eq("id", lead.id);
       return res.status(200).json({ sent: 1, failed: 0 });

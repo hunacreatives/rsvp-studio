@@ -174,11 +174,11 @@ ${signoff()}
 
 /** A reply to a lead, written in Studio → Leads (api/notify.ts → lead_reply): their words in
  *  the branded frame, URLs linked, our sign-off with the sender's name. Plain text in. */
-export function leadReply(message: string, sender: string | null): string {
+/** A reply's text as email rows: paragraphs, and lists in the house style (coral dots, numbers in coral circles, as in steps()). */
+function replyBlocks(message: string) {
   const linked = (s: string) => inlineHtml(s, esc, (b) => `<strong style="color:${INK}!important;">${b}</strong>`).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" style="color:#2f61d5!important;">${u}</a>`);
   const cell = `class="fb" style="padding:0 0 10px;color:${BODY}!important;font-size:16px;line-height:1.7;"`;
-  // paragraphs, and lists in the house style: coral dots, numbers in coral circles (as in steps())
-  const blocks = parseReply(message.trim()).map((b) => {
+  return parseReply(message.trim()).map((b) => {
     if (b.kind === "p") return p(b.lines.map(linked).join("<br />"));
     const rows = b.items.map((item, i) => {
       const mark = b.kind === "ol"
@@ -187,16 +187,108 @@ export function leadReply(message: string, sender: string | null): string {
       return `<tr><td valign="top" width="${b.kind === "ol" ? 34 : 22}" style="padding:0 0 10px;">${mark}</td><td valign="top" ${cell}>${linked(item)}</td></tr>`;
     });
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">${rows.join("")}</table>`;
-  });
-  const preview = plainReply(message).replace(/^hi\b[^,]*,?\s*/i, "").slice(0, 120);
+  }).join("\n");
+}
+
+/** A letter from one of us: the body, then "Talk soon," and who it's from. */
+function letter(body: string, sender: string | null, preheader: string, footer?: string) {
   return frame({
-    preheader: preview,
+    preheader,
     spot: "confirm-spot.png",
     spotAlt: "An RSVP card in an envelope",
+    footer,
     content: `<tr><td class="pad" style="padding:26px 56px 6px;">
-${blocks.join("\n")}
+${body}
 <p class="fi" style="margin:26px 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;">Talk soon,</p>
 <p class="fb" style="margin:0 0 30px;color:${BODY}!important;font-size:15px;">${sender ? `${esc(sender)}<br />` : ""}The RSVP Studio${sender ? "" : " team"}</p>
 </td></tr>`,
   });
+}
+
+export function leadReply(message: string, sender: string | null): string {
+  return letter(replyBlocks(message), sender, plainReply(message).replace(/^hi\b[^,]*,?\s*/i, "").slice(0, 120));
+}
+
+// ---------------------------------------------------------------------------
+// Follow-ups to a lead who hasn't answered our reply (api/_lib/lead-followups.ts; when, in
+// lead-followup-plan.ts). Short, from the person who wrote to them, sent as replies in that thread.
+//   1  a check-in, with our last email quoted
+//   2  ideas to start from, and their timeline
+//   3  the do-it-yourself way in (free designs, Mesa)
+//   4  a last note: we'll stop following up
+
+export type FollowupLead = { name: string | null; form: string; values: Values };
+export type LastEmail = { body: string; sender: string | null; at: string };
+
+/** What they're planning, in a few words: "your 30th birthday", "your wedding", "your celebration". */
+function occasionOf(v: Values) {
+  const occ = str(v.occasion).toLowerCase().replace(/[-_]/g, " ");
+  const age = str(v.milestone_age);
+  if (/birthday|bday/.test(occ) && age) return `your ${age} birthday`;
+  if (/debut/.test(occ)) return "your debut";
+  return occ && occ !== "other" ? `your ${occ}` : "your celebration";
+}
+
+export function leadFollowup(step: 1 | 2 | 3 | 4, lead: FollowupLead, last: LastEmail, unsubscribeUrl: string): string {
+  const first = esc((lead.name ?? "").trim().split(/\s+/)[0] || "there");
+  const sender = last.sender;
+  // "I" from a person, "we" from the team login
+  const [I, my, Ill] = sender ? ["I", "my", "I’ll"] : ["we", "our", "we’ll"];
+  const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+  const what = occasionOf(lead.values);
+  const date = str(lead.values.event_date);
+  const when = /^\d{4}-\d{2}-\d{2}$/.test(date) ? day(date) : "";
+  const footer = `You’re receiving this because you sent us an inquiry on thersvpstudio.com. <a href="${unsubscribeUrl}" class="fs" style="color:#a0a0ad !important;">Stop these emails</a>`;
+  const hi = p(`Hi ${first},`);
+
+  if (lead.form === "faq-question") {
+    const body = `${hi}
+${p(`${cap(I)} wanted to check that ${my} answer helped. If anything is still unclear, just reply and ${Ill} explain.`)}
+${p(`When you’re ready to start, you can make your website at <a href="${SITE}/build" style="color:#2f61d5!important;">thersvpstudio.com/build</a>.`)}`;
+    return letter(body, sender, "Did that answer your question?", footer);
+  }
+
+  // their timeline: invites out three weeks before, so guests have time to reply
+  let timeline = "";
+  if (when) {
+    const inviteBy = new Date(`${date}T12:00:00+08:00`).getTime() - 21 * 86_400_000;
+    timeline = inviteBy - Date.now() > 2 * 86_400_000
+      ? `For ${what} on ${when}, invites should go out by ${new Date(inviteBy).toLocaleDateString("en-PH", { month: "long", day: "numeric", timeZone: "Asia/Manila" })}, so your guests have three weeks to RSVP.`
+      : `${cap(what.replace(/^your/, "Your"))} is on ${when}, so starting soon gives your guests more time to RSVP.`;
+  }
+
+  if (step === 1) {
+    const quoted = last.body.trim().replace(/\*\*(.+?)\*\*/g, "$1").slice(0, 900);
+    const on = new Date(last.at).toLocaleDateString("en-PH", { month: "long", day: "numeric", timeZone: "Asia/Manila" });
+    const body = `${hi}
+${p(`Just checking that ${my} last email reached you. When you have a minute, a quick reply with your answers is all we need to start on ${what}.`)}
+${p(`On ${on}, ${sender ? esc(sender) : "we"} wrote:`, 8)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;"><tr><td style="border-left:3px solid #e2dccf;padding:2px 0 2px 16px;"><p class="fs" style="margin:0;color:${SLATE}!important;font-size:14px;line-height:1.6;">${esc(quoted).replace(/\n/g, "<br />")}${last.body.trim().length > 900 ? "…" : ""}</p></td></tr></table>`;
+    return letter(body, sender, `Just checking that ${my} last email reached you.`, footer);
+  }
+  if (step === 2) {
+    const body = `${hi}
+${p(`While you think it over, here are a few places to start. Any of our designs can be made yours, with your own photos, colours and details.`, 22)}
+${browse([
+  { img: "wait-services.jpg", title: "Designs", text: "Websites that open like a film, for every occasion.", url: `${SITE}/build?utm_source=email&amp;utm_campaign=lead_followup&amp;utm_content=2` },
+  { img: "wait-work.jpg", title: "Our work", text: "Websites and stationery for real celebrations.", url: `${SITE}/portfolio?utm_source=email&amp;utm_campaign=lead_followup&amp;utm_content=2` },
+  { img: "wait-monograms.jpg", title: "Services", text: "Websites, invitations, monograms and more.", url: `${SITE}/services?utm_source=email&amp;utm_campaign=lead_followup&amp;utm_content=2` },
+])}
+<div style="height:22px;line-height:22px;font-size:0;">&nbsp;</div>
+${timeline ? p(timeline) : ""}
+${p(`Reply whenever you’re ready and ${Ill} take it from there.`)}`;
+    return letter(body, sender, "A few places to start, and your timeline.", footer);
+  }
+  if (step === 3) {
+    const link = (path: string, label: string) => `<a href="${SITE}${path}${path.includes("?") ? "&amp;" : "?"}utm_source=email&amp;utm_campaign=lead_followup&amp;utm_content=3" style="color:#2f61d5!important;">${label}</a>`;
+    const body = `${hi}
+${p(`If a custom design isn’t the right fit for now, you can still make your own. Pick one of our designs, add your details, and collect RSVPs on your own website. It’s free to start: ${link("/build", "thersvpstudio.com/build")}.`)}
+${p(`Planning seating too? Mesa, our free seating chart maker, seats your whole guest list in one tap: ${link("/tools/seating-chart-maker", "try Mesa")}.`)}
+${p(`And if you’d still like us to make it for you, just reply.`)}`;
+    return letter(body, sender, "You can also make your own, free to start.", footer);
+  }
+  const body = `${hi}
+${p(`${cap(I)} haven’t heard back, so ${Ill} close your inquiry for now and stop following up.`)}
+${p(`If you’d still like help with ${what}, just reply to this email and we’ll pick up where we left off.`)}`;
+  return letter(body, sender, `${cap(Ill)} close your inquiry for now.`, footer);
 }
