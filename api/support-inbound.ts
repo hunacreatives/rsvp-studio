@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { emailRepliesOn, makeSendMail } from "./_lib/support-mail.js";
+import { emailRepliesOn, leadRepliesOn, makeSendMail } from "./_lib/support-mail.js";
 import { processInbound } from "./_lib/support-inbound.js";
 import { captureError } from "./_lib/sentry.js";
 
@@ -12,7 +12,8 @@ import { captureError } from "./_lib/sentry.js";
 const SITE = "https://thersvpstudio.com";
 
 export async function POST(request: Request) {
-  if (!emailRepliesOn()) return Response.json({ ignored: "email replies are switched off" });
+  // on for support replies, lead replies (Studio → Leads follow-ups), or both: either needs the emails
+  if (!emailRepliesOn() && !leadRepliesOn()) return Response.json({ ignored: "email replies are switched off" });
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   const key = process.env.RESEND_API_KEY;
   if (!secret || !key) return Response.json({ error: "RESEND_WEBHOOK_SECRET / RESEND_API_KEY not set" }, { status: 500 });

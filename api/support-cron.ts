@@ -12,7 +12,7 @@ import { sendInvoiceReminders } from "./_lib/invoice-reminders.js";
 import { domainsDaily } from "./_lib/domains.js";
 import { smsDaily } from "./_lib/sms.js";
 import { eventPeopleEmails } from "./_lib/hosts.js";
-import { code, customerReplyTo, reqCode, emailRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
+import { code, customerReplyTo, reqCode, emailRepliesOn, leadRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
 import { captureError } from "./_lib/sentry.js";
 
 // The daily support job — Vercel Cron, ~9 AM Manila (vercel.json: "0 1 * * *" UTC).
@@ -82,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
 
   // 0. Email replies: anything the webhook missed in the last 3 days (when switched on).
-  if (emailRepliesOn() && resendClient) {
+  if ((emailRepliesOn() || leadRepliesOn()) && resendClient) {
     try {
       const since = Date.now() - 3 * 86_400_000;
       const { data: list, error } = await resendClient.emails.receiving.list({ limit: 100 });
