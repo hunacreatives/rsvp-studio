@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { formatDate } from "@/pages/account/portal/format";
-import { ErrorText, Field, FilterTabs, Input, Modal, PillButton, PrimaryButton, Textarea } from "@/pages/account/portal/ui";
+import { ErrorText, Field, FilterTabs, Input, Modal, PillButton, PrimaryButton } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import SavedReplies from "../SavedReplies";
+import EmailEditor, { EMAIL_SHELL_MESSAGE, type EmailEditorHandle } from "../EmailEditor";
 import * as studio from "../studioApi";
 
 // Studio → Leads. Everyone who filled in an inquiry form (project, partner, or a
@@ -212,7 +213,9 @@ function ReplyDialog({ lead, last, draft, onDraft, saved, reloadSaved, onClose, 
     subject: last ? (/^re:/i.test(last.subject) ? last.subject : `Re: ${last.subject}`) : (SUBJECT[lead.form] ?? SUBJECT["project-inquiry"]),
     message: `Hi ${first || "there"},\n\n`,
   };
-  const [preview, setPreview] = useState<string | null>(null);
+  const [shell, setShell] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
+  const tools = useRef<EmailEditorHandle | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const run = async (work: () => Promise<void>) => {
@@ -226,51 +229,68 @@ function ReplyDialog({ lead, last, draft, onDraft, saved, reloadSaved, onClose, 
       setBusy(false);
     }
   };
+  // the email around the message (logo, illustration, sign-off, footer), from the server that sends it
+  useEffect(() => {
+    let live = true;
+    studio
+      .sendLeadReply({ enquiryId: lead.id, subject: d.subject || "Preview", message: EMAIL_SHELL_MESSAGE, preview: true })
+      .then((r) => live && setShell(r.html ?? null))
+      .catch((e) => live && setError(e instanceof Error ? e.message : "Couldn’t load the email."));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead.id]);
   const ready = d.subject.trim() && d.message.replace(/^hi\b[^,\n]*,?/i, "").trim();
   // A saved reply starts with its own "Hi {name}," — it replaces an untouched greeting.
   const insert = (text: string) => {
     const rest = d.message.replace(/^hi\b[^,\n]*,?\s*/i, "");
     onDraft({ ...d, message: /^hi\b/i.test(text) && !rest.trim() ? text : `${d.message.trimEnd()}${d.message.trim() ? "\n\n" : ""}${text}` });
+    setVersion((v) => v + 1);
   };
+  const tool = (cmd: "bold" | "insertUnorderedList" | "insertOrderedList", icon: string, label: string) => (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => tools.current?.run(cmd)}
+      className="grid h-9 w-9 place-items-center rounded-full text-[17px] text-[var(--ink)] hover:bg-[var(--paper)]"
+    >
+      <i className={icon} />
+    </button>
+  );
   return (
-    <Modal open onClose={onClose} title={`Reply to ${lead.name || lead.email}`} width={640}>
-      {preview ? (
-        <div className="space-y-4">
-          <p className="text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">
-            To {lead.email} · {d.subject}
-          </p>
-          <iframe title="Email preview" srcDoc={preview} sandbox="" className="h-[60dvh] w-full rounded-xl border border-[var(--line)]" />
-          <ErrorText>{error}</ErrorText>
-          <div className="flex flex-wrap justify-end gap-2">
-            <PillButton onClick={() => setPreview(null)}>Back to editing</PillButton>
-            <PrimaryButton disabled={busy} onClick={() => run(async () => (await studio.sendLeadReply({ enquiryId: lead.id, ...d }), onSent()))}>
-              {busy ? "Sending…" : "Send"}
-            </PrimaryButton>
+    <Modal open onClose={onClose} title={`Reply to ${lead.name || lead.email}`} width={720}>
+      <div className="space-y-4">
+        <p className="text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">To {lead.email} · from hello@thersvpstudio.com</p>
+        <Field label="Subject">
+          <Input value={d.subject} onChange={(e) => onDraft({ ...d, subject: e.target.value })} maxLength={150} />
+        </Field>
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[13px] font-medium text-[var(--ink)]">Message</span>
+            <span className="flex items-center gap-0.5 rounded-full border border-[var(--line)] bg-white p-0.5">
+              {tool("bold", "ri-bold", "Bold")}
+              {tool("insertUnorderedList", "ri-list-unordered", "Bulleted list")}
+              {tool("insertOrderedList", "ri-list-ordered", "Numbered list")}
+            </span>
           </div>
+          {shell ? (
+            <EmailEditor shell={shell} value={d.message} version={version} onChange={(message) => onDraft({ ...d, message })} handle={tools} />
+          ) : (
+            <div className="grid h-[62dvh] place-items-center rounded-xl border border-[var(--line)] bg-[#f3f3f5] text-[13px] text-[var(--slate)]">{error ? "" : "Loading the email…"}</div>
+          )}
+          <p className="mt-2 text-[12px] text-[var(--slate)]">Type straight into the email. This is exactly what {first || "they"} will get.</p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">To {lead.email} · from hello@thersvpstudio.com</p>
-          <Field label="Subject">
-            <Input value={d.subject} onChange={(e) => onDraft({ ...d, subject: e.target.value })} maxLength={150} />
-          </Field>
-          <Field label="Message" hint="We add the logo, your sign-off and our footer. Links become clickable.">
-            <Textarea value={d.message} onChange={(e) => onDraft({ ...d, message: e.target.value })} rows={10} maxLength={8000} autoFocus />
-          </Field>
-          <ErrorText>{error}</ErrorText>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <SavedReplies replies={saved} reload={reloadSaved} firstName={first} onPick={insert} />
-            <div className="flex flex-wrap gap-2">
-              <PillButton disabled={busy || !ready} onClick={() => run(async () => setPreview((await studio.sendLeadReply({ enquiryId: lead.id, ...d, preview: true })).html ?? null))}>
-                {busy ? "Loading…" : "Preview"}
-              </PillButton>
-              <PrimaryButton disabled={busy || !ready} onClick={() => run(async () => (await studio.sendLeadReply({ enquiryId: lead.id, ...d }), onSent()))}>
-                {busy ? "Sending…" : "Send"}
-              </PrimaryButton>
-            </div>
-          </div>
+        <ErrorText>{error}</ErrorText>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <SavedReplies replies={saved} reload={reloadSaved} firstName={first} onPick={insert} />
+          <PrimaryButton disabled={busy || !ready || !shell} onClick={() => run(async () => (await studio.sendLeadReply({ enquiryId: lead.id, ...d }), onSent()))}>
+            {busy ? "Sending…" : "Send"}
+          </PrimaryButton>
         </div>
-      )}
+      </div>
     </Modal>
   );
 }

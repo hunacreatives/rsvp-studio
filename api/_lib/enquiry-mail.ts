@@ -1,5 +1,6 @@
 import { esc } from "./email.js";
 import { brandFooter, emailHead, partnerLayout, preheaderHtml } from "./support-mail.js";
+import { inlineHtml, parseReply, plainReply } from "./reply-markup.js";
 
 // The "we got it" email someone receives after sending a form (api/enquire.ts).
 //   project-inquiry → "We got your RSVP": an RSVP-style reply card with what they asked
@@ -174,15 +175,26 @@ ${signoff()}
 /** A reply to a lead, written in Studio → Leads (api/notify.ts → lead_reply): their words in
  *  the branded frame, URLs linked, our sign-off with the sender's name. Plain text in. */
 export function leadReply(message: string, sender: string | null): string {
-  const linked = (s: string) => esc(s).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" style="color:#2f61d5!important;">${u}</a>`);
-  const paras = message.trim().split(/\n\s*\n/).map((para) => p(linked(para.trim()).replace(/\n/g, "<br />")));
-  const preview = message.trim().replace(/^hi\b[^,\n]*,?\s*/i, "").replace(/\s+/g, " ").slice(0, 120);
+  const linked = (s: string) => inlineHtml(s, esc, (b) => `<strong style="color:${INK}!important;">${b}</strong>`).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}" style="color:#2f61d5!important;">${u}</a>`);
+  const cell = `class="fb" style="padding:0 0 10px;color:${BODY}!important;font-size:16px;line-height:1.7;"`;
+  // paragraphs, and lists in the house style: coral dots, numbers in coral circles (as in steps())
+  const blocks = parseReply(message.trim()).map((b) => {
+    if (b.kind === "p") return p(b.lines.map(linked).join("<br />"));
+    const rows = b.items.map((item, i) => {
+      const mark = b.kind === "ol"
+        ? `<div class="fw" style="width:24px;height:24px;border-radius:12px;background:${CORAL};color:#ffffff;font-size:12px;font-weight:700;line-height:24px;text-align:center;margin-top:2px;">${b.start + i}</div>`
+        : `<div style="width:7px;height:7px;border-radius:4px;background:${CORAL};margin:11px 0 0 4px;font-size:0;line-height:0;">&nbsp;</div>`;
+      return `<tr><td valign="top" width="${b.kind === "ol" ? 34 : 22}" style="padding:0 0 10px;">${mark}</td><td valign="top" ${cell}>${linked(item)}</td></tr>`;
+    });
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">${rows.join("")}</table>`;
+  });
+  const preview = plainReply(message).replace(/^hi\b[^,]*,?\s*/i, "").slice(0, 120);
   return frame({
     preheader: preview,
     spot: "confirm-spot.png",
     spotAlt: "An RSVP card in an envelope",
     content: `<tr><td class="pad" style="padding:26px 56px 6px;">
-${paras.join("\n")}
+${blocks.join("\n")}
 <p class="fi" style="margin:26px 0 6px;color:${INK}!important;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;">Talk soon,</p>
 <p class="fb" style="margin:0 0 30px;color:${BODY}!important;font-size:15px;">${sender ? `${esc(sender)}<br />` : ""}The RSVP Studio${sender ? "" : " team"}</p>
 </td></tr>`,
