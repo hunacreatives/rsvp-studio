@@ -96,6 +96,7 @@ export default function LeadsPage() {
       <div className="space-y-4">
         {shown.map((l) => {
           const v = l.values ?? {};
+          const fu = followupInfo(l, replies[l.id] ?? []);
           const keys = [...ORDER.filter((k) => k in v), ...Object.keys(v).filter((k) => !ORDER.includes(k) && !HIDDEN.has(k))].filter((k) => (Array.isArray(v[k]) ? v[k].length : v[k]));
           return (
             <article key={l.id} className="rounded-[22px] border border-[var(--line)] bg-white p-5">
@@ -113,10 +114,21 @@ export default function LeadsPage() {
                     {l.email ? <span className="text-[var(--ink)]">{l.email}</span> : null}
                     {l.phone ? <span className="text-[var(--slate)]"> · {l.phone}</span> : null}
                   </p>
-                  <FollowupLine lead={l} replies={replies[l.id] ?? []} busy={busy === l.id} act={(work) => act(l, work)} />
+                  <FollowupChip info={fu} />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {l.email ? <PillButton onClick={() => setReplying(l)}>Reply</PillButton> : null}
+                  {fu.waitingOnThem ? (
+                    <>
+                      <PillButton disabled={busy === l.id} onClick={() => act(l, studio.markLeadReplied)}>
+                        <i className="ri-chat-check-line mr-1" />
+                        Mark replied
+                      </PillButton>
+                      <PillButton disabled={busy === l.id} onClick={() => act(l, studio.stopLeadFollowups)}>
+                        Stop follow-ups
+                      </PillButton>
+                    </>
+                  ) : null}
                   {l.status === "new" ? <PillButton disabled={busy === l.id} onClick={() => setStatus(l, "contacted")}>Mark contacted</PillButton> : null}
                   {l.status !== "converted" && l.form === "partner-inquiry" ? (
                     <PillButton tone="dark" disabled={busy === l.id} onClick={() => navigate("/studio/partners", { state: { fromLead: l } })}>
@@ -309,42 +321,39 @@ function ReplyDialog({ lead, last, draft, onDraft, saved, reloadSaved, onClose, 
   );
 }
 
-/** Where their follow-ups stand (api/_lib/lead-followup-plan.ts, the same rules the daily job sends by),
- *  with Stop, and Mark replied for an answer that came some other way (a call, Instagram). */
-function FollowupLine({ lead, replies, busy, act }: { lead: studio.Lead; replies: studio.LeadReply[]; busy: boolean; act: (work: (id: string) => Promise<void>) => void }) {
+/** Where their follow-ups stand (api/_lib/lead-followup-plan.ts, the same rules the daily job sends by).
+ *  `waitingOnThem`: follow-ups are on and they haven't answered, so Mark replied (an answer by call or
+ *  Instagram) and Stop make sense. Leads from before follow-ups (never tracked) show nothing. */
+function followupInfo(lead: studio.Lead, replies: studio.LeadReply[]): { text: string | null; tone: "on" | "done" | "replied"; waitingOnThem: boolean } {
   const sent = lead.enquiry_followups ?? [];
   const next = nextFollowup(lead, replies, sent);
-  const open = (lead.status === "new" || lead.status === "contacted") && replies.length > 0;
-  const manilaHour = new Date(Date.now() + 8 * 3_600_000).getUTCHours();
-  let text: string | null = null;
-  if (lead.replied_at) text = `Replied ${formatDate(lead.replied_at)}`;
-  else if (next.state === "scheduled") {
+  if (lead.replied_at) return { text: `Replied ${formatDate(lead.replied_at)}`, tone: "replied", waitingOnThem: false };
+  if (next.state === "scheduled") {
     const today = manilaDay(Date.now());
-    const when = next.day <= today ? (manilaHour < 9 ? "today at 9 AM" : "tomorrow at 9 AM") : `on ${formatDate(dayDate(next.day).toISOString())}`;
-    text = `Follow-up ${next.nth} of ${next.total} goes out ${when}`;
-  } else if (next.state === "stopped") {
-    text = { finished: `Follow-ups finished (${sent.length} sent)`, unsubscribed: "Unsubscribed from follow-ups", stopped: `Follow-ups stopped${sent.length ? ` (${sent.length} sent)` : ""}`, replied: "Replied", event: sent.length ? "Follow-ups done: their event is close" : null, project: null, archived: null }[next.reason] ?? null;
+    const manilaHour = new Date(Date.now() + 8 * 3_600_000).getUTCHours();
+    const when = next.day <= today ? (manilaHour < 9 ? "today, 9 AM" : "tomorrow, 9 AM") : formatDate(dayDate(next.day).toISOString());
+    return { text: `Follow-up ${next.nth} of ${next.total} · ${when}`, tone: "on", waitingOnThem: true };
   }
-  if (!text && !open) return null;
-  const link = "min-h-[32px] font-medium text-[var(--acc-blue)] hover:underline disabled:opacity-50";
+  if (next.state === "stopped") {
+    const text = { finished: `Follow-ups finished · ${sent.length} sent`, unsubscribed: "Unsubscribed from follow-ups", stopped: `Follow-ups stopped${sent.length ? ` · ${sent.length} sent` : ""}`, replied: "Replied", event: sent.length ? "Follow-ups done · event is close" : null, project: null, archived: null }[next.reason] ?? null;
+    return { text, tone: next.reason === "replied" ? "replied" : "done", waitingOnThem: false };
+  }
+  return { text: null, tone: "done", waitingOnThem: false };
+}
+
+const CHIP_TONE = {
+  on: "bg-[#e8eeff] text-[#1d4fd7]",
+  replied: "bg-[#e6f4e6] text-[#2f6b2f]",
+  done: "bg-[var(--paper)] text-[var(--slate)]",
+};
+function FollowupChip({ info }: { info: ReturnType<typeof followupInfo> }) {
+  if (!info.text) return null;
   return (
-    <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[var(--slate)]">
-      {text ? (
-        <span>
-          <i className="ri-mail-send-line mr-1" />
-          {text}
-        </span>
-      ) : null}
-      {next.state === "scheduled" ? (
-        <button className={link} disabled={busy} onClick={() => act(studio.stopLeadFollowups)}>
-          Stop follow-ups
-        </button>
-      ) : null}
-      {open && !lead.replied_at ? (
-        <button className={link} disabled={busy} onClick={() => act(studio.markLeadReplied)}>
-          Mark replied
-        </button>
-      ) : null}
+    <p className="mt-2">
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium ${CHIP_TONE[info.tone]}`}>
+        <i className={info.tone === "replied" ? "ri-chat-check-line" : "ri-mail-send-line"} />
+        {info.text}
+      </span>
     </p>
   );
 }
