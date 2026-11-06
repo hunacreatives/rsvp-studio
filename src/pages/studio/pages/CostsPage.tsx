@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { formatDate } from "@/pages/account/portal/format";
 import { ErrorText, Field, FilterTabs, Input, Modal, PillButton, Select, Toggle } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import * as studio from "../studioApi";
 import { downloadCsv } from "@/lib/csv";
+import { compressImage } from "@/lib/compressImage";
 
-// Studio → Costs (supabase/studio-costs.sql): what the studio spends, who paid it, and the
-// 50/50 split between the two partners. They share one login, so "Paid by" is a name, not
-// an account. Settling up stamps every open cost, so the balance starts again from zero.
+// Studio → Costs (supabase/studio-costs.sql + cost-receipts-fx.sql): what the studio spends,
+// who paid it, and the 50/50 split between the two partners. They share one login, so
+// "Paid by" is a name, not an account. Dollar costs keep the peso amount they were worth
+// on their date, so the balance is one peso figure. Each cost can carry receipts
+// (screenshots or PDFs) in a private bucket. Settling up stamps every open cost.
 
 type View = "open" | "month" | "all";
 type Currency = studio.Cost["currency"];
@@ -26,17 +29,13 @@ const formatters: Record<Currency, Intl.NumberFormat> = {
   USD: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }),
 };
 const fmt = (amount: number, currency: Currency) => formatters[currency].format(amount);
+const peso = (amount: number) => fmt(amount, "PHP");
+const round2 = (n: number) => Math.round(n * 100) / 100;
 const today = () => new Date().toLocaleDateString("en-CA");
 const monthKey = (d: string) => d.slice(0, 7);
+const sum = (rows: studio.Cost[]) => rows.reduce((t, r) => t + r.php_amount, 0);
 
-// Totals per currency (pesos and dollars are never added together).
-function byCurrency(rows: studio.Cost[]) {
-  const out = new Map<Currency, number>();
-  for (const r of rows) out.set(r.currency, (out.get(r.currency) ?? 0) + r.amount);
-  return [...out.entries()];
-}
-
-const EMPTY: studio.CostInput = { spent_on: today(), vendor: "", category: "software", note: "", amount: 0, currency: "PHP", monthly: false, paid_by: "" };
+const EMPTY: studio.CostInput = { spent_on: today(), vendor: "", category: "software", note: "", amount: 0, currency: "PHP", monthly: false, paid_by: "", php_amount: 0, fx_rate: null, receipts: [] };
 
 export default function CostsPage() {
   const { demo } = usePortal();
@@ -61,6 +60,7 @@ export default function CostsPage() {
   const open = list.filter((c) => !c.settled_on);
   const openPaid = open.filter((c) => c.paid_by?.trim());
   const noPayer = open.length - openPaid.length;
+  const noReceipt = open.filter((c) => !c.receipts.length).length;
 
   // Monthly bills not logged yet this month (their latest entry is from an earlier month).
   const thisMonth = monthKey(today());
@@ -82,11 +82,12 @@ export default function CostsPage() {
     return (
       <>
         <StudioHeader title="Finances" tabs="finances" />
-        <p className="text-[14px] text-[var(--slate)]">Run supabase/studio-costs.sql on the live database to switch on Costs.</p>
+        <p className="text-[14px] text-[var(--slate)]">Run supabase/studio-costs.sql and supabase/cost-receipts-fx.sql on the live database to switch on Costs.</p>
       </>
     );
 
   const shown = view === "open" ? open : view === "month" ? list.filter((c) => monthKey(c.spent_on) === thisMonth) : list;
+  const bal = balance(openPaid, payers);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -103,28 +104,34 @@ export default function CostsPage() {
     }
   };
 
-  const save = async () => {
-    if (!editing) return;
-    const i = editing.input;
-    if (!i.vendor.trim()) return setError("Add who the cost was paid to.");
-    if (!(i.amount > 0)) return setError("Add the amount.");
-    const input = { ...i, vendor: i.vendor.trim(), note: i.note?.trim() || null, paid_by: i.paid_by?.trim() || null };
-    if (await run(() => studio.saveCost(input, editing.id))) setEditing(null);
+  // A monthly bill again for this month. Dollar bills get today's rate; if the rate
+  // can't be fetched, open the form so the peso amount can be typed in.
+  const logAgain = async (c: studio.Cost) => {
+    const base: studio.CostInput = { spent_on: today(), vendor: c.vendor, category: c.category, note: c.note, amount: c.amount, currency: c.currency, monthly: true, paid_by: c.paid_by, php_amount: c.amount, fx_rate: null, receipts: [] };
+    if (c.currency === "USD") {
+      const rate = await studio.usdToPhpRate(base.spent_on).catch(() => null);
+      if (!rate) return setEditing({ input: { ...base, php_amount: 0 } });
+      Object.assign(base, { fx_rate: rate, php_amount: round2(c.amount * rate) });
+    }
+    void run(() => studio.saveCost(base));
   };
-  const logAgain = (c: studio.Cost) => run(() => studio.saveCost({ spent_on: today(), vendor: c.vendor, category: c.category, note: c.note, amount: c.amount, currency: c.currency, monthly: true, paid_by: c.paid_by }));
   const settle = () => {
-    const lines = balance(openPaid, payers).map((b) => b.line).join("\n");
-    if (!window.confirm(`Mark ${openPaid.length} cost${openPaid.length === 1 ? "" : "s"} as settled?\n\n${lines}`)) return;
+    if (!bal) return;
+    if (!window.confirm(`Mark ${openPaid.length} cost${openPaid.length === 1 ? "" : "s"} as settled?\n\n${bal.line}`)) return;
     void run(() => studio.settleCosts(openPaid.map((c) => c.id)));
   };
-  const set = (patch: Partial<studio.CostInput>) => setEditing((e) => (e ? { ...e, input: { ...e.input, ...patch } } : e));
+  const edit = (c: studio.Cost) => {
+    setError(null);
+    const { id, settled_on: _s, ...input } = c;
+    setEditing({ id, input: { ...input, note: c.note ?? "", paid_by: c.paid_by ?? "" } });
+  };
 
   return (
     <>
       <StudioHeader
         title="Finances"
         tabs="finances"
-        sub="Split 50/50 between the partners."
+        sub="Split 50/50 between the partners. Dollar costs are counted in pesos at the rate on the day."
         action={
           <div className="flex flex-wrap gap-2">
             {list.length ? (
@@ -132,8 +139,8 @@ export default function CostsPage() {
                 onClick={() =>
                   downloadCsv(
                     `costs-${today()}.csv`,
-                    ["Date", "Paid to", "Category", "Note", "Amount", "Currency", "Monthly", "Paid by", "Settled on"],
-                    list.map((c) => [c.spent_on, c.vendor, categoryLabel(c.category), c.note ?? "", c.amount, c.currency, c.monthly ? "yes" : "", c.paid_by ?? "", c.settled_on ?? ""]),
+                    ["Date", "Paid to", "Category", "Note", "Amount", "Currency", "Rate (PHP per USD)", "Pesos", "Monthly", "Paid by", "Settled on", "Receipts"],
+                    list.map((c) => [c.spent_on, c.vendor, categoryLabel(c.category), c.note ?? "", c.amount, c.currency, c.fx_rate ?? "", c.php_amount, c.monthly ? "yes" : "", c.paid_by ?? "", c.settled_on ?? "", c.receipts.length]),
                   )
                 }
               >
@@ -147,7 +154,7 @@ export default function CostsPage() {
         }
       />
 
-      {/* The open balance: who has paid what since the last settle-up, and who owes whom. */}
+      {/* The open balance in pesos: who has paid what since the last settle-up, and who owes whom. */}
       <section className="rounded-[22px] border border-[var(--ink)] bg-white p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="text-[15px] font-semibold text-[var(--ink)]">Open balance</h2>
@@ -162,19 +169,24 @@ export default function CostsPage() {
         ) : !open.length ? (
           <p className="mt-2 text-[14px] text-[var(--slate)]">All settled.</p>
         ) : (
-          <div className="mt-3 space-y-4">
-            {balance(openPaid, payers).map((b) => (
-              <div key={b.currency}>
-                <p className="text-[24px] font-semibold text-[var(--ink)] [font-variant-numeric:tabular-nums]">{fmt(b.total, b.currency)}</p>
+          <div className="mt-3 space-y-2">
+            {bal ? (
+              <div>
+                <p className="text-[24px] font-semibold text-[var(--ink)] [font-variant-numeric:tabular-nums]">{peso(bal.total)}</p>
                 <p className="text-[14px] text-[var(--slate)] [font-variant-numeric:tabular-nums]">
-                  {fmt(b.total / 2, b.currency)} each · {b.paid.map(([who, amt]) => `${who} paid ${fmt(amt, b.currency)}`).join(" · ")}
+                  {peso(bal.total / 2)} each · {bal.paid.map(([who, amt]) => `${who} paid ${peso(amt)}`).join(" · ")}
                 </p>
-                <p className="mt-1 text-[14px] font-medium text-[var(--ink)]">{b.line}</p>
+                <p className="mt-1 text-[14px] font-medium text-[var(--ink)]">{bal.line}</p>
               </div>
-            ))}
+            ) : null}
             {noPayer ? (
               <p className="text-[14px] text-[#9a5b00]">
                 {noPayer} open cost{noPayer === 1 ? " has" : "s have"} no payer yet and {noPayer === 1 ? "isn’t" : "aren’t"} in the balance. Tap {noPayer === 1 ? "it" : "them"} below to set who paid.
+              </p>
+            ) : null}
+            {noReceipt ? (
+              <p className="text-[14px] text-[#9a5b00]">
+                {noReceipt} open cost{noReceipt === 1 ? " has" : "s have"} no receipt yet.
               </p>
             ) : null}
           </div>
@@ -217,10 +229,7 @@ export default function CostsPage() {
           <ul className="divide-y divide-[var(--line)]">
             {shown.map((c) => (
               <li key={c.id}>
-                <button
-                  className="flex w-full items-center gap-3 py-3 text-left text-[14px]"
-                  onClick={() => (setError(null), setEditing({ id: c.id, input: { spent_on: c.spent_on, vendor: c.vendor, category: c.category, note: c.note ?? "", amount: c.amount, currency: c.currency, monthly: c.monthly, paid_by: c.paid_by ?? "" } }))}
-                >
+                <button className="flex w-full items-center gap-3 py-3 text-left text-[14px]" onClick={() => edit(c)}>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-[var(--ink)]">
                       {c.vendor}
@@ -231,96 +240,40 @@ export default function CostsPage() {
                       {c.monthly ? " · Monthly" : ""}
                       {c.paid_by ? ` · ${c.paid_by} paid` : <span className="text-[#9a5b00]"> · Who paid?</span>}
                       {c.settled_on ? ` · Settled ${formatDate(c.settled_on)}` : ""}
+                      {c.receipts.length ? (
+                        <span>
+                          {" · "}
+                          <i className="ri-attachment-2 align-[-1px]" /> {c.receipts.length === 1 ? "Receipt" : `${c.receipts.length} receipts`}
+                        </span>
+                      ) : (
+                        <span className="text-[#9a5b00]"> · No receipt</span>
+                      )}
                     </p>
                   </div>
-                  <span className="shrink-0 font-semibold text-[var(--ink)] [font-variant-numeric:tabular-nums]">{fmt(c.amount, c.currency)}</span>
+                  <span className="shrink-0 text-right [font-variant-numeric:tabular-nums]">
+                    <span className="block font-semibold text-[var(--ink)]">{peso(c.php_amount)}</span>
+                    {c.currency === "USD" ? <span className="block text-[12px] text-[var(--slate)]">{fmt(c.amount, "USD")}</span> : null}
+                  </span>
                 </button>
               </li>
             ))}
           </ul>
         )}
       </section>
-      {shown.length ? (
-        <p className="mt-3 text-[13px] text-[var(--slate)] [font-variant-numeric:tabular-nums]">
-          Total: {byCurrency(shown).map(([cur, amt]) => fmt(amt, cur)).join(" + ")}
-        </p>
-      ) : null}
+      {shown.length ? <p className="mt-3 text-[13px] text-[var(--slate)] [font-variant-numeric:tabular-nums]">Total: {peso(sum(shown))}</p> : null}
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? "Edit cost" : "Add a cost"}>
         {editing ? (
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void save();
+          <CostForm
+            key={editing.id ?? "new"}
+            id={editing.id}
+            initial={editing.input}
+            payers={payers}
+            onDone={async (saved) => {
+              if (saved) await reload();
+              setEditing(null);
             }}
-          >
-            <Field label="Paid to">
-              <Input value={editing.input.vendor} onChange={(e) => set({ vendor: e.target.value })} placeholder="e.g. Vercel, Meta, Google Ads" autoFocus={!editing.id} />
-            </Field>
-            <div className="grid grid-cols-[1fr_110px] gap-3">
-              <Field label="Amount">
-                <Input type="number" inputMode="decimal" min="0" step="0.01" value={editing.input.amount || ""} onChange={(e) => set({ amount: Number(e.target.value) })} />
-              </Field>
-              <Field label="Currency">
-                <Select value={editing.input.currency} onChange={(e) => set({ currency: e.target.value as Currency })}>
-                  <option value="PHP">PHP</option>
-                  <option value="USD">USD</option>
-                </Select>
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Date">
-                <Input type="date" value={editing.input.spent_on} onChange={(e) => set({ spent_on: e.target.value })} />
-              </Field>
-              <Field label="Category">
-                <Select value={editing.input.category} onChange={(e) => set({ category: e.target.value as studio.CostCategory })}>
-                  {CATEGORIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <Field label="Paid by" hint="Whose card or wallet paid it.">
-              <Input list="cost-payers" value={editing.input.paid_by ?? ""} onChange={(e) => set({ paid_by: e.target.value })} placeholder="Name" />
-              <datalist id="cost-payers">
-                {payers.map((p) => (
-                  <option key={p} value={p} />
-                ))}
-              </datalist>
-            </Field>
-            <Field label="Note">
-              <Input value={editing.input.note ?? ""} onChange={(e) => set({ note: e.target.value })} placeholder="Optional" />
-            </Field>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-[14px] font-medium text-[var(--ink)]">Monthly bill</span>
-              <Toggle checked={editing.input.monthly} onChange={(v) => set({ monthly: v })} label="Monthly bill" />
-            </div>
-            <ErrorText>{error}</ErrorText>
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              {editing.id ? (
-                <PillButton
-                  type="button"
-                  tone="danger"
-                  disabled={busy}
-                  onClick={async () => {
-                    if (!window.confirm(`Delete this ${editing.input.vendor} cost? This can’t be undone.`)) return;
-                    const id = editing.id;
-                    if (id && (await run(() => studio.deleteCost(id)))) setEditing(null);
-                  }}
-                >
-                  Delete
-                </PillButton>
-              ) : (
-                <span />
-              )}
-              <PillButton type="submit" tone="primary" disabled={busy}>
-                {busy ? "Saving…" : "Save"}
-              </PillButton>
-            </div>
-          </form>
+          />
         ) : null}
       </Modal>
       {!editing ? <ErrorText>{error}</ErrorText> : null}
@@ -328,21 +281,318 @@ export default function CostsPage() {
   );
 }
 
-// Per currency: the total, what each payer put in, and one line saying who owes whom.
-function balance(rows: studio.Cost[], payers: string[]) {
-  return byCurrency(rows).map(([currency, total]) => {
-    const paid = new Map<string, number>(payers.map((p) => [p, 0]));
-    for (const r of rows) if (r.currency === currency && r.paid_by) paid.set(r.paid_by.trim(), (paid.get(r.paid_by.trim()) ?? 0) + r.amount);
-    const entries = [...paid.entries()].filter(([, amt]) => amt > 0);
-    const half = total / 2;
-    let line: string;
-    if (payers.length < 2) line = `Add the other partner as a payer to see who owes whom (${fmt(half, currency)} each).`;
-    else if (payers.length > 2) line = "More than two payers: check the names (a typo counts as a new person).";
-    else {
-      const [a, b] = payers;
-      const diff = (paid.get(a) ?? 0) - half;
-      line = Math.abs(diff) < 0.005 ? "Even." : diff > 0 ? `${b} owes ${a} ${fmt(diff, currency)}` : `${a} owes ${b} ${fmt(-diff, currency)}`;
+// The add/edit form. Receipts upload straight away; files added and then abandoned
+// (form closed without saving) are removed again, and receipts taken off a cost are
+// removed from storage once the change is saved.
+function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studio.CostInput; payers: string[]; onDone: (saved: boolean) => void | Promise<void> }) {
+  const [input, setInput] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  // Dollar costs: work the pesos out from the day's rate until someone types their own.
+  const [autoPesos, setAutoPesos] = useState(!id || initial.php_amount <= 0);
+  const [rate, setRate] = useState<{ date: string; value: number } | "loading" | "failed" | null>(null);
+  const added = useRef<string[]>([]);
+  const finished = useRef(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const set = (patch: Partial<studio.CostInput>) => setInput((i) => ({ ...i, ...patch }));
+
+  // Leaving without saving: drop the files uploaded in this visit.
+  useEffect(
+    () => () => {
+      if (!finished.current) void studio.removeCostReceipts(added.current);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (input.currency !== "USD" || !autoPesos) return;
+    let live = true;
+    setRate("loading");
+    studio
+      .usdToPhpRate(input.spent_on)
+      .then((value) => {
+        if (!live) return;
+        setRate({ date: input.spent_on, value });
+        setInput((i) => ({ ...i, fx_rate: value, php_amount: i.amount > 0 ? round2(i.amount * value) : 0 }));
+      })
+      .catch(() => live && setRate("failed"));
+    return () => {
+      live = false;
+    };
+  }, [input.currency, input.spent_on, input.amount, autoPesos]);
+
+  const addFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setError(null);
+    for (const original of Array.from(files)) {
+      if (!original.type.startsWith("image/") && original.type !== "application/pdf") {
+        setError(`${original.name} isn’t an image or PDF.`);
+        continue;
+      }
+      setUploading((n) => n + 1);
+      try {
+        const file = await compressImage(original, { maxEdge: 2400, skipUnderBytes: 1_500_000 });
+        if (file.size > studio.MAX_RECEIPT_BYTES) throw new Error(`${original.name} is over 10 MB.`);
+        const r = await studio.uploadCostReceipt(file);
+        added.current.push(r.path);
+        setInput((i) => ({ ...i, receipts: [...i.receipts, { ...r, name: original.name }] }));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "That receipt didn’t upload. Try again.");
+      } finally {
+        setUploading((n) => n - 1);
+      }
     }
-    return { currency, total, paid: entries, line };
-  });
+  };
+
+  const save = async () => {
+    if (!input.vendor.trim()) return setError("Add who the cost was paid to.");
+    if (!(input.amount > 0)) return setError("Add the amount.");
+    const usd = input.currency === "USD";
+    if (usd && !(input.php_amount > 0)) return setError("Add what it came to in pesos.");
+    const clean: studio.CostInput = {
+      ...input,
+      vendor: input.vendor.trim(),
+      note: input.note?.trim() || null,
+      paid_by: input.paid_by?.trim() || null,
+      php_amount: usd ? round2(input.php_amount) : input.amount,
+      fx_rate: usd ? Math.round((input.php_amount / input.amount) * 10000) / 10000 : null,
+    };
+    setBusy(true);
+    setError(null);
+    try {
+      await studio.saveCost(clean, id);
+      finished.current = true;
+      const kept = new Set(clean.receipts.map((r) => r.path));
+      void studio.removeCostReceipts(initial.receipts.map((r) => r.path).filter((p) => !kept.has(p)));
+      await onDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That didn’t save. Try again.");
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!id || !window.confirm(`Delete this ${input.vendor} cost and its receipts? This can’t be undone.`)) return;
+    setBusy(true);
+    try {
+      await studio.deleteCost(id);
+      finished.current = true;
+      void studio.removeCostReceipts([...initial.receipts, ...input.receipts].map((r) => r.path));
+      await onDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That didn’t delete. Try again.");
+      setBusy(false);
+    }
+  };
+
+  const rateHint =
+    input.currency !== "USD"
+      ? undefined
+      : !autoPesos
+        ? input.php_amount > 0 && input.amount > 0
+          ? `${peso(input.php_amount / input.amount)} per $1.`
+          : undefined
+        : rate === "loading"
+          ? "Getting the day’s rate…"
+          : rate === "failed"
+            ? "Couldn’t get the rate. Type the peso amount from the card statement."
+            : rate
+              ? `${peso(rate.value)} per $1 on ${formatDate(rate.date)}. Type the card statement’s peso amount instead if it’s different.`
+              : undefined;
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+    >
+      <Field label="Paid to">
+        <Input value={input.vendor} onChange={(e) => set({ vendor: e.target.value })} placeholder="e.g. Vercel, Meta, Google Ads" autoFocus={!id} />
+      </Field>
+      <div className="grid grid-cols-[1fr_110px] gap-3">
+        <Field label="Amount">
+          <Input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={input.amount || ""}
+            onChange={(e) => {
+              const amount = Number(e.target.value);
+              set(input.currency === "PHP" ? { amount, php_amount: amount } : { amount });
+              if (input.currency === "USD") setAutoPesos(true);
+            }}
+          />
+        </Field>
+        <Field label="Currency">
+          <Select
+            value={input.currency}
+            onChange={(e) => {
+              const currency = e.target.value as Currency;
+              set(currency === "PHP" ? { currency, php_amount: input.amount, fx_rate: null } : { currency });
+              setAutoPesos(true);
+            }}
+          >
+            <option value="PHP">PHP</option>
+            <option value="USD">USD</option>
+          </Select>
+        </Field>
+      </div>
+      {input.currency === "USD" ? (
+        <Field label="In pesos" hint={rateHint}>
+          <Input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={input.php_amount || ""}
+            onChange={(e) => {
+              setAutoPesos(false);
+              set({ php_amount: Number(e.target.value) });
+            }}
+          />
+        </Field>
+      ) : null}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Date">
+          <Input
+            type="date"
+            value={input.spent_on}
+            onChange={(e) => {
+              set({ spent_on: e.target.value });
+              if (input.currency === "USD") setAutoPesos(true);
+            }}
+          />
+        </Field>
+        <Field label="Category">
+          <Select value={input.category} onChange={(e) => set({ category: e.target.value as studio.CostCategory })}>
+            {CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+      <Field label="Paid by" hint="Whose card or wallet paid it.">
+        <Input list="cost-payers" value={input.paid_by ?? ""} onChange={(e) => set({ paid_by: e.target.value })} placeholder="Name" />
+        <datalist id="cost-payers">
+          {payers.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
+      </Field>
+      <Field label="Note">
+        <Input value={input.note ?? ""} onChange={(e) => set({ note: e.target.value })} placeholder="Optional" />
+      </Field>
+
+      <div>
+        <span className="mb-1.5 block text-[14px] font-medium text-[var(--ink)]">Receipts</span>
+        <div className="flex flex-wrap gap-2">
+          {input.receipts.map((r) => (
+            <ReceiptTile key={r.path} receipt={r} onRemove={() => set({ receipts: input.receipts.filter((x) => x.path !== r.path) })} />
+          ))}
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            disabled={uploading > 0}
+            className="flex h-[84px] w-[84px] flex-col items-center justify-center gap-1 rounded-[12px] border border-dashed border-[var(--slate)] text-[12px] text-[var(--slate)] hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-60"
+          >
+            <i className={uploading ? "ri-loader-4-line animate-spin text-[18px]" : "ri-add-line text-[18px]"} />
+            {uploading ? "Uploading" : "Add"}
+          </button>
+        </div>
+        <span className="mt-1 block text-[12px] text-[var(--slate)]">Screenshots, photos or PDFs, up to 10 MB each.</span>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*,application/pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            void addFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-[14px] font-medium text-[var(--ink)]">Monthly bill</span>
+        <Toggle checked={input.monthly} onChange={(v) => set({ monthly: v })} label="Monthly bill" />
+      </div>
+      <ErrorText>{error}</ErrorText>
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        {id ? (
+          <PillButton type="button" tone="danger" disabled={busy} onClick={() => void remove()}>
+            Delete
+          </PillButton>
+        ) : (
+          <span />
+        )}
+        <PillButton type="submit" tone="primary" disabled={busy || uploading > 0 || rate === "loading"}>
+          {busy ? "Saving…" : "Save"}
+        </PillButton>
+      </div>
+    </form>
+  );
+}
+
+// One receipt: a thumbnail (PDFs get an icon) that opens the full file in a new tab.
+function ReceiptTile({ receipt, onRemove }: { receipt: studio.CostReceipt; onRemove: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void studio.costReceiptUrl(receipt.path).then((u) => live && setUrl(u));
+    return () => {
+      live = false;
+    };
+  }, [receipt.path]);
+  const image = receipt.type.startsWith("image/");
+  return (
+    <div className="group relative h-[84px] w-[84px] overflow-hidden rounded-[12px] border border-[var(--line)] bg-[#f6f6f8]">
+      <a href={url ?? undefined} target="_blank" rel="noreferrer" title={receipt.name} className="flex h-full w-full items-center justify-center">
+        {image && url ? (
+          <img src={url} alt={receipt.name} className="h-full w-full object-cover object-top" />
+        ) : (
+          <span className="flex flex-col items-center gap-1 px-1 text-center text-[11px] text-[var(--slate)]">
+            <i className={image ? "ri-image-line text-[20px]" : "ri-file-pdf-2-line text-[20px]"} />
+            <span className="line-clamp-2 break-all">{receipt.name}</span>
+          </span>
+        )}
+      </a>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${receipt.name}`}
+        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-[14px] text-[var(--ink)] shadow"
+      >
+        <i className="ri-close-line" />
+      </button>
+    </div>
+  );
+}
+
+// The open balance in pesos: the total, what each payer put in, and who owes whom.
+function balance(rows: studio.Cost[], payers: string[]) {
+  if (!rows.length) return null;
+  const total = sum(rows);
+  const paid = new Map<string, number>(payers.map((p) => [p, 0]));
+  for (const r of rows) if (r.paid_by) paid.set(r.paid_by.trim(), (paid.get(r.paid_by.trim()) ?? 0) + r.php_amount);
+  const entries = [...paid.entries()].filter(([, amt]) => amt > 0);
+  const half = total / 2;
+  let line: string;
+  if (payers.length < 2) {
+    const [only] = payers;
+    line = only ? `${only} paid everything so far, so the other partner owes ${only} ${peso(half)}.` : `${peso(half)} each.`;
+  } else if (payers.length > 2) line = "More than two payers: check the names (a typo counts as a new person).";
+  else {
+    const [a, b] = payers;
+    const diff = (paid.get(a) ?? 0) - half;
+    line = Math.abs(diff) < 0.005 ? "Even." : diff > 0 ? `${b} owes ${a} ${peso(diff)}` : `${a} owes ${b} ${peso(-diff)}`;
+  }
+  return { total, paid: entries, line };
 }

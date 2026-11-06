@@ -741,7 +741,14 @@ export type Cost = {
   monthly: boolean;
   paid_by: string | null;
   settled_on: string | null;
+  /** What it cost in pesos: the amount for PHP; for USD, the dollars at that day's rate
+   *  (or the card statement's peso figure). Totals and the 50/50 split use this. */
+  php_amount: number;
+  /** Pesos per dollar used for a USD cost; null for PHP. */
+  fx_rate: number | null;
+  receipts: CostReceipt[];
 };
+export type CostReceipt = { name: string; path: string; size: number; type: string };
 export type CostInput = Omit<Cost, "id" | "settled_on">;
 
 let costsCheck: Promise<boolean> | null = null;
@@ -752,9 +759,15 @@ export function canSeeCosts(): Promise<boolean> {
 }
 /** null = the costs table isn't on this database yet. */
 export async function loadCosts(): Promise<Cost[] | null> {
-  const { data, error } = await supabase.from("studio_costs").select("id, spent_on, vendor, category, note, amount, currency, monthly, paid_by, settled_on").order("spent_on", { ascending: false }).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("studio_costs").select("id, spent_on, vendor, category, note, amount, currency, monthly, paid_by, settled_on, php_amount, fx_rate, receipts").order("spent_on", { ascending: false }).order("created_at", { ascending: false });
   if (error) return null;
-  return ((data ?? []) as Cost[]).map((c) => ({ ...c, amount: Number(c.amount) }));
+  return ((data ?? []) as Cost[]).map((c) => ({
+    ...c,
+    amount: Number(c.amount),
+    php_amount: Number(c.php_amount ?? c.amount),
+    fx_rate: c.fx_rate == null ? null : Number(c.fx_rate),
+    receipts: Array.isArray(c.receipts) ? c.receipts : [],
+  }));
 }
 export async function saveCost(input: CostInput, id?: string) {
   const { error } = id ? await supabase.from("studio_costs").update(input).eq("id", id) : await supabase.from("studio_costs").insert(input);
@@ -764,6 +777,44 @@ export async function deleteCost(id: string) {
   const { error } = await supabase.from("studio_costs").delete().eq("id", id);
   if (error) throw error;
 }
+/** Pesos per US dollar on a date (the latest rate on or before it; ECB reference rate via
+ *  Frankfurter). Cached per date. Throws if the rate can't be fetched. */
+const fxCache = new Map<string, Promise<number>>();
+export function usdToPhpRate(date: string): Promise<number> {
+  const day = date > new Date().toLocaleDateString("en-CA") ? "latest" : date;
+  let p = fxCache.get(day);
+  if (!p) {
+    p = fetch(`https://api.frankfurter.dev/v1/${day}?base=USD&symbols=PHP`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`rate ${r.status}`))))
+      .then((j: { rates?: { PHP?: number } }) => {
+        const rate = Number(j.rates?.PHP);
+        if (!(rate > 0)) throw new Error("no rate");
+        return rate;
+      });
+    p.catch(() => fxCache.delete(day));
+    fxCache.set(day, p);
+  }
+  return p;
+}
+
+// Receipts live in the private "cost-receipts" bucket (supabase/cost-receipts-fx.sql).
+export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
+export async function uploadCostReceipt(file: File): Promise<CostReceipt> {
+  const safe = file.name.replace(/[^\w.\- ]+/g, "_") || "receipt";
+  const path = `${crypto.randomUUID()}/${safe}`;
+  const { error } = await supabase.storage.from("cost-receipts").upload(path, file, { contentType: file.type || "application/octet-stream" });
+  if (error) throw new Error(error.message);
+  return { name: file.name, path, size: file.size, type: file.type };
+}
+export async function costReceiptUrl(path: string): Promise<string | null> {
+  const { data } = await supabase.storage.from("cost-receipts").createSignedUrl(path, 60 * 30);
+  return data?.signedUrl ?? null;
+}
+/** Best effort: a leftover file is harmless, so failures are ignored. */
+export async function removeCostReceipts(paths: string[]) {
+  if (paths.length) await supabase.storage.from("cost-receipts").remove(paths);
+}
+
 /** Settle up: every open cost that has a payer is marked settled today. */
 export async function settleCosts(ids: string[]) {
   const { error } = await supabase.from("studio_costs").update({ settled_on: new Date().toLocaleDateString("en-CA") }).in("id", ids);
