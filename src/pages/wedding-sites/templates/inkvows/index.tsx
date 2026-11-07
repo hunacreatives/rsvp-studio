@@ -21,6 +21,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const inkvowsTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "inkvows",
   label: "Ink and vows",
+  keywords: ["calligraphy", "ink", "handwritten", "paper", "gold", "elegant"],
   archetype: "editorial",
   previewThumbnailUrl: "/event-templates/cards/inkvows.webp?v=1",
   cardImage: "/event-templates/cards/inkvows.webp?v=1",

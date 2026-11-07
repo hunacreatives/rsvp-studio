@@ -19,6 +19,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const pixelQuestTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "pixel-quest",
   label: "Pixel Quest",
+  keywords: ["gaming", "gamer", "games", "video game", "retro", "pixel", "arcade", "8-bit"],
   archetype: "cinematic",
   previewThumbnailUrl: "/event-templates/cards/pixel-quest.webp?v=1",
   cardImage: "/event-templates/cards/pixel-quest.webp?v=1",

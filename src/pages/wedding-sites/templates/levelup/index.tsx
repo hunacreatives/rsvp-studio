@@ -18,6 +18,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const levelUpTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "levelup",
   label: "Level Up",
+  keywords: ["gaming", "gamer", "games", "video game", "quest", "island"],
   archetype: "cinematic",
   previewThumbnailUrl: "/event-templates/cards/levelup.webp?v=1",
   cardImage: "/event-templates/cards/levelup.webp?v=1",

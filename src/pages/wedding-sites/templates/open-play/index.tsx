@@ -19,6 +19,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const openPlayTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "open-play",
   label: "Open Play",
+  keywords: ["pickleball", "pickle", "paddle", "dink", "court", "sports", "open play", "club"],
   archetype: "editorial",
   previewThumbnailUrl: "/event-templates/open-play/demo/play-1.webp",
   cardImage: "/event-templates/cards/open-play.webp",

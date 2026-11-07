@@ -22,6 +22,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const modernMinimalTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "modern-minimal",
   label: "Modern Minimal",
+  keywords: ["minimal", "simple", "clean", "modern"],
   archetype: "modern-minimal",
   previewThumbnailUrl: "/event-templates/modern-minimal/thumbnail.jpg",
   cardImage: "/event-templates/cards/modern-minimal.webp",

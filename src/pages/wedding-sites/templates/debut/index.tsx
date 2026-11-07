@@ -20,6 +20,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const debutTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "debut",
   label: "Debut",
+  keywords: ["lace", "envelope", "elegant"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/debut/thumbnail.jpg",
   cardImage: "/event-templates/cards/debut.webp",

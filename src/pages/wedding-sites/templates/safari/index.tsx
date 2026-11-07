@@ -18,6 +18,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const safariTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "safari",
   label: "Safari",
+  keywords: ["kids", "children", "animals", "jungle", "zoo", "giraffe", "lion", "storybook"],
   archetype: "scrapbook",
   previewThumbnailUrl: "/event-templates/cards/safari.webp?v=1",
   cardImage: "/event-templates/cards/safari.webp?v=1",

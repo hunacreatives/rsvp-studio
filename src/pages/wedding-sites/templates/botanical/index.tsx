@@ -19,6 +19,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const botanicalTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "botanical",
   label: "Botanical",
+  keywords: ["flowers", "floral", "botanical", "garden"],
   archetype: "botanical",
   previewThumbnailUrl: "/event-templates/botanical/thumbnail.jpg",
   component: BotanicalTemplate,

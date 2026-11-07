@@ -21,6 +21,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const sprinklesTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "sprinkles",
   label: "Sprinkles",
+  keywords: ["cake", "candle", "sprinkles", "sweet", "dessert"],
   archetype: "modern-minimal",
   previewThumbnailUrl: "/event-templates/cards/sprinkles.webp?v=2",
   cardImage: "/event-templates/cards/sprinkles.webp?v=2",

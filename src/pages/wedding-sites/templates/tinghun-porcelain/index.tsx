@@ -19,6 +19,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const tinghunPorcelainTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "tinghun-porcelain",
   label: "Porcelain Garden",
+  keywords: ["blue", "porcelain", "ceramic", "garden"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/cards/tinghun-porcelain.webp?v=2",
   cardImage: "/event-templates/cards/tinghun-porcelain.webp?v=2",

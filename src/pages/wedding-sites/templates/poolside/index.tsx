@@ -18,6 +18,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const poolsideTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "poolside",
   label: "Poolside",
+  keywords: ["pool", "swimming", "swim", "resort", "summer"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/cards/poolside.webp?v=1",
   cardImage: "/event-templates/cards/poolside.webp?v=1",

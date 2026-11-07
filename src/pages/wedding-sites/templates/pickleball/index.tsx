@@ -21,6 +21,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const pickleballTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "pickleball",
   label: "Pickleball",
+  keywords: ["pickleball", "pickle", "paddle", "dink", "court", "sports"],
   archetype: "editorial",
   previewThumbnailUrl: "/event-templates/pickleball/thumbnail.jpg",
   cardImage: "/event-templates/cards/pickleball.webp",

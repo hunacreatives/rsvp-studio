@@ -19,6 +19,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const cinematicTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "cinematic",
   label: "In Bloom",
+  keywords: ["flowers", "floral", "garden", "watercolor", "polaroid"],
   archetype: "cinematic",
   previewThumbnailUrl: "/event-templates/cinematic/thumbnail.jpg",
   cardImage: "/event-templates/cards/cinematic.webp",

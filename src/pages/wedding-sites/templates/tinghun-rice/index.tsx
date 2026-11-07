@@ -21,6 +21,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const tinghunRiceTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "tinghun-rice",
   label: "Rice Paper",
+  keywords: ["rice paper", "paper", "ink", "brush"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/cards/tinghun-rice.webp?v=2",
   cardImage: "/event-templates/cards/tinghun-rice.webp?v=2",

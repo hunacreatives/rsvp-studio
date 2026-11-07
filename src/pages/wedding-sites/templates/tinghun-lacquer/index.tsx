@@ -21,6 +21,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const tinghunLacquerTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "tinghun-lacquer",
   label: "Lacquer Door",
+  keywords: ["red", "lacquer", "door", "gold"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/cards/tinghun-lacquer.webp?v=2",
   cardImage: "/event-templates/cards/tinghun-lacquer.webp?v=2",

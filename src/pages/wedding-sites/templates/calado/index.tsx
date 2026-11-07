@@ -20,6 +20,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const caladoTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "calado",
   label: "Calado",
+  keywords: ["embroidery", "hoop", "godparents", "ninong", "ninang"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/calado/demo/month-1.webp",
   cardImage: "/event-templates/cards/calado.webp?v=2",

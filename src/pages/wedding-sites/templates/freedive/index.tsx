@@ -18,6 +18,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const freediveTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "freedive",
   label: "The Blue",
+  keywords: ["diving", "dive", "freediving", "scuba", "ocean", "sea", "underwater", "swimming", "beach"],
   archetype: "cinematic",
   previewThumbnailUrl: "/event-templates/cards/freedive.webp?v=1",
   cardImage: "/event-templates/cards/freedive.webp?v=1",

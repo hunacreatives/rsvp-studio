@@ -21,6 +21,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const simbahanTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "simbahan",
   label: "Simbahan",
+  keywords: ["church", "catholic", "filipino", "heritage", "aisle", "candles"],
   archetype: "cinematic",
   previewThumbnailUrl: "/event-templates/cards/simbahan.webp?v=2",
   cardImage: "/event-templates/cards/simbahan.webp?v=2",

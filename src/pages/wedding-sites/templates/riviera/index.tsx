@@ -18,6 +18,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const rivieraTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "riviera",
   label: "Riviera",
+  keywords: ["yacht", "boat", "sea", "ocean", "cruise", "sailing", "nautical"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/cards/riviera.webp?v=1",
   cardImage: "/event-templates/cards/riviera.webp?v=1",

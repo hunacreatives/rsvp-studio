@@ -20,6 +20,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const rallyTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "rally",
   label: "Rally",
+  keywords: ["pickleball", "pickle", "paddle", "dink", "court", "sports", "tournament"],
   archetype: "cinematic",
   previewThumbnailUrl: "/event-templates/cards/rally.webp?v=1",
   cardImage: "/event-templates/cards/rally.webp?v=1",

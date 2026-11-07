@@ -20,6 +20,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const promenadeTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "promenade",
   label: "Promenade",
+  keywords: ["garden", "estate", "outdoor", "formal", "flowers"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/cards/promenade.webp?v=4",
   cardImage: "/event-templates/cards/promenade.webp?v=4",

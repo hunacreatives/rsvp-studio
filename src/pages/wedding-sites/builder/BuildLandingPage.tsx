@@ -32,8 +32,9 @@ const EVENTS: { id: string; label: string; words: string[] }[] = [
   { id: "debut", label: "Debut", words: ["debut", "18th", "eighteenth", "18 roses", "cotillion"] },
   { id: "baby", label: "Christening & 1st birthday", words: ["christening", "binyag", "baptism", "baby", "first birthday", "1st birthday", "dedication"] },
   { id: "anniversary", label: "Anniversary", words: ["anniversary", "renewal of vows", "vow renewal"] },
-  // A filter-only tag (templates.event_types), like "debut": parties at sea and the like.
-  { id: "party", label: "Parties", words: ["party", "yacht", "boat", "cruise", "sail", "sailing", "sunset", "bachelorette", "bachelor", "proposal"] },
+  // A filter-only tag (templates.event_types), like "debut". Theme words ("yacht", "pool") live on
+  // each design's keywords, so "yacht" finds Riviera, not every party design.
+  { id: "party", label: "Parties", words: ["party", "bachelorette", "bachelor", "proposal"] },
 ];
 // The Ting Hun chip is for the Chinese engagement designs. A party design that also suits an
 // engagement (it lists "engagement" so a host's engagement can use it) shows under Parties.
@@ -159,9 +160,10 @@ export default function BuildLandingPage() {
       if (tier !== "all" && t.tier !== tier) return false;
       if (eventType !== "all" && !fitsChip(t, eventType)) return false;
       if (!q) return true;
-      // A name ("porcelain"), an event ("tinghon" → engagement), or Free / Premium.
+      // A name ("porcelain"), a theme ("pickleball" → Pickleball, Rally, Open Play), an event
+      // ("tinghon" → engagement), or Free / Premium.
       const events = EVENTS.filter((e) => (t.occasions ?? []).includes(e.id));
-      const hay = [t.label, t.tier, ...events.flatMap((e) => [e.label, ...e.words])].map(norm).join(" | ");
+      const hay = [t.label, t.tier, ...(t.keywords ?? []), ...events.flatMap((e) => [e.label, ...e.words])].map(norm).join(" | ");
       return q.split(" ").every((w) => hay.includes(w));
     });
   }, [templates, tier, eventType, query]);

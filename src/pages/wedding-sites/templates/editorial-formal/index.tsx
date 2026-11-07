@@ -29,6 +29,7 @@ const defaultSettings: EditorialFormalSettings = {
 export const editorialFormalTemplateDefinition: TemplateDefinition<EditorialFormalSettings> = {
   id: "editorial-formal",
   label: "Editorial Formal",
+  keywords: ["classic", "formal", "elegant", "simple"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/editorial-formal/thumbnail.jpg",
   cardImage: "/event-templates/cards/editorial-formal.webp",

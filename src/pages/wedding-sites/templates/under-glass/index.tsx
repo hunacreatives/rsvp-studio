@@ -19,6 +19,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const underGlassTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "under-glass",
   label: "Under Glass",
+  keywords: ["lola", "lolo", "grandparents", "family", "photos", "milestone", "60th", "70th", "80th", "golden"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/under-glass/demo/pic-1.webp",
   cardImage: "/event-templates/cards/under-glass.webp?v=2",

@@ -18,6 +18,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const scrapbookTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "scrapbook",
   label: "Scrapbook",
+  keywords: ["scrapbook", "photos", "paper", "handwritten", "vintage"],
   archetype: "scrapbook",
   previewThumbnailUrl: "/event-templates/scrapbook/thumbnail.jpg",
   cardImage: "/event-templates/cards/scrapbook.webp",

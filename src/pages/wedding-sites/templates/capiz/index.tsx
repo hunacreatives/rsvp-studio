@@ -21,6 +21,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const capizTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "capiz",
   label: "Capiz",
+  keywords: ["filipino", "heritage", "bahay na bato", "ancestral", "traditional", "vintage"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/capiz/demo/pic-1.webp",
   cardImage: "/event-templates/cards/capiz.webp?v=4",

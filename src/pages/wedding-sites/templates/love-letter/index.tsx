@@ -20,6 +20,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const loveLetterTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "love-letter",
   label: "Love Letter",
+  keywords: ["envelope", "letter", "lace", "romantic", "monogram"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/love-letter/thumbnail.jpg",
   cardImage: "/event-templates/cards/love-letter.webp",

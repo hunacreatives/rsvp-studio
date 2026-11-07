@@ -18,6 +18,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const summitTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "summit",
   label: "Summit",
+  keywords: ["mountain", "hiking", "hike", "climbing", "outdoors", "adventure", "bundok"],
   archetype: "cinematic",
   previewThumbnailUrl: "/event-templates/cards/summit.webp?v=1",
   cardImage: "/event-templates/cards/summit.webp?v=1",

@@ -99,6 +99,11 @@ export interface TemplateDefinition<S extends BaseTemplateSettings = BaseTemplat
    */
   occasions?: string[];
   /**
+   * What the design is about, in the words people search /build for ("pickleball", "yacht",
+   * "church", "gaming"). The label and event words are searched too; these cover the theme.
+   */
+  keywords?: string[];
+  /**
    * A still of the design's first screen for the gallery cards (/build and the account
    * picker), made by scripts/template-cards.mjs. Without it the card renders the template
    * live, which is heavy with many cards on one page.

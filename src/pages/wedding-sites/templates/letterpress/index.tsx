@@ -20,6 +20,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const letterpressTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "letterpress",
   label: "Letterpress",
+  keywords: ["stationery", "envelope", "paper", "invitation suite", "classic"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/cards/letterpress.webp?v=1",
   cardImage: "/event-templates/cards/letterpress.webp?v=1",

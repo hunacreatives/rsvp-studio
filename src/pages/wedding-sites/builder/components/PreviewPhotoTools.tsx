@@ -372,7 +372,8 @@ export default function PreviewPhotoTools({
         />
       ) : null}
       {hint && onScreen && paneRect && !adj && scroller.current && getComputedStyle(scroller.current).visibility !== "hidden" ? (
-        <div role="note" style={{ ...chip, position: "fixed", top: paneRect.top + 14, left: paneRect.left + paneRect.width / 2, translate: "-50% 0", zIndex: 53, padding: "8px 8px 8px 16px", background: "var(--ink)", color: "#fff", whiteSpace: "nowrap" }}>
+        // Under the ⋯ menu (40) and every dialog (50), so it never sits on "Your website is live".
+        <div role="note" style={{ ...chip, position: "fixed", top: paneRect.top + 14, left: paneRect.left + paneRect.width / 2, translate: "-50% 0", zIndex: 39, padding: "8px 8px 8px 16px", background: "var(--ink)", color: "#fff", whiteSpace: "nowrap" }}>
           {touch ? "Tap" : "Click"} any text or photo to edit it
           <button type="button" onClick={dismissHint} aria-label="Got it" style={{ width: 28, height: 28, border: 0, borderRadius: 999, background: "rgba(255,255,255,.14)", color: "#fff", fontSize: 15, lineHeight: 1, cursor: "pointer" }}>
             ×

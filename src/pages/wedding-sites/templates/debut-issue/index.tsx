@@ -21,6 +21,7 @@ const defaultSettings: BaseTemplateSettings = {
 export const debutIssueTemplateDefinition: TemplateDefinition<BaseTemplateSettings> = {
   id: "debut-issue",
   label: "Debut Issue",
+  keywords: ["magazine", "fashion", "editorial", "cover", "photoshoot", "pictorial"],
   archetype: "formal-stationery",
   previewThumbnailUrl: "/event-templates/cards/debut-issue.webp?v=2",
   cardImage: "/event-templates/cards/debut-issue.webp?v=2",
