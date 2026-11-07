@@ -82,6 +82,10 @@
       "destination": "/api/invite-page?op=meta&p=/build"
     },
     {
+      "source": "/pickleball",
+      "destination": "/api/invite-page?op=meta&p=/pickleball"
+    },
+    {
       "source": "/build/:rest*",
       "destination": "/api/invite-page?op=meta&p=/build"
     },

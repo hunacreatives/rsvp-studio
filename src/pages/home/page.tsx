@@ -2,6 +2,7 @@ import AnnouncementBar from "./components/AnnouncementBar";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import ValueProps from "./components/ValueProps";
+import PickleballBand from "./components/PickleballBand";
 import IncludedGrid from "./components/IncludedGrid";
 import ImageBand from "./components/ImageBand";
 import HowItWorks from "./components/HowItWorks";
@@ -17,6 +18,7 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
+        <PickleballBand />
         <ValueProps />
         <IncludedGrid />
         <ImageBand

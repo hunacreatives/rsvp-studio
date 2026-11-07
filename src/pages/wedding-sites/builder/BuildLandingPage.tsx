@@ -14,6 +14,7 @@ import { useTemplateCatalog } from "../engine/catalog";
 import { getTemplateDefinition, isOffered, templateFitsEvent, type TemplateDefinition } from "../engine/registry";
 import TemplateMockupPreview from "./components/TemplateMockupPreview";
 import { trackEvent } from "@/lib/analytics";
+import { DESIGN_THEMES, type DesignTheme } from "./designThemes";
 
 // /build — "Build your website", the DIY front door. Designs first: a short hero with
 // every template right under it (live previews, Free/Premium), how it works, Free vs
@@ -56,10 +57,10 @@ function usePrices() {
 
 // One tap per design: the card opens its full preview, where "Use this design" lives
 // (no button on every card, so the grid stays about the designs).
-function DesignCard({ t, price }: { t: TemplateDefinition; price: number | undefined }) {
+function DesignCard({ t, price, from }: { t: TemplateDefinition; price: number | undefined; from?: DesignTheme }) {
   return (
     <li>
-      <Link to={`/build/preview/${t.id}`} className="group block" aria-label={`Preview ${t.label}`}>
+      <Link to={`/build/preview/${t.id}${from ? `?from=${from}` : ""}`} className="group block" aria-label={`Preview ${t.label}`}>
         <span className="relative block overflow-hidden rounded-[14px] border border-[var(--line)] bg-white shadow-[0_1px_3px_rgba(0,7,39,0.06)] transition-shadow group-hover:shadow-[0_18px_40px_-24px_rgba(0,7,39,0.35)] sm:rounded-[22px]" style={{ aspectRatio: "4 / 3" }}>
           <TemplateMockupPreview template={t} />
           <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[12px] ${t.tier === "premium" ? "bg-[var(--acc-yellow)] text-[var(--ink)]" : "bg-white text-[var(--ink)]"}`}>
@@ -79,7 +80,9 @@ function DesignCard({ t, price }: { t: TemplateDefinition; price: number | undef
   );
 }
 
-export default function BuildLandingPage() {
+/** `theme` (/pickleball): the same page, opened on that theme's designs only, with its own heading. */
+export default function BuildLandingPage({ theme }: { theme?: DesignTheme } = {}) {
+  const themed = theme ? DESIGN_THEMES[theme] : null;
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [authOpen, setAuthOpen] = useState(false);
@@ -132,21 +135,38 @@ export default function BuildLandingPage() {
     // a design that's no longer offered can't be started from an old link: the event starts with no design picked
     setCreating({ templateId: isOffered(templateId) ? templateId : undefined });
   };
-  // ?start=<id> (from a design preview, or back from signing up).
+  // The choice already reopened after a sign-in here; the ?start= that sign-in navigates to only needs clearing.
+  const resumed = useRef(false);
+  // ?start=<id> (from a design preview, or back from signing up: AuthModal's next carries the choice,
+  // because an email confirmation opens a new tab and Google returns through /account, losing the ref).
   useEffect(() => {
     if (signedIn === null || !params.has("start")) return;
+    // Signing in from this page: carry on once signed in, not by asking them to sign up again.
+    if (signedIn === false && pendingStart.current !== null) return;
     const id = params.get("start") || undefined;
     const next = new URLSearchParams(params);
     next.delete("start");
     setParams(next, { replace: true });
+    if (resumed.current) {
+      resumed.current = false;
+      return;
+    }
+    if (pendingStart.current !== null) {
+      // back from signing in on this page: the tap was already counted
+      pendingStart.current = null;
+      setAuthOpen(false);
+      setCreating({ templateId: isOffered(id) ? id : undefined });
+      return;
+    }
     start(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signedIn]);
-  // Signed up in the modal on this page: carry on with what they picked.
+  }, [signedIn, params]);
+  // Signed up in the modal on this page (or in another tab): carry on with what they picked.
   useEffect(() => {
     if (signedIn && pendingStart.current !== null) {
       const id = pendingStart.current || undefined;
       pendingStart.current = null;
+      resumed.current = true;
       setAuthOpen(false);
       setCreating({ templateId: id });
     }
@@ -155,6 +175,7 @@ export default function BuildLandingPage() {
   // The events that have at least one design (no empty chips).
   const eventChips = useMemo(() => EVENTS.filter((e) => templates.some((t) => (t.occasions ?? []).includes(e.id) && fitsChip(t, e.id))), [templates]);
   const shown = useMemo(() => {
+    if (themed) return templates.filter((t) => (t.keywords ?? []).includes(themed.keyword));
     const q = norm(query);
     return templates.filter((t) => {
       if (tier !== "all" && t.tier !== tier) return false;
@@ -166,7 +187,7 @@ export default function BuildLandingPage() {
       const hay = [t.label, t.tier, ...(t.keywords ?? []), ...events.flatMap((e) => [e.label, ...e.words])].map(norm).join(" | ");
       return q.split(" ").every((w) => hay.includes(w));
     });
-  }, [templates, tier, eventType, query]);
+  }, [templates, tier, eventType, query, themed]);
   // Nine at a time (three rows of three; eight on two-across phones, so no card sits alone),
   // the rest in a drawer that slides open underneath.
   const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
@@ -180,7 +201,7 @@ export default function BuildLandingPage() {
   const [drawer, setDrawer] = useState(false);
   useEffect(() => setDrawer(false), [tier, eventType, query]);
   // While filtering or searching, show every match (no drawer).
-  const filtering = eventType !== "all" || !!query.trim();
+  const filtering = !!themed || eventType !== "all" || !!query.trim();
   const firstShown = filtering ? shown.length : first;
   const drawerRef = useRef<HTMLDivElement>(null);
   const premiumPrice = prices.premium;
@@ -197,10 +218,10 @@ export default function BuildLandingPage() {
         <div className="container-x">
           <div className="text-center">
             <h1 className="mx-auto max-w-3xl font-display font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] text-balance" style={{ fontSize: "clamp(2.1rem, 5vw, 3.4rem)" }}>
-              Build Your Website
+              {themed ? themed.title : "Build Your Website"}
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-[var(--slate)] text-balance md:text-[18px]">
-              Pick one of our designs, add your details and photos, and share one link. Guests RSVP right on the site. Free to start.
+              {themed ? themed.line : "Pick one of our designs, add your details and photos, and share one link. Guests RSVP right on the site. Free to start."}
             </p>
             <div className="mt-7">
               {signedIn ? (
@@ -227,6 +248,17 @@ export default function BuildLandingPage() {
             {/* One quiet bar: the kind of event as tabs, then search and Free / Premium.
                 Phones: search and the plan on top, the tabs (scrolling sideways) under them. */}
             <h2 className="sr-only">Choose a design</h2>
+            {themed ? (
+              // A theme's few designs need no filters: how many, and the way back to every design.
+              <div className="mb-6 flex items-baseline justify-between gap-4 border-b border-[var(--line)] pb-3 sm:mb-8">
+                <p className="text-[14px] text-[var(--slate)]">
+                  {ready || shown.length ? `${shown.length} design${shown.length === 1 ? "" : "s"}${shown.some((t) => t.tier === "free") ? ` · ${shown.filter((t) => t.tier === "free").length} free` : ""}` : " "}
+                </p>
+                <Link to="/build#designs" className="shrink-0 text-[14px] font-medium text-[var(--ink)] underline-offset-4 hover:underline">
+                  All designs →
+                </Link>
+              </div>
+            ) : (
             <div className="mb-6 flex flex-col-reverse gap-3 border-b border-[var(--line)] md:flex-row md:items-end md:justify-between md:gap-8 sm:mb-8">
               {eventChips.length > 1 ? (
                 <div role="group" aria-label="Filter by event" className="-mx-4 -mb-px flex min-w-0 gap-6 overflow-x-auto px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
@@ -273,6 +305,7 @@ export default function BuildLandingPage() {
                 ) : null}
               </div>
             </div>
+            )}
             {ready && !shown.length ? (
               <div className="rounded-[22px] bg-[var(--paper)] px-6 py-12 text-center">
                 <p className="text-[16px] font-medium text-[var(--ink)]">No designs match{query.trim() ? ` “${query.trim()}”` : ""}.</p>
@@ -296,9 +329,10 @@ export default function BuildLandingPage() {
               </ul>
             ) : (
               <>
-                <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3">
+                {/* A theme's three designs: one per row on phones (two across would leave one alone), three across wider. */}
+                <ul className={`grid gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10 ${themed ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 lg:grid-cols-3"}`}>
                   {shown.slice(0, firstShown).map((t) => (
-                    <DesignCard key={t.id} t={t} price={prices[t.tier]} />
+                    <DesignCard key={t.id} t={t} price={prices[t.tier]} from={theme} />
                   ))}
                 </ul>
                 {shown.length > firstShown ? (
@@ -314,7 +348,7 @@ export default function BuildLandingPage() {
                       <div className="min-h-0 overflow-hidden">
                         <ul className="grid grid-cols-2 gap-x-3 gap-y-6 pt-6 sm:gap-x-6 sm:gap-y-10 sm:pt-10 lg:grid-cols-3">
                           {shown.slice(firstShown).map((t) => (
-                            <DesignCard key={t.id} t={t} price={prices[t.tier]} />
+                            <DesignCard key={t.id} t={t} price={prices[t.tier]} from={theme} />
                           ))}
                         </ul>
                       </div>
@@ -454,7 +488,7 @@ export default function BuildLandingPage() {
       <FooterSection />
 
       {/* The pending choice survives the modal closing itself after a sign-in. */}
-      {authOpen ? <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode="signup" next="/build" /> : null}
+      {authOpen ? <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode="signup" next={`${themed?.path ?? "/build"}?start=${encodeURIComponent(pendingStart.current ?? "")}`} /> : null}
       {creating ? <CreateEventModal templateId={creating.templateId} onClose={() => setCreating(null)} /> : null}
     </div>
   );

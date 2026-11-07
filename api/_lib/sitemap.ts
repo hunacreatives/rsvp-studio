@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const SITE = "https://thersvpstudio.com";
 const PAGES = [
   "/", "/build", "/services", "/services/milestone", "/services/monogram", "/services/save-the-date", "/services/stationery",
-  "/services/rsvp", "/tools/seating-chart-maker", "/collections", "/portfolio", "/faqs", "/contact", "/enquire", "/partners", "/privacy", "/terms",
+  "/services/rsvp", "/tools/seating-chart-maker", "/pickleball", "/collections", "/portfolio", "/faqs", "/contact", "/enquire", "/partners", "/privacy", "/terms",
   // (/blog joins once it has a published article: it's added below with them; /enquire/partner is /partners)
 ];
 // Only works with a case-study page (a live site); the others redirect to the inquiry form.

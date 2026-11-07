@@ -10,6 +10,7 @@ import { RsvpSampleContext } from "../spec/runtime/useRsvpForm";
 import { scrollToTopNow } from "@/lib/lenis";
 import { normalizeEventContent } from "../content/normalize";
 import { isabellaAndMateo } from "../content/fixtures/isabella-and-mateo";
+import { DESIGN_THEMES, isDesignTheme } from "../builder/designThemes";
 
 // /build/preview/:templateId — anyone can open a design as a full demo site
 // before signing up. Sample content only; the RSVP form doesn't send anything
@@ -25,6 +26,9 @@ export default function TemplatePreviewPage() {
   const { templateId = "" } = useParams<{ templateId: string }>();
   const [params] = useSearchParams();
   const framed = params.get("frame") === "1";
+  // Opened from a theme page (/pickleball): the back button returns there.
+  const from = params.get("from");
+  const back = isDesignTheme(from) ? { to: DESIGN_THEMES[from].path, label: DESIGN_THEMES[from].back } : { to: "/build#designs", label: "All designs" };
   const navigate = useNavigate();
   const { ready } = useTemplateCatalog();
   // a design that's no longer offered (hidden from the gallery) has no preview to start from
@@ -72,8 +76,8 @@ export default function TemplatePreviewPage() {
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#f5f5f2]">
       <div className="relative z-50 flex shrink-0 items-center gap-3 border-b border-black/10 bg-white/95 px-4 py-2.5 backdrop-blur md:px-6">
-        <Link to="/build#designs" className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 text-[14px] text-[var(--slate)] hover:text-[var(--ink)]">
-          <i className="ri-arrow-left-line text-[18px]" aria-hidden /> <span className="hidden sm:inline">All designs</span><span className="sr-only sm:hidden">All designs</span>
+        <Link to={back.to} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 text-[14px] text-[var(--slate)] hover:text-[var(--ink)]">
+          <i className="ri-arrow-left-line text-[18px]" aria-hidden /> <span className="hidden sm:inline">{back.label}</span><span className="sr-only sm:hidden">{back.label}</span>
         </Link>
         <p className="flex min-w-0 flex-1 items-center text-[15px] font-semibold text-[var(--ink)]">
           <span className="truncate">{definition.label}</span>

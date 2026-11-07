@@ -142,6 +142,7 @@ const routes: RouteObject[] = [
   { path: "/invite/:slug/photos", element: <GuestPhotosPage /> },
   { path: "/invite/:slug/table", element: <FindTablePage /> },
   { path: "/build", element: <BuildLandingPage /> },
+  { path: "/pickleball", element: <BuildLandingPage key="pickleball" theme="pickleball" /> },
   { path: "/tools/seating-chart-maker", element: <SeatPlannerPage /> },
   { path: "/tools/seating-chart-maker/view/:token", element: <SeatPlanView /> },
   { path: "/tools/seating-chart-maker/day/:token", element: <SeatDayPage /> },

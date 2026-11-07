@@ -22,6 +22,7 @@ export const META: [RegExp, string, string?][] = [
   [/^\/account\/join/, `Join an event — ${SITE}`],
   [/^\/faqs/, `FAQ — ${SITE}`, "Answers about pricing, payment (GCash, Maya, card), timelines, revisions and how RSVPs work."],
   [/^\/enquire/, `Get a Quote — ${SITE}`, "Tell us about your celebration and we’ll reply within 1 business day."],
+  [/^\/pickleball$/, `Pickleball Invites — ${SITE}`, "Invitation websites for a birthday on the court, open play or game day with friends. Guests RSVP right on the invite. Free to start."],
   [/^\/build/, `Make Your Own Event Website — ${SITE}`, "Pick a design, add your details and photos, and share one link with your guests."],
   [/^\/tools\/seating-chart-maker/, `Mesa: Free Seating Chart Maker for Weddings, Debuts & Events — ${SITE}`, "Mesa is a free seating chart maker for weddings, debuts, birthdays and every kind of event. Paste your guest list and seat everyone, no sign-up needed; download and share with a free account."],
   [/^\/blog$/, `The Journal — ${SITE}`, "Ideas, guides and stories on invitations, events, and everything in between."],
