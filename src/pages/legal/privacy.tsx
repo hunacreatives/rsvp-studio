@@ -6,7 +6,7 @@ export default function Privacy() {
   return (
     <LegalLayout
       title="Privacy Policy"
-      lastUpdated="October 13, 2026"
+      lastUpdated="November 8, 2026"
       intro={
         <p>
           The RSVP Studio (&ldquo;we,&rdquo; &ldquo;us&rdquo;) is a digital event design studio and a brand of
@@ -66,10 +66,11 @@ export default function Privacy() {
           <li>To reply to inquiries, prepare quotes and deliver the projects you engage us for.</li>
           <li>To run your account, your dashboard and your event website, and to show your guest list to you.</li>
           <li>To send the emails the service depends on — RSVP confirmations, invoices and receipts, support replies, reminders and account emails.</li>
+          <li>To send the occasional update about The RSVP Studio (new designs, features and offers) to account holders and to people who join our mailing list. Every one has an unsubscribe link, and unsubscribing doesn&rsquo;t affect your account or the service emails above. We never add your guests to it.</li>
           <li>To take payments and keep records required by law.</li>
           <li>To keep the service secure, prevent spam and abuse, and fix problems.</li>
         </ul>
-        <p>We do not sell personal information, and we do not use it for advertising.</p>
+        <p>We do not sell personal information, and we do not use it for third-party advertising.</p>
       </div>
 
       <div>

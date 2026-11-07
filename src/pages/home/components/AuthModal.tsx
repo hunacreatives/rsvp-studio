@@ -935,6 +935,15 @@ function AuthForm({
           {signin ? "Create an account" : "Log in"}
         </button>
       </p>
+      {/* New accounts join the mailing list (api/send-welcome-email.ts): said here, plainly. */}
+      {!signin ? (
+        <p className="mt-1 text-center text-[12px] leading-relaxed" style={{ color: "var(--slate)" }}>
+          We’ll email you the occasional idea or offer. Unsubscribe&nbsp;anytime.{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+            Privacy
+          </a>
+        </p>
+      ) : null}
     </div>
   );
 }

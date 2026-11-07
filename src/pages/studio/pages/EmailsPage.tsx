@@ -49,7 +49,7 @@ export default function EmailsPage() {
     <>
       <StudioHeader
         title="Mailing list"
-        sub={rows ? `Everyone who signed up for news: ${rows.length} ${rows.length === 1 ? "person" : "people"}${today ? `, ${today} today` : ""}.` : "Everyone who signed up for news with their email."}
+        sub={rows ? `News sign-ups and every new account: ${rows.length} ${rows.length === 1 ? "person" : "people"}${today ? `, ${today} today` : ""}.` : "News sign-ups and every new account."}
       />
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <input

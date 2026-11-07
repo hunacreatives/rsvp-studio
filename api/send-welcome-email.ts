@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { clean, esc, isEmail, sendChecked } from "./_lib/email.js";
+import { clean, deliverable, esc, isEmail, sendChecked } from "./_lib/email.js";
 import { navyButton } from "./_lib/support-mail.js";
 import { frame, h1, p, SITE } from "./_lib/enquiry-mail.js";
 
@@ -85,6 +85,22 @@ async function launchSignup(req: VercelRequest, res: VercelResponse) {
   res.status(200).json({ ok: true });
 }
 
+/** A new account joins the mailing list (Studio → Mailing list), once, as source "account". The
+ *  sign-up form says so ("We'll email you the occasional update. Unsubscribe anytime."). Staff
+ *  and test addresses are left off; someone already on the list keeps their first entry. */
+async function joinMailingList(userId: string, email: string) {
+  try {
+    const addr = email.trim().toLowerCase();
+    if (!isEmail(addr) || !deliverable(addr)) return;
+    const { data: profile } = await supabaseAdmin.from("profiles").select("is_staff").eq("id", userId).maybeSingle();
+    if (profile?.is_staff) return;
+    const { error } = await supabaseAdmin.from("launch_signups").upsert({ email: addr, source: "account" }, { onConflict: "email", ignoreDuplicates: true });
+    if (error) console.error("mailing list:", error.message);
+  } catch (err) {
+    console.error("mailing list:", err); // never blocks the welcome
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -108,6 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({ ok: true, already: true });
     return;
   }
+  await joinMailingList(user.id, user.email);
   if (!resend) {
     console.warn("RESEND_API_KEY not set — skipped the welcome email");
     res.status(200).json({ ok: false });
