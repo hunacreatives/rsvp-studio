@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import * as api from "@/pages/account/portal/api";
-import { DOMAIN_PERKS, DomainPicker, peso as pesoWhole } from "./DomainPicker";
 import { DiscountNote, ReferralCode } from "./ReferralCode";
 import "./builder.css";
 import { CharacterTrio } from "@/components/CharacterLoader";
@@ -14,38 +13,18 @@ import { canNativeShare, downloadInviteQr, nativeShare } from "@/components/Invi
 //   2. a DIY site that needs paying for → show the price → PayMongo checkout;
 //   3. PayMongo sends them back with ?paid=… → wait for the payment → publish;
 //   4. "Your site is live": the link, Copy, and Messenger / Viber share.
-// Before the FIRST publish (when custom domains are on): choose the free link or
-// your own domain. The site goes live on the free link right away; a chosen domain
-// is paid for straight after (it's remembered across the publish payment, if any).
+// Publishing is never held up by the domain offer: after the FIRST publish (when custom
+// domains are on and the site has none), "Your site is live" offers their own address,
+// bought on the project's Website tab (account/portal/components/DomainCard.tsx).
 
 type Publish = () => Promise<{ ok: boolean; paymentRequired?: boolean; freeLive?: string; message?: string }>;
 type Step =
   | { kind: "closed" }
-  | { kind: "address" }
   | { kind: "working"; text: string }
   | { kind: "pay"; amount: number; tier: string }
   | { kind: "freeLive"; other: string }
   | { kind: "live" }
   | { kind: "error"; text: string };
-
-type PendingDomain = { domain: string; php: number };
-const pendingKey = (eventId: string) => `rsvp_pending_domain_${eventId}`;
-function readPending(eventId: string | undefined): PendingDomain | null {
-  if (!eventId) return null;
-  try {
-    return JSON.parse(sessionStorage.getItem(pendingKey(eventId)) ?? "null");
-  } catch {
-    return null;
-  }
-}
-function writePending(eventId: string, p: PendingDomain | null) {
-  try {
-    if (p) sessionStorage.setItem(pendingKey(eventId), JSON.stringify(p));
-    else sessionStorage.removeItem(pendingKey(eventId));
-  } catch {
-    /* private mode: they can still buy it from the Website tab */
-  }
-}
 
 const peso = (centavos: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(centavos / 100);
 
@@ -62,45 +41,19 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
     void api.notify({ kind: "site_live", eventId });
   }, [step.kind, firstPublish, eventId]);
   const [params, setParams] = useSearchParams();
-  const [pending, setPending] = useState<PendingDomain | null>(() => readPending(eventId));
-  // They saw the web-address offer and chose the free link: "Your site is live" says
-  // where to get their own address later.
-  const [skippedDomain, setSkippedDomain] = useState(false);
+  // Domains on and none yet: "Your site is live" offers their own address (Get your own
+  // address → the project's Website tab). Asked after publishing, not before: free is one tap.
+  const [offerDomain, setOfferDomain] = useState(false);
 
-  // First publish, domains on, no domain yet → ask about the web address first.
   const start = async () => {
     if (firstPublish && eventId) {
       setStep({ kind: "working", text: "One moment…" });
       const [on, current, other] = await Promise.all([api.domainsEnabled(), api.domainStatus(eventId), api.freeLiveConflict(eventId)]);
-      // Another free site is live: say so before asking about web addresses.
+      // Another free site is live: say so first.
       if (other) return setStep({ kind: "freeLive", other });
-      if (on && current.status === "none") return setStep({ kind: "address" });
+      setOfferDomain(on && current.status === "none");
     }
     return go();
-  };
-  const chooseFree = () => {
-    if (eventId) writePending(eventId, null);
-    setPending(null);
-    setSkippedDomain(true);
-    go();
-  };
-  const chooseDomain = (domain: string, php: number) => {
-    if (eventId) writePending(eventId, { domain, php });
-    setPending({ domain, php });
-    go();
-  };
-  const buyPending = async () => {
-    if (!eventId || !pending) return;
-    setStep({ kind: "working", text: "Opening the payment page…" });
-    try {
-      const r = await api.startCheckout({ eventId, domain: pending.domain });
-      writePending(eventId, null);
-      if (r.checkoutUrl) window.location.href = r.checkoutUrl;
-    } catch (e) {
-      writePending(eventId, null);
-      setPending(null);
-      setStep({ kind: "error", text: e instanceof Error ? e.message : "Couldn’t start the payment — please try again." });
-    }
   };
 
   // The price again (after a referral code took its discount off).
@@ -164,7 +117,7 @@ export function usePublishFlow(eventId: string | undefined, publish: Publish, be
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { step, start, pay, requote, pending, skippedDomain, chooseFree, chooseDomain, buyPending, eventId, close: () => setStep({ kind: "closed" }) };
+  return { step, start, pay, requote, offerDomain, eventId, close: () => setStep({ kind: "closed" }) };
 }
 
 /** `upsell`: a free site — after it goes live, offer Premium (no credit, an email per RSVP). */
@@ -183,57 +136,10 @@ export function PublishDialog({ flow, slug, upsell, canPay = true, onHelp }: { f
 
   return (
     // Scrolls when the card is taller than the screen (short phones, keyboard open).
-    // The web-address step doesn't close on an outside tap — tapping away to dismiss
-    // the keyboard would lose the search; it has its own Cancel button.
-    <div role="dialog" aria-modal="true" onClick={step.kind === "working" || step.kind === "address" ? undefined : flow.close} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,7,39,0.45)", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", placeItems: "center", padding: 16, overflowY: "auto", overscrollBehavior: "contain" }}>
+    <div role="dialog" aria-modal="true" onClick={step.kind === "working" ? undefined : flow.close} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,7,39,0.45)", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", placeItems: "center", padding: 16, overflowY: "auto", overscrollBehavior: "contain" }}>
       <div className="rb-dialog-card" onClick={(e) => e.stopPropagation()} style={{ width: "min(440px, 100%)", background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 24px 60px -24px rgba(0,7,39,0.45)", fontFamily: "Inter, system-ui, sans-serif", color: "#000727" }}>
         {step.kind === "working" ? (
           <p style={{ margin: 0, fontSize: 16 }}>{step.text}</p>
-        ) : step.kind === "address" ? (
-          <>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Publish your website</h2>
-            <p style={{ margin: "6px 0 0", fontSize: 14.5, lineHeight: 1.55, color: "#55556a" }}>Free on our link, or on a web address of your own.</p>
-
-            {/* Free first, as the main button: hosts were missing it under the domain offer. */}
-            <button
-              onClick={flow.chooseFree}
-              style={{ width: "100%", marginTop: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 18px", borderRadius: 14, border: 0, background: "#000727", color: "#fff", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
-            >
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>Publish free</span>
-                <span style={{ display: "block", marginTop: 2, fontSize: 13, color: "#c9cbe0", overflowWrap: "anywhere" }}>https://thersvpstudio.com/invite/{slug}</span>
-              </span>
-              <span aria-hidden style={{ flexShrink: 0, fontSize: 18 }}>→</span>
-            </button>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0 14px", color: "#868697", fontSize: 13 }}>
-              <span style={{ flex: 1, height: 1, background: "#e7e7ee" }} />
-              or
-              <span style={{ flex: 1, height: 1, background: "#e7e7ee" }} />
-            </div>
-
-            {/* The offer: their own address, set apart in the brand blue. */}
-            <div style={{ padding: "18px 18px 16px", borderRadius: 18, background: "#eef3ff", border: "1.5px solid #2f61d5" }}>
-              <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 999, background: "#2f61d5", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Your own web address</span>
-              <p style={{ margin: "12px 0 0", fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 26, lineHeight: 1.15, color: "#000727", overflowWrap: "anywhere" }}>
-                {slug.replace(/-/g, "")}
-                <span style={{ color: "#2f61d5" }}>.com</span>
-              </p>
-              <ul style={{ listStyle: "none", margin: "12px 0 16px", padding: 0, fontSize: 14, lineHeight: 1.5, color: "#3c3d57", display: "grid", gap: 6 }}>
-                {DOMAIN_PERKS.map((p) => (
-                  <li key={p} style={{ display: "flex", gap: 8 }}>
-                    <span aria-hidden style={{ color: "#2dc76d", fontWeight: 700 }}>✓</span>
-                    <span>{p}</span>
-                  </li>
-                ))}
-              </ul>
-              <DomainPicker eventId={flow.eventId!} suggestion={slug.replace(/-/g, "")} onPick={flow.chooseDomain} />
-              <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "#55556a" }}>Your site goes live on the free link right away; your own address follows a few minutes after you pay.</p>
-            </div>
-            <button onClick={flow.close} style={{ display: "block", margin: "14px auto 0", minHeight: 44, padding: "0 12px", border: "none", background: "none", color: "#55556a", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-              Not now
-            </button>
-          </>
         ) : step.kind === "freeLive" ? (
           <>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>One free website live at a time</h2>
@@ -355,28 +261,13 @@ export function PublishDialog({ flow, slug, upsell, canPay = true, onHelp }: { f
               <i className="ri-qr-code-line" aria-hidden style={{ fontSize: 18 }} /> Download a QR code for printed invites
             </button>
 
-            {/* The domain they picked: the next step, featured like the address offer. */}
-            {flow.pending ? (
-              <div style={{ marginTop: 16, padding: "16px 18px", borderRadius: 18, background: "#eef3ff", border: "1.5px solid #2f61d5" }}>
-                <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 999, background: "#2f61d5", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Next: your own address</span>
-                <p style={{ margin: "10px 0 2px", fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 24, lineHeight: 1.2, color: "#000727", overflowWrap: "anywhere" }}>
-                  {flow.pending.domain.replace(/\.[^.]+$/, "")}
-                  <span style={{ color: "#2f61d5" }}>{flow.pending.domain.match(/\.[^.]+$/)?.[0]}</span>
-                </p>
-                <p style={{ margin: "0 0 12px", fontSize: 13.5, color: "#55556a" }}>{pesoWhole(flow.pending.php)} for one year. Set up for you in minutes.</p>
-                <button onClick={flow.buyPending} style={{ ...btn(true), background: "#2f61d5" }}>
-                  Get {flow.pending.domain} · {pesoWhole(flow.pending.php)}
-                </button>
-              </div>
-            ) : null}
-
             {/* What they can do next, as two tidy rows instead of paragraphs. */}
             {flow.eventId ? (
               <div style={{ marginTop: 18 }}>
                 <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#868697" }}>Next</p>
                 <div style={{ border: "1px solid #e7e7ee", borderRadius: 16, overflow: "hidden" }}>
                   {[
-                    ...(flow.skippedDomain
+                    ...(flow.offerDomain
                       ? [{ icon: "ri-global-line", color: "#2f61d5", title: "Get your own address", sub: `Like ${slug.replace(/-/g, "")}.com`, href: `/account/projects/${flow.eventId}?tab=website` }]
                       : []),
                     ...(upsell

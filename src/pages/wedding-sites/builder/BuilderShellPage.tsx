@@ -5,7 +5,8 @@ import { preloadAllTemplates } from "../engine/lazyTemplate";
 import { useTemplateCatalog } from "../engine/catalog";
 import { resolveTemplate } from "../engine/render";
 import { editorGroups } from "./ContentEditor";
-import DetailsPanel, { openPanelPage } from "./DetailsPanel";
+import DetailsPanel, { openPanelPage, startPanelStep } from "./DetailsPanel";
+import NextStepBar from "./components/NextStepBar";
 import GuestSettings from "./GuestSettings";
 import SmsSettings from "./SmsSettings";
 import EventTypeSetting from "./EventTypeSetting";
@@ -63,6 +64,10 @@ export default function BuilderShellPage() {
   // Phones start on the phone preview (a scaled-down desktop page is unreadable there).
   const [device, setDevice] = useState<"desktop" | "phone">(() => (isPhoneNow() ? "phone" : "desktop"));
   const isPhone = useIsPhone();
+  // Phones have no Phone/Computer switch, so a window shrunk to phone size shows the phone page.
+  useEffect(() => {
+    if (isPhone) setDevice("phone");
+  }, [isPhone]);
   // Editing happens on the page itself; the panel (phones: the Edit tab) holds the rest.
   const [tab, setTab] = useState<"edit" | "preview">("preview");
   const [editorCollapsed, setEditorCollapsed] = useState(true);
@@ -265,6 +270,13 @@ export default function BuilderShellPage() {
     hasCover: !!resolved?.settings.heroImage?.masterUrl,
     order: activeDefinition?.sections ? inOrder(activeDefinition.sections.map((x) => x.key), resolved?.settings.sectionOrder) : activeDefinition?.hideable?.map((h) => h.key),
   });
+  // The next-step bar's Start: open the panel, then that essential with its first empty field focused.
+  const startStep = (groupId: string) => {
+    if (isPhone) setTab("edit");
+    else setEditorCollapsed(false);
+    requestAnimationFrame(() => startPanelStep(groupId));
+  };
+  const nextStepBar = (wide: boolean) => <NextStepBar groups={groups} published={!!publishedAt} onStart={startStep} wide={wide} />;
   const editorBody = (
     <PageEditProvider value={pageEdit}>
       <div ref={editorRef} style={{ height: "100%" }}>
@@ -357,7 +369,7 @@ export default function BuilderShellPage() {
         </SiteCreditProvider>
         {/* Add, drop, adjust and replace photos on the page itself. */}
         <PreviewSectionTools root={previewContentRef} scroller={previewScrollRef} definition={activeDefinition} order={resolved.settings.sectionOrder} content={content} setContent={setContent} />
-        <PreviewPhotoTools root={previewContentRef} scroller={previewScrollRef} eventId={eventId} content={content} setContent={setContent} presentation={presentation} setPresentation={setPresentation} galleryLimit={activeDefinition?.galleryLimit} />
+        <PreviewPhotoTools root={previewContentRef} scroller={previewScrollRef} eventId={eventId} content={content} setContent={setContent} presentation={presentation} setPresentation={setPresentation} galleryLimit={activeDefinition?.galleryLimit} onScreen={!phoneLayout || tab === "preview"} />
         </PageEditProvider>
       </PreviewCanvas>
     ) : (
@@ -366,7 +378,7 @@ export default function BuilderShellPage() {
       </div>
     );
 
-  // The ⋯ menu (phone and desktop): plan, save now, have us design it, live site, unpublish.
+  // The ⋯ menu (phone and desktop): plan, another event, have us design it, live site, unpublish.
   const closeMoreMenu = () => setMenuOpen(false);
   const moreItems = (
     <>
@@ -380,9 +392,6 @@ export default function BuilderShellPage() {
         <div style={{ ...menuItem, cursor: "default", fontWeight: 400, color: "var(--slate)" }}>{plan.premium ? "Premium plan" : "Free plan"}</div>
       )
     ) : null}
-    <button type="button" role="menuitem" onClick={() => { closeMoreMenu(); void save(); }} style={menuItem}>
-      Save now
-    </button>
     {plan && !plan.managed ? (
       <button type="button" role="menuitem" onClick={() => { closeMoreMenu(); void save(); setStartingAnother(true); }} style={menuItem}>
         Start another event
@@ -427,10 +436,10 @@ export default function BuilderShellPage() {
             : publishedAt && hasUnpublishedChanges
               ? "Saved · edits not live yet"
               : saveStatus === "saved"
-                ? "All changes saved"
+                ? "Saved"
                 : publishedAt
                   ? "Live"
-                  : "Draft — not published yet";
+                  : "Draft";
     const statusColor = saveStatus === "error" && !unsaved ? "#b3382c" : publishedAt && hasUnpublishedChanges && !unsaved && saveStatus !== "saving" ? "#8a5a00" : "var(--slate)";
     const closeMenu = () => setMenuOpen(false);
     const tabBtn = (t: "edit" | "preview", label: string) => (
@@ -529,21 +538,8 @@ export default function BuilderShellPage() {
             inert={tab !== "preview"}
             style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#e3ded4", zIndex: tab === "preview" ? 1 : 0, visibility: tab === "preview" ? "visible" : "hidden" }}
           >
-            <div role="group" aria-label="Preview size" style={{ display: "flex", justifyContent: "center", padding: "8px 12px", flexShrink: 0 }}>
-              <span style={{ display: "inline-flex", border: "1px solid var(--line)", borderRadius: 999, padding: 2, background: "#fff" }}>
-                {(["phone", "desktop"] as const).map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDevice(d)}
-                    aria-pressed={device === d}
-                    style={{ minHeight: 40, padding: "0 18px", borderRadius: 999, border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", background: device === d ? "var(--ink)" : "transparent", color: device === d ? "#fff" : "var(--ink)" }}
-                  >
-                    {d === "desktop" ? "Computer" : "Phone"}
-                  </button>
-                ))}
-              </span>
-            </div>
+            {/* No Phone/Computer switch here: on a phone the preview is the phone page. */}
+            {nextStepBar(false)}
             {renderPreview(true)}
           </div>
         </div>
@@ -687,7 +683,11 @@ export default function BuilderShellPage() {
           </button>
           ) : null}
         </div>
-        {renderPreview(false)}
+        {/* The next step shows while the panel (which has the same list) is closed. */}
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          {editorCollapsed ? nextStepBar(true) : null}
+          {renderPreview(false)}
+        </div>
       </div>
     </div>
   );

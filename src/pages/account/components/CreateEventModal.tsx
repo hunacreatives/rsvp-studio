@@ -206,6 +206,7 @@ export default function CreateEventModal({ onClose, templateId, forClient = fals
               onSubmit={handleSubmit}
               submitting={status === "creating" || inviting}
               forClient={forClient}
+              designLabel={picked?.label}
             />
             {status === "error" ? (
               <p role="alert" style={{ marginTop: 12, fontSize: 14, color: "var(--acc-coral)" }}>

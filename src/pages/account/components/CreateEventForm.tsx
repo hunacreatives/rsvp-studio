@@ -9,6 +9,8 @@ interface CreateEventFormProps {
   submitting: boolean;
   /** "Add a client": their names, not "yours", and their email for the hand-over invite. */
   forClient?: boolean;
+  /** The design picked before signing up ("Use this design"), named so they know it carried over. */
+  designLabel?: string;
 }
 
 const inputStyle: CSSProperties = {
@@ -72,7 +74,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 // ask for one. Venue and date each have a "still deciding" skip toggle,
 // which just leaves that field blank — Hero.tsx already renders that
 // gracefully.
-export default function CreateEventForm({ eventType, onSubmit, onBack, submitting, forClient = false }: CreateEventFormProps) {
+export default function CreateEventForm({ eventType, onSubmit, onBack, submitting, forClient = false, designLabel }: CreateEventFormProps) {
   const needsTwoHosts = eventType === "wedding" || eventType === "anniversary" || eventType === "engagement";
   const [hostOne, setHostOne] = useState("");
   const [hostTwo, setHostTwo] = useState("");
@@ -110,9 +112,14 @@ export default function CreateEventForm({ eventType, onSubmit, onBack, submittin
       >
         &larr; Back
       </button>
-      <h2 className="font-display text-2xl font-semibold mb-6" style={{ color: "var(--ink)" }}>
+      <h2 className={`font-display text-2xl font-semibold ${designLabel ? "mb-1" : "mb-6"}`} style={{ color: "var(--ink)" }}>
         {forClient ? "Your client’s event" : "Let's get ready to plan."}
       </h2>
+      {designLabel ? (
+        <p className="mb-6" style={{ fontSize: 14, lineHeight: 1.5, color: "var(--slate)" }}>
+          Starting with <strong style={{ color: "var(--ink)", fontWeight: 600 }}>{designLabel}</strong>. You can switch designs&nbsp;anytime.
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-4">
         <div>

@@ -66,6 +66,7 @@ export default function PreviewPhotoTools({
   presentation,
   setPresentation,
   galleryLimit,
+  onScreen = true,
 }: {
   root: RefObject<HTMLElement | null>;
   scroller: RefObject<HTMLElement | null>;
@@ -76,6 +77,9 @@ export default function PreviewPhotoTools({
   setPresentation: Dispatch<SetStateAction<PresentationState>>;
   /** The design shows only this many photos (TemplateDefinition.galleryLimit). */
   galleryLimit?: number;
+  /** False while the page is out of sight (phones on the Details tab): the hint chip hides.
+   *  Passed in, because the pane's own visibility changes in the same commit as this render. */
+  onScreen?: boolean;
 }) {
   const edit = usePageEdit();
   const latest = useRef({ content, presentation });
@@ -107,6 +111,8 @@ export default function PreviewPhotoTools({
       return true;
     }
   });
+  // Phones and tablets tap; the hint says so.
+  const [touch] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches);
   const dismissHint = useCallback(() => {
     setHint(false);
     try {
@@ -365,9 +371,9 @@ export default function PreviewPhotoTools({
           }}
         />
       ) : null}
-      {hint && paneRect && !adj && scroller.current && getComputedStyle(scroller.current).visibility !== "hidden" ? (
+      {hint && onScreen && paneRect && !adj && scroller.current && getComputedStyle(scroller.current).visibility !== "hidden" ? (
         <div role="note" style={{ ...chip, position: "fixed", top: paneRect.top + 14, left: paneRect.left + paneRect.width / 2, translate: "-50% 0", zIndex: 53, padding: "8px 8px 8px 16px", background: "var(--ink)", color: "#fff", whiteSpace: "nowrap" }}>
-          Click any text or photo to edit it
+          {touch ? "Tap" : "Click"} any text or photo to edit it
           <button type="button" onClick={dismissHint} aria-label="Got it" style={{ width: 28, height: 28, border: 0, borderRadius: 999, background: "rgba(255,255,255,.14)", color: "#fff", fontSize: 15, lineHeight: 1, cursor: "pointer" }}>
             ×
           </button>

@@ -27,6 +27,20 @@ export function openPanelPage(page: string) {
   window.dispatchEvent(new CustomEvent("rs-panel-page", { detail: page }));
 }
 
+/** Open an essential's page with its first empty field focused (the guided list's Start). */
+export function startPanelStep(groupId: string) {
+  window.dispatchEvent(new CustomEvent("rs-panel-start", { detail: groupId }));
+}
+
+/** The essentials a site needs before it's shared: how many are done, and the next one. */
+export function essentialProgress(groups: PanelGroup[]) {
+  const essentials = groups.filter((g) => g.essential);
+  const done = essentials.filter((g) => g.essential!.done).length;
+  const guiding = essentials.length > 0 && done < essentials.length;
+  const next = guiding ? essentials.find((g) => !g.essential!.done) : undefined;
+  return { essentials, done, total: essentials.length, guiding, next };
+}
+
 export default function DetailsPanel({
   groups,
   presentation,
@@ -75,8 +89,17 @@ export default function DetailsPanel({
         setTab("settings");
       } else open(p);
     };
+    // the page's next-step bar (components/NextStepBar.tsx): Start, from outside the panel
+    const onStart = (e: Event) => {
+      const g = groups.find((x) => x.id === (e as CustomEvent<string>).detail);
+      if (g) startNext(g);
+    };
     window.addEventListener("rs-panel-page", on);
-    return () => window.removeEventListener("rs-panel-page", on);
+    window.addEventListener("rs-panel-start", onStart);
+    return () => {
+      window.removeEventListener("rs-panel-page", on);
+      window.removeEventListener("rs-panel-start", onStart);
+    };
   });
 
   const current = page ? (groups.find((g) => g.id === page) ?? null) : null;
@@ -133,10 +156,7 @@ export default function DetailsPanel({
   };
 
   // ---- the guided list ----
-  const essentials = groups.filter((g) => g.essential);
-  const done = essentials.filter((g) => g.essential!.done).length;
-  const guiding = essentials.length > 0 && done < essentials.length;
-  const next = guiding ? essentials.find((g) => !g.essential!.done) : undefined;
+  const { essentials, done, guiding, next } = essentialProgress(groups);
   const startNext = (g: PanelGroup) => {
     open(g.id);
     requestAnimationFrame(() => {

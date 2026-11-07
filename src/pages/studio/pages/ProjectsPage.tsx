@@ -157,7 +157,8 @@ export default function ProjectsPage() {
                   >
                     <span className="flex items-center justify-between gap-2">
                       <span className="truncate font-semibold text-[var(--ink)]">{p.name}</span>
-                      <span className="text-[12px] text-[var(--slate)]">{p.progress}%</span>
+                      {/* Progress is the Studio's own job tracker; DIY sites don't use it. */}
+                      {!isDiy(p) ? <span className="text-[12px] text-[var(--slate)]">{p.progress}%</span> : null}
                     </span>
                     <span className="block truncate text-[13px] text-[var(--slate)]">
                       {owner ? owner.email || owner.full_name : p.owner_id ? "Client" : "No client linked yet"}
