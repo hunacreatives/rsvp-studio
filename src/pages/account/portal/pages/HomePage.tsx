@@ -4,7 +4,8 @@ import { usePortal } from "../PortalContext";
 import { PageHeader } from "../PortalLayout";
 import { ActivityList, byWhen, EventList, isDiy, isPast, TaskList } from "../components/blocks";
 import { useGuestStats } from "../guestStats";
-import NewProjectModal, { Choice } from "../components/NewProjectModal";
+import { Choice } from "../components/NewProjectModal";
+import CreateEventModal from "../../components/CreateEventModal";
 import { SectionTitle } from "../ui";
 import PartnerStrip from "../components/PartnerStrip";
 import PartnerApplyCard from "../components/PartnerApplyCard";
@@ -18,7 +19,9 @@ export default function HomePage() {
   // Coordinators' clients live on the Coordinator desk (and under Clients), not "Your events".
   const projects = everything.filter((p) => !isClientEvent(p));
   const navigate = useNavigate();
-  const [newOpen, setNewOpen] = useState(false);
+  // First visit, "Planning my own celebration": straight to making it (what kind of event →
+  // names, date, venue → the builder), not a second menu of choices.
+  const [creating, setCreating] = useState(false);
 
   // Coming up first (soonest first), then past events.
   const ordered = [...projects].sort(byWhen);
@@ -56,13 +59,13 @@ export default function HomePage() {
   return (
     <>
       {/* Home is the overview; the full list lives under Projects (same title twice confused people). */}
-      <PageHeader title={`Welcome back${profile.full_name ? `, ${profile.full_name.trim().split(/\s+/)[0]}` : ""}`} />
+      <PageHeader title={`Welcome${projects.length ? " back" : ""}${profile.full_name ? `, ${profile.full_name.trim().split(/\s+/)[0]}` : ""}`} />
       <PartnerStrip />
       <PartnerApplyCard />
       <NeedsAttention stats={stats} projects={projects} />
 
       {projects.length === 0 ? (
-        <FirstVisit onOwn={() => setNewOpen(true)} />
+        <FirstVisit onOwn={() => setCreating(true)} />
       ) : (
         <>
           <SectionTitle
@@ -83,13 +86,13 @@ export default function HomePage() {
 
       {tasksAndActivity}
 
-      <NewProjectModal open={newOpen} onClose={() => setNewOpen(false)} />
+      {creating ? <CreateEventModal onClose={() => setCreating(false)} /> : null}
     </>
   );
 }
 
 /**
- * No events yet: what brings them here. Their own celebration → the usual "Start a new event";
+ * No events yet: what brings them here. Their own celebration → straight to making it;
  * a coordinator or planner → "Add a client". Once they have one, Home shows their clients first.
  */
 function FirstVisit({ onOwn }: { onOwn: () => void }) {
