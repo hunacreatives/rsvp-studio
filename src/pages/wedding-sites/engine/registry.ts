@@ -22,6 +22,8 @@ import { safariTemplateDefinition } from "../templates/safari";
 import { levelUpTemplateDefinition } from "../templates/levelup";
 import { pixelQuestTemplateDefinition } from "../templates/pixel-quest";
 import { rallyTemplateDefinition } from "../templates/rally";
+import { paddlecaseTemplateDefinition } from "../templates/paddlecase";
+import { flatlayTemplateDefinition } from "../templates/flatlay";
 import { simbahanTemplateDefinition } from "../templates/simbahan";
 import { letterpressTemplateDefinition } from "../templates/letterpress";
 import { inkvowsTemplateDefinition } from "../templates/inkvows";
@@ -207,6 +209,8 @@ export const templateRegistry: Record<string, TemplateDefinition<any>> = {
   levelup: levelUpTemplateDefinition,
   "pixel-quest": pixelQuestTemplateDefinition,
   rally: rallyTemplateDefinition,
+  paddlecase: paddlecaseTemplateDefinition,
+  flatlay: flatlayTemplateDefinition,
   simbahan: simbahanTemplateDefinition,
   letterpress: letterpressTemplateDefinition,
   inkvows: inkvowsTemplateDefinition,

@@ -191,15 +191,7 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Desktop only: on phones "Get a quote" is already just above (and in the top bar). */}
-      <div className="container-x relative z-10 mt-16 hidden flex-col items-center gap-6 md:flex">
-        <button
-          className="btn btn-primary"
-          onClick={() => navigate("/enquire#start")}
-        >
-          Start My Invitation
-        </button>
-      </div>
+      {/* No second button under the phone: "Get a quote" is in the hero and the top bar already. */}
 
     </section>
   );

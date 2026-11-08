@@ -166,11 +166,27 @@ export const fontPairings: FontPairingOption[] = [
     bodyFont: '"Nunito Sans", "Helvetica Neue", Arial, sans-serif',
   },
   {
+    // Flat Lay: Fraunces (soft) painted on the court, Jost for the facts and the form (it also
+    // loads Caveat for the marker on the coaching board).
+    id: "fraunces-jost",
+    label: "Fraunces & Jost",
+    displayFont: '"Fraunces", Georgia, serif',
+    bodyFont: '"Jost", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
     // Summit: Cormorant for the name and headings, Manrope for the text.
     id: "cormorant-manrope",
     label: "Cormorant & Manrope",
     displayFont: '"Cormorant Garamond", Georgia, serif',
     bodyFont: '"Manrope", "Helvetica Neue", Arial, sans-serif',
+  },
+  {
+    // The Paddle Case: Cormorant Garamond (bold, for the foil) for the name and headings, Jost
+    // for the small print.
+    id: "cormorant-jost",
+    label: "Cormorant & Jost",
+    displayFont: '"Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Jost", "Helvetica Neue", Arial, sans-serif',
   },
   {
     // Poolside: a warm, bold serif for the name and headings, Jost for everything else.

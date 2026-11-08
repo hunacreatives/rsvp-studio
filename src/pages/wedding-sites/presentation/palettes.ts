@@ -170,6 +170,20 @@ export const palettes: PaletteOption[] = [
     swatches: ["#0b1522", "#f6f4ee", "#b9c3cf"],
   },
   {
+    // Flat Lay: cream court-line paint on a terracotta court, marker brown (the court, the props
+    // and the paint are the design's own).
+    id: "flatlay",
+    label: "Terracotta Court",
+    swatches: ["#b4573b", "#f5eee2", "#6b2f1d"],
+  },
+  {
+    // The Paddle Case: gold foil and dark ink on the case's paper (the walnut, the case and the
+    // foil are the design's own).
+    id: "paddlecase",
+    label: "Walnut & Gold Foil",
+    swatches: ["#5e3519", "#f3dc9a", "#2b241e"],
+  },
+  {
     // Simbahan: black ink on cotton stock, with rubric red (the church and its light are the
     // design's own).
     id: "simbahan",
