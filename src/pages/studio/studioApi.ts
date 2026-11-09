@@ -383,6 +383,8 @@ export type Lead = {
   phone: string | null;
   values: Record<string, string | string[]>;
   attachments: string[];
+  /** links to the attached files on R2 (supabase/lead-files.sql); older leads have none */
+  files?: string[];
   status: LeadStatus;
   event_id: string | null;
   created_at: string;
@@ -396,7 +398,9 @@ export type Lead = {
 const LEAD_COLS = "id, form, name, email, phone, values, attachments, status, event_id, created_at";
 export async function loadLeads() {
   const q = (cols: string) => supabase.from("enquiries").select(cols).order("created_at", { ascending: false }).limit(300);
-  let { data, error } = await q(`${LEAD_COLS}, replies_tracked, replied_at, followups_stopped, enquiry_followups(step, sent_at)`);
+  const full = `${LEAD_COLS}, replies_tracked, replied_at, followups_stopped, enquiry_followups(step, sent_at)`;
+  let { data, error } = await q(`${full}, files`);
+  if (error) ({ data, error } = await q(full)); // before lead-files.sql
   if (error) ({ data, error } = await q(LEAD_COLS)); // before lead-followups.sql
   return error ? null : ((data ?? []) as unknown as Lead[]);
 }

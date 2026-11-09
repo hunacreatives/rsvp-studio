@@ -161,6 +161,7 @@ export default function ProjectInquiry() {
           ...(!getStr("email").trim()
             ? { email: "Add your email so we can reply." }
             : !EMAIL_OK.test(getStr("email").trim()) && { email: "Check your email address — it looks incomplete." }),
+          ...(getStr("mobile").replace(/\D/g, "").length < 7 && { mobile: "Add your mobile number so we can reach you." }),
         }
       : step === 2
         ? {
@@ -408,7 +409,7 @@ export default function ProjectInquiry() {
                     </div>
                     {/* Filipino clients answer Messenger/Viber/SMS faster than email. */}
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                      <Field label="Mobile / Viber (optional)">
+                      <Field label="Mobile / Viber" name="mobile" required error={err("mobile")}>
                         <input type="tel" inputMode="tel" value={getStr("mobile")} onChange={(e) => set("mobile", e.target.value.slice(0, 30))} placeholder="0917 123 4567" autoComplete="tel" className={INPUT} />
                       </Field>
                       <Field label="Instagram handle (optional)">

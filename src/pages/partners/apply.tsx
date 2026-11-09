@@ -19,7 +19,7 @@ export const KIND_LABEL: Record<Kind, string> = { planner: "Planner or coordinat
 // The same words as the old /partners form, so Studio → Leads reads them as before.
 const PARTNER_TYPE: Record<Kind, string> = { planner: "Planner or coordinator", creator: "Creator or influencer", vendor: "Venue or other vendor" };
 
-export type Draft = { kind: Kind; brand: string; handle: string; size: string; note: string };
+export type Draft = { kind: Kind; brand: string; handle: string; size: string; note: string; mobile: string };
 
 
 export async function sendApplication(d: Draft, who: { name: string; email: string }) {
@@ -27,6 +27,7 @@ export async function sendApplication(d: Draft, who: { name: string; email: stri
     {
       your_name: who.name,
       email: who.email,
+      mobile: d.mobile.trim(),
       partner_type: PARTNER_TYPE[d.kind],
       ...(d.brand.trim() ? { business_name: d.brand.trim() } : {}),
       ...(d.handle.trim() ? { instagram: d.handle.trim() } : {}),
@@ -60,19 +61,20 @@ export function ApplyForm({
   const [handle, setHandle] = useState("");
   const [size, setSize] = useState("");
   const [note, setNote] = useState("");
+  const [mobile, setMobile] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const who = account ?? { name: name.trim(), email: email.trim().toLowerCase() };
-  const ready = (creator ? !!handle.trim() : !!brand.trim()) && !!who.name && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(who.email);
+  const ready = (creator ? !!handle.trim() : !!brand.trim()) && !!who.name && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(who.email) && mobile.replace(/\D/g, "").length >= 7;
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ready || busy) return;
     setBusy(true);
     setError(null);
     try {
-      if (!demo) await sendApplication({ kind, brand, handle, size, note }, who);
+      if (!demo) await sendApplication({ kind, brand, handle, size, note, mobile }, who);
       onSent(who.email);
     } catch (err) {
       setError(err instanceof Error ? err.message : "That didn’t send. Please try again.");
@@ -108,6 +110,10 @@ export function ApplyForm({
           </Field>
         </div>
       )}
+      {/* asked even when signed in: accounts don't keep a number */}
+      <Field label="Mobile / Viber">
+        <Input type="tel" inputMode="tel" value={mobile} onChange={(e) => setMobile(e.target.value.slice(0, 30))} placeholder="0917 123 4567" autoComplete="tel" required />
+      </Field>
       {creator ? (
         <Field label="Your handle">
           <Input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@yourname" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />

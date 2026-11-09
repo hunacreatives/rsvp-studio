@@ -171,7 +171,7 @@ export default function LeadsPage() {
                   ))}
                 </dl>
               ) : null}
-              {l.attachments?.length ? <p className="mt-3 text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">Files (in the hello@ email): {l.attachments.join(", ")}</p> : null}
+              <LeadFiles files={l.files ?? []} attachments={l.attachments ?? []} />
               {replies[l.id]?.length ? (
                 <div className="mt-4 space-y-1 border-t border-[var(--line)] pt-3">
                   {replies[l.id].map((r) => (
@@ -365,4 +365,35 @@ function applicantLine(a: studio.Applicant, verified: boolean) {
   if (!a.account) return "No account with this email yet";
   const what = a.coordinator ? `a coordinator · ${a.clients} client ${a.clients === 1 ? "event" : "events"}` : "not a coordinator";
   return verified ? `Applied from their account, ${what}` : `Applied signed out, so not confirmed as theirs. This email’s account is ${what}`;
+}
+
+/** What they attached: photos as thumbnails, other files (PDF, HEIC) as chips; each opens in a new
+ *  tab. Files we didn't keep (leads from before Nov 9, or too big to attach) are only in the hello@ email. */
+function LeadFiles({ files, attachments }: { files: string[]; attachments: string[] }) {
+  const nameOf = (url: string) => decodeURIComponent(url.split("/").pop() ?? "file");
+  const kept = new Set(files.map(nameOf));
+  const inEmail = attachments.filter((a) => !kept.has(a));
+  if (!files.length && !inEmail.length) return null;
+  return (
+    <div className="mt-4">
+      {files.length ? (
+        <div className="flex flex-wrap gap-2">
+          {files.map((url) => {
+            const name = nameOf(url);
+            return /\.(jpe?g|png|webp|gif)$/i.test(name) ? (
+              <a key={url} href={url} target="_blank" rel="noreferrer" title={name} className="block h-28 w-28 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--warm-white)] transition-opacity hover:opacity-85">
+                <img src={url} alt={name} loading="lazy" className="h-full w-full object-cover" />
+              </a>
+            ) : (
+              <a key={url} href={url} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 self-start rounded-full border border-[var(--line)] px-3.5 text-[13px] text-[var(--ink)] hover:border-[var(--ink)]">
+                <i className={name.toLowerCase().endsWith(".pdf") ? "ri-file-pdf-2-line" : "ri-image-line"} />
+                <span className="max-w-[220px] truncate">{name}</span>
+              </a>
+            );
+          })}
+        </div>
+      ) : null}
+      {inEmail.length ? <p className="mt-3 text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">In the hello@ email only: {inEmail.join(", ")}</p> : null}
+    </div>
+  );
 }

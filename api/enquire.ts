@@ -1,11 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, esc, isEmail, sendChecked } from "./_lib/email.js";
 import { enquiryReceipt } from "./_lib/enquiry-mail.js";
 import { leadRepliesOn, leadReplyAddress } from "./_lib/support-mail.js";
 import { captureError } from "./_lib/sentry.js";
+import { presign, r2PublicUrl, r2Ready } from "./_lib/r2.js";
 
 // The site's contact forms: the project inquiry, the partner inquiry, and the FAQ
 // page's "Ask a question". Every submission is saved (`enquiries`, see
@@ -76,6 +77,28 @@ const ipHash = (req: VercelRequest) => {
   return ip ? createHash("sha256").update(`enquiry:${ip}:${process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""}`).digest("hex").slice(0, 32) : null;
 };
 
+const FILE_TYPE: Record<string, string> = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif" };
+
+async function keepFiles(files: { filename: string; content: string }[]): Promise<string[]> {
+  if (!files.length || !r2Ready()) return [];
+  const folder = `leads/${randomUUID()}`;
+  const kept = await Promise.all(
+    files.map(async ({ filename, content }) => {
+      const key = `${folder}/${filename}`;
+      const headers = { "Content-Type": FILE_TYPE[filename.split(".").pop()!.toLowerCase()] ?? "application/octet-stream" };
+      try {
+        const res = await fetch(presign("PUT", key, headers, 120), { method: "PUT", headers, body: Buffer.from(content, "base64") });
+        if (!res.ok) throw new Error(`r2 put ${res.status}`);
+        return r2PublicUrl(key.split("/").map(encodeURIComponent).join("/"));
+      } catch (err) {
+        console.error("lead file upload failed", filename, err);
+        return null;
+      }
+    }),
+  );
+  return kept.filter((u): u is string => !!u);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -89,6 +112,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = String(values.email ?? "").toLowerCase();
   const name = String(values.your_name || values.full_name || "");
   if (!name || !isEmail(email)) return res.status(400).json({ error: "Please enter your name and a valid email." });
+  // Every lead leaves a mobile number (Francis, Nov 9): clients here answer Viber/SMS faster than email.
+  const phone = String(values.phone || values.mobile || "").trim();
+  if (phone.replace(/\D/g, "").length < 7) return res.status(400).json({ error: "Please add your mobile number." });
   // Sent while signed in as the owner of that email: marked here, never taken from the form, so
   // Studio → Leads can tell a real applicant from someone typing another planner's email.
   delete values.account_verified;
@@ -125,21 +151,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     budget -= bytes;
   }
 
+  // Keep the files too, so Studio → Leads shows them (supabase/lead-files.sql): R2 at
+  // leads/<random id>/<name>, unguessable links that only staff see (enquiries is staff-only).
+  // Best effort: a failed upload still leaves the file in the hello@ email.
+  const files = await keepFiles(included);
+
   const { heading, icon } = FORMS[form];
   // their own reply address (lead-<key>@reply…): a reply to any of our emails is seen, so follow-ups stop
   const replyKey = randomBytes(8).toString("hex");
   const tracked = leadRepliesOn();
-  const { error: saveError } = await supabaseAdmin.from("enquiries").insert({
+  const row = {
     form,
     name,
     email,
-    phone: String(values.phone ?? values.mobile ?? "") || null,
+    phone,
     values,
     attachments: included.map((a) => a.filename),
     ip_hash: hash,
     reply_key: replyKey,
     replies_tracked: tracked,
-  });
+  };
+  let { error: saveError } = await supabaseAdmin.from("enquiries").insert(files.length ? { ...row, files } : row);
+  // before lead-files.sql ran: save the lead without its file links rather than lose it
+  if (saveError && files.length) ({ error: saveError } = await supabaseAdmin.from("enquiries").insert(row));
   if (saveError) console.error("enquiry save failed", saveError);
 
   try {

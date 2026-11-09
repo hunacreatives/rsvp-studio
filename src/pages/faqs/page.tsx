@@ -79,7 +79,7 @@ export function ContactForm() {
     setError(null);
     try {
       await submitInquiry(
-        { your_name: String(f.get("full_name") ?? ""), email: String(f.get("email") ?? ""), message: String(f.get("message") ?? "") },
+        { your_name: String(f.get("full_name") ?? ""), email: String(f.get("email") ?? ""), mobile: String(f.get("mobile") ?? ""), message: String(f.get("message") ?? "") },
         [],
         { form: "faq-question", website },
       );
@@ -124,6 +124,10 @@ export function ContactForm() {
           <label htmlFor="faq-email" className={label}>Email</label>
           <input id="faq-email" type="email" name="email" required placeholder="your@email.com" autoComplete="email" autoCapitalize="none" spellCheck={false} className={input} />
         </div>
+      </div>
+      <div className="sm:w-1/2 sm:pr-2">
+        <label htmlFor="faq-mobile" className={label}>Mobile / Viber</label>
+        <input id="faq-mobile" type="tel" inputMode="tel" name="mobile" required minLength={7} maxLength={30} placeholder="0917 123 4567" autoComplete="tel" className={input} />
       </div>
       <div>
         <label htmlFor="faq-message" className={label}>Message</label>
