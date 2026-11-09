@@ -121,6 +121,12 @@ export default function PreviewPhotoTools({
       /* private mode: it just shows again next time */
     }
   }, []);
+  // The builder tour's first step says the same thing, so it retires this chip (BuilderTour).
+  useEffect(() => {
+    const off = () => dismissHint();
+    window.addEventListener("rb-tour-open", off);
+    return () => window.removeEventListener("rb-tour-open", off);
+  }, [dismissHint]);
 
   const lookup = useCallback((img: HTMLImageElement): Found | null => {
     const url = img.getAttribute("src") || "";

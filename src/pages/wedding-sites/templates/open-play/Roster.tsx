@@ -38,32 +38,38 @@ function Rack({ names, label, note, joined, sample }: { names: string[]; label: 
   const shown = names.slice(0, RACK);
   const more = names.length - shown.length;
   const empties = Math.max(0, 6 - shown.length);
+  const perRow = shown.length > 7 ? Math.ceil(shown.length / 2) : Math.max(shown.length, 1);
+  const tagged = shown.map((n, i) => ({ n, i }));
+  const rows = shown.length > 7 ? [tagged.slice(0, perRow), tagged.slice(perRow)] : [tagged];
   return (
     <div className="op-rack" data-reveal>
       <div className="op-rack__head">
         <p className="op-label">{label}</p>
         <p className="op-mono op-rack__count">{names.length ? `${names.length} playing` : "Be the first"}</p>
       </div>
-      <div className="op-rack__track">
-      <div className="op-rack__inner">
-      <div className="op-rack__bar" />
-      <ul className="op-rack__row">
-        {shown.map((n, i) => (
-          <li key={`${n}-${i}`} className={`op-rack__slot ${joined && i === shown.length - 1 && n === joined ? "is-new" : ""}`} style={{ ["--i" as string]: i }}>
-            <Paddle name={n} tone={i} />
-          </li>
-        ))}
-        {Array.from({ length: empties }, (_, i) => (
-          <li key={`e${i}`} className="op-rack__slot op-rack__slot--empty">
-            <Paddle tone={0} empty />
-          </li>
-        ))}
-        {more > 0 ? (
-          <li className="op-rack__more op-mono">+{more}</li>
-        ) : null}
-      </ul>
-      </div>
-      </div>
+      {/* Up to 7 paddles hang on one bar; more go on two bars, split evenly (6 + 6 at most). */}
+      {rows.map((row, r) => (
+        <div key={r} className="op-rack__track">
+          <div className="op-rack__inner">
+            <div className="op-rack__bar" />
+            <ul className="op-rack__row">
+              {row.map(({ n, i }) => (
+                <li key={`${n}-${i}`} className={`op-rack__slot ${joined && i === shown.length - 1 && n === joined ? "is-new" : ""}`} style={{ ["--i" as string]: i }}>
+                  <Paddle name={n} tone={i} />
+                </li>
+              ))}
+              {r === rows.length - 1
+                ? Array.from({ length: empties }, (_, k) => (
+                    <li key={`e${k}`} className="op-rack__slot op-rack__slot--empty">
+                      <Paddle tone={0} empty />
+                    </li>
+                  ))
+                : null}
+              {r === rows.length - 1 && more > 0 ? <li className="op-rack__more op-mono">+{more}</li> : null}
+            </ul>
+          </div>
+        </div>
+      ))}
       {note ? <p className="op-small">{note}</p> : null}
       {sample ? <p className="op-small" style={{ opacity: 0.75 }}>Sample names for now. Guests who say yes take their place.</p> : null}
     </div>

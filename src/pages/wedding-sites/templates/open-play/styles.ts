@@ -137,6 +137,9 @@ export const OP_CSS = `
 
 /* the far baseline: paddle rack + RSVP */
 .op-roster{display:grid;gap:clamp(26px,6cqw,40px)}
+/* grid items default to min-width:auto: a wide rack used to stretch the column past the court */
+.op-roster>*{min-width:0}
+.op-rack__track+.op-rack__track{margin-top:clamp(10px,2.4cqw,18px)}
 .op-rack__head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
 .op-rack__count{font-size:13px}
 .op-rack__bar{height:8px;border-radius:4px;background:color-mix(in srgb,var(--op-line) 85%,transparent);box-shadow:0 3px 0 rgba(0,0,0,.18)}

@@ -25,6 +25,7 @@ import { isPhoneNow, useIsPhone } from "./useIsPhone";
 import CharacterLoader from "@/components/CharacterLoader";
 import { inquiryLink } from "@/pages/enquire/prefill";
 import NeedHand from "@/components/NeedHand";
+import BuilderTour, { tourSeen, type TourStep } from "./components/BuilderTour";
 import { BUILDER_ANSWERS } from "@/lib/helpAnswers";
 import { inOrder } from "../templates/shared/siteEdit";
 import { addItem, addSub, getField, removeItem, setField, type ListKey } from "./pageEdit";
@@ -73,6 +74,7 @@ export default function BuilderShellPage() {
   const [editorCollapsed, setEditorCollapsed] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [touring, setTouring] = useState(false);
   // any design may be picked next: their code comes in the background, so switching is instant
   useEffect(() => preloadAllTemplates(), []);
   useEffect(() => {
@@ -153,6 +155,23 @@ export default function BuilderShellPage() {
     }
   };
   loadPairingFonts(resolved?.settings.fontPairingId);
+
+  // First visit to the builder: a short tour of how it works (components/BuilderTour.tsx). Not on
+  // a link from an email or a payment (?settings, ?upgrade, …: those open something else), not
+  // once the site is live, not for Studio-run projects.
+  const tourReady = status === "ready" && !!resolved && !!plan;
+  useEffect(() => {
+    if (!tourReady || plan?.managed || publishedAt || window.location.search || tourSeen()) return;
+    const t = window.setTimeout(() => setTouring(true), 900);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourReady]);
+  const startTour = () => {
+    setMenuOpen(false);
+    setTab("preview");
+    setEditorCollapsed(true);
+    window.setTimeout(() => setTouring(true), 380); // after the panel has closed
+  };
 
   // Undo, section switches and the "Removed … · Undo" message, for the panel and the page.
   const undoToast = useUndoToast();
@@ -306,8 +325,46 @@ export default function BuilderShellPage() {
       </div>
     </PageEditProvider>
   );
+  // Step 1 points at a bit of text on screen: the first editable field in view of the preview.
+  const fieldInView = () => {
+    const pane = previewScrollRef.current?.getBoundingClientRect();
+    if (!pane) return null;
+    for (const el of previewContentRef.current?.querySelectorAll<HTMLElement>("[data-site-field]") ?? []) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 24 && r.height > 12 && r.height < pane.height * 0.4 && r.top >= pane.top + 8 && r.bottom <= pane.bottom - 8) return el;
+    }
+    return previewScrollRef.current;
+  };
+  const tourSteps: TourStep[] = [
+    {
+      target: fieldInView,
+      title: isPhone ? "Tap anything on the page to change it" : "Click anything on the page to change it",
+      body: isPhone ? "Names, dates and words: tap and type. Tap a photo to replace or adjust it." : "Names, dates and words: click and type. Hover a photo to replace or adjust it.",
+    },
+    {
+      target: () => document.querySelector<HTMLElement>('.rb-shell [role="region"][aria-label="Next step"]'),
+      title: "Your next step, one at a time",
+      body: "This shows what’s left to fill in. Press Start and it takes you straight there.",
+    },
+    {
+      target: () => document.querySelector<HTMLElement>('[data-tour="details"]'),
+      title: "Everything else is in Details",
+      body: "Date and venue, schedule, RSVP questions, and which sections show on your page.",
+    },
+    {
+      target: () => (isPhone ? null : document.querySelector<HTMLElement>('[data-tour="size"]')),
+      title: "Check it on a phone",
+      body: "Most guests open the link on their phone. Switch here to see what they’ll see.",
+    },
+    {
+      target: () => document.querySelector<HTMLElement>('[data-tour="publish"]'),
+      title: "Publish when you’re ready",
+      body: "Everything saves as you go. Publishing gives you the link to send, and you can keep editing after.",
+    },
+  ];
   const dialogs = (
     <>
+      {touring ? <BuilderTour steps={tourSteps} onClose={() => setTouring(false)} /> : null}
       {startingAnother ? <CreateEventModal onClose={() => setStartingAnother(false)} /> : null}
       <NeedHand
         open={helpOpen}
@@ -401,6 +458,10 @@ export default function BuilderShellPage() {
       Need a hand?
       <span style={{ display: "block", fontSize: 12, color: "var(--slate)", fontWeight: 400 }}>{offerDesign ? "We can finish it for you, or answer a question" : "Chat with us, or a quick answer"}</span>
     </button>
+    <button type="button" role="menuitem" onClick={startTour} style={menuItem}>
+      Show me around
+      <span style={{ display: "block", fontSize: 12, color: "var(--slate)", fontWeight: 400 }}>A quick tour of the builder</span>
+    </button>
     {publishedAt && slug ? (
       <>
         <a role="menuitem" href={`/invite/${slug}`} target="_blank" rel="noopener noreferrer" onClick={closeMoreMenu} style={{ ...menuItem, textDecoration: "none" }}>
@@ -447,6 +508,7 @@ export default function BuilderShellPage() {
         key={t}
         type="button"
         role="tab"
+        data-tour={t === "edit" ? "details" : undefined}
         id={`builder-tab-${t}`}
         aria-selected={tab === t}
         aria-controls={`builder-panel-${t}`}
@@ -487,6 +549,7 @@ export default function BuilderShellPage() {
           {undoButtons}
           <button
             type="button"
+            data-tour="publish"
             onClick={flow.start}
             style={{ flexShrink: 0, minHeight: 44, padding: "0 16px", borderRadius: 999, border: "none", background: "var(--ink)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
           >
@@ -561,7 +624,7 @@ export default function BuilderShellPage() {
           <span aria-hidden style={{ color: "var(--slate)" }}>&larr;</span>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeDefinition?.label ?? "Choose a design"}</span>
         </Link>
-        <span style={{ display: "inline-flex", border: "1px solid var(--line)", borderRadius: 999, padding: 2 }} role="group" aria-label="Preview size">
+        <span data-tour="size" style={{ display: "inline-flex", border: "1px solid var(--line)", borderRadius: 999, padding: 2 }} role="group" aria-label="Preview size">
           {(["desktop", "phone"] as const).map((d) => (
             <button
               key={d}
@@ -591,7 +654,7 @@ export default function BuilderShellPage() {
           >
             &#8943;
           </button>
-          <button onClick={flow.start} style={{ padding: "9px 18px", borderRadius: 999, border: "none", background: "var(--ink)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+          <button data-tour="publish" onClick={flow.start} style={{ padding: "9px 18px", borderRadius: 999, border: "none", background: "var(--ink)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
             {publishedAt ? "Update live site" : "Publish"}
           </button>
         </div>
@@ -637,6 +700,7 @@ export default function BuilderShellPage() {
               edge. Open, the panel's own × closes it. */}
           {editorCollapsed ? (
           <button
+            data-tour="details"
             onClick={() => setEditorCollapsed((v) => !v)}
             title={editorCollapsed ? "Open the details panel" : "Close the panel — edit on the page"}
             aria-label={editorCollapsed ? "Open the details panel" : "Close the details panel"}
