@@ -29,6 +29,7 @@ const StudioCosts = lazy(() => import("../pages/studio/pages/CostsPage"));
 const PartnerLink = lazy(() => import("../pages/partners/PartnerLink"));
 const PortalPartner = lazy(() => import("../pages/account/portal/pages/PartnerPage"));
 const StudioPartners = lazy(() => import("../pages/studio/pages/PartnersPage"));
+const StudioOutreach = lazy(() => import("../pages/studio/pages/OutreachPage"));
 const AccountOnboarding = lazy(() => import("../pages/account/onboarding"));
 const AccountJoin = lazy(() => import("../pages/account/join"));
 const PortalLayout = lazy(() => import("../pages/account/portal/PortalLayout"));
@@ -125,6 +126,7 @@ const routes: RouteObject[] = [
       { path: "leads", element: <StudioLeads /> },
       { path: "emails", element: <StudioEmails /> },
       { path: "partners", element: <StudioPartners /> },
+      { path: "outreach", element: <StudioOutreach /> },
       { path: "blog", element: <StudioBlog /> },
       { path: "website", element: <StudioWebsite /> },
       { path: "revenue", element: <StudioRevenue /> },

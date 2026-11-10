@@ -35,6 +35,7 @@ const SECTIONS: { title?: string; items: NavItem[] }[] = [
     title: "Sell",
     items: [
       { to: "/studio/leads", label: "Leads", icon: "ri-user-star-line" },
+      { to: "/studio/outreach", label: "Outreach", icon: "ri-send-plane-line" },
       { to: "/studio/partners", label: "Partners", icon: "ri-hand-heart-line" },
       { to: "/studio/emails", label: "Mailing list", icon: "ri-mail-star-line" },
     ],

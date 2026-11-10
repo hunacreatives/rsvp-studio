@@ -39,6 +39,10 @@ function classify(search: string, referrer: string): Omit<VisitSource, "at"> | n
   const q = new URLSearchParams(search);
   const partner = (q.get("partner") ?? "").trim().toUpperCase();
   if (/^[A-Z0-9]{3,20}$/.test(partner)) return { source: "partner", detail: partner, partner };
+  // A coordinator we messaged (Studio → Outreach): /partners?o=<their code>. The detail is
+  // how outreach_refresh() (supabase/outreach.sql) finds them again when they sign up or apply.
+  const outreach = (q.get("o") ?? "").toLowerCase();
+  if (/^[0-9a-f]{8}$/.test(outreach)) return { source: "social", detail: `outreach · ${outreach}`, partner: "" };
   const ref = (q.get("ref") ?? "").toLowerCase();
   if (/^[a-z0-9-]{1,80}$/.test(ref)) return { source: q.get("via") === "email" ? "email" : "site", detail: ref, partner: "" };
   const utmSource = (q.get("utm_source") ?? "").toLowerCase().slice(0, 40);
@@ -81,7 +85,8 @@ export function rememberVisit(search = window.location.search, referrer = docume
   const found = classify(search, referrer);
   if (found?.partner) countPartnerClick(found.partner);
   const saved = read();
-  if (found && (!saved || found.source === "partner" || saved.source === "direct")) write({ ...found, at: new Date().toISOString() });
+  const outreach = !!found?.detail.startsWith("outreach · ") && !saved?.partner;
+  if (found && (!saved || found.source === "partner" || outreach || saved.source === "direct")) write({ ...found, at: new Date().toISOString() });
   else if (!saved) write({ source: "direct", detail: "", partner: "", at: new Date().toISOString() });
 }
 
