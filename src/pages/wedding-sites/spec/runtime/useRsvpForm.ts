@@ -3,6 +3,7 @@ import type { EventContent } from "../../content/types";
 import { rsvpWindow } from "../../content/rsvpDeadline";
 import { getSitePassword } from "../../public/sitePassword";
 import { useInvitee } from "../../engine/invitee";
+import { emailProblemOffline } from "@/lib/emailCheck";
 
 export type SubmitState = "idle" | "submitting" | "success" | "error";
 
@@ -30,6 +31,10 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   // True only when the server actually sent the guest a confirmation email (or, with texting on, a text).
   const [emailed, setEmailed] = useState(false);
   const [texted, setTexted] = useState(false);
+  // The server didn't send a copy because the address can't receive mail (the thank-you asks them to check it).
+  const [badEmail, setBadEmail] = useState(false);
+  // An address we questioned ("Did you mean …?") and the guest sent again unchanged: they're sure, so it goes.
+  const [warnedEmail, setWarnedEmail] = useState<string | null>(null);
   // Typing clears the last error; changing anything after a sent reply makes it a new reply to send (a design's
   // "Change my reply" then waits for its Send, rather than taking the new answer as already sent).
   const set = (k: string, v: string) => {
@@ -76,6 +81,16 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
       setError(`Please answer: ${missing.label}`);
       return;
     }
+    // A typo or a made-up address: ask before sending (it would only bounce). Never a dead end: sending
+    // again with the same address sends the RSVP, and the server just doesn't email it (src/lib/emailCheck.ts).
+    const contact = (values.contact ?? "").trim();
+    const guestEmail = (contact.includes("@") ? contact : (values.email ?? "")).trim().toLowerCase();
+    const emailIssue = guestEmail ? emailProblemOffline(guestEmail) : null;
+    if (emailIssue && warnedEmail !== guestEmail) {
+      setWarnedEmail(guestEmail);
+      setError(`${emailIssue} If yours is right, just send again.`);
+      return;
+    }
     // The sample: a moment's pause, then the thank-you, with nothing sent.
     if (sample) {
       setState("submitting");
@@ -120,7 +135,7 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
         }),
       });
       let res = await post();
-      let data = (await res.json().catch(() => ({}))) as { error?: string; emailed?: boolean; texted?: boolean; retry?: boolean };
+      let data = (await res.json().catch(() => ({}))) as { error?: string; emailed?: boolean; texted?: boolean; badEmail?: boolean; retry?: boolean };
       for (let attempt = 0; res.status === 429 && data.retry && attempt < 3; attempt++) {
         await new Promise((r) => setTimeout(r, 4000 + attempt * 3000));
         res = await post();
@@ -129,6 +144,7 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
       if (!res.ok) throw new Error(data.error ?? "Something went wrong — please try again.");
       setEmailed(data.emailed === true);
       setTexted(data.texted === true);
+      setBadEmail(data.badEmail === true);
       setState("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong — please try again.");
@@ -137,6 +153,6 @@ export function useRsvpForm(content: EventContent, editorPreview: boolean | unde
   }
 
   // The line every design shows under "you're on the list", when a copy really went out.
-  const copyNote = sample ? "This is a sample. On your site, replies come to you." : emailed ? "A copy is on its way to your email." : texted ? "A copy is on its way to your phone." : null;
+  const copyNote = sample ? "This is a sample. On your site, replies come to you." : emailed ? "A copy is on its way to your email." : badEmail ? "We couldn’t send you a copy. Please check the spelling of your email." : texted ? "A copy is on its way to your phone." : null;
   return { values, set, state, error, website, setWebsite, attending, submit, emailed, copyNote, closed: closed && !editorPreview, replyBy, closedText, contactMode, contactProps, toggleContact, contactToggleLabel, invitee, maxGuests, questions };
 }
