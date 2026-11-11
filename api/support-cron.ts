@@ -14,6 +14,7 @@ import { smsDaily } from "./_lib/sms.js";
 import { eventPeopleEmails } from "./_lib/hosts.js";
 import { code, customerReplyTo, reqCode, emailRepliesOn, leadRepliesOn, firstName, FROM, isManilaWeekday, layout, makeSendMail, replyDueAt, serviceFooter, STUDIO_INBOX, threadHeaders, topicOf } from "./_lib/support-mail.js";
 import { captureError } from "./_lib/sentry.js";
+import { sendOutreachEmails } from "./_lib/outreach-mail.js";
 
 // The daily support job — Vercel Cron, ~9 AM Manila (vercel.json: "0 1 * * *" UTC).
 //   1. "Still need help?" reminder: waiting on the customer 3 days (1 day if urgent).
@@ -31,6 +32,7 @@ import { captureError } from "./_lib/sentry.js";
 //      Invoice reminders from the due date (_lib/invoice-reminders.ts).
 //      Texts: refunds for late failures, "running low" to hosts, our Semaphore balance (_lib/sms.ts).
 //   8. Heartbeat, shown in the Studio, so a job that stops running gets noticed.
+// Outreach emails (Studio → Outreach) run as their own pass: /api/support-cron?only=outreach, ~9:30 AM.
 // The database claims each reminder / close in one UPDATE, and Resend drops repeat
 // sends with the same idempotency key — a double run can't double-email.
 
@@ -65,6 +67,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const started = Date.now();
   const report = { inboundCaughtUp: 0, reminders: 0, remindersSkipped: 0, closed: 0, closedQuietly: 0, digest: false, rsvpDigests: 0, rsvpDigestsSkipped: 0, endNotices: 0, photoPurges: 0, photoMode: "", guestPurges: 0, purges: 0, domainsAdvanced: 0, domainRenewNotices: 0, domainsExpired: 0, followups: 0, followupsSkipped: 0, leadFollowups: 0, guestReminders: 0, guestReminderTexts: 0, smsRefunded: 0, smsLowNotices: 0, smsBalance: null as number | null, invoiceReminders: 0, errors: [] as string[] };
 
+  // ?only=outreach: Angela's partner emails (Studio → Outreach; _lib/outreach-mail.ts). Its own cron entry at
+  // ~9:30 AM Manila, so a batch of 30 + follow-ups gets the whole time budget. Does nothing until "Start".
+  if (req.query.only === "outreach") {
+    const out = await sendOutreachEmails(supabaseAdmin, sendMail, { deadline: started + 50_000 });
+    await supabaseAdmin.from("support_job_runs").upsert({ job: "outreach-daily", last_run_at: new Date().toISOString(), details: out });
+    if (out.errors.length) await captureError(new Error(`Outreach emails: ${out.errors.length} failed — ${out.errors[0]}`), "support-cron", { errors: out.errors.slice(0, 30) });
+    return res.status(out.errors.length ? 207 : 200).json(out);
+  }
   // ?only=photos: just the photo step (e.g. to check a dry run), no emails.
   if (req.query.only === "photos") {
     const life = await runLifecycle(supabaseAdmin, sendMail, SITE, { only: "photos", deadline: started + 45_000 });

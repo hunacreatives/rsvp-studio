@@ -102,17 +102,19 @@ create table if not exists outreach_messages (
 );
 alter table outreach_messages drop constraint if exists outreach_messages_key_check;
 alter table outreach_messages add constraint outreach_messages_key_check
-  check (key in ('opener', 'followup', 'opener_venue', 'followup_venue', 'opener_supplier', 'followup_supplier'));
+  check (key in ('opener', 'followup', 'opener_venue', 'followup_venue', 'opener_caterer', 'followup_caterer', 'opener_supplier', 'followup_supplier'));
 alter table outreach_messages enable row level security;
 drop policy if exists "outreach_messages_staff" on outreach_messages;
 create policy "outreach_messages_staff" on outreach_messages for all using (is_staff()) with check (is_staff());
 insert into outreach_messages (key, body) values
-  ('opener', E'Hi {name}, I''m Francis from The RSVP Studio. We make event websites with RSVPs for weddings, debuts and birthdays.\n\nWe have a free dashboard for coordinators where you can set up each client''s website and guest list, then hand it over to them. You also earn up to 20% from the clients you bring, and they get 10% off.\n\nHere''s how it works: {link}\n\nIf it sounds useful, I''m happy to walk you through it.'),
-  ('followup', E'Hi {name}, following up on my message about The RSVP Studio. Happy to answer any questions, or you can sign up free here: {link}'),
-  ('opener_venue', E'Hi {name}, I''m Francis from The RSVP Studio. We make event websites with RSVPs for weddings, debuts and birthdays.\n\nWe''d like to partner with you. Couples and hosts who book with you get 10% off their website with your code, and you earn up to 20% of what they pay. It''s free to join.\n\nHere''s how it works: {link}\n\nHappy to send more details if it''s a fit.'),
-  ('followup_venue', E'Hi {name}, following up on my message about partnering with The RSVP Studio. Your clients get 10% off and you earn up to 20%. Details here: {link}'),
-  ('opener_supplier', E'Hi {name}, I''m Francis from The RSVP Studio. We make event websites with RSVPs for weddings, debuts and birthdays.\n\nWe partner with event suppliers. Your clients get 10% off with your code, and you earn up to 20% of what they pay. It''s free, and all you share is a link.\n\nHere''s how it works: {link}\n\nHappy to answer any questions.'),
-  ('followup_supplier', E'Hi {name}, following up on my message about The RSVP Studio partner program. Your clients get 10% off and you earn up to 20%. Details here: {link}')
+  ('opener', E'Hi {name}, I''m Angela from The RSVP Studio. We make event websites for weddings, debuts and birthdays, so guests can see the details and RSVP from one link.\n\nYou already keep every celebration running, so we''d love to make the guest list part easier. Our coordinator dashboard is free: set up each client''s site and guest list, and see who''s coming, plus-ones and dietary notes in one place. Your clients get 10% off with your code, and you earn 10% to 20% of every booking.\n\nJust reply "yes" and I''ll set everything up. Here''s how it works: {link}'),
+  ('followup', E'Hi {name}, just bringing this back up. If partnering sounds good, reply "yes" and I''ll set it up for you. It only takes a minute. If now isn''t the right time, no worries at all. Here''s the link again: {link}'),
+  ('opener_venue', E'Hi {name}, I''m Angela from The RSVP Studio. We make event websites for weddings, debuts and birthdays, so guests can see the details and RSVP from one link.\n\nA lot of celebrations start at places like yours, so we''d love to partner with you. Your clients get 10% off with your code, and you earn 10% to 20% of every booking.\n\nJust reply "yes" and I''ll set everything up. Here''s how it works: {link}'),
+  ('followup_venue', E'Hi {name}, just bringing this back up. If partnering sounds good, reply "yes" and I''ll set it up for you. It only takes a minute. If now isn''t the right time, no worries at all. Here''s the link again: {link}'),
+  ('opener_caterer', E'Hi {name}, I''m Angela from The RSVP Studio. We make event websites for weddings, debuts and birthdays, so guests can see the details and RSVP from one link.\n\nGood food is half the celebration, so we''d love to partner with you. Guests share their dietary notes when they RSVP, so you get a firm headcount early. Your clients get 10% off with your code, and you earn 10% to 20% of every booking.\n\nJust reply "yes" and I''ll set everything up. Here''s how it works: {link}'),
+  ('followup_caterer', E'Hi {name}, just bringing this back up. If partnering sounds good, reply "yes" and I''ll set it up for you. It only takes a minute. If now isn''t the right time, no worries at all. Here''s the link again: {link}'),
+  ('opener_supplier', E'Hi {name}, I''m Angela from The RSVP Studio. We make event websites for weddings, debuts and birthdays, so guests can see the details and RSVP from one link.\n\nWe''re partnering with event suppliers in {city}, and we''d love to have you. Your clients get 10% off with your code, and you earn 10% to 20% of every booking.\n\nJust reply "yes" and I''ll set everything up. Here''s how it works: {link}'),
+  ('followup_supplier', E'Hi {name}, just bringing this back up. If partnering sounds good, reply "yes" and I''ll set it up for you. It only takes a minute. If now isn''t the right time, no worries at all. Here''s the link again: {link}')
 on conflict (key) do nothing;
 
 -- Import many at once (Studio → Outreach → Import). Duplicates are skipped; returns how many were added.
@@ -203,7 +205,7 @@ $$;
 revoke all on function outreach_cities() from public, anon;
 grant execute on function outreach_cities() to authenticated;
 
--- Check: expect 1 | 6 | 3
+-- Check: expect 1 | 8 | 3
 select
   (select count(*) from information_schema.tables where table_name = 'outreach_contacts') as contacts_table,
   (select count(*) from outreach_messages) as messages,

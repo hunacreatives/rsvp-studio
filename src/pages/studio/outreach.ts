@@ -1,7 +1,9 @@
 import { supabase } from "@/lib/supabase";
 
-// Studio → Outreach data (supabase/outreach.sql): businesses in the event space we message
-// ourselves on Messenger / Instagram / Viber, one at a time. Staff only (RLS).
+// Studio → Outreach data (supabase/outreach.sql + outreach-email.sql): businesses in the event space.
+// Two lanes working together: everyone with an email gets Angela's email from the daily job
+// (api/_lib/outreach-mail.ts); everyone else is the team's turn on Messenger / Instagram / Viber / a call.
+// Staff only (RLS).
 
 export type OutreachStatus = "to_message" | "messaged" | "replied" | "signed_up" | "not_interested" | "skipped";
 export type OutreachKind = "coordinator" | "venue" | "stylist" | "caterer" | "photo_video" | "stationery" | "entertainment" | "beauty" | "attire" | "cakes" | "rentals" | "party" | "other";
@@ -22,13 +24,19 @@ export const KINDS: Record<OutreachKind, string> = {
 };
 /** Who a message is written for: coordinators get the free dashboard pitch, venues and every
  *  other supplier the referral one. */
-export type Audience = "coordinator" | "venue" | "supplier";
-export const audienceOf = (k: OutreachKind): Audience => (k === "coordinator" ? "coordinator" : k === "venue" ? "venue" : "supplier");
-export const AUDIENCES: Record<Audience, string> = { coordinator: "Coordinators", venue: "Venues", supplier: "Other suppliers" };
-export type MessageKey = "opener" | "followup" | "opener_venue" | "followup_venue" | "opener_supplier" | "followup_supplier";
+export type Audience = "coordinator" | "venue" | "caterer" | "supplier";
+export const audienceOf = (k: OutreachKind): Audience => (k === "coordinator" || k === "venue" || k === "caterer" ? k : "supplier");
+export const AUDIENCES: Record<Audience, string> = { coordinator: "Coordinators", venue: "Venues", caterer: "Caterers", supplier: "Other suppliers" };
+export type MessageKey =
+  | "opener" | "followup" | "opener_venue" | "followup_venue" | "opener_caterer" | "followup_caterer" | "opener_supplier" | "followup_supplier";
 export type Messages = Record<MessageKey, string>;
 export const messageKey = (step: "opener" | "followup", a: Audience): MessageKey => (a === "coordinator" ? step : (`${step}_${a}` as MessageKey));
-export type OutreachTab = "to_message" | "due" | "waiting" | "replied" | "signed_up" | "closed";
+export type OutreachTab = "your_turn" | "emailing" | "sent" | "replied" | "signed_up" | "closed";
+/** How we first reached them: the daily email job, or someone on the team on one of these. */
+export type Channel = "email_auto" | "messenger" | "instagram" | "viber" | "email" | "website" | "call";
+export const CHANNELS: Record<Channel, string> = {
+  email_auto: "email", messenger: "Messenger", instagram: "Instagram", viber: "Viber", email: "email", website: "their website", call: "a call",
+};
 
 export type Contact = {
   id: string;
@@ -53,14 +61,24 @@ export type Contact = {
   matched_enquiry: string | null;
   fb_key: string | null;
   ig_key: string | null;
+  channel: Channel | null;
+  bounced_at: string | null;
+  stop_reason: string | null;
   created_at: string;
 };
 export type ContactInput = Pick<Contact, "name" | "contact_person" | "kind" | "city" | "facebook" | "instagram" | "website" | "email" | "phone" | "found_via" | "notes">;
-export type Counts = Record<OutreachTab, number> & { sent_today: number; messaged: number; total: number };
+export type Counts = {
+  your_turn: number; your_followups: number; your_messenger: number; your_instagram: number; your_viber: number; your_call: number;
+  team_waiting: number; team_today: number;
+  emailing: number; email_queue: number; auto_today: number; auto_followups_today: number; auto_total: number; auto_replied: number;
+  replied: number; signed_up: number; closed: number; total: number;
+  auto_on: boolean; daily_limit: number; last_run: string | null;
+};
+/** How many each tab shows. */
+export const tabCount = (c: Counts, t: OutreachTab) => (t === "sent" ? c.team_waiting : c[t]);
 
 export const FOLLOW_UP_DAYS = 5;
-export const DAILY_GOAL = 10;
-export const LIST_GOAL = 10000;
+export const DAILY_GOAL = 30;
 export const PAGE = 50;
 export const SITE = "https://thersvpstudio.com";
 
@@ -69,31 +87,44 @@ const must = <T,>(r: { data: T; error: { message: string } | null }) => {
   return r.data;
 };
 
-/** Matches sign-ups to contacts, then counts each tab. null = outreach.sql hasn't been run yet. */
+/** Matches sign-ups to contacts, then counts each tab. null = outreach.sql / outreach-email.sql haven't been run. */
 export async function refresh(): Promise<Counts | null> {
   const { data, error } = await supabase.rpc("outreach_refresh");
-  return error ? null : (data as Counts);
+  return error || !data || (data as Partial<Counts>).your_turn === undefined ? null : (data as Counts);
 }
 
 const dueBefore = () => new Date(Date.now() - FOLLOW_UP_DAYS * 864e5).toISOString();
 
-/** "" everyone · "ready" has a page, handle, email or mobile · "lookup" name only, find their page first */
-export type Reach = "" | "ready" | "lookup";
+/** A follow-up the team owes: messaged by hand 5+ days ago, not followed up. */
+export const followUpDue = (c: Pick<Contact, "status" | "channel" | "followed_up_at" | "messaged_at">) =>
+  c.status === "messaged" && c.channel !== "email_auto" && !c.followed_up_at && !!c.messaged_at && c.messaged_at < dueBefore();
 
-export async function loadTab(tab: OutreachTab, opts: { search: string; city: string; kind: string; reach: Reach; page: number }): Promise<Contact[]> {
+export async function loadTab(tab: OutreachTab, opts: { search: string; city: string; kind: string; page: number }): Promise<Contact[]> {
   let q = supabase.from("outreach_contacts").select("*");
-  if (tab === "to_message") q = q.eq("status", "to_message").order("created_at", { ascending: true });
-  else if (tab === "due") q = q.eq("status", "messaged").is("followed_up_at", null).lt("messaged_at", dueBefore()).order("messaged_at", { ascending: true });
-  else if (tab === "waiting") q = q.eq("status", "messaged").or(`followed_up_at.not.is.null,messaged_at.gte.${dueBefore()}`).order("messaged_at", { ascending: false });
-  else if (tab === "replied") q = q.eq("status", "replied").order("replied_at", { ascending: false });
+  const due = dueBefore();
+  const notAuto = "or(channel.is.null,channel.neq.email_auto)";
+  // One "or" filter per query (the tab's and the search's are joined into it), so they can't clash.
+  let cond = "";
+  if (tab === "your_turn") {
+    // follow-ups owed first (oldest message first), then first messages in the order they were added
+    cond = `or(and(status.eq.to_message,or(email.is.null,bounced_at.not.is.null)),and(status.eq.messaged,${notAuto},followed_up_at.is.null,messaged_at.lt.${due}))`;
+    q = q.order("messaged_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: true });
+  } else if (tab === "emailing") {
+    // emailed (latest first), then the ones still waiting in line
+    cond = "or(status.eq.to_message,and(status.eq.messaged,channel.eq.email_auto))";
+    q = q.not("email", "is", null).is("bounced_at", null).order("messaged_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: true });
+  } else if (tab === "sent") {
+    cond = `and(${notAuto},or(followed_up_at.not.is.null,messaged_at.gte.${due}))`;
+    q = q.eq("status", "messaged").order("messaged_at", { ascending: false });
+  } else if (tab === "replied") q = q.eq("status", "replied").order("replied_at", { ascending: false });
   else if (tab === "signed_up") q = q.eq("status", "signed_up").order("signed_up_at", { ascending: false });
   else q = q.in("status", ["not_interested", "skipped"]).order("updated_at", { ascending: false });
   if (opts.city) q = q.ilike("city", opts.city);
   if (opts.kind) q = q.eq("kind", opts.kind);
-  if (opts.reach === "ready") q = q.or("fb_key.not.is.null,ig_key.not.is.null,email.not.is.null,phone_key.not.is.null");
-  if (opts.reach === "lookup") q = q.is("fb_key", null).is("ig_key", null).is("email", null).is("phone_key", null);
   const s = opts.search.trim().replace(/[%,()*]/g, " ");
-  if (s) q = q.or(`name.ilike.%${s}%,contact_person.ilike.%${s}%,city.ilike.%${s}%,ig_key.ilike.%${s}%,fb_key.ilike.%${s}%`);
+  const find = s ? `or(name.ilike.%${s}%,contact_person.ilike.%${s}%,city.ilike.%${s}%,ig_key.ilike.%${s}%,fb_key.ilike.%${s}%)` : "";
+  const all = [cond, find].filter(Boolean);
+  if (all.length) q = q.or(`and(${all.join(",")})`);
   return must(await q.range(opts.page * PAGE, opts.page * PAGE + PAGE - 1)) as Contact[];
 }
 
@@ -127,7 +158,9 @@ export async function importRows(rows: Partial<ContactInput>[], onProgress?: (do
 
 export async function loadMessages(): Promise<Messages> {
   const { data } = await supabase.from("outreach_messages").select("key, body");
-  const m: Messages = { opener: "", followup: "", opener_venue: "", followup_venue: "", opener_supplier: "", followup_supplier: "" };
+  const m: Messages = {
+    opener: "", followup: "", opener_venue: "", followup_venue: "", opener_caterer: "", followup_caterer: "", opener_supplier: "", followup_supplier: "",
+  };
   for (const r of (data ?? []) as { key: MessageKey; body: string }[]) if (r.key in m) m[r.key] = r.body;
   return m;
 }
@@ -143,7 +176,13 @@ export const linkFor = (c: Pick<Contact, "code">) => `${SITE}/partners?o=${c.cod
 /** "Hi Kate" when we know the person, else the business name. */
 export const greetName = (c: Pick<Contact, "contact_person" | "name">) => (c.contact_person?.trim().split(/\s+/)[0] || c.name).trim();
 
-export const fillMessage = (body: string, c: Contact) => body.replace(/\{name\}/g, greetName(c)).replace(/\{link\}/g, linkFor(c));
+// {city}: " in {city}" drops out when we don't know their town
+export const fillMessage = (body: string, c: Contact) =>
+  body
+    .replace(/\{name\}/g, greetName(c))
+    .replace(/\{link\}/g, linkFor(c))
+    .replace(/ in \{city\}/g, c.city?.trim() ? ` in ${c.city.trim()}` : "")
+    .replace(/\{city\}/g, c.city?.trim() ?? "");
 
 /** A PH mobile as +639XXXXXXXXX (0917…, 63917…, 917…), or null. */
 export function phMobile(phone: string | null): string | null {
@@ -152,15 +191,39 @@ export function phMobile(phone: string | null): string | null {
   return ten ? `+63${ten}` : null;
 }
 
-/** Where to message them: their Messenger chat, else Instagram DMs, else Viber, else email / site. */
-export function chatFor(c: Contact): { url: string; label: string; icon: string } | null {
-  if (c.fb_key) return { url: `https://m.me/${c.fb_key.replace(/^id:/, "")}`, label: "Messenger", icon: "ri-messenger-line" };
-  if (c.ig_key) return { url: `https://ig.me/m/${c.ig_key}`, label: "Instagram", icon: "ri-instagram-line" };
+/** Where the team reaches them: Messenger, else Instagram DMs, else Viber, else a call, else their email or site.
+ *  (An email that bounced isn't offered again.) */
+export function chatFor(c: Contact): { url: string; label: string; icon: string; channel: Channel } | null {
+  if (c.fb_key) return { url: `https://m.me/${c.fb_key.replace(/^id:/, "")}`, label: "Messenger", icon: "ri-messenger-line", channel: "messenger" };
+  if (c.ig_key) return { url: `https://ig.me/m/${c.ig_key}`, label: "Instagram", icon: "ri-instagram-line", channel: "instagram" };
   const viber = phMobile(c.phone);
-  if (viber) return { url: `viber://chat?number=${encodeURIComponent(viber)}`, label: "Viber", icon: "ri-phone-line" };
-  if (c.email) return { url: `mailto:${c.email}`, label: "Email", icon: "ri-mail-line" };
-  if (c.website) return { url: /^https?:/i.test(c.website) ? c.website : `https://${c.website}`, label: "Website", icon: "ri-global-line" };
+  if (viber) return { url: `viber://chat?number=${encodeURIComponent(viber)}`, label: "Viber", icon: "ri-chat-3-line", channel: "viber" };
+  const digits = (c.phone ?? "").split(/[/;,|]/)[0].replace(/[^\d+]/g, "");
+  if (digits.replace(/\D/g, "").length >= 7) return { url: `tel:${digits}`, label: "Call", icon: "ri-phone-line", channel: "call" };
+  if (c.email && !c.bounced_at) return { url: `mailto:${c.email}`, label: "Email", icon: "ri-mail-line", channel: "email" };
+  if (c.website) return { url: /^https?:/i.test(c.website) ? c.website : `https://${c.website}`, label: "Website", icon: "ri-global-line", channel: "website" };
   return null;
+}
+
+// ---- the email job ---------------------------------------------------------------------------
+
+/** Start or pause Angela's morning emails. */
+export async function setAutoEmail(on: boolean) {
+  const { data } = await supabase.auth.getUser();
+  must(await supabase.from("outreach_settings").update({ auto_email: on, updated_at: new Date().toISOString(), updated_by: data.user?.id ?? null }).eq("id", 1));
+}
+
+/** Sends the first email for one business of each type to hello@, marked [Test]. Nobody on the list is emailed. */
+export async function sendTest(): Promise<{ sent: number; to: string }> {
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch("/api/notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    body: JSON.stringify({ kind: "outreach_test" }),
+  });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok || !out.sent) throw new Error(out.error || "The test didn’t send. Please try again.");
+  return out;
 }
 
 /** A Facebook page search for a business we only have a name (and town) for. */

@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { emailRepliesOn, leadRepliesOn, makeSendMail } from "./_lib/support-mail.js";
 import { processInbound } from "./_lib/support-inbound.js";
 import { captureError } from "./_lib/sentry.js";
+import { outreachBounced } from "./_lib/outreach-mail.js";
 
 // Resend webhook: "email.received" for replies to sup-<n>.<key>@reply.thersvpstudio.com.
 // Web-standard handler so the raw body is available — the signature check needs it byte for byte.
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
 
   const resend = new Resend(key);
   const payload = await request.text();
-  let event: { type: string; data?: { email_id?: string } };
+  let event: { type: string; data?: { email_id?: string; to?: string[] | string } };
   try {
     event = resend.webhooks.verify({
       payload,
@@ -34,9 +35,16 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: "Invalid signature" }, { status: 401 });
   }
+  const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  // An outreach email bounced or was reported as spam (needs those two events on this webhook in Resend):
+  // that business is never emailed again.
+  if (event.type === "email.bounced" || event.type === "email.complained") {
+    const to = event.data?.to;
+    const n = await outreachBounced(db, Array.isArray(to) ? to : to ? [to] : [], event.type === "email.complained");
+    return Response.json({ outreach: n });
+  }
   if (event.type !== "email.received" || !event.data?.email_id) return Response.json({ ignored: event.type });
 
-  const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   try {
     const result = await processInbound(event.data.email_id, { db, receiving: resend.emails.receiving, sendMail: makeSendMail(resend), origin: SITE });
     return Response.json(result);

@@ -14,6 +14,7 @@ import { formatHostNames } from "./_lib/hosts.js";
 import { coordinatorEmail } from "./_lib/followup-mail.js";
 import { refreshPreview } from "./_lib/link-preview.js";
 import { leadReply } from "./_lib/enquiry-mail.js";
+import { outreachPayload, type OutreachContact } from "./_lib/outreach-mail.js";
 
 // Email notifications for the client dashboard. Called fire-and-forget by
 // the portal after a write; every kind re-checks who the caller is, so a
@@ -481,6 +482,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (logErr) console.error("lead_reply log failed", logErr);
       if (lead.status === "new") await supabaseAdmin.from("enquiries").update({ status: "contacted" }).eq("id", lead.id);
       return res.status(200).json({ sent: 1, failed: 0 });
+    } else if (body.kind === "outreach_test" && caller.is_staff) {
+      // Studio → Outreach → "Send me a test": Angela's first email for one business of each type, to hello@
+      // (marked [Test], replies come back to hello@). Nobody on the list is emailed or changed.
+      const picks: OutreachContact[] = [];
+      for (const kind of ["coordinator", "venue", "caterer", "photo_video"]) {
+        const { data } = await supabaseAdmin.from("outreach_contacts").select("id, code, name, contact_person, kind, city, email").eq("kind", kind).not("email", "is", null).order("created_at").limit(1);
+        if (data?.[0]) picks.push(data[0] as OutreachContact);
+      }
+      let sent = 0;
+      for (const c of picks) {
+        const p = outreachPayload(c, "opener", STUDIO_INBOX);
+        try {
+          await sendMail({ ...p, replyTo: STUDIO_INBOX, subject: `[Test] ${p.subject}`, headers: {} });
+          sent++;
+        } catch (err) {
+          console.error("outreach_test send failed", err);
+        }
+      }
+      return res.status(sent ? 200 : 502).json({ sent, to: STUDIO_INBOX });
     } else if (body.kind === "broadcast" && body.eventId) {
       return await broadcast(caller, body, res);
     } else if ((body.kind === "site_live" || body.kind === "std_invite" || body.kind === "preview_refresh") && body.eventId) {

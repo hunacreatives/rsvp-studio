@@ -4,6 +4,7 @@ import EmailReplyParser from "email-reply-parser";
 import { esc } from "./email.js";
 import { code, FROM, layout, makeSendMail, REPLY_DOMAIN, STUDIO_INBOX, topicOf } from "./support-mail.js";
 import { customerMessageEmails, type SupportThreadRow } from "./support-notify.js";
+import { isStop, OUT_ADDR } from "./outreach-mail.js";
 
 // Email replies to support requests (Phase 3B). One received email → one outcome:
 //   posted       the customer's reply, added to their request (reopens it, emails the studio)
@@ -130,6 +131,14 @@ async function handle(emailId: string, deps: InboundDeps, finish: Finish): Promi
   let thread: Thread | null = null;
   let matchedBy = "";
   const recipients = [...(email.to ?? []), ...(email.cc ?? []), ...((email as { received_for?: string[] }).received_for ?? [])].map(addressOf);
+  // A business from Studio → Outreach answering Angela's email: "stop" closes them; anything else marks
+  // them Replied (no more follow-ups) and is passed on to hello@, files and all.
+  for (const r of recipients) {
+    const outCode = r.match(OUT_ADDR)?.[1]?.toLowerCase();
+    if (!outCode) continue;
+    const { data: contact } = await db.from("outreach_contacts").select("id, name, status").eq("code", outCode).maybeSingle();
+    if (contact) return outreachReplyIn(emailId, deps, finish, contact as { id: string; name: string; status: string }, email, subject, extra);
+  }
   // A lead writing back: note it (their follow-ups stop) and pass it on to hello@, files and all.
   for (const r of recipients) {
     const key = r.match(LEAD_ADDR)?.[1]?.toLowerCase();
@@ -252,10 +261,8 @@ async function handle(emailId: string, deps: InboundDeps, finish: Finish): Promi
   return finish({ outcome: "unmatched", reason: !thread && matchedBy === "subject" ? "subject mentions a request but the sender couldn’t be verified" : "no matching request", extra });
 }
 
-async function leadReplyIn(emailId: string, deps: InboundDeps, finish: Finish, lead: { id: string; name: string | null; email: string | null }, email: { from: string; text: string | null; html: string | null }, subject: string, extra: Record<string, unknown>) {
-  const { db, receiving, sendMail } = deps;
-  const fromHeader = email.from;
-  const text = visibleText(email.text, email.html);
+/** Their attachments (not inline images), up to 5 files of 10 MB; the rest are named so we can ask for them. */
+async function attachmentsOf(receiving: Receiving, emailId: string) {
   const files: { filename: string; content: Buffer }[] = [];
   const skipped: string[] = [];
   const { data: list } = await receiving.attachments.list({ emailId });
@@ -268,6 +275,44 @@ async function leadReplyIn(emailId: string, deps: InboundDeps, finish: Finish, l
     if (res.ok) files.push({ filename: a.filename || "attachment", content: Buffer.from(await res.arrayBuffer()) });
     else skipped.push(a.filename ?? "file");
   }
+  return { files, skipped };
+}
+
+async function outreachReplyIn(emailId: string, deps: InboundDeps, finish: Finish, contact: { id: string; name: string; status: string }, email: { from: string; text: string | null; html: string | null }, subject: string, extra: Record<string, unknown>) {
+  const { db, receiving, sendMail } = deps;
+  const text = visibleText(email.text, email.html);
+  const now = new Date().toISOString();
+  const stop = isStop(text, subject);
+  // a sign-up already counts for more than a reply; never move them back
+  if (contact.status !== "signed_up")
+    await db
+      .from("outreach_contacts")
+      .update(stop ? { status: "not_interested", stop_reason: "asked us to stop" } : { status: "replied", replied_at: now })
+      .eq("id", contact.id);
+  if (stop) return finish({ outcome: "outreach_stop", matched_by: "outreach_address", extra: { ...extra, outreach_id: contact.id } });
+  const { files, skipped } = await attachmentsOf(receiving, emailId);
+  await sendMail({
+    from: FROM,
+    to: STUDIO_INBOX,
+    replyTo: addressOf(email.from),
+    subject: subject || `Reply from ${contact.name}`,
+    attachments: files.length ? files : undefined,
+    html: layout(
+      `${esc(contact.name)} replied`,
+      `${esc(text || "(No message, just attachments.)").replace(/\n/g, "<br>")}${skipped.length ? `<br><br><span style="color:#868697">Not attached (too many or too large): ${esc(skipped.join(", "))}. Ask them to send these another way.</span>` : ""}<br><br><span style="color:#868697">They answered Angela’s partner email. Hit reply to answer them directly. They’re now under Replied in Studio → Outreach, and their follow-up email has stopped.</span>`,
+      null,
+      "A reply to our partner outreach, passed on by thersvpstudio.com.",
+      { ad: false },
+    ),
+  });
+  return finish({ outcome: "outreach_reply", matched_by: "outreach_address", extra: { ...extra, outreach_id: contact.id } });
+}
+
+async function leadReplyIn(emailId: string, deps: InboundDeps, finish: Finish, lead: { id: string; name: string | null; email: string | null }, email: { from: string; text: string | null; html: string | null }, subject: string, extra: Record<string, unknown>) {
+  const { db, receiving, sendMail } = deps;
+  const fromHeader = email.from;
+  const text = visibleText(email.text, email.html);
+  const { files, skipped } = await attachmentsOf(receiving, emailId);
   const now = new Date().toISOString();
   await db.from("enquiries").update({ replied_at: now }).eq("id", lead.id);
   await db.from("enquiries").update({ followups_stopped: "replied" }).eq("id", lead.id).is("followups_stopped", null);
