@@ -1,9 +1,9 @@
 import { supabase } from "@/lib/supabase";
 
-// Studio → Outreach data (supabase/outreach.sql + outreach-email.sql): businesses in the event space.
-// Two lanes working together: everyone with an email gets Angela's email from the daily job
-// (api/_lib/outreach-mail.ts); everyone else is the team's turn on Messenger / Instagram / Viber / a call.
-// Staff only (RLS).
+// Studio → Outreach data (supabase/outreach.sql, outreach-email.sql, outreach-daily.sql): event businesses
+// we invite to the partner program, by hand, 20 a day. Each morning outreach_today() puts the next 20 on
+// today's list (about half by email from Gmail, half on Messenger / Instagram); unfinished ones carry over.
+// Follow-ups are due 5 days after the first message, then a week after the first follow-up. Staff only (RLS).
 
 export type OutreachStatus = "to_message" | "messaged" | "replied" | "signed_up" | "not_interested" | "skipped";
 export type OutreachKind = "coordinator" | "venue" | "stylist" | "caterer" | "photo_video" | "stationery" | "entertainment" | "beauty" | "attire" | "cakes" | "rentals" | "party" | "other";
@@ -31,7 +31,7 @@ export type MessageKey =
   | "opener" | "followup" | "opener_venue" | "followup_venue" | "opener_caterer" | "followup_caterer" | "opener_supplier" | "followup_supplier";
 export type Messages = Record<MessageKey, string>;
 export const messageKey = (step: "opener" | "followup", a: Audience): MessageKey => (a === "coordinator" ? step : (`${step}_${a}` as MessageKey));
-export type OutreachTab = "your_turn" | "emailing" | "sent" | "replied" | "signed_up" | "closed";
+export type OutreachTab = "today" | "follow_up" | "waiting" | "replied" | "signed_up" | "closed" | "all";
 /** How we first reached them: the daily email job, or someone on the team on one of these. */
 export type Channel = "email_auto" | "messenger" | "instagram" | "viber" | "email" | "website" | "call";
 export const CHANNELS: Record<Channel, string> = {
@@ -64,21 +64,25 @@ export type Contact = {
   channel: Channel | null;
   bounced_at: string | null;
   stop_reason: string | null;
+  followups: number;
+  queued_on: string | null;
+  queue_channel: "email" | "messenger" | "instagram" | null;
   created_at: string;
 };
 export type ContactInput = Pick<Contact, "name" | "contact_person" | "kind" | "city" | "facebook" | "instagram" | "website" | "email" | "phone" | "found_via" | "notes">;
 export type Counts = {
-  your_turn: number; your_followups: number; your_messenger: number; your_instagram: number; your_viber: number; your_call: number;
-  team_waiting: number; team_today: number;
-  emailing: number; email_queue: number; auto_today: number; auto_followups_today: number; auto_total: number; auto_replied: number;
-  replied: number; signed_up: number; closed: number; total: number;
-  auto_on: boolean; daily_limit: number; last_run: string | null;
+  today_total: number; today_done: number; follow_up: number; waiting: number; replied: number; signed_up: number; closed: number;
+  not_contacted: number; total: number; emailed_today: number; messaged_today: number;
 };
 /** How many each tab shows. */
-export const tabCount = (c: Counts, t: OutreachTab) => (t === "sent" ? c.team_waiting : c[t]);
+export const tabCount = (c: Counts, t: OutreachTab) =>
+  t === "today" ? c.today_total : t === "all" ? c.total : c[t];
+export type Day = { day: string; total: number; contacted: number; replied: number; signed_up: number };
 
 export const FOLLOW_UP_DAYS = 5;
-export const DAILY_GOAL = 30;
+/** The last follow-up: this many days after the first one. */
+export const LAST_FOLLOW_UP_DAYS = 7;
+export const DAILY_GOAL = 20;
 export const PAGE = 50;
 export const SITE = "https://thersvpstudio.com";
 
@@ -90,35 +94,55 @@ const must = <T,>(r: { data: T; error: { message: string } | null }) => {
 /** Matches sign-ups to contacts, then counts each tab. null = outreach.sql / outreach-email.sql haven't been run. */
 export async function refresh(): Promise<Counts | null> {
   const { data, error } = await supabase.rpc("outreach_refresh");
-  return error || !data || (data as Partial<Counts>).your_turn === undefined ? null : (data as Counts);
+  return error || !data || (data as Partial<Counts>).today_total === undefined ? null : (data as Counts);
 }
 
-const dueBefore = () => new Date(Date.now() - FOLLOW_UP_DAYS * 864e5).toISOString();
+const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
+/** Today in Manila, as YYYY-MM-DD (the daily list's date). */
+export const manilaToday = () => new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
 
-/** A follow-up the team owes: messaged by hand 5+ days ago, not followed up. */
-export const followUpDue = (c: Pick<Contact, "status" | "channel" | "followed_up_at" | "messaged_at">) =>
-  c.status === "messaged" && c.channel !== "email_auto" && !c.followed_up_at && !!c.messaged_at && c.messaged_at < dueBefore();
+/** A follow-up is due: 5 days after the first message, then 7 days after the first follow-up. Two at most. */
+export const followUpDue = (c: Pick<Contact, "status" | "followups" | "followed_up_at" | "messaged_at">) =>
+  c.status === "messaged" &&
+  ((c.followups === 0 && !!c.messaged_at && c.messaged_at < daysAgo(FOLLOW_UP_DAYS)) || (c.followups === 1 && !!c.followed_up_at && c.followed_up_at < daysAgo(LAST_FOLLOW_UP_DAYS)));
+/** When their next follow-up is due, or null when there's none left. */
+export const nextFollowUp = (c: Pick<Contact, "followups" | "followed_up_at" | "messaged_at">) =>
+  c.followups === 0 && c.messaged_at ? new Date(new Date(c.messaged_at).getTime() + FOLLOW_UP_DAYS * 864e5).toISOString()
+  : c.followups === 1 && c.followed_up_at ? new Date(new Date(c.followed_up_at).getTime() + LAST_FOLLOW_UP_DAYS * 864e5).toISOString()
+  : null;
+
+/** Puts the next ones on today's list (up to 20; unfinished ones from earlier days carry over). */
+export async function fillToday(): Promise<number> {
+  const { data, error } = await supabase.rpc("outreach_today", { p_size: DAILY_GOAL });
+  if (error) throw new Error(error.message);
+  return (data as number) ?? 0;
+}
+/** Earlier days' lists, newest first. */
+export async function loadDays(): Promise<Day[]> {
+  const { data } = await supabase.rpc("outreach_days", { p_days: 14 });
+  return ((data ?? []) as Day[]).map((d) => ({ ...d, day: String(d.day).slice(0, 10) }));
+}
 
 export async function loadTab(tab: OutreachTab, opts: { search: string; city: string; kind: string; page: number }): Promise<Contact[]> {
   let q = supabase.from("outreach_contacts").select("*");
-  const due = dueBefore();
-  const notAuto = "or(channel.is.null,channel.neq.email_auto)";
+  const due = `or(and(followups.eq.0,messaged_at.lt.${daysAgo(FOLLOW_UP_DAYS)}),and(followups.eq.1,followed_up_at.lt.${daysAgo(LAST_FOLLOW_UP_DAYS)}))`;
+  const notDue = `or(and(followups.eq.0,messaged_at.gte.${daysAgo(FOLLOW_UP_DAYS)}),and(followups.eq.1,followed_up_at.gte.${daysAgo(LAST_FOLLOW_UP_DAYS)}),followups.gte.2)`;
   // One "or" filter per query (the tab's and the search's are joined into it), so they can't clash.
   let cond = "";
-  if (tab === "your_turn") {
-    // follow-ups owed first (oldest message first), then first messages in the order they were added
-    cond = `or(and(status.eq.to_message,or(email.is.null,bounced_at.not.is.null)),and(status.eq.messaged,${notAuto},followed_up_at.is.null,messaged_at.lt.${due}))`;
-    q = q.order("messaged_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: true });
-  } else if (tab === "emailing") {
-    // emailed (latest first), then the ones still waiting in line
-    cond = "or(status.eq.to_message,and(status.eq.messaged,channel.eq.email_auto))";
-    q = q.not("email", "is", null).is("bounced_at", null).order("messaged_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: true });
-  } else if (tab === "sent") {
-    cond = `and(${notAuto},or(followed_up_at.not.is.null,messaged_at.gte.${due}))`;
+  if (tab === "today") {
+    // today's list, plus follow-ups that are due (the page puts those first)
+    cond = `or(queued_on.eq.${manilaToday()},and(status.eq.messaged,${due}))`;
+    q = q.order("created_at", { ascending: true });
+  } else if (tab === "follow_up") {
+    cond = due;
+    q = q.eq("status", "messaged").order("messaged_at", { ascending: true });
+  } else if (tab === "waiting") {
+    cond = notDue;
     q = q.eq("status", "messaged").order("messaged_at", { ascending: false });
   } else if (tab === "replied") q = q.eq("status", "replied").order("replied_at", { ascending: false });
   else if (tab === "signed_up") q = q.eq("status", "signed_up").order("signed_up_at", { ascending: false });
-  else q = q.in("status", ["not_interested", "skipped"]).order("updated_at", { ascending: false });
+  else if (tab === "closed") q = q.in("status", ["not_interested", "skipped"]).order("updated_at", { ascending: false });
+  else q = q.order("created_at", { ascending: true });
   if (opts.city) q = q.ilike("city", opts.city);
   if (opts.kind) q = q.eq("kind", opts.kind);
   const s = opts.search.trim().replace(/[%,()*]/g, " ");
@@ -205,25 +229,14 @@ export function chatFor(c: Contact): { url: string; label: string; icon: string;
   return null;
 }
 
-// ---- the email job ---------------------------------------------------------------------------
-
-/** Start or pause Angela's morning emails. */
-export async function setAutoEmail(on: boolean) {
-  const { data } = await supabase.auth.getUser();
-  must(await supabase.from("outreach_settings").update({ auto_email: on, updated_at: new Date().toISOString(), updated_by: data.user?.id ?? null }).eq("id", 1));
-}
-
-/** Sends the first email for one business of each type to hello@, marked [Test]. Nobody on the list is emailed. */
-export async function sendTest(): Promise<{ sent: number; to: string }> {
-  const { data } = await supabase.auth.getSession();
-  const res = await fetch("/api/notify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
-    body: JSON.stringify({ kind: "outreach_test" }),
-  });
-  const out = await res.json().catch(() => ({}));
-  if (!res.ok || !out.sent) throw new Error(out.error || "The test didn’t send. Please try again.");
-  return out;
+/** How to reach them first: the way today's list picked, else a working email, else their chat. */
+export function wayFor(c: Contact): { kind: "email"; label: string; icon: string } | ({ kind: "chat" } & NonNullable<ReturnType<typeof chatFor>>) | null {
+  const email = c.email && !c.bounced_at;
+  if (email && (c.queue_channel === "email" || (!c.queue_channel && !c.fb_key && !c.ig_key) || (!c.queue_channel && c.channel === "email")))
+    return { kind: "email", label: "Email", icon: "ri-mail-line" };
+  const chat = chatFor(c);
+  if (chat && chat.channel !== "email") return { kind: "chat", ...chat };
+  return email ? { kind: "email", label: "Email", icon: "ri-mail-line" } : chat ? { kind: "chat", ...chat } : null;
 }
 
 /** A Facebook page search for a business we only have a name (and town) for. */

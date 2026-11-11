@@ -5,38 +5,42 @@ import { formatDate } from "@/pages/account/portal/format";
 import { ErrorText, Field, FilterTabs, Input, Modal, PillButton, Select, Textarea } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import * as o from "../outreach";
+import { copyEmail, followupEmail, gmailCompose, openerEmail } from "../outreachEmail";
 
-// Studio → Outreach: event businesses we invite to the partner program, two lanes working together
-// (supabase/outreach.sql + outreach-email.sql). Everyone with an email gets Angela's email from the
-// daily job (api/_lib/outreach-mail.ts) once it's started; everyone else is "Your turn": "Message"
-// copies the opener with their personal link, opens their chat, and marks them messaged; five days
-// later they come back to the top for a follow-up. Replies to the emails mark themselves; anyone who
-// signs up or applies through their link (or with the same email / mobile / Instagram) moves to
-// "Signed up" on its own.
+// Studio → Outreach: event businesses we invite to the partner program, by hand, 20 a day, like Leads
+// (supabase/outreach.sql, outreach-email.sql, outreach-daily.sql). Each morning the next 20 land on
+// Today: about half by email (copied, then sent from Gmail in hello@), half on Messenger / Instagram
+// (copied, then pasted in their chat). Unfinished ones carry over. Follow-ups are due 5 days after the
+// first message and a week after the first follow-up, and show first on Today. A dead email is marked by
+// hand ("Email bounced"). Anyone who signs up or applies through their link (or with the same email /
+// mobile / Instagram) moves to "Signed up" on its own.
 
 const TABS: { value: o.OutreachTab; label: string }[] = [
-  { value: "your_turn", label: "Your turn" },
-  { value: "emailing", label: "Emailing" },
-  { value: "sent", label: "Sent by you" },
+  { value: "today", label: "Today" },
+  { value: "follow_up", label: "Follow up" },
+  { value: "waiting", label: "Waiting" },
   { value: "replied", label: "Replied" },
   { value: "signed_up", label: "Signed up" },
   { value: "closed", label: "Closed" },
+  { value: "all", label: "All businesses" },
 ];
 const KINDS = o.KINDS;
 const BLANK: o.ContactInput = { name: "", contact_person: null, kind: "coordinator", city: null, facebook: null, instagram: null, website: null, email: null, phone: null, found_via: null, notes: null };
 const SHEET_HEAD = "name,contact_person,kind,city,facebook,instagram,website,email,phone,found_via,notes";
+const byEmail = (c: o.Contact) => c.channel === "email" || c.channel === "email_auto";
 
 type Toast = { text: string; undo?: () => Promise<void> };
 
 export default function OutreachPage() {
   const { demo } = usePortal();
   const [counts, setCounts] = useState<o.Counts | null | undefined>(undefined);
-  const [tab, setTab] = useState<o.OutreachTab>("your_turn");
+  const [tab, setTab] = useState<o.OutreachTab>("today");
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
   const [cities, setCities] = useState<string[]>([]);
   const [kind, setKind] = useState("");
   const [rows, setRows] = useState<o.Contact[] | null>(null);
+  const [days, setDays] = useState<o.Day[]>([]);
   const [page, setPage] = useState(0);
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -44,8 +48,6 @@ export default function OutreachPage() {
   const [editing, setEditing] = useState<{ id: string | null; c: o.ContactInput } | null>(null);
   const [importing, setImporting] = useState(false);
   const [writing, setWriting] = useState(false);
-  const [starting, setStarting] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
 
@@ -53,7 +55,10 @@ export default function OutreachPage() {
   const load = useCallback(
     async (p = 0) => {
       const next = await o.loadTab(tab, { search, city, kind, page: p });
-      setRows((r) => (p === 0 ? next : [...(r ?? []), ...next]));
+      // Today: follow-ups owed first, then the ones still to do, then the ones done today
+      const rank = (c: o.Contact) => (o.followUpDue(c) ? 0 : c.status === "to_message" ? 1 : 2);
+      const sorted = tab === "today" ? [...next].sort((a, b) => rank(a) - rank(b)) : next;
+      setRows((r) => (p === 0 ? sorted : [...(r ?? []), ...sorted]));
       setPage(p);
       setMore(next.length === o.PAGE);
     },
@@ -62,7 +67,13 @@ export default function OutreachPage() {
 
   useEffect(() => {
     if (demo) return setCounts(null);
-    recount();
+    // fill today's list first, so the counts and the list agree
+    o.fillToday()
+      .catch(() => undefined)
+      .finally(() => {
+        recount();
+        o.loadDays().then(setDays);
+      });
     o.loadCities().then(setCities);
     o.loadMessages().then(setMessages);
   }, [demo, recount]);
@@ -97,49 +108,67 @@ export default function OutreachPage() {
     }
   };
 
-  /** Copy the message, open their chat, mark it sent. The copy starts while this tab still has
-   *  focus (browsers refuse it after), and the chat opens in the same click so it isn't blocked. */
-  const send = async (c: o.Contact, kind: "opener" | "followup") => {
+  /** Email: copy the email (formatted, with the tier picture) and open Gmail in hello@ with their address and
+   *  the subject filled in. Chat: copy the message and open their Messenger / Instagram / Viber. Either way it's
+   *  marked sent (Undo if it wasn't). The copy starts while this tab still has focus (browsers refuse it after),
+   *  and the new tab opens in the same click so it isn't blocked. */
+  const send = async (c: o.Contact, step: "opener" | "followup") => {
+    const now = new Date().toISOString();
+    const followPatch = { followed_up_at: now, followups: (c.followups ?? 0) + 1 };
+    const useEmail = step === "followup" ? byEmail(c) && !!c.email && !c.bounced_at : o.wayFor(c)?.kind === "email";
+    if (useEmail && c.email) {
+      const mail = step === "opener" ? openerEmail(c) : followupEmail(c, (c.followups ?? 0) + 1);
+      const copying = copyEmail(mail);
+      window.open(gmailCompose(c.email, mail.subject), "_blank", "noopener");
+      const copied = await copying.then(() => true, () => false);
+      return change(
+        c,
+        step === "opener" ? { status: "messaged", messaged_at: now, channel: "email" } : followPatch,
+        copied ? `Email copied. In Gmail, paste it (⌘V) and send. ${c.name} is marked emailed.` : "Gmail is open, but the email didn’t copy. Copy it from Messages instead.",
+      );
+    }
     const chat = o.chatFor(c);
     const audience = o.audienceOf(c.kind);
-    const text = o.fillMessage(messages?.[o.messageKey(kind, audience)] ?? "", c);
+    const text = o.fillMessage(messages?.[o.messageKey(step, audience)] ?? "", c);
     const copying = navigator.clipboard?.writeText(text) ?? Promise.reject();
     if (chat) window.open(chat.url, "_blank", "noopener");
-    let copied = true;
-    try {
-      await copying;
-    } catch {
-      copied = false;
-    }
-    const now = new Date().toISOString();
+    const copied = await copying.then(() => true, () => false);
     await change(
       c,
-      kind === "opener" ? { status: "messaged", messaged_at: now, channel: chat?.channel ?? null } : { followed_up_at: now },
+      step === "opener" ? { status: "messaged", messaged_at: now, channel: chat?.channel ?? null } : followPatch,
       chat?.channel === "call"
         ? `Marked ${c.name} as called. The message is copied if you want to text it after.`
         : copied
-          ? `Message copied. Paste it in the chat${kind === "followup" ? "." : audience === "coordinator" ? " and attach the 4 coordinator images." : " and attach the 2 partner images."}`
+          ? `Message copied. Paste it in the chat${step === "followup" ? "." : audience === "coordinator" ? " and attach the 4 coordinator images." : " and attach the 2 partner images."}`
           : "Couldn't copy the message. Open Messages to copy it by hand.",
     );
   };
 
-  const test = async () => {
-    try {
-      const r = await o.sendTest();
-      say({ text: `Sent ${r.sent} test emails to ${r.to}, one for each type of business.` });
-    } catch (e) {
-      say({ text: e instanceof Error ? e.message : "The test didn’t send." });
-    }
+  /** A dead email, marked by hand: never emailed again. With Messenger / Instagram they go back on the list
+   *  for a chat; with nothing else they're closed. */
+  const bounced = (c: o.Contact) => {
+    const now = new Date().toISOString();
+    const other = !!(c.fb_key || c.ig_key);
+    return change(
+      c,
+      other
+        ? { bounced_at: now, stop_reason: "email bounced", status: "to_message", channel: null, messaged_at: null, followed_up_at: null, followups: 0, queued_on: null, queue_channel: null }
+        : { bounced_at: now, stop_reason: "email bounced", status: "skipped" },
+      other ? `${c.name}’s email is marked dead. They’ll come back on ${c.fb_key ? "Messenger" : "Instagram"}.` : `${c.name}’s email is marked dead, and they’re closed (no other way to reach them).`,
+    );
   };
-  const toggle = async (on: boolean) => {
-    try {
-      await o.setAutoEmail(on);
-      setStarting(false);
-      await recount();
-      say({ text: on ? "Emailing is on. Angela’s first batch goes out at 9:30 AM." : "Emailing is paused. Nothing more goes out until you start it again." });
-    } catch (e) {
-      say({ text: e instanceof Error ? e.message : "Couldn’t change that." });
-    }
+
+  /** Their Facebook / Instagram / website icon: opens it and copies the message for them (the opener, or the
+   *  follow-up once they've been messaged), ready to paste. It doesn't mark them messaged — "Message" does. */
+  const copyFor = (c: o.Contact, where: string) => {
+    if (c.status !== "to_message" && c.status !== "messaged") return;
+    const step = c.status === "messaged" ? "followup" : "opener";
+    const text = o.fillMessage(messages?.[o.messageKey(step, o.audienceOf(c.kind))] ?? "", c);
+    if (!text) return;
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => say({ text: `${step === "followup" ? "Follow-up" : "Message"} for ${c.name} copied. Paste it on ${where}.` }))
+      .catch(() => undefined);
   };
 
   const find = (c: o.Contact) => {
@@ -152,7 +181,7 @@ export default function OutreachPage() {
     return (
       <>
         <StudioHeader title="Outreach" />
-        <p className="text-[14px] text-[var(--slate)]">{demo ? "Outreach isn’t part of demo data." : "Run supabase/outreach.sql and outreach-email.sql on the live database to switch this on."}</p>
+        <p className="text-[14px] text-[var(--slate)]">{demo ? "Outreach isn’t part of demo data." : "Run supabase/outreach-daily.sql on the live database to switch this on."}</p>
       </>
     );
 
@@ -160,7 +189,7 @@ export default function OutreachPage() {
     <>
       <StudioHeader
         title="Outreach"
-        sub={`${counts.total.toLocaleString()} businesses on the list`}
+        sub={`${counts.not_contacted.toLocaleString()} not contacted yet · ${counts.total.toLocaleString()} on the list`}
         action={
           <div className="flex flex-wrap gap-2">
             <PillButton onClick={() => setWriting(true)}>
@@ -176,70 +205,76 @@ export default function OutreachPage() {
         }
       />
 
-      <Lanes
-        counts={counts}
-        onTest={test}
-        onToggle={() => (counts.auto_on ? toggle(false) : setStarting(true))}
-        onStart={() => {
-          setTab("your_turn");
-          listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }}
-      />
+      <div className="mb-4">
+        <FilterTabs<o.OutreachTab>
+          value={tab}
+          onChange={setTab}
+          options={TABS.map((t) => ({
+            value: t.value,
+            label: `${t.label} (${o.tabCount(counts, t.value).toLocaleString()})`,
+          }))}
+        />
+      </div>
 
-      <div className="mb-4 scroll-mt-6" ref={listRef}>
-        <FilterTabs<o.OutreachTab> value={tab} onChange={setTab} options={TABS.map((t) => ({ value: t.value, label: `${t.label} (${o.tabCount(counts, t.value).toLocaleString()})` }))} />
-      </div>
-      <div className="mb-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-[1fr_200px_200px]">
-        <Input type="search" placeholder="Search by name, handle or city" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
-        <Select value={city} onChange={(e) => setCity(e.target.value)} aria-label="City">
-          <option value="">All cities</option>
-          {cities.map((x) => (
-            <option key={x} value={x}>
-              {x}
-            </option>
-          ))}
-        </Select>
-        <Select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Type">
-          <option value="">All types</option>
-          {(Object.entries(KINDS) as [o.OutreachKind, string][]).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </Select>
-      </div>
+      {tab === "today" ? <TodayBar counts={counts} /> : null}
+
+      {tab !== "today" ? (
+        <div className="mb-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-[1fr_200px_200px]">
+          <Input type="search" placeholder="Search by name, handle or city" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
+          <Select value={city} onChange={(e) => setCity(e.target.value)} aria-label="City">
+            <option value="">All cities</option>
+            {cities.map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </Select>
+          <Select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Type">
+            <option value="">All types</option>
+            {(Object.entries(KINDS) as [o.OutreachKind, string][]).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </Select>
+        </div>
+      ) : null}
 
       {rows === null ? <p className="text-[14px] text-[var(--slate)]">Loading…</p> : null}
       {rows && !rows.length ? (
         <p className="rounded-[22px] border border-[var(--line)] bg-white p-6 text-[14px] text-[var(--slate)]">
-          {search || city || kind ? "No one here matches that search." : counts.total ? "No one here right now." : "The list is empty. Import a sheet or add someone to start."}
+          {search || city || kind ? "No one here matches that search." : tab === "today" ? "Nothing left to do today." : counts.total ? "No one here right now." : "The list is empty. Import a sheet or add someone to start."}
         </p>
       ) : null}
 
       {rows?.length ? (
         <ul className="divide-y divide-[var(--line)] overflow-hidden rounded-[22px] border border-[var(--line)] bg-white">
-          {rows.map((c) => (
-            <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
-              <button type="button" onClick={() => setEditing({ id: c.id, c: pick(c) })} className="min-w-0 flex-1 basis-[240px] text-left">
-                <p className="text-[15px] font-semibold text-[var(--ink)] [overflow-wrap:anywhere]">
-                  {c.name}
-                  {c.contact_person ? <span className="font-normal text-[var(--slate)]"> · {c.contact_person}</span> : null}
-                </p>
-                <p className="text-[13px] text-[var(--slate)]">{[KINDS[c.kind], c.city].filter(Boolean).join(" · ")}</p>
-                <ReachedBy c={c} />
-              </button>
-              <div className="flex items-center gap-1">
-                {o.pageUrls(c).map((u) => (
-                  <a key={u.url} href={u.url} target="_blank" rel="noreferrer" aria-label={`${c.name} on ${u.label}`} className="grid h-10 w-10 place-items-center rounded-full text-[19px] text-[var(--slate)] hover:bg-black/5 hover:text-[var(--ink)]">
-                    <i className={u.icon} />
-                  </a>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Actions c={c} tab={tab} busy={busy === c.id} send={send} change={change} find={find} />
-              </div>
-            </li>
-          ))}
+          {rows.map((c) => {
+            const done = tab === "today" && c.status !== "to_message" && !o.followUpDue(c);
+            return (
+              <li key={c.id} className={`flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4 ${done ? "bg-[#fafaf8]" : ""}`}>
+                <button type="button" onClick={() => setEditing({ id: c.id, c: pick(c) })} className="min-w-0 flex-1 basis-[240px] text-left">
+                  <p className={`text-[15px] font-semibold [overflow-wrap:anywhere] ${done ? "text-[var(--slate)]" : "text-[var(--ink)]"}`}>
+                    {done ? <i className="ri-checkbox-circle-fill mr-1.5 align-[-2px] text-[16px] text-[#2f8a4f]" aria-label="Done" /> : null}
+                    {c.name}
+                    {c.contact_person ? <span className="font-normal text-[var(--slate)]"> · {c.contact_person}</span> : null}
+                  </p>
+                  <p className="text-[13px] text-[var(--slate)]">{[KINDS[c.kind], c.city].filter(Boolean).join(" · ")}</p>
+                  <ReachedBy c={c} />
+                </button>
+                <div className="flex items-center gap-1">
+                  {o.pageUrls(c).map((u) => (
+                    <a key={u.url} href={u.url} target="_blank" rel="noreferrer" onClick={() => copyFor(c, u.label === "Website" ? "their website" : u.label)} aria-label={`${c.name} on ${u.label}`} title={c.status === "to_message" || c.status === "messaged" ? `Opens ${u.label} and copies the message` : undefined} className="grid h-10 w-10 place-items-center rounded-full text-[19px] text-[var(--slate)] hover:bg-black/5 hover:text-[var(--ink)]">
+                      <i className={u.icon} />
+                    </a>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Actions c={c} busy={busy === c.id} send={send} change={change} find={find} bounced={bounced} />
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
       {more ? (
@@ -247,6 +282,8 @@ export default function OutreachPage() {
           <PillButton onClick={() => load(page + 1)}>Show more</PillButton>
         </div>
       ) : null}
+
+      {tab === "today" && days.length ? <PastDays days={days} /> : null}
 
       {editing ? (
         <ContactDialog
@@ -274,18 +311,6 @@ export default function OutreachPage() {
             say({ text });
           }}
         />
-      ) : null}
-      {starting ? (
-        <Modal open onClose={() => setStarting(false)} title="Start emailing?" width={480}>
-          <p className="text-[15px] leading-relaxed text-[var(--ink)]">
-            Every morning at 9:30 AM, Angela’s email goes to the next {counts.daily_limit} businesses with an email address, coordinators and caterers first. Anyone who hasn’t answered gets one follow-up 5 days later.
-          </p>
-          <p className="mt-3 text-[14px] text-[var(--slate)]">Replies go to hello@ and move them to Replied. A “stop” closes them for good. You can pause anytime.</p>
-          <div className="mt-6 flex justify-end gap-2">
-            <PillButton onClick={() => setStarting(false)}>Not yet</PillButton>
-            <PillButton tone="dark" onClick={() => toggle(true)}>Start emailing</PillButton>
-          </div>
-        </Modal>
       ) : null}
       {writing && messages ? (
         <MessagesDialog
@@ -322,106 +347,79 @@ export default function OutreachPage() {
 }
 
 const day = (iso: string | null) => (iso ? formatDate(iso) : "");
-const followUpOn = (iso: string) => day(new Date(new Date(iso).getTime() + o.FOLLOW_UP_DAYS * 864e5).toISOString());
 
-/** Who reached them, how and when — or whose turn it is. */
-function ReachedBy({ c }: { c: o.Contact }) {
-  const auto = c.channel === "email_auto";
-  const chat = o.chatFor(c);
-  let icon = "ri-time-line";
-  let text = "";
-  if (c.status === "signed_up") (icon = "ri-check-double-line"), (text = `Signed up ${day(c.signed_up_at)}${c.matched_enquiry ? " · applied as a partner" : c.matched_profile ? " · made an account" : ""}`);
-  else if (c.status === "replied") (icon = "ri-reply-line"), (text = `Replied ${day(c.replied_at)}${auto ? " to Angela’s email" : c.channel ? ` on ${o.CHANNELS[c.channel]}` : ""}`);
-  else if (c.status === "not_interested" || c.status === "skipped") (icon = "ri-close-circle-line"), (text = c.stop_reason ? `Closed · ${c.stop_reason}` : c.status === "skipped" ? "Skipped" : "Not interested");
-  else if (auto) {
-    icon = "ri-mail-send-line";
-    text = `Emailed automatically ${day(c.messaged_at)}${c.followed_up_at ? ` · followed up ${day(c.followed_up_at)}` : c.messaged_at ? ` · follow-up ${followUpOn(c.messaged_at)}` : ""}`;
-  } else if (c.status === "messaged") {
-    icon = o.followUpDue(c) ? "ri-alarm-line" : "ri-user-voice-line";
-    const how = c.channel ? ` on ${o.CHANNELS[c.channel]}` : "";
-    text = o.followUpDue(c) ? `Follow-up due · you messaged them${how} ${day(c.messaged_at)}` : `Messaged by you${how} ${day(c.messaged_at)}${c.followed_up_at ? ` · followed up ${day(c.followed_up_at)}` : ""}`;
-  } else if (c.email && !c.bounced_at) (icon = "ri-mail-line"), (text = "In line for Angela’s email");
-  else (icon = chat?.icon ?? "ri-hand"), (text = `${c.bounced_at ? "Email bounced · " : ""}${!chat ? "No way to reach them yet" : chat.channel === "call" ? "Call them" : `On ${chat.label}`}`);
+/** Today's progress: how many of the 20 are done, how many emails and messages went out, follow-ups owed. */
+function TodayBar({ counts: k }: { counts: o.Counts }) {
+  const pct = k.today_total ? Math.round((k.today_done / k.today_total) * 100) : 0;
+  const today = new Date().toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric", timeZone: "Asia/Manila" });
   return (
-    <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[var(--ink)]">
-      <i className={`${icon} text-[15px] text-[var(--slate)]`} aria-hidden />
-      {text}
-    </p>
+    <section className="mb-5 rounded-[22px] border border-[var(--line)] bg-white p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="text-[15px] font-semibold text-[var(--ink)]">{today}</p>
+        <p className="text-[14px] text-[var(--slate)]">
+          {k.today_done} of {k.today_total} done
+          {k.follow_up ? ` · ${k.follow_up} follow-up${k.follow_up === 1 ? "" : "s"} first` : ""}
+        </p>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/5" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Today’s list">
+        <div className="h-full rounded-full bg-[var(--ink)] transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mt-3 text-[13px] text-[var(--slate)]">
+        <span className="whitespace-nowrap"><i className="ri-mail-line align-[-2px]" aria-hidden /> {k.emailed_today} emailed</span>
+        {" · "}
+        <span className="whitespace-nowrap"><i className="ri-messenger-line align-[-2px]" aria-hidden /> {k.messaged_today} messaged</span>
+        {" · "}
+        <span className="whitespace-nowrap">emails go out from hello@ in Gmail</span>
+      </p>
+    </section>
   );
 }
 
-const manilaHour = () => {
-  const d = new Date(Date.now() + 8 * 3600_000);
-  return d.getUTCHours() + d.getUTCMinutes() / 60;
-};
-
-/** The two lanes: what Angela's email job did, and what's waiting for the team. */
-function Lanes({ counts: k, onTest, onToggle, onStart }: { counts: o.Counts; onTest: () => void; onToggle: () => void; onStart: () => void }) {
-  const card = "flex flex-col rounded-[22px] border border-[var(--line)] bg-white p-5";
-  const label = "flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--slate)]";
-  const big = "mt-3 font-display text-[2.1rem] font-semibold leading-none text-[var(--ink)]";
-  const small = "text-[15px] font-normal text-[var(--slate)]";
-  const next = !k.auto_on
-    ? `Once started: ${k.daily_limit} a day at 9:30 AM, from Angela.`
-    : k.auto_today >= k.daily_limit || manilaHour() >= 9.75
-      ? "Next batch tomorrow at 9:30 AM."
-      : "Next batch today at 9:30 AM.";
-  const ways = [
-    ["Messenger", k.your_messenger],
-    ["Viber", k.your_viber],
-    ["Instagram", k.your_instagram],
-    ["Call", k.your_call],
-  ].filter(([, n]) => Number(n) > 0);
+/** Earlier days, like Leads: how each day's list went. */
+function PastDays({ days }: { days: o.Day[] }) {
   return (
-    <div className="mb-6 grid gap-3 md:grid-cols-2">
-      <section className={card}>
-        <div className="flex items-center justify-between gap-3">
-          <p className={label}>
-            <i className="ri-mail-send-line text-[15px]" aria-hidden /> Emailed automatically
-          </p>
-          <span className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${k.auto_on ? "bg-[#e3f5e9] text-[#1d6b3a]" : "bg-black/5 text-[var(--slate)]"}`}>{k.auto_on ? "On" : "Paused"}</span>
-        </div>
-        <p className={big}>
-          {k.auto_today} <span className={small}>of {k.daily_limit} today</span>
-        </p>
-        <p className="mt-2 text-[14px] text-[var(--ink)]">
-          {k.auto_total.toLocaleString()} emailed · {k.auto_replied.toLocaleString()} replied · {k.email_queue.toLocaleString()} in line
-        </p>
-        <p className="mt-1 text-[13px] text-[var(--slate)]">{next}</p>
-        <div className="mt-auto flex flex-wrap gap-2 pt-4">
-          <PillButton onClick={onTest}>
-            <i className="ri-mail-check-line" /> Send me a test
-          </PillButton>
-          <PillButton tone={k.auto_on ? undefined : "dark"} onClick={onToggle}>
-            <i className={k.auto_on ? "ri-pause-line" : "ri-play-line"} /> {k.auto_on ? "Pause" : "Start emailing"}
-          </PillButton>
-        </div>
-      </section>
-      <section className={card}>
-        <p className={label}>
-          <i className="ri-hand text-[15px]" aria-hidden /> Your turn
-        </p>
-        <p className={big}>
-          {k.team_today} <span className={small}>of {o.DAILY_GOAL} today</span>
-        </p>
-        <p className="mt-2 text-[14px] text-[var(--ink)]">
-          {ways.length
-            ? ways.map(([w, n], i) => (
-                <span key={w} className="whitespace-nowrap">
-                  {i ? " · " : ""}
-                  {w} {Number(n).toLocaleString()}
-                </span>
-              ))
-            : "No one waiting on you."}
-        </p>
-        <p className="mt-1 text-[13px] text-[var(--slate)]">{k.your_followups ? `${k.your_followups.toLocaleString()} follow-up${k.your_followups === 1 ? "" : "s"} due first.` : "Businesses without an email. Message them from here."}</p>
-        <div className="mt-auto flex flex-wrap gap-2 pt-4">
-          <PillButton tone="primary" onClick={onStart}>
-            <i className="ri-send-plane-line" /> Start messaging
-          </PillButton>
-        </div>
-      </section>
-    </div>
+    <section className="mt-8">
+      <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--slate)]">Earlier days</h2>
+      <ul className="divide-y divide-[var(--line)] overflow-hidden rounded-[22px] border border-[var(--line)] bg-white">
+        {days.map((d) => (
+          <li key={d.day} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 text-[14px]">
+            <span className="font-medium text-[var(--ink)]">{new Date(`${d.day}T12:00:00+08:00`).toLocaleDateString("en-PH", { weekday: "short", month: "short", day: "numeric", timeZone: "Asia/Manila" })}</span>
+            <span className="text-[var(--slate)]">
+              {d.contacted} of {d.total} contacted
+              {d.replied ? ` · ${d.replied} replied` : ""}
+              {d.signed_up ? ` · ${d.signed_up} signed up` : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Where they stand: how we reached them and when, what's next. */
+function ReachedBy({ c }: { c: o.Contact }) {
+  const way = o.wayFor(c);
+  let icon = "ri-time-line";
+  let text = "";
+  const how = byEmail(c) ? "Emailed" : c.channel ? `Messaged on ${o.CHANNELS[c.channel]}` : "Contacted";
+  if (c.status === "signed_up") (icon = "ri-check-double-line"), (text = `Signed up ${day(c.signed_up_at)}${c.matched_enquiry ? " · applied as a partner" : c.matched_profile ? " · made an account" : ""}`);
+  else if (c.status === "replied") (icon = "ri-reply-line"), (text = `Replied ${day(c.replied_at)}${c.channel ? ` · we ${byEmail(c) ? "emailed" : "messaged"} them ${day(c.messaged_at)}` : ""}`);
+  else if (c.status === "not_interested" || c.status === "skipped") (icon = "ri-close-circle-line"), (text = c.stop_reason ? `Closed · ${c.stop_reason}` : c.status === "skipped" ? "Skipped" : "Not interested");
+  else if (c.status === "messaged") {
+    const due = o.followUpDue(c);
+    const next = o.nextFollowUp(c);
+    icon = due ? "ri-alarm-line" : byEmail(c) ? "ri-mail-check-line" : "ri-chat-check-line";
+    const followed = c.followups ? ` · followed up ${c.followups === 1 ? day(c.followed_up_at) : `twice, last ${day(c.followed_up_at)}`}` : "";
+    text = `${due ? (c.followups ? "Last follow-up due · " : "Follow-up due · ") : ""}${how} ${day(c.messaged_at)}${followed}${!due && next ? ` · follow-up ${day(next)}` : !due && c.followups >= 2 ? " · no more follow-ups" : ""}`;
+  } else if (way) {
+    icon = way.icon;
+    text = `${c.bounced_at ? "Email bounced · " : ""}${way.kind === "email" ? `Email · ${c.email}` : way.label === "Call" ? "Call them" : `On ${way.label}`}`;
+  } else text = "No way to reach them yet";
+  return (
+    <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[var(--ink)] [overflow-wrap:anywhere]">
+      <i className={`${icon} text-[15px] text-[var(--slate)]`} aria-hidden />
+      {text}
+    </p>
   );
 }
 
@@ -430,36 +428,27 @@ const pick = (c: o.Contact): o.ContactInput => ({
   website: c.website, email: c.email, phone: c.phone, found_via: c.found_via, notes: c.notes,
 });
 
-function Actions({ c, tab, busy, send, change, find }: {
+function Actions({ c, busy, send, change, find, bounced }: {
   c: o.Contact;
+  busy: boolean;
+  send: (c: o.Contact, step: "opener" | "followup") => Promise<void>;
+  change: (c: o.Contact, patch: Partial<o.Contact>, text: string) => Promise<void>;
   /** no page on file yet: search Facebook for them and open the form to paste it in */
   find: (c: o.Contact) => void;
-  tab: o.OutreachTab;
-  busy: boolean;
-  send: (c: o.Contact, kind: "opener" | "followup") => Promise<void>;
-  change: (c: o.Contact, patch: Partial<o.Contact>, text: string) => Promise<void>;
+  bounced: (c: o.Contact) => Promise<void>;
 }) {
   const now = () => new Date().toISOString();
   const replied = <PillButton disabled={busy} onClick={() => change(c, { status: "replied", replied_at: now() }, `${c.name} moved to Replied.`)}>Replied</PillButton>;
-  const no = <PillButton disabled={busy} onClick={() => change(c, { status: "not_interested" }, `${c.name} won’t be messaged again.`)}>Not interested</PillButton>;
-  const chat = o.chatFor(c);
-  if (tab === "your_turn" && o.followUpDue(c))
-    return (
-      <>
-        {no}
-        {replied}
-        <PillButton tone="primary" disabled={busy || !chat} onClick={() => send(c, "followup")}>
-          <i className={chat?.icon ?? "ri-chat-3-line"} /> Follow up
-        </PillButton>
-      </>
-    );
-  if (tab === "your_turn")
+  const no = <PillButton disabled={busy} onClick={() => change(c, { status: "not_interested" }, `${c.name} won’t be contacted again.`)}>Not interested</PillButton>;
+  const dead = byEmail(c) && c.email && !c.bounced_at ? <PillButton disabled={busy} title="Their email came back undelivered" onClick={() => bounced(c)}>Email bounced</PillButton> : null;
+  if (c.status === "to_message") {
+    const way = o.wayFor(c);
     return (
       <>
         <PillButton disabled={busy} onClick={() => change(c, { status: "skipped" }, `Skipped ${c.name}.`)}>Skip</PillButton>
-        {chat ? (
-          <PillButton tone="primary" disabled={busy} title={chat.channel === "call" ? "Calls them and marks them contacted" : `Copies the message and opens ${chat.label}`} onClick={() => send(c, "opener")}>
-            <i className={chat.icon} /> {chat.channel === "call" ? "Call" : "Message"}
+        {way ? (
+          <PillButton tone="primary" disabled={busy} title={way.kind === "email" ? "Copies the email and opens Gmail" : way.label === "Call" ? "Calls them and marks them contacted" : `Copies the message and opens ${way.label}`} onClick={() => send(c, "opener")}>
+            <i className={way.icon} /> {way.kind === "email" ? "Email" : way.label === "Call" ? "Call" : "Message"}
           </PillButton>
         ) : (
           <PillButton tone="dark" disabled={busy} title="Searches Facebook for them and opens their details, so you can paste in their page" onClick={() => find(c)}>
@@ -468,25 +457,22 @@ function Actions({ c, tab, busy, send, change, find }: {
         )}
       </>
     );
-  // In line for the email: take them out of it. Emailed: mark what happened.
-  if (tab === "emailing")
-    return c.status === "to_message" ? (
-      <PillButton disabled={busy} onClick={() => change(c, { status: "skipped" }, `${c.name} won’t be emailed.`)}>Skip</PillButton>
-    ) : (
-      <>
-        {no}
-        {replied}
-      </>
-    );
-  if (tab === "sent")
+  }
+  if (c.status === "messaged")
     return (
       <>
         {no}
+        {dead}
         {replied}
+        {o.followUpDue(c) ? (
+          <PillButton tone="primary" disabled={busy} title={byEmail(c) ? "Copies the follow-up and opens Gmail" : "Copies the follow-up and opens their chat"} onClick={() => send(c, "followup")}>
+            <i className={byEmail(c) ? "ri-mail-send-line" : "ri-chat-3-line"} /> Follow up
+          </PillButton>
+        ) : null}
       </>
     );
-  if (tab === "replied") return no;
-  if (tab === "signed_up")
+  if (c.status === "replied") return no;
+  if (c.status === "signed_up")
     return c.matched_enquiry ? (
       <Link to="/studio/leads" className="text-[13px] font-medium text-[var(--ink)] underline underline-offset-4">
         See the application in Leads

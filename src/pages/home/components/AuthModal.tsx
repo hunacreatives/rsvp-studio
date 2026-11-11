@@ -6,6 +6,7 @@ import { confirmRedirect, rememberAuthNext } from "@/lib/authNext";
 import { GoogleButton } from "@/lib/googleSignIn";
 import { BLUE_LAYOUT, BUBBLE_LAYOUT, CHARACTER_BLINK as BLINK, CHARACTER_EYES as EYES, CHARACTER_LAYOUT, CHARACTER_MOUTH as MOUTH } from "@/components/CharacterLoader";
 import { trackEvent } from "@/lib/analytics";
+import { emailProblemOffline } from "@/lib/emailCheck";
 
 /**
  * Where to go after logging in when a signed-out visitor was sent here from a
@@ -698,6 +699,12 @@ function AuthForm({
       setLoading(false);
       onAuthed();
     } else {
+      // a typo or a made-up address: the confirmation email would bounce, and they'd never get in
+      const badEmail = emailProblemOffline(email);
+      if (badEmail) {
+        setLoading(false);
+        return setError(badEmail);
+      }
       setRememberLogin(true);
       const { data, error } = await supabase.auth.signUp({
         email,

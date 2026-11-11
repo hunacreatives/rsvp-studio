@@ -54,7 +54,8 @@ export default function ProjectInquiry() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(false);
+  // true: a generic failure; a string: the server's own message (e.g. "Did you mean ana@gmail.com?")
+  const [error, setError] = useState<boolean | string>(false);
   const [omitted, setOmitted] = useState<string[]>([]);
   // Which step the visitor tried to leave with something missing (shows the messages).
   const [tried, setTried] = useState(0);
@@ -216,8 +217,8 @@ export default function ProjectInquiry() {
       trackEvent("generate_lead", { form: "project", services: getArr("services").length || 1 });
       // The thank-you card is much shorter than the form: bring it into view.
       requestAnimationFrame(() => sectionRef.current && scrollToEl(sectionRef.current));
-    } catch {
-      setError(true);
+    } catch (err) {
+      setError(err instanceof Error && err.message !== "Failed to submit inquiry" ? err.message : true);
     } finally {
       setSubmitting(false);
     }
@@ -563,7 +564,11 @@ export default function ProjectInquiry() {
                   </div>
                 )}
 
-                {error && (
+                {typeof error === "string" ? (
+                  <p role="alert" className="mt-6 text-sm text-[#c2410c]">
+                    {error}
+                  </p>
+                ) : error && (
                   <p role="alert" className="mt-6 text-sm text-[#c2410c]">
                     Something went wrong sending your inquiry. Please try again, or email us
                     directly at{" "}

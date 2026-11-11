@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, deliverable, esc, isEmail, sendChecked } from "./_lib/email.js";
+import { emailProblem } from "./_lib/email-check.js";
 import { navyButton } from "./_lib/support-mail.js";
 import { frame, h1, p, SITE } from "./_lib/enquiry-mail.js";
 
@@ -60,6 +61,12 @@ async function launchSignup(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: "That doesn't look like an email" });
     return;
   }
+  // typos and made-up addresses never join the list (each one bounces on launch day: api/_lib/email-check.ts)
+  const badEmail = await emailProblem(email);
+  if (badEmail) {
+    res.status(400).json({ error: badEmail });
+    return;
+  }
   const { data, error } = await supabaseAdmin
     .from("launch_signups")
     .upsert({ email, source: clean(body.source, 80) || null }, { onConflict: "email", ignoreDuplicates: true })
@@ -91,7 +98,7 @@ async function launchSignup(req: VercelRequest, res: VercelResponse) {
 async function joinMailingList(userId: string, email: string) {
   try {
     const addr = email.trim().toLowerCase();
-    if (!isEmail(addr) || !deliverable(addr)) return;
+    if (!isEmail(addr) || !deliverable(addr) || (await emailProblem(addr))) return;
     const { data: profile } = await supabaseAdmin.from("profiles").select("is_staff").eq("id", userId).maybeSingle();
     if (profile?.is_staff) return;
     const { error } = await supabaseAdmin.from("launch_signups").upsert({ email: addr, source: "account" }, { onConflict: "email", ignoreDuplicates: true });

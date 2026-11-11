@@ -142,10 +142,6 @@
     {
       "path": "/api/support-cron",
       "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/support-cron?only=outreach",
-      "schedule": "30 1 * * *"
     }
   ],
   "functions": {

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, esc, isEmail, normalizePhone, sendChecked } from "./_lib/email.js";
+import { emailProblem } from "./_lib/email-check.js";
 import { formatHostNames, hostRecipients } from "./_lib/hosts.js";
 import { claimRsvpEmails, isPremium } from "./_lib/rsvp-budget.js";
 import { captureError } from "./_lib/sentry.js";
@@ -395,7 +396,11 @@ ${[
     }
   }
   let guestSend: Promise<unknown> | null = null;
-  if (!prior && email && underDailyCap && (await claimRsvpEmails(supabaseAdmin, "guest", premium, site.event_id, 1))) {
+  // A mistyped or made-up guest email: the RSVP is saved as always, but no confirmation is sent to it
+  // (it would only bounce: api/_lib/email-check.ts). The form's thank-you asks them to check the spelling
+  // (`badEmail`); the form catches most of these before sending, and lets a guest who's sure send anyway.
+  const badEmail = !prior && !!email && !!(await emailProblem(email));
+  if (!prior && email && !badEmail && underDailyCap && (await claimRsvpEmails(supabaseAdmin, "guest", premium, site.event_id, 1))) {
     // The branded "You're on the list" (api/_lib/guest-mail.ts), in the hosts' voice.
     const mail = guestConfirmation({
       content: site.published_content as GuestContent,
@@ -435,5 +440,5 @@ ${[
   const textResult = textSend ? results[sends.indexOf(textSend)] : null;
   const texted = textResult?.status === "fulfilled" && (textResult.value as { status: string }).status === "sent";
 
-  res.status(200).json({ ok: true, updated: !!prior, emailed, texted });
+  res.status(200).json({ ok: true, updated: !!prior, emailed, texted, badEmail });
 }

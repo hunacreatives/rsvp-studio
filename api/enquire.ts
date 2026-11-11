@@ -3,6 +3,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { clean, esc, isEmail, sendChecked } from "./_lib/email.js";
+import { emailProblem } from "./_lib/email-check.js";
 import { enquiryReceipt } from "./_lib/enquiry-mail.js";
 import { leadRepliesOn, leadReplyAddress } from "./_lib/support-mail.js";
 import { captureError } from "./_lib/sentry.js";
@@ -112,6 +113,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = String(values.email ?? "").toLowerCase();
   const name = String(values.your_name || values.full_name || "");
   if (!name || !isEmail(email)) return res.status(400).json({ error: "Please enter your name and a valid email." });
+  // A typo or a made-up address: we'd reply to nobody, and the receipt would bounce (api/_lib/email-check.ts).
+  const badEmail = await emailProblem(email);
+  if (badEmail) return res.status(400).json({ error: badEmail });
   // Every lead leaves a mobile number (Francis, Nov 9): clients here answer Viber/SMS faster than email.
   const phone = String(values.phone || values.mobile || "").trim();
   if (phone.replace(/\D/g, "").length < 7) return res.status(400).json({ error: "Please add your mobile number." });
