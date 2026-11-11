@@ -18,12 +18,14 @@ export default class ErrorBoundary extends Component<Props, { failed: boolean }>
     console.error("Page crashed:", error);
     reportError(error, { via: "page crash" });
     // After a new deploy, an open tab can ask for a page file that no longer exists.
-    // Reload once to pick up the new version instead of showing an error.
+    // Reload to pick up the new version instead of showing an error: once per deploy, not once
+    // per session (a reload within the last minute means it didn't help, so show the message).
     const msg = error instanceof Error ? error.message : String(error);
     if (/dynamically imported module|Importing a module script failed|Loading chunk|not a valid JavaScript MIME type/i.test(msg)) {
       try {
-        if (!sessionStorage.getItem("rs-reloaded")) {
-          sessionStorage.setItem("rs-reloaded", "1");
+        const last = Number(sessionStorage.getItem("rs-reloaded") ?? 0);
+        if (!last || Date.now() - last > 60_000) {
+          sessionStorage.setItem("rs-reloaded", String(Date.now()));
           window.location.reload();
         }
       } catch {

@@ -134,7 +134,7 @@
       "destination": "/api/invite-page?op=meta&p=/terms"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }
   ],
