@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { analyticsConfigured, optedOut, setOptOut } from "@/lib/analytics";
+import { trackingConfigured, optedOut, setOptOut } from "@/lib/analytics";
 
-/** Privacy policy → "Turn off analytics in this browser" (src/lib/analytics.ts). */
+/** Privacy policy → "Turn them off in this browser" (src/lib/analytics.ts). */
 export default function AnalyticsOptOut() {
   const [off, setOff] = useState(optedOut);
-  if (!analyticsConfigured()) return null;
+  if (!trackingConfigured()) return null;
   return (
     <p>
-      Analytics is <strong>{off ? "off" : "on"}</strong> in this browser.{" "}
+      Analytics and ad measurement are <strong>{off ? "off" : "on"}</strong> in this browser.{" "}
       <button
         type="button"
         onClick={() => {
@@ -16,7 +16,7 @@ export default function AnalyticsOptOut() {
         }}
         className="inline-flex min-h-[44px] items-center font-medium text-[var(--acc-blue)] underline underline-offset-4 md:min-h-0"
       >
-        {off ? "Turn it back on" : "Turn off analytics in this browser"}
+        {off ? "Turn them back on" : "Turn them off in this browser"}
       </button>
     </p>
   );

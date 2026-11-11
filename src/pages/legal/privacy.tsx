@@ -6,7 +6,7 @@ export default function Privacy() {
   return (
     <LegalLayout
       title="Privacy Policy"
-      lastUpdated="November 8, 2026"
+      lastUpdated="November 11, 2026"
       intro={
         <p>
           The RSVP Studio (&ldquo;we,&rdquo; &ldquo;us&rdquo;) is a digital event design studio and a brand of
@@ -56,7 +56,10 @@ export default function Privacy() {
           (which pages are visited, roughly where visitors are and how they found us), never guests&rsquo; event
           websites. We use it to improve the site, which is our legitimate interest; it isn&rsquo;t used for
           advertising, and Google&rsquo;s ad features are switched off. You can turn it off for your browser in
-          section 5. We don&rsquo;t run advertising scripts.
+          section 5. The Meta pixel tells Facebook and Instagram when someone who saw our ads visits our pages,
+          signs up, starts a design or sends an inquiry, so we can see which ads work and show them to people
+          likely to find us useful. It doesn&rsquo;t receive your name, email or phone number from us, and it never
+          runs on guests&rsquo; event websites. You can turn it off with the same switch in section 5.
         </p>
       </div>
 
@@ -101,6 +104,7 @@ export default function Privacy() {
           <li><strong>Sentry</strong> — error reports, so we can fix problems on the site.</li>
           <li><strong>PayMongo</strong> — online payments (GCash, Maya, cards, QR Ph).</li>
           <li><strong>Google</strong> — &ldquo;Sign in with Google&rdquo;, if you use it, the fonts our pages load, and Google Analytics.</li>
+          <li><strong>Meta</strong> — the Meta pixel on our own pages, to measure our Facebook and Instagram ads.</li>
           <li><strong>Authorities or advisors</strong> — only where the law requires it, or to establish or defend legal claims.</li>
         </ul>
         <p>
@@ -115,7 +119,8 @@ export default function Privacy() {
           For the site to work, your login session and your &ldquo;remember me&rdquo;
           choice are kept in your browser&rsquo;s storage, and a few small settings (like a dismissed notice) may be
           remembered too. Google Analytics sets its own cookies on our pages (never on guests&rsquo; event
-          websites) to count visits; analytics data is kept for two months. There are no advertising cookies.
+          websites) to count visits; analytics data is kept for two months. The Meta pixel sets a cookie (about 90 days) so Meta can connect a
+          visit to an ad you saw; Meta&rsquo;s use of it is covered by Meta&rsquo;s own privacy policy.
           You can clear this storage anytime in your browser; you&rsquo;ll just need to log in again.
         </p>
         <AnalyticsOptOut />
