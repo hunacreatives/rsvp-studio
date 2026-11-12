@@ -8,14 +8,22 @@ import { downloadCsv } from "@/lib/csv";
 import { compressImage } from "@/lib/compressImage";
 
 // Studio → Costs (supabase/studio-costs.sql + cost-receipts-fx.sql): what the studio spends,
-// who paid it, and the 50/50 split between the two partners. They share one login, so
-// "Paid by" is a name, not an account. Dollar costs keep the peso amount they were worth
+// who paid it, and the 50/50 split between the two owners, Francis and Angelica. They
+// share one login, so "Paid by" is picked by name, not taken from the account. Dollar costs keep the peso amount they were worth
 // on their date, so the balance is one peso figure. Each cost can carry receipts
 // (screenshots or PDFs) in a private bucket. Settling up records the payment between the
 // partners (supabase/cost-settlements.sql), with screenshots of the transfer, and closes
 // the open costs; a settle-up can be undone.
 
 type View = "open" | "month" | "all";
+
+// The two owners. They share the hello@ login, so who paid is picked by name.
+const PARTNERS = [
+  { name: "Francis", full: "Francis Fiel Roble" },
+  { name: "Angelica", full: "Angelica Lim" },
+] as const;
+type Partner = (typeof PARTNERS)[number]["name"];
+const isPartner = (n: string | null | undefined): n is Partner => PARTNERS.some((p) => p.name === n?.trim());
 type Currency = studio.Cost["currency"];
 
 const CATEGORIES: { id: studio.CostCategory; label: string }[] = [
@@ -70,16 +78,10 @@ export default function CostsPage() {
   }, [allowed, reload]);
 
   const list = useMemo(() => costs ?? [], [costs]);
-  const payers = useMemo(() => [...new Set(list.map((c) => c.paid_by?.trim()).filter((p): p is string => Boolean(p)))], [list]);
   const open = list.filter((c) => !c.settled_on);
-  const openPaid = open.filter((c) => c.paid_by?.trim());
+  const openPaid = open.filter((c) => isPartner(c.paid_by));
   const noPayer = open.length - openPaid.length;
   const noReceipt = open.filter((c) => !c.receipts.length).length;
-  // Names for the "Sent by" suggestions: everyone who has paid a cost or a settle-up.
-  const names = useMemo(
-    () => [...new Set([...payers, ...settlements.flatMap((s) => [s.from_name, s.to_name]).filter((n): n is string => Boolean(n))])],
-    [payers, settlements],
-  );
 
   // Monthly bills not logged yet this month (their latest entry is from an earlier month).
   const thisMonth = monthKey(today());
@@ -106,7 +108,7 @@ export default function CostsPage() {
     );
 
   const shown = view === "open" ? open : view === "month" ? list.filter((c) => monthKey(c.spent_on) === thisMonth) : list;
-  const bal = balance(openPaid, payers);
+  const bal = balance(openPaid);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -145,7 +147,7 @@ export default function CostsPage() {
       <StudioHeader
         title="Finances"
         tabs="finances"
-        sub="Split 50/50 between the partners. Dollar costs are counted in pesos at the rate on the day."
+        sub={`Split 50/50 between ${PARTNERS.map((p) => p.full).join(" and ")}. Dollar costs are counted in pesos at the rate on the day.`}
         action={
           <div className="flex flex-wrap gap-2">
             {list.length ? (
@@ -195,7 +197,7 @@ export default function CostsPage() {
             ) : null}
             {noPayer ? (
               <p className="text-[14px] text-[#9a5b00]">
-                {noPayer} open cost{noPayer === 1 ? " has" : "s have"} no payer yet and {noPayer === 1 ? "isn’t" : "aren’t"} in the balance. Tap {noPayer === 1 ? "it" : "them"} below to set who paid.
+                {noPayer} open cost{noPayer === 1 ? " has" : "s have"} no payer set and {noPayer === 1 ? "isn’t" : "aren’t"} in the balance. Tap {noPayer === 1 ? "it" : "them"} below to set who paid.
               </p>
             ) : null}
             {noReceipt ? (
@@ -252,7 +254,7 @@ export default function CostsPage() {
                     <p className="text-[12px] text-[var(--slate)]">
                       {formatDate(c.spent_on)} · {categoryLabel(c.category)}
                       {c.monthly ? " · Monthly" : ""}
-                      {c.paid_by ? ` · ${c.paid_by} paid` : <span className="text-[#9a5b00]"> · Who paid?</span>}
+                      {isPartner(c.paid_by) ? ` · ${c.paid_by.trim()} paid` : <span className="text-[#9a5b00]"> · Who paid?</span>}
                       {c.settled_on ? ` · Settled ${formatDate(c.settled_on)}` : ""}
                       {c.receipts.length ? (
                         <span>
@@ -313,7 +315,6 @@ export default function CostsPage() {
         {settling === "new" && bal?.owe ? (
           <SettleForm
             draft={{ ids: openPaid.map((c) => c.id), total: bal.total, ...bal.owe }}
-            names={names}
             onDone={async (changed) => {
               if (changed) await reload();
               setSettling(null);
@@ -323,7 +324,6 @@ export default function CostsPage() {
           <SettleForm
             key={settling.id}
             settlement={settling}
-            names={names}
             onDone={async (changed) => {
               if (changed) await reload();
               setSettling(null);
@@ -338,7 +338,6 @@ export default function CostsPage() {
             key={editing.id ?? "new"}
             id={editing.id}
             initial={editing.input}
-            payers={payers}
             onDone={async (saved) => {
               if (saved) await reload();
               setEditing(null);
@@ -446,7 +445,7 @@ function ReceiptsField({ label, hint, rc }: { label: string; hint: string; rc: R
 }
 
 // The add/edit form for a cost.
-function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studio.CostInput; payers: string[]; onDone: (saved: boolean) => void | Promise<void> }) {
+function CostForm({ id, initial, onDone }: { id?: string; initial: studio.CostInput; onDone: (saved: boolean) => void | Promise<void> }) {
   const [input, setInput] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -477,6 +476,7 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
   const save = async () => {
     if (!input.vendor.trim()) return setError("Add who the cost was paid to.");
     if (!(input.amount > 0)) return setError("Add the amount.");
+    if (!isPartner(input.paid_by)) return setError("Choose who paid.");
     const usd = input.currency === "USD";
     if (usd && !(input.php_amount > 0)) return setError("Add what it came to in pesos.");
     const clean: studio.CostInput = {
@@ -605,12 +605,24 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
         </Field>
       </div>
       <Field label="Paid by" hint="Whose card or wallet paid it.">
-        <Input list="cost-payers" value={input.paid_by ?? ""} onChange={(e) => set({ paid_by: e.target.value })} placeholder="Name" />
-        <datalist id="cost-payers">
-          {payers.map((p) => (
-            <option key={p} value={p} />
-          ))}
-        </datalist>
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Paid by">
+          {PARTNERS.map((p) => {
+            const on = input.paid_by?.trim() === p.name;
+            return (
+              <button
+                key={p.name}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => set({ paid_by: p.name })}
+                className="min-h-[44px] rounded-full px-4 py-2 text-[14px] font-medium transition-colors"
+                style={{ background: on ? "var(--ink)" : "#fff", color: on ? "#fff" : "var(--ink)", border: "1px solid var(--ink)" }}
+              >
+                {p.name}
+              </button>
+            );
+          })}
+        </div>
       </Field>
       <Field label="Note">
         <Input value={input.note ?? ""} onChange={(e) => set({ note: e.target.value })} placeholder="Optional" />
@@ -682,32 +694,27 @@ const settlementTitle = (s: studio.CostSettlement) =>
 function SettleForm({
   draft,
   settlement,
-  names,
   onDone,
 }: {
-  draft?: { ids: string[]; total: number; from: string | null; to: string | null; amount: number };
+  draft?: { ids: string[]; total: number; from: Partner | null; to: Partner | null; amount: number };
   settlement?: studio.CostSettlement;
-  names: string[];
   onDone: (changed: boolean) => void | Promise<void>;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [from, setFrom] = useState(draft?.from ?? "");
   const [paidOn, setPaidOn] = useState(today());
   const [note, setNote] = useState(settlement?.note ?? "");
   const rc = useReceipts(settlement?.receipts ?? [], setError);
   const amount = draft?.amount ?? settlement?.amount ?? 0;
-  const to = draft?.to ?? settlement?.to_name ?? null;
-  const fromChoices = names.filter((n) => n !== to);
+  const from = draft?.from ?? null;
+  const to = draft?.to ?? null;
 
   const save = async () => {
     setBusy(true);
     setError(null);
     try {
       if (draft) {
-        if (amount > 0 && !from.trim()) throw new Error("Add who sent the money.");
-        if (amount > 0 && from.trim().toLowerCase() === to?.toLowerCase()) throw new Error(`${to} can’t pay themselves. Add who sent the money.`);
-        await studio.recordSettlement(draft.ids, { paid_on: paidOn, from_name: amount > 0 ? from.trim() : null, to_name: amount > 0 ? to : null, amount, note: note.trim() || null, receipts: rc.receipts });
+        await studio.recordSettlement(draft.ids, { paid_on: paidOn, from_name: from, to_name: to, amount, note: note.trim() || null, receipts: rc.receipts });
       } else if (settlement) {
         await studio.updateSettlement(settlement.id, { note: note.trim() || null, receipts: rc.receipts });
       }
@@ -746,7 +753,7 @@ function SettleForm({
         <div>
           <p className="text-[24px] font-semibold text-[var(--ink)] [font-variant-numeric:tabular-nums]">{amount > 0 ? peso(amount) : "Even"}</p>
           <p className="text-[14px] text-[var(--slate)] [font-variant-numeric:tabular-nums]">
-            {amount > 0 ? `To ${to}, for half of ${peso(draft.total)}` : `Nothing to send on ${peso(draft.total)}`} across {draft.ids.length} open cost{draft.ids.length === 1 ? "" : "s"}.
+            {amount > 0 ? `${from} sends ${to}` : "Nothing to send"} · {peso(draft.total)} across {draft.ids.length} open cost{draft.ids.length === 1 ? "" : "s"}
           </p>
           <p className="mt-2 text-[14px] text-[var(--ink)]">{amount > 0 ? "Record it once the money has been sent. You can undo it later." : "This closes the open costs. You can undo it later."}</p>
         </div>
@@ -760,19 +767,9 @@ function SettleForm({
       ) : null}
 
       {draft && amount > 0 ? (
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Sent by">
-            <Input list="settle-senders" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Name" autoFocus={!from} />
-            <datalist id="settle-senders">
-              {fromChoices.map((n) => (
-                <option key={n} value={n} />
-              ))}
-            </datalist>
-          </Field>
-          <Field label="Date sent">
-            <Input type="date" value={paidOn} max={today()} onChange={(e) => setPaidOn(e.target.value || today())} />
-          </Field>
-        </div>
+        <Field label="Date sent">
+          <Input type="date" value={paidOn} max={today()} onChange={(e) => setPaidOn(e.target.value || today())} />
+        </Field>
       ) : null}
 
       {amount > 0 ? <ReceiptsField label="Proof of payment" hint="A screenshot of the transfer (GCash, bank app). Optional, and it can be added later." rc={rc} /> : null}
@@ -798,28 +795,16 @@ function SettleForm({
   );
 }
 
-// The open balance in pesos: the total, what each payer put in, and who owes whom.
-// `owe` is what a settle-up would record (from is null when only one person has paid
-// so far, so the form asks who's sending it); null when the payer names need fixing.
-function balance(rows: studio.Cost[], payers: string[]) {
+// The open balance in pesos: the total, what each owner put in, and who owes whom
+// (`owe` is what a settle-up records; from/to are null when it's even).
+function balance(rows: studio.Cost[]) {
   if (!rows.length) return null;
   const total = sum(rows);
-  const paid = new Map<string, number>(payers.map((p) => [p, 0]));
-  for (const r of rows) if (r.paid_by) paid.set(r.paid_by.trim(), (paid.get(r.paid_by.trim()) ?? 0) + r.php_amount);
-  const entries = [...paid.entries()].filter(([, amt]) => amt > 0);
-  const half = total / 2;
-  let line: string;
-  let owe: { from: string | null; to: string | null; amount: number } | null = null;
-  if (payers.length < 2) {
-    const [only] = payers;
-    line = only ? `${only} paid everything so far, so the other partner owes ${only} ${peso(half)}.` : `${peso(half)} each.`;
-    if (only) owe = { from: null, to: only, amount: round2(half) };
-  } else if (payers.length > 2) line = "More than two payers: check the names (a typo counts as a new person).";
-  else {
-    const [a, b] = payers;
-    const diff = (paid.get(a) ?? 0) - half;
-    line = Math.abs(diff) < 0.005 ? "Even." : diff > 0 ? `${b} owes ${a} ${peso(diff)}` : `${a} owes ${b} ${peso(-diff)}`;
-    owe = Math.abs(diff) < 0.005 ? { from: null, to: null, amount: 0 } : diff > 0 ? { from: b, to: a, amount: round2(diff) } : { from: a, to: b, amount: round2(-diff) };
-  }
-  return { total, paid: entries, line, owe };
+  const paid = PARTNERS.map((p) => [p.name, sum(rows.filter((r) => r.paid_by?.trim() === p.name))] as const);
+  const [[a, aPaid], [b]] = paid;
+  const diff = aPaid - total / 2;
+  const owe: { from: Partner | null; to: Partner | null; amount: number } =
+    Math.abs(diff) < 0.005 ? { from: null, to: null, amount: 0 } : diff > 0 ? { from: b, to: a, amount: round2(diff) } : { from: a, to: b, amount: round2(-diff) };
+  const line = owe.from ? `${owe.from} owes ${owe.to} ${peso(owe.amount)}` : "Even.";
+  return { total, paid, line, owe };
 }
