@@ -11,7 +11,9 @@ import { compressImage } from "@/lib/compressImage";
 // who paid it, and the 50/50 split between the two partners. They share one login, so
 // "Paid by" is a name, not an account. Dollar costs keep the peso amount they were worth
 // on their date, so the balance is one peso figure. Each cost can carry receipts
-// (screenshots or PDFs) in a private bucket. Settling up stamps every open cost.
+// (screenshots or PDFs) in a private bucket. Settling up records the payment between the
+// partners (supabase/cost-settlements.sql), with screenshots of the transfer, and closes
+// the open costs; a settle-up can be undone.
 
 type View = "open" | "month" | "all";
 type Currency = studio.Cost["currency"];
@@ -42,7 +44,9 @@ export default function CostsPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [costs, setCosts] = useState<studio.Cost[] | null | undefined>(undefined);
   const [view, setView] = useState<View>("open");
+  const [settlements, setSettlements] = useState<studio.CostSettlement[]>([]);
   const [editing, setEditing] = useState<{ id?: string; input: studio.CostInput } | null>(null);
+  const [settling, setSettling] = useState<"new" | studio.CostSettlement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -50,7 +54,17 @@ export default function CostsPage() {
     if (demo) return setAllowed(false);
     studio.canSeeCosts().then(setAllowed);
   }, [demo]);
-  const reload = useCallback(() => studio.loadCosts().then(setCosts), []);
+  const reload = useCallback(
+    () =>
+      Promise.all([
+        studio.loadCosts().then(setCosts),
+        studio
+          .loadSettlements()
+          .then(setSettlements)
+          .catch(() => setSettlements([])),
+      ]),
+    [],
+  );
   useEffect(() => {
     if (allowed) void reload();
   }, [allowed, reload]);
@@ -61,6 +75,11 @@ export default function CostsPage() {
   const openPaid = open.filter((c) => c.paid_by?.trim());
   const noPayer = open.length - openPaid.length;
   const noReceipt = open.filter((c) => !c.receipts.length).length;
+  // Names for the "Sent by" suggestions: everyone who has paid a cost or a settle-up.
+  const names = useMemo(
+    () => [...new Set([...payers, ...settlements.flatMap((s) => [s.from_name, s.to_name]).filter((n): n is string => Boolean(n))])],
+    [payers, settlements],
+  );
 
   // Monthly bills not logged yet this month (their latest entry is from an earlier month).
   const thisMonth = monthKey(today());
@@ -82,7 +101,7 @@ export default function CostsPage() {
     return (
       <>
         <StudioHeader title="Finances" tabs="finances" />
-        <p className="text-[14px] text-[var(--slate)]">Run supabase/studio-costs.sql and supabase/cost-receipts-fx.sql on the live database to switch on Costs.</p>
+        <p className="text-[14px] text-[var(--slate)]">Run supabase/studio-costs.sql, cost-receipts-fx.sql and cost-settlements.sql on the live database to switch on Costs.</p>
       </>
     );
 
@@ -115,14 +134,9 @@ export default function CostsPage() {
     }
     void run(() => studio.saveCost(base));
   };
-  const settle = () => {
-    if (!bal) return;
-    if (!window.confirm(`Mark ${openPaid.length} cost${openPaid.length === 1 ? "" : "s"} as settled?\n\n${bal.line}`)) return;
-    void run(() => studio.settleCosts(openPaid.map((c) => c.id)));
-  };
   const edit = (c: studio.Cost) => {
     setError(null);
-    const { id, settled_on: _s, ...input } = c;
+    const { id, settled_on: _s, settlement_id: _sid, ...input } = c;
     setEditing({ id, input: { ...input, note: c.note ?? "", paid_by: c.paid_by ?? "" } });
   };
 
@@ -158,8 +172,8 @@ export default function CostsPage() {
       <section className="rounded-[22px] border border-[var(--ink)] bg-white p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="text-[15px] font-semibold text-[var(--ink)]">Open balance</h2>
-          {openPaid.length ? (
-            <PillButton onClick={settle} disabled={busy}>
+          {bal?.owe ? (
+            <PillButton onClick={() => setSettling("new")} disabled={busy}>
               <i className="ri-check-double-line" /> Settle up
             </PillButton>
           ) : null}
@@ -262,6 +276,62 @@ export default function CostsPage() {
       </section>
       {shown.length ? <p className="mt-3 text-[13px] text-[var(--slate)] [font-variant-numeric:tabular-nums]">Total: {peso(sum(shown))}</p> : null}
 
+      {/* Past settle-ups: the payment, its proof, and undo. */}
+      {settlements.length ? (
+        <>
+          <h2 className="mb-3 mt-8 text-[15px] font-semibold text-[var(--ink)]">Settle-ups</h2>
+          <section className="rounded-[22px] border border-[var(--line)] bg-white px-5 py-2">
+            <ul className="divide-y divide-[var(--line)]">
+              {settlements.map((s) => (
+                <li key={s.id}>
+                  <button className="flex w-full items-center gap-3 py-3 text-left text-[14px]" onClick={() => (setError(null), setSettling(s))}>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-[var(--ink)]">{settlementTitle(s)}</p>
+                      <p className="text-[12px] text-[var(--slate)]">
+                        {formatDate(s.paid_on)} · {s.costs} cost{s.costs === 1 ? "" : "s"}
+                        {s.note ? ` · ${s.note}` : ""}
+                        {s.receipts.length ? (
+                          <span>
+                            {" · "}
+                            <i className="ri-attachment-2 align-[-1px]" /> Proof
+                          </span>
+                        ) : s.amount > 0 ? (
+                          <span className="text-[#9a5b00]"> · No proof</span>
+                        ) : null}
+                      </p>
+                    </div>
+                    {s.amount > 0 ? <span className="shrink-0 font-semibold text-[var(--ink)] [font-variant-numeric:tabular-nums]">{peso(s.amount)}</span> : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : null}
+
+      <Modal open={!!settling} onClose={() => setSettling(null)} title={settling === "new" ? "Settle up" : "Settle-up"}>
+        {settling === "new" && bal?.owe ? (
+          <SettleForm
+            draft={{ ids: openPaid.map((c) => c.id), total: bal.total, ...bal.owe }}
+            names={names}
+            onDone={async (changed) => {
+              if (changed) await reload();
+              setSettling(null);
+            }}
+          />
+        ) : settling && settling !== "new" ? (
+          <SettleForm
+            key={settling.id}
+            settlement={settling}
+            names={names}
+            onDone={async (changed) => {
+              if (changed) await reload();
+              setSettling(null);
+            }}
+          />
+        ) : null}
+      </Modal>
+
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? "Edit cost" : "Add a cost"}>
         {editing ? (
           <CostForm
@@ -281,22 +351,14 @@ export default function CostsPage() {
   );
 }
 
-// The add/edit form. Receipts upload straight away; files added and then abandoned
-// (form closed without saving) are removed again, and receipts taken off a cost are
+// Receipts on a form (a cost or a settle-up). Files upload straight away; files added and
+// then abandoned (form closed without saving) are removed again, and files taken off are
 // removed from storage once the change is saved.
-function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studio.CostInput; payers: string[]; onDone: (saved: boolean) => void | Promise<void> }) {
-  const [input, setInput] = useState(initial);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+function useReceipts(initial: studio.CostReceipt[], onError: (message: string | null) => void) {
+  const [receipts, setReceipts] = useState(initial);
   const [uploading, setUploading] = useState(0);
-  // Dollar costs: work the pesos out from the day's rate until someone types their own.
-  const [autoPesos, setAutoPesos] = useState(!id || initial.php_amount <= 0);
-  const [rate, setRate] = useState<{ date: string; value: number } | "loading" | "failed" | null>(null);
   const added = useRef<string[]>([]);
   const finished = useRef(false);
-  const fileInput = useRef<HTMLInputElement>(null);
-
-  const set = (patch: Partial<studio.CostInput>) => setInput((i) => ({ ...i, ...patch }));
 
   // Leaving without saving: drop the files uploaded in this visit.
   useEffect(
@@ -305,6 +367,95 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
     },
     [],
   );
+
+  const add = async (files: FileList | null) => {
+    if (!files?.length) return;
+    onError(null);
+    for (const original of Array.from(files)) {
+      if (!original.type.startsWith("image/") && original.type !== "application/pdf") {
+        onError(`${original.name} isn’t an image or PDF.`);
+        continue;
+      }
+      setUploading((n) => n + 1);
+      try {
+        const file = await compressImage(original, { maxEdge: 2400, skipUnderBytes: 1_500_000 });
+        if (file.size > studio.MAX_RECEIPT_BYTES) throw new Error(`${original.name} is over 10 MB.`);
+        const r = await studio.uploadCostReceipt(file);
+        added.current.push(r.path);
+        setReceipts((rs) => [...rs, { ...r, name: original.name }]);
+      } catch (e) {
+        onError(e instanceof Error ? e.message : "That file didn’t upload. Try again.");
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
+  };
+
+  return {
+    receipts,
+    uploading,
+    add,
+    remove: (path: string) => setReceipts((rs) => rs.filter((r) => r.path !== path)),
+    /** Saved: keep what's on the form, delete what was taken off. */
+    saved: () => {
+      finished.current = true;
+      const kept = new Set(receipts.map((r) => r.path));
+      void studio.removeCostReceipts(initial.map((r) => r.path).filter((p) => !kept.has(p)));
+    },
+    /** The record itself is gone: delete every file. */
+    discarded: () => {
+      finished.current = true;
+      void studio.removeCostReceipts([...new Set([...initial, ...receipts].map((r) => r.path))]);
+    },
+  };
+}
+
+function ReceiptsField({ label, hint, rc }: { label: string; hint: string; rc: ReturnType<typeof useReceipts> }) {
+  const fileInput = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <span className="mb-1.5 block text-[14px] font-medium text-[var(--ink)]">{label}</span>
+      <div className="flex flex-wrap gap-2">
+        {rc.receipts.map((r) => (
+          <ReceiptTile key={r.path} receipt={r} onRemove={() => rc.remove(r.path)} />
+        ))}
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          disabled={rc.uploading > 0}
+          className="flex h-[84px] w-[84px] flex-col items-center justify-center gap-1 rounded-[12px] border border-dashed border-[var(--slate)] text-[12px] text-[var(--slate)] hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-60"
+        >
+          <i className={rc.uploading ? "ri-loader-4-line animate-spin text-[18px]" : "ri-add-line text-[18px]"} />
+          {rc.uploading ? "Uploading" : "Add"}
+        </button>
+      </div>
+      <span className="mt-1 block text-[12px] text-[var(--slate)]">{hint}</span>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*,application/pdf"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          void rc.add(e.target.files);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+// The add/edit form for a cost.
+function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studio.CostInput; payers: string[]; onDone: (saved: boolean) => void | Promise<void> }) {
+  const [input, setInput] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const rc = useReceipts(initial.receipts, setError);
+  // Dollar costs: work the pesos out from the day's rate until someone types their own.
+  const [autoPesos, setAutoPesos] = useState(!id || initial.php_amount <= 0);
+  const [rate, setRate] = useState<{ date: string; value: number } | "loading" | "failed" | null>(null);
+
+  const set = (patch: Partial<studio.CostInput>) => setInput((i) => ({ ...i, ...patch }));
 
   useEffect(() => {
     if (input.currency !== "USD" || !autoPesos) return;
@@ -323,29 +474,6 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
     };
   }, [input.currency, input.spent_on, input.amount, autoPesos]);
 
-  const addFiles = async (files: FileList | null) => {
-    if (!files?.length) return;
-    setError(null);
-    for (const original of Array.from(files)) {
-      if (!original.type.startsWith("image/") && original.type !== "application/pdf") {
-        setError(`${original.name} isn’t an image or PDF.`);
-        continue;
-      }
-      setUploading((n) => n + 1);
-      try {
-        const file = await compressImage(original, { maxEdge: 2400, skipUnderBytes: 1_500_000 });
-        if (file.size > studio.MAX_RECEIPT_BYTES) throw new Error(`${original.name} is over 10 MB.`);
-        const r = await studio.uploadCostReceipt(file);
-        added.current.push(r.path);
-        setInput((i) => ({ ...i, receipts: [...i.receipts, { ...r, name: original.name }] }));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "That receipt didn’t upload. Try again.");
-      } finally {
-        setUploading((n) => n - 1);
-      }
-    }
-  };
-
   const save = async () => {
     if (!input.vendor.trim()) return setError("Add who the cost was paid to.");
     if (!(input.amount > 0)) return setError("Add the amount.");
@@ -356,6 +484,7 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
       vendor: input.vendor.trim(),
       note: input.note?.trim() || null,
       paid_by: input.paid_by?.trim() || null,
+      receipts: rc.receipts,
       php_amount: usd ? round2(input.php_amount) : input.amount,
       fx_rate: usd ? Math.round((input.php_amount / input.amount) * 10000) / 10000 : null,
     };
@@ -363,9 +492,7 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
     setError(null);
     try {
       await studio.saveCost(clean, id);
-      finished.current = true;
-      const kept = new Set(clean.receipts.map((r) => r.path));
-      void studio.removeCostReceipts(initial.receipts.map((r) => r.path).filter((p) => !kept.has(p)));
+      rc.saved();
       await onDone(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "That didn’t save. Try again.");
@@ -378,8 +505,7 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
     setBusy(true);
     try {
       await studio.deleteCost(id);
-      finished.current = true;
-      void studio.removeCostReceipts([...initial.receipts, ...input.receipts].map((r) => r.path));
+      rc.discarded();
       await onDone(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "That didn’t delete. Try again.");
@@ -490,35 +616,7 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
         <Input value={input.note ?? ""} onChange={(e) => set({ note: e.target.value })} placeholder="Optional" />
       </Field>
 
-      <div>
-        <span className="mb-1.5 block text-[14px] font-medium text-[var(--ink)]">Receipts</span>
-        <div className="flex flex-wrap gap-2">
-          {input.receipts.map((r) => (
-            <ReceiptTile key={r.path} receipt={r} onRemove={() => set({ receipts: input.receipts.filter((x) => x.path !== r.path) })} />
-          ))}
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
-            disabled={uploading > 0}
-            className="flex h-[84px] w-[84px] flex-col items-center justify-center gap-1 rounded-[12px] border border-dashed border-[var(--slate)] text-[12px] text-[var(--slate)] hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-60"
-          >
-            <i className={uploading ? "ri-loader-4-line animate-spin text-[18px]" : "ri-add-line text-[18px]"} />
-            {uploading ? "Uploading" : "Add"}
-          </button>
-        </div>
-        <span className="mt-1 block text-[12px] text-[var(--slate)]">Screenshots, photos or PDFs, up to 10 MB each.</span>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/*,application/pdf"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            void addFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      </div>
+      <ReceiptsField label="Receipts" hint="Screenshots, photos or PDFs, up to 10 MB each." rc={rc} />
 
       <div className="flex items-center justify-between gap-4">
         <span className="text-[14px] font-medium text-[var(--ink)]">Monthly bill</span>
@@ -533,7 +631,7 @@ function CostForm({ id, initial, payers, onDone }: { id?: string; initial: studi
         ) : (
           <span />
         )}
-        <PillButton type="submit" tone="primary" disabled={busy || uploading > 0 || rate === "loading"}>
+        <PillButton type="submit" tone="primary" disabled={busy || rc.uploading > 0 || rate === "loading"}>
           {busy ? "Saving…" : "Save"}
         </PillButton>
       </div>
@@ -576,7 +674,133 @@ function ReceiptTile({ receipt, onRemove }: { receipt: studio.CostReceipt; onRem
   );
 }
 
+const settlementTitle = (s: studio.CostSettlement) =>
+  s.amount > 0 ? `${s.from_name ?? "The other partner"} paid ${s.to_name ?? "the other partner"}` : "Settled even";
+
+// Settle up (draft) or an earlier settle-up (settlement). A new one records the payment
+// and closes the open costs; it can be undone later, and proof can be added later too.
+function SettleForm({
+  draft,
+  settlement,
+  names,
+  onDone,
+}: {
+  draft?: { ids: string[]; total: number; from: string | null; to: string | null; amount: number };
+  settlement?: studio.CostSettlement;
+  names: string[];
+  onDone: (changed: boolean) => void | Promise<void>;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [from, setFrom] = useState(draft?.from ?? "");
+  const [paidOn, setPaidOn] = useState(today());
+  const [note, setNote] = useState(settlement?.note ?? "");
+  const rc = useReceipts(settlement?.receipts ?? [], setError);
+  const amount = draft?.amount ?? settlement?.amount ?? 0;
+  const to = draft?.to ?? settlement?.to_name ?? null;
+  const fromChoices = names.filter((n) => n !== to);
+
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      if (draft) {
+        if (amount > 0 && !from.trim()) throw new Error("Add who sent the money.");
+        if (amount > 0 && from.trim().toLowerCase() === to?.toLowerCase()) throw new Error(`${to} can’t pay themselves. Add who sent the money.`);
+        await studio.recordSettlement(draft.ids, { paid_on: paidOn, from_name: amount > 0 ? from.trim() : null, to_name: amount > 0 ? to : null, amount, note: note.trim() || null, receipts: rc.receipts });
+      } else if (settlement) {
+        await studio.updateSettlement(settlement.id, { note: note.trim() || null, receipts: rc.receipts });
+      }
+      rc.saved();
+      await onDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That didn’t save. Try again.");
+      setBusy(false);
+    }
+  };
+
+  const undo = async () => {
+    if (!settlement) return;
+    const n = settlement.costs;
+    if (!window.confirm(`Undo this settle-up? The ${n} cost${n === 1 ? " goes" : "s go"} back to open${settlement.receipts.length ? " and its proof is deleted" : ""}.`)) return;
+    setBusy(true);
+    try {
+      await studio.undoSettlement(settlement.id);
+      rc.discarded();
+      await onDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That didn’t undo. Try again.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+    >
+      {draft ? (
+        <div>
+          <p className="text-[24px] font-semibold text-[var(--ink)] [font-variant-numeric:tabular-nums]">{amount > 0 ? peso(amount) : "Even"}</p>
+          <p className="text-[14px] text-[var(--slate)] [font-variant-numeric:tabular-nums]">
+            {amount > 0 ? `To ${to}, for half of ${peso(draft.total)}` : `Nothing to send on ${peso(draft.total)}`} across {draft.ids.length} open cost{draft.ids.length === 1 ? "" : "s"}.
+          </p>
+          <p className="mt-2 text-[14px] text-[var(--ink)]">{amount > 0 ? "Record it once the money has been sent. You can undo it later." : "This closes the open costs. You can undo it later."}</p>
+        </div>
+      ) : settlement ? (
+        <div>
+          <p className="text-[24px] font-semibold text-[var(--ink)] [font-variant-numeric:tabular-nums]">{amount > 0 ? peso(amount) : "Even"}</p>
+          <p className="text-[14px] text-[var(--slate)]">
+            {settlementTitle(settlement)} on {formatDate(settlement.paid_on)} · closed {settlement.costs} cost{settlement.costs === 1 ? "" : "s"}
+          </p>
+        </div>
+      ) : null}
+
+      {draft && amount > 0 ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Sent by">
+            <Input list="settle-senders" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Name" autoFocus={!from} />
+            <datalist id="settle-senders">
+              {fromChoices.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+          </Field>
+          <Field label="Date sent">
+            <Input type="date" value={paidOn} max={today()} onChange={(e) => setPaidOn(e.target.value || today())} />
+          </Field>
+        </div>
+      ) : null}
+
+      {amount > 0 ? <ReceiptsField label="Proof of payment" hint="A screenshot of the transfer (GCash, bank app). Optional, and it can be added later." rc={rc} /> : null}
+
+      <Field label="Note">
+        <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional, e.g. GCash ref no." />
+      </Field>
+
+      <ErrorText>{error}</ErrorText>
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        {settlement ? (
+          <PillButton type="button" tone="danger" disabled={busy} onClick={() => void undo()}>
+            Undo settle-up
+          </PillButton>
+        ) : (
+          <span />
+        )}
+        <PillButton type="submit" tone="primary" disabled={busy || rc.uploading > 0}>
+          {busy ? "Saving…" : draft ? (amount > 0 ? "Record payment" : "Settle up") : "Save"}
+        </PillButton>
+      </div>
+    </form>
+  );
+}
+
 // The open balance in pesos: the total, what each payer put in, and who owes whom.
+// `owe` is what a settle-up would record (from is null when only one person has paid
+// so far, so the form asks who's sending it); null when the payer names need fixing.
 function balance(rows: studio.Cost[], payers: string[]) {
   if (!rows.length) return null;
   const total = sum(rows);
@@ -585,14 +809,17 @@ function balance(rows: studio.Cost[], payers: string[]) {
   const entries = [...paid.entries()].filter(([, amt]) => amt > 0);
   const half = total / 2;
   let line: string;
+  let owe: { from: string | null; to: string | null; amount: number } | null = null;
   if (payers.length < 2) {
     const [only] = payers;
     line = only ? `${only} paid everything so far, so the other partner owes ${only} ${peso(half)}.` : `${peso(half)} each.`;
+    if (only) owe = { from: null, to: only, amount: round2(half) };
   } else if (payers.length > 2) line = "More than two payers: check the names (a typo counts as a new person).";
   else {
     const [a, b] = payers;
     const diff = (paid.get(a) ?? 0) - half;
     line = Math.abs(diff) < 0.005 ? "Even." : diff > 0 ? `${b} owes ${a} ${peso(diff)}` : `${a} owes ${b} ${peso(-diff)}`;
+    owe = Math.abs(diff) < 0.005 ? { from: null, to: null, amount: 0 } : diff > 0 ? { from: b, to: a, amount: round2(diff) } : { from: a, to: b, amount: round2(-diff) };
   }
-  return { total, paid: entries, line };
+  return { total, paid: entries, line, owe };
 }

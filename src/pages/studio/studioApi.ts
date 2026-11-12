@@ -745,6 +745,8 @@ export type Cost = {
   monthly: boolean;
   paid_by: string | null;
   settled_on: string | null;
+  /** The settle-up that closed this cost (supabase/cost-settlements.sql). */
+  settlement_id: string | null;
   /** What it cost in pesos: the amount for PHP; for USD, the dollars at that day's rate
    *  (or the card statement's peso figure). Totals and the 50/50 split use this. */
   php_amount: number;
@@ -753,7 +755,7 @@ export type Cost = {
   receipts: CostReceipt[];
 };
 export type CostReceipt = { name: string; path: string; size: number; type: string };
-export type CostInput = Omit<Cost, "id" | "settled_on">;
+export type CostInput = Omit<Cost, "id" | "settled_on" | "settlement_id">;
 
 let costsCheck: Promise<boolean> | null = null;
 /** Can the signed-in account see Studio → Costs? Cached per page load. */
@@ -763,7 +765,7 @@ export function canSeeCosts(): Promise<boolean> {
 }
 /** null = the costs table isn't on this database yet. */
 export async function loadCosts(): Promise<Cost[] | null> {
-  const { data, error } = await supabase.from("studio_costs").select("id, spent_on, vendor, category, note, amount, currency, monthly, paid_by, settled_on, php_amount, fx_rate, receipts").order("spent_on", { ascending: false }).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("studio_costs").select("id, spent_on, vendor, category, note, amount, currency, monthly, paid_by, settled_on, settlement_id, php_amount, fx_rate, receipts").order("spent_on", { ascending: false }).order("created_at", { ascending: false });
   if (error) return null;
   return ((data ?? []) as Cost[]).map((c) => ({
     ...c,
@@ -819,9 +821,41 @@ export async function removeCostReceipts(paths: string[]) {
   if (paths.length) await supabase.storage.from("cost-receipts").remove(paths);
 }
 
-/** Settle up: every open cost that has a payer is marked settled today. */
-export async function settleCosts(ids: string[]) {
-  const { error } = await supabase.from("studio_costs").update({ settled_on: new Date().toLocaleDateString("en-CA") }).in("id", ids);
+/** A settle-up: the payment that evened out the 50/50 split, with screenshots of the transfer. */
+export type CostSettlement = {
+  id: string;
+  paid_on: string;
+  /** null when it was even and nothing was sent. */
+  from_name: string | null;
+  to_name: string | null;
+  amount: number;
+  note: string | null;
+  receipts: CostReceipt[];
+  /** How many costs it closed. */
+  costs: number;
+};
+export async function loadSettlements(): Promise<CostSettlement[]> {
+  const { data, error } = await supabase.from("cost_settlements").select("id, paid_on, from_name, to_name, amount, note, receipts, studio_costs(count)").order("paid_on", { ascending: false }).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(({ studio_costs, ...s }) => ({
+    ...(s as Omit<CostSettlement, "costs">),
+    amount: Number(s.amount),
+    receipts: Array.isArray(s.receipts) ? (s.receipts as CostReceipt[]) : [],
+    costs: (studio_costs as { count: number }[] | null)?.[0]?.count ?? 0,
+  }));
+}
+/** Settle up: records the payment and marks these open costs settled on its date. */
+export async function recordSettlement(costIds: string[], s: { paid_on: string; from_name: string | null; to_name: string | null; amount: number; note: string | null; receipts: CostReceipt[] }) {
+  const { error } = await supabase.rpc("record_cost_settlement", { p_cost_ids: costIds, p_paid_on: s.paid_on, p_from: s.from_name, p_to: s.to_name, p_amount: s.amount, p_note: s.note, p_receipts: s.receipts });
+  if (error) throw error;
+}
+export async function updateSettlement(id: string, patch: { note: string | null; receipts: CostReceipt[] }) {
+  const { error } = await supabase.from("cost_settlements").update(patch).eq("id", id);
+  if (error) throw error;
+}
+/** Undo a settle-up: its costs are open again and the record is gone. */
+export async function undoSettlement(id: string) {
+  const { error } = await supabase.rpc("undo_cost_settlement", { p_id: id });
   if (error) throw error;
 }
 
