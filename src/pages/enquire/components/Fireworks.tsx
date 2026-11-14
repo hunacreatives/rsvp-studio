@@ -69,7 +69,11 @@ export default function Fireworks({ stopAfter }: { stopAfter?: number } = {}) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     const resize = () => {
-      const rect = canvas.parentElement!.getBoundingClientRect();
+      // A resize can land after the canvas has left the page (leaving /enquire)
+      // but before this effect's cleanup runs: nothing to measure then.
+      const parent = canvas.parentElement;
+      if (!parent) return;
+      const rect = parent.getBoundingClientRect();
       width = rect.width;
       height = rect.height;
       canvas.width = width * dpr;
