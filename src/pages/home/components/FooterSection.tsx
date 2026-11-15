@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { goTo } from "@/lib/goTo";
-import { FACEBOOK_URL, INSTAGRAM_URL, MESSENGER_URL } from "@/lib/social";
+import { FACEBOOK_URL, INSTAGRAM_URL, MESSENGER_URL, TIKTOK_URL } from "@/lib/social";
+import { BRAND_LINE } from "../../../../api/_lib/brand";
 
 const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   {
@@ -50,6 +51,7 @@ export default function FooterSection() {
             <p className="mt-4 max-w-xs font-display text-[17px] italic leading-snug text-white/90 md:mt-5">
               Your celebration is our celebration, too.
             </p>
+            <p className="mt-2 max-w-xs text-[13px] leading-relaxed text-white/60">{BRAND_LINE}</p>
             {/* on a phone the email and the icons share a row */}
             <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 md:block">
             <a
@@ -64,6 +66,9 @@ export default function FooterSection() {
               </a>
               <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="grid h-11 w-11 place-items-center hover:text-white">
                 <i className="ri-facebook-circle-line" />
+              </a>
+              <a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="grid h-11 w-11 place-items-center hover:text-white">
+                <i className="ri-tiktok-line" />
               </a>
               <a href={MESSENGER_URL} target="_blank" rel="noopener noreferrer" aria-label="Message us on Messenger" className="grid h-11 w-11 place-items-center hover:text-white">
                 <i className="ri-messenger-line" />

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { HOME_H1 } from "../../../../api/_lib/brand"; // the server puts the same words in the HTML
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -113,7 +114,7 @@ export default function Hero() {
           className="font-display font-semibold tracking-[-0.02em] leading-[1.12] mx-auto max-w-3xl text-[var(--ink)] text-balance"
           style={{ fontSize: "clamp(1.6rem, 6.6vw, 2.9rem)" }}
         >
-          Event websites, invitations and stationery for every celebration
+          {HOME_H1}
         </h1>
         <p className="mx-auto mt-2.5 max-w-[34rem] text-[15px] leading-relaxed sm:mt-4 text-[var(--slate)] text-balance md:text-[17px]">
           Weddings, birthdays, christenings and more, with RSVPs built in.{" "}

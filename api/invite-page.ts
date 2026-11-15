@@ -5,7 +5,8 @@ import { sitemap } from "./_lib/sitemap.js";
 import { qrHandler } from "./_lib/qr.js";
 import { FACEBOOK_REVIEWS_URL, readReviewToken } from "./_lib/support-mail.js";
 import { blogPage } from "./_lib/blog-page.js";
-import { metaFor } from "./_lib/page-meta.js";
+import { META, metaFor } from "./_lib/page-meta.js";
+import { BRAND_LINE, HOME_H1, HOME_SUB, SITE_URL, brandLd } from "./_lib/brand.js";
 import { tagInvitePage } from "./_lib/link-preview.js";
 import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_H1, SEATING_LAYOUT, SEATING_PATH, SEATING_STEPS, SEATING_SUB, SEATING_TITLE } from "./_lib/seating-copy.js";
 
@@ -176,7 +177,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // exists: around a deploy the old index.html can point at files that are already gone, and
   // guests then get a blank page.
   if (!shell || Date.now() - shell.at > 60_000) {
-    const r = await fetch(`${origin}/index.html?at=${Date.now()}`, { cache: "no-store" }).catch(() => null);
+    // app.html: the build renames Vite's index.html (package.json "build"), so "/" can come here.
+    const r = await fetch(`${origin}/app.html?at=${Date.now()}`, { cache: "no-store" }).catch(() => null);
     const text = r?.ok ? await r.text() : "";
     const entry = /src="(\/assets\/index-[^"]+\.js)"/.exec(text)?.[1];
     const js = entry ? await fetch(`${origin}${entry}`, { method: "HEAD" }).catch(() => null) : null;
@@ -193,7 +195,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Our own tool pages (?op=page): their title, description and text in the HTML itself.
   if (req.query.op === "page") return toolPage(req, res, html, origin);
   // The site's main pages (?op=meta&p=/build): their own title and description in the preview.
-  if (req.query.op === "meta") return metaPage(req, res, html, origin);
+  if (req.query.op === "meta") return metaPage(req, res, html);
   // Blog articles (?op=blog): their own title, description, preview and text in the HTML.
   if (req.query.op === "blog") return blogPage(db, req.query.slug, res, html);
 
@@ -258,7 +260,7 @@ function toolPage(req: VercelRequest, res: VercelResponse, shellHtml: string, or
     res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
     return res.status(200).send(shellHtml);
   }
-  const url = `${origin}${SEATING_PATH}`;
+  const url = `${SITE_URL}${SEATING_PATH}`;
   const ld = {
     "@context": "https://schema.org",
     "@graph": [
@@ -298,31 +300,74 @@ function toolPage(req: VercelRequest, res: VercelResponse, shellHtml: string, or
   return res.status(200).send(html);
 }
 
-/** The site's own pages (vercel.json sends the main ones here): the same title and description the
- *  app sets (api/_lib/page-meta.ts), in the HTML, since link previews don't run the app. The
- *  preview image stays the site's. */
-function metaPage(req: VercelRequest, res: VercelResponse, shellHtml: string, origin: string) {
+// The visible heading of each main page (the page itself shows the same words), for the HTML.
+const H1S: [RegExp, string][] = [
+  [/^\/$/, HOME_H1],
+  [/^\/services$/, "Designed for Celebrations Worth Remembering"],
+  [/^\/services\/milestone$/, "Milestone Event Websites"],
+  [/^\/services\/monogram$/, "Monograms"],
+  [/^\/services\/save-the-date$/, "Digital Save the Date"],
+  [/^\/services\/stationery$/, "Stationery Design"],
+  [/^\/services\/rsvp$/, "RSVP Management"],
+  [/^\/collections$/, "Semi-Custom Website Collections"],
+  [/^\/portfolio$/, "Featured Work"],
+  [/^\/faqs$/, "Frequently Asked Questions"],
+  [/^\/contact$/, "Talk to us."],
+  [/^\/enquire$/, "Let’s bring your celebration to life."],
+  [/^\/blog$/, "Inspiration for meaningful celebrations"],
+];
+const NAV: [string, string][] = [
+  ["/services/milestone", "Event websites"],
+  ["/collections", "Designs"],
+  ["/build", "Make your own, free"],
+  ["/tools/seating-chart-maker", "Mesa seating chart maker"],
+  ["/portfolio", "Our work"],
+  ["/faqs", "FAQ"],
+  ["/blog", "The Journal"],
+  ["/enquire", "Get a quote"],
+];
+
+/** The site's own pages (vercel.json sends the main ones here, "/" included): the same title and
+ *  description the app sets (api/_lib/page-meta.ts), a canonical on our one domain, and the page's
+ *  heading and a few lines of text inside #root (the app replaces them on load), so search and AI
+ *  crawlers that don't run the app still see what the page is and who we are. The homepage also
+ *  carries who we are as structured data (api/_lib/brand.ts). A /services/<x> we don't have is a 404. */
+function metaPage(req: VercelRequest, res: VercelResponse, shellHtml: string) {
   const raw = typeof req.query.p === "string" ? req.query.p : "/";
   const path = /^\/[a-z0-9/-]{0,120}$/.test(raw) ? raw.replace(/(.)\/$/, "$1") : "/";
+  const known = META.some(([re]) => re.test(path));
   const { title, description } = metaFor(path);
-  const url = `${origin}${path}`;
+  const url = path === "/" ? `${SITE_URL}/` : `${SITE_URL}${path}`;
   const tags = [
     `<title>${esc(title)}</title>`,
     `<meta name="description" content="${esc(description)}" />`,
     `<meta property="og:title" content="${esc(title)}" />`,
     `<meta property="og:description" content="${esc(description)}" />`,
     `<meta property="og:url" content="${esc(url)}" />`,
-    `<link rel="canonical" href="${esc(url)}" />`,
+    ...(known ? [`<link rel="canonical" href="${esc(url)}" />`] : [`<meta name="robots" content="noindex" />`]),
+    ...(path === "/" ? [`<script type="application/ld+json">${JSON.stringify(brandLd(description)).replace(/</g, "\\u003c")}</script>`] : []),
   ].join("\n    ");
+  const h1 = H1S.find(([re]) => re.test(path))?.[1];
+  const body = known
+    ? [
+        `<main style="max-width:40rem;margin:18vh auto 0;padding:0 16px;text-align:center;color:#1b1b2f">`,
+        h1 ? `<h1>${esc(h1)}</h1>` : "",
+        path === "/" ? `<p>${esc(HOME_SUB)}</p>` : `<p>${esc(description)}</p>`,
+        `<p>${esc(BRAND_LINE)}</p>`,
+        `<nav>${NAV.map(([href, label]) => `<a href="${href}">${esc(label)}</a>`).join(" · ")}</nav>`,
+        `</main>`,
+      ].join("")
+    : "";
   const html = shellHtml
     .replace(/<title>[\s\S]*?<\/title>/, "")
     .replace(/<meta\s+name="description"[\s\S]*?\/>/, "")
     .replace(/<meta\s+property="og:(title|description|url)"[\s\S]*?\/>/g, "")
     .replace(/<link\s+rel="canonical"[^>]*>/, "")
-    .replace("</head>", `    ${tags}\n  </head>`);
+    .replace("</head>", `    ${tags}\n  </head>`)
+    .replace('<div id="root"></div>', `<div id="root">${body}</div>`);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
-  return res.status(200).send(html);
+  return res.status(known ? 200 : 404).send(html);
 }
 
 /** /creators: the creator invitation. ?to=Maria puts their name in the link's preview (the page

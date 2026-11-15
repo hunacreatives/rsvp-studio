@@ -1,9 +1,10 @@
 import type { VercelResponse } from "@vercel/node";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// /sitemap.xml (vercel.json → /api/invite-page?op=sitemap): the marketing pages, every
-// published blog post and every listed design's preview page, so Google finds new ones
-// without anyone editing a file. Cached for an hour.
+// /sitemap.xml (vercel.json → /api/invite-page?op=sitemap): the marketing pages and every
+// published blog post, so Google finds new ones without anyone editing a file. Cached for an
+// hour. Design previews (/build/preview/<id>) aren't listed: they're served with /build as
+// their canonical, so listing them told Google two different things.
 // Portfolio pages: keep PORTFOLIO in step with src/pages/portfolio/works.ts.
 
 const SITE = "https://thersvpstudio.com";
@@ -19,16 +20,12 @@ const url = (path: string, lastmod?: string | null) =>
   `  <url><loc>${SITE}${path}</loc>${lastmod ? `<lastmod>${lastmod.slice(0, 10)}</lastmod>` : ""}</url>`;
 
 export async function sitemap(db: SupabaseClient, res: VercelResponse) {
-  const [posts, templates] = await Promise.all([
-    db.from("blog_posts").select("slug, updated_at, published_at").eq("status", "published").lte("published_at", new Date().toISOString()).order("published_at", { ascending: false }).limit(1000),
-    db.from("templates").select("id, status").eq("status", "listed"),
-  ]);
+  const posts = await db.from("blog_posts").select("slug, updated_at, published_at").eq("status", "published").lte("published_at", new Date().toISOString()).order("published_at", { ascending: false }).limit(1000);
   const lines = [
     ...PAGES.map((p) => url(p)),
     ...PORTFOLIO.map((s) => url(`/portfolio/${s}`)),
     ...((posts.data ?? []).length ? [url("/blog")] : []),
     ...((posts.data ?? []) as { slug: string; updated_at: string | null; published_at: string | null }[]).map((p) => url(`/blog/${p.slug}`, p.updated_at ?? p.published_at)),
-    ...((templates.data ?? []) as { id: string }[]).map((t) => url(`/build/preview/${encodeURIComponent(t.id)}`)),
   ];
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");

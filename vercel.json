@@ -3,7 +3,19 @@
     "sin1"
   ],
   "outputDirectory": "out",
+  "trailingSlash": false,
   "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.thersvpstudio.com"
+        }
+      ],
+      "destination": "https://thersvpstudio.com/:path*",
+      "permanent": true
+    },
     {
       "source": "/enquire/partner",
       "destination": "/partners",
@@ -78,6 +90,14 @@
       "destination": "/api/invite-page?op=page&path=view"
     },
     {
+      "source": "/",
+      "destination": "/api/invite-page?op=meta&p=/"
+    },
+    {
+      "source": "/blog",
+      "destination": "/api/invite-page?op=meta&p=/blog"
+    },
+    {
       "source": "/build",
       "destination": "/api/invite-page?op=meta&p=/build"
     },
@@ -135,7 +155,7 @@
     },
     {
       "source": "/((?!assets/).*)",
-      "destination": "/index.html"
+      "destination": "/app.html"
     }
   ],
   "crons": [

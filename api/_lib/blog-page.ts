@@ -158,7 +158,7 @@ export async function blogPage(db: SupabaseClient, slugParam: unknown, res: Verc
         dateModified: post.updated_at,
         articleSection: post.category,
         author: post.author === "The RSVP Studio" ? { "@type": "Organization", name: post.author, url: SITE } : { "@type": "Person", name: post.author },
-        publisher: { "@type": "Organization", name: "The RSVP Studio", url: SITE, logo: { "@type": "ImageObject", url: `${SITE}/brand/monogram-dark.png` } },
+        publisher: { "@type": "Organization", "@id": `${SITE}/#organization`, name: "The RSVP Studio", url: SITE, logo: { "@type": "ImageObject", url: `${SITE}/brand/monogram-dark.png` } },
         mainEntityOfPage: url,
       },
       {
