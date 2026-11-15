@@ -484,6 +484,23 @@ export async function restoreProject(id: string) {
 
 export type LeadReply = { id: string; enquiry_id: string; sender_name: string | null; subject: string; body: string; created_at: string; tracked?: boolean };
 
+/** A chat message we sent a lead from our own app (Viber, SMS, Instagram), logged in Studio
+ *  (supabase/lead-messages.sql). */
+export type LeadChannel = "viber" | "sms" | "instagram";
+export type LeadMessage = { id: string; enquiry_id: string; channel: LeadChannel; body: string; sender_name: string | null; created_at: string };
+/** Per lead. Empty until lead-messages.sql is run. */
+export async function loadLeadMessages(): Promise<Record<string, LeadMessage[]>> {
+  const { data, error } = await supabase.from("enquiry_messages").select("id, enquiry_id, channel, body, sender_name, created_at").order("created_at").limit(1000);
+  const out: Record<string, LeadMessage[]> = {};
+  for (const m of error ? [] : ((data ?? []) as LeadMessage[])) (out[m.enquiry_id] ??= []).push(m);
+  return out;
+}
+/** Log a chat message as sent; a New lead becomes Contacted. */
+export async function logLeadMessage(lead: Pick<Lead, "id" | "status">, m: { channel: LeadChannel; body: string; sender_name: string }) {
+  must(await supabase.from("enquiry_messages").insert({ enquiry_id: lead.id, ...m }));
+  if (lead.status === "new") await setLeadStatus(lead.id, "contacted");
+}
+
 /** Replies sent from Studio, per lead (supabase/lead-replies.sql). Empty until that's run. */
 export async function loadLeadReplies(): Promise<Record<string, LeadReply[]>> {
   const q = (cols: string) => supabase.from("enquiry_replies").select(cols).order("created_at").limit(1000);

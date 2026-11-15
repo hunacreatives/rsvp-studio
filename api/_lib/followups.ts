@@ -41,6 +41,10 @@ export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site
   }
   const rows = [...byEvent.values()].sort((a, b) => PRIORITY[a.kind] - PRIORITY[b.kind]).slice(0, MAX_PER_RUN);
   const bookingUrl = process.env.BOOKING_URL || null;
+  // "Your website is waiting" / "Need a hand?" nudges: at most one per person per run (one
+  // person can have several drafts), and none while they have an open inquiry with us. Those
+  // nudges point back to the free builder right after we've quoted them (docs/lead-replies.md).
+  const draftNudged = new Set<string>();
 
   for (const row of rows) {
     if (Date.now() > opts.deadline) break;
@@ -50,6 +54,15 @@ export async function sendFollowups(db: SupabaseClient, sendMail: SendMail, site
       if (!ev || !owner?.email || owner.email === STUDIO_INBOX) {
         report.skipped++;
         continue;
+      }
+      if (row.kind.startsWith("draft_")) {
+        const email = owner.email.toLowerCase();
+        const { data: lead } = await db.from("enquiries").select("id").ilike("email", email.replace(/[\\%_]/g, "\\$&")).in("status", ["new", "contacted"]).limit(1);
+        if (draftNudged.has(email) || lead?.length) {
+          report.skipped++; // not claimed: it can still go out once the inquiry is closed
+          continue;
+        }
+        draftNudged.add(email);
       }
       // Claim it first: a second run (or a failure after sending) can't send it twice.
       const { error: claimErr } = await db.from("followup_log").insert({ event_id: row.event_id, kind: row.kind });

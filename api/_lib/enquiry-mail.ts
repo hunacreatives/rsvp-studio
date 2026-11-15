@@ -141,9 +141,10 @@ ${signoff()}
     };
   }
 
-  // project-inquiry
+  // project-inquiry. The subject was "We got your RSVP" until Nov 16 2026: our replies thread under
+  // it, and it read like a system notice to people who never RSVP'd (docs/lead-replies.md).
   return {
-    subject: "We got your RSVP — The RSVP Studio",
+    subject: "Your inquiry with The RSVP Studio",
     html: frame({
       preheader: "Your inquiry is in. We’ll reply within 1 business day.",
       spot: "confirm-envelope.png",

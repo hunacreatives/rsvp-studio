@@ -2,16 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { formatDate } from "@/pages/account/portal/format";
-import { ErrorText, Field, FilterTabs, Input, Modal, PillButton, PrimaryButton } from "@/pages/account/portal/ui";
+import { ErrorText, Field, FilterTabs, Input, Modal, PillButton, PrimaryButton, Textarea } from "@/pages/account/portal/ui";
 import { StudioHeader } from "../StudioLayout";
 import SavedReplies from "../SavedReplies";
 import EmailEditor, { EMAIL_SHELL_MESSAGE, type EmailEditorHandle } from "../EmailEditor";
 import * as studio from "../studioApi";
 import { dayDate, manilaDay, nextFollowup } from "../../../../api/_lib/lead-followup-plan";
+import { chatDraft, emailDraft, igHandle, instagramLink, phMobile, smsLink, viberLink } from "../leadDraft";
 
 // Studio → Leads. Everyone who filled in an inquiry form (project, partner, or a
-// question from the FAQ page). Reply from here in our branded email (it's kept on the lead
-// and marks them contacted), and turn them into a project when you start working together.
+// question from the FAQ page). Message them first in chat (Viber, SMS or Instagram, from your
+// own app; logged here), and/or email them in our branded email (kept on the lead too). Both
+// start from a short draft written to docs/lead-replies.md. Either marks them contacted. Turn
+// them into a project when you start working together.
 
 type Filter = "new" | "contacted" | "converted" | "archived" | "all";
 const FORM_LABEL: Record<string, string> = { "project-inquiry": "Project inquiry", "partner-inquiry": "Partner inquiry", "faq-question": "Question (FAQ page)" };
@@ -31,9 +34,11 @@ export default function LeadsPage() {
   const [replies, setReplies] = useState<Record<string, studio.LeadReply[]>>({});
   const [saved, setSaved] = useState<studio.SavedReply[]>([]);
   const [replying, setReplying] = useState<studio.Lead | null>(null);
+  const [messages, setMessages] = useState<Record<string, studio.LeadMessage[]>>({});
+  const [messaging, setMessaging] = useState<studio.Lead | null>(null);
   // Unsent replies, per lead: closing the dialog by accident keeps what you wrote.
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-  const reload = () => Promise.all([studio.loadLeads().then((l) => setLeads(l ?? [])), studio.loadLeadReplies().then(setReplies)]);
+  const reload = () => Promise.all([studio.loadLeads().then((l) => setLeads(l ?? [])), studio.loadLeadReplies().then(setReplies), studio.loadLeadMessages().then(setMessages)]);
   const reloadSaved = () => studio.loadSavedReplies().then(setSaved);
   // Partner applicants: already on the desk? (Helps decide.)
   const [applicants, setApplicants] = useState<Record<string, studio.Applicant>>({});
@@ -76,7 +81,7 @@ export default function LeadsPage() {
 
   return (
     <>
-      <StudioHeader title="Leads" sub="Everyone who filled in an inquiry form. Reply from here in our branded email, then turn them into a project when you start working together." />
+      <StudioHeader title="Leads" sub="Everyone who filled in an inquiry form. Message them on Viber the same day, keep it short, and end on one easy question." />
       <div className="mb-5">
         <FilterTabs<Filter>
           value={filter}
@@ -117,7 +122,13 @@ export default function LeadsPage() {
                   <FollowupChip info={fu} />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {l.email ? <PillButton onClick={() => setReplying(l)}>Reply</PillButton> : null}
+                  {phMobile(l.phone ?? String(v.mobile ?? "")) || igHandle(v) ? (
+                    <PillButton tone="primary" onClick={() => setMessaging(l)}>
+                      <i className="ri-chat-3-line mr-1" />
+                      Message
+                    </PillButton>
+                  ) : null}
+                  {l.email ? <PillButton onClick={() => setReplying(l)}>Email</PillButton> : null}
                   {fu.waitingOnThem ? (
                     <>
                       <PillButton disabled={busy === l.id} onClick={() => act(l, studio.markLeadReplied)}>
@@ -172,17 +183,22 @@ export default function LeadsPage() {
                 </dl>
               ) : null}
               <LeadFiles files={l.files ?? []} attachments={l.attachments ?? []} />
-              {replies[l.id]?.length ? (
+              {replies[l.id]?.length || messages[l.id]?.length ? (
                 <div className="mt-4 space-y-1 border-t border-[var(--line)] pt-3">
-                  {replies[l.id].map((r) => (
-                    <details key={r.id} className="text-[13px]">
-                      <summary className="cursor-pointer text-[var(--slate)] [overflow-wrap:anywhere]">
-                        Replied {formatDate(r.created_at)}
-                        {r.sender_name ? ` by ${r.sender_name}` : ""} · <span className="text-[var(--ink)]">{r.subject}</span>
-                      </summary>
-                      <p className="mt-2 whitespace-pre-line rounded-xl bg-[var(--paper)] p-3 text-[14px] text-[var(--ink)] [overflow-wrap:anywhere]">{r.body}</p>
-                    </details>
-                  ))}
+                  {[
+                    ...(replies[l.id] ?? []).map((r) => ({ id: r.id, at: r.created_at, how: "Emailed", by: r.sender_name, title: r.subject, body: r.body })),
+                    ...(messages[l.id] ?? []).map((m) => ({ id: m.id, at: m.created_at, how: `${CHANNEL_LABEL[m.channel]} message`, by: m.sender_name, title: m.body.length > 70 ? `${m.body.slice(0, 70)}…` : m.body, body: m.body })),
+                  ]
+                    .sort((a, b) => a.at.localeCompare(b.at))
+                    .map((r) => (
+                      <details key={r.id} className="text-[13px]">
+                        <summary className="cursor-pointer text-[var(--slate)] [overflow-wrap:anywhere]">
+                          {r.how} {formatDate(r.at)}
+                          {r.by ? ` by ${r.by}` : ""} · <span className="text-[var(--ink)]">{r.title}</span>
+                        </summary>
+                        <p className="mt-2 whitespace-pre-line rounded-xl bg-[var(--paper)] p-3 text-[14px] text-[var(--ink)] [overflow-wrap:anywhere]">{r.body}</p>
+                      </details>
+                    ))}
                 </div>
               ) : null}
             </article>
@@ -194,6 +210,17 @@ export default function LeadsPage() {
           </div>
         ) : null}
       </div>
+      {messaging ? (
+        <MessageDialog
+          lead={messaging}
+          emailed={(replies[messaging.id] ?? []).length > 0}
+          onClose={() => setMessaging(null)}
+          onLogged={() => {
+            setMessaging(null);
+            reload();
+          }}
+        />
+      ) : null}
       {replying ? (
         <ReplyDialog
           lead={replying}
@@ -216,9 +243,12 @@ export default function LeadsPage() {
 
 type Draft = { subject: string; message: string };
 // Our first reply answers the instant email they got (api/_lib/enquiry-mail.ts → enquiryReceipt), so it
-// lands in the same thread: one conversation, not two.
+// lands in the same thread: one conversation, not two. Project inquiries from before Nov 16 2026 got
+// "We got your RSVP" (it read like a system notice; see docs/lead-replies.md).
+const RECEIPT_RENAMED = "2026-11-16";
 const SUBJECT: Record<string, string> = {
-  "project-inquiry": "Re: We got your RSVP — The RSVP Studio",
+  "project-inquiry": "Re: Your inquiry with The RSVP Studio",
+  "project-inquiry-old": "Re: We got your RSVP — The RSVP Studio",
   "partner-inquiry": "Re: Your application is in — The RSVP Studio partners",
   "faq-question": "Re: We got your question — The RSVP Studio",
 };
@@ -236,8 +266,15 @@ function ReplyDialog({ lead, last, draft, onDraft, saved, reloadSaved, onClose, 
 }) {
   const first = (lead.name ?? "").trim().split(/\s+/)[0] ?? "";
   const d = draft ?? {
-    subject: last ? (/^re:/i.test(last.subject) ? last.subject : `Re: ${last.subject}`) : (SUBJECT[lead.form] ?? SUBJECT["project-inquiry"]),
-    message: `Hi ${first || "there"},\n\n`,
+    subject: last
+      ? /^re:/i.test(last.subject)
+        ? last.subject
+        : `Re: ${last.subject}`
+      : lead.form === "project-inquiry" && lead.created_at.slice(0, 10) < RECEIPT_RENAMED
+        ? SUBJECT["project-inquiry-old"]
+        : (SUBJECT[lead.form] ?? SUBJECT["project-inquiry"]),
+    // A first reply to a project inquiry starts from the short draft (docs/lead-replies.md).
+    message: !last && lead.form === "project-inquiry" ? emailDraft(lead) : `Hi ${first || "there"},\n\n`,
   };
   const [shell, setShell] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
@@ -316,6 +353,130 @@ function ReplyDialog({ lead, last, draft, onDraft, saved, reloadSaved, onClose, 
             {busy ? "Sending…" : "Send"}
           </PrimaryButton>
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+const CHANNEL_LABEL: Record<studio.LeadChannel, string> = { viber: "Viber", sms: "Text", instagram: "Instagram" };
+// The shared hello@ login can't say who's writing, so the message's "this is …" is picked here.
+const SENDERS = ["Francis", "Angelica"];
+const SENDER_KEY = "rsvp.lead-sender";
+
+/** Message a lead from your own Viber, Messages or Instagram: a short draft to edit, a button
+ *  that opens the chat with it typed in (and copies it, in case), then log it as sent. */
+function MessageDialog({ lead, emailed, onClose, onLogged }: { lead: studio.Lead; emailed: boolean; onClose: () => void; onLogged: () => void }) {
+  const v = lead.values ?? {};
+  const rawPhone = lead.phone || String(v.mobile ?? "");
+  const mobile = phMobile(rawPhone);
+  const ig = igHandle(v);
+  const [sender, setSender] = useState(() => {
+    try {
+      return localStorage.getItem(SENDER_KEY) || SENDERS[0];
+    } catch {
+      return SENDERS[0];
+    }
+  });
+  const [text, setText] = useState(() => chatDraft(lead, sender, emailed));
+  const [edited, setEdited] = useState(false);
+  const [opened, setOpened] = useState<studio.LeadChannel | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const first = (lead.name ?? "").trim().split(/\s+/)[0] || "them";
+
+  const pickSender = (name: string) => {
+    setSender(name);
+    try {
+      localStorage.setItem(SENDER_KEY, name);
+    } catch {
+      /* private window: just not remembered */
+    }
+    if (!edited) setText(chatDraft(lead, name, emailed));
+  };
+  const open = async (channel: studio.LeadChannel) => {
+    setError(null);
+    try {
+      await navigator.clipboard.writeText(text.trim());
+    } catch {
+      /* the link still carries the text for Viber and SMS */
+    }
+    if (channel === "instagram" && ig) window.open(instagramLink(ig), "_blank", "noopener");
+    else if (mobile) window.location.href = channel === "viber" ? viberLink(mobile, text.trim()) : smsLink(mobile, text.trim());
+    setOpened(channel);
+  };
+  const log = async () => {
+    if (!opened) return;
+    setBusy(true);
+    try {
+      await studio.logLeadMessage(lead, { channel: opened, body: text.trim(), sender_name: sender });
+      onLogged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That didn’t save. Try again.");
+      setBusy(false);
+    }
+  };
+  const channelButton = (channel: studio.LeadChannel, icon: string, label: string, enabled: boolean) =>
+    enabled ? (
+      <PillButton tone={opened === channel ? "dark" : undefined} disabled={!text.trim()} onClick={() => void open(channel)}>
+        <i className={`${icon} mr-1`} />
+        {label}
+      </PillButton>
+    ) : null;
+
+  return (
+    <Modal open onClose={onClose} title={`Message ${first}`} width={560}>
+      <div className="space-y-4">
+        <p className="text-[13px] text-[var(--slate)] [overflow-wrap:anywhere]">
+          {mobile ? `Mobile ${mobile}` : rawPhone ? `The number on the form (${rawPhone}) looks incomplete, so Viber and text are off.` : "No mobile number on the form."}
+          {ig ? ` · Instagram @${ig}` : ""}
+        </p>
+        <div>
+          <span className="mb-1.5 block text-[14px] font-medium text-[var(--ink)]">From</span>
+          <div className="flex gap-2" role="radiogroup" aria-label="From">
+            {SENDERS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={sender === n}
+                onClick={() => pickSender(n)}
+                className="min-h-[40px] rounded-full px-4 text-[14px] font-medium"
+                style={{ background: sender === n ? "var(--ink)" : "#fff", color: sender === n ? "#fff" : "var(--ink)", border: "1px solid var(--ink)" }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Field label="Message" hint="Keep it short and end on one easy question. Only offer a preview if one of you can make it today.">
+          <Textarea
+            rows={6}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setEdited(true);
+            }}
+          />
+        </Field>
+        <div className="flex flex-wrap gap-2">
+          {channelButton("viber", "ri-chat-3-line", "Open in Viber", !!mobile)}
+          {channelButton("sms", "ri-message-2-line", "Text message", !!mobile)}
+          {channelButton("instagram", "ri-instagram-line", "Instagram", !!ig)}
+        </div>
+        {opened ? (
+          <div className="rounded-xl bg-[var(--paper)] p-3 text-[13px] text-[var(--ink)]">
+            {opened === "instagram" ? "Instagram opened in a new tab. Paste the message: it’s copied." : `${CHANNEL_LABEL[opened]} should open with the message typed in. If it’s empty, paste it: it’s copied.`}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <PrimaryButton disabled={busy} onClick={() => void log()}>
+                {busy ? "Saving…" : "I sent it"}
+              </PrimaryButton>
+              <PillButton disabled={busy} onClick={() => setOpened(null)}>
+                Not sent
+              </PillButton>
+            </div>
+          </div>
+        ) : null}
+        <ErrorText>{error}</ErrorText>
       </div>
     </Modal>
   );
