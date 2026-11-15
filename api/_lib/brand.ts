@@ -9,7 +9,7 @@
 export const SITE_URL = "https://thersvpstudio.com";
 export const BRAND = "The RSVP Studio";
 
-export const FACEBOOK_URL = "https://www.facebook.com/p/The-RSVP-Studio-61590604769707/";
+export const FACEBOOK_URL = "https://www.facebook.com/thersvpstudio/";
 export const MESSENGER_URL = "https://m.me/61590604769707";
 export const INSTAGRAM_URL = "https://www.instagram.com/rsvpstudioo/";
 export const INSTAGRAM_DM_URL = "https://ig.me/m/rsvpstudioo";

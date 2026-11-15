@@ -87,7 +87,7 @@ export function brandFooter(footer: string, opts: { tagline?: boolean } = {}) {
   return `<tr><td align="center" style="padding:0 32px 34px;">
 ${opts.tagline === false ? "" : TAGLINE}
 <table role="presentation" width="160" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #dcdce2;font-size:0;line-height:0;">&nbsp;</td></tr></table>
-<p class="fs" style="margin:18px 0 12px;font-size:12px;color:#868697 !important;"><a href="https://www.instagram.com/rsvpstudioo/" ${muted}>Instagram</a>&nbsp;&middot;&nbsp;<a href="https://www.facebook.com/p/The-RSVP-Studio-61590604769707/" ${muted}>Facebook</a></p>
+<p class="fs" style="margin:18px 0 12px;font-size:12px;color:#868697 !important;"><a href="https://www.instagram.com/rsvpstudioo/" ${muted}>Instagram</a>&nbsp;&middot;&nbsp;<a href="https://www.facebook.com/thersvpstudio/" ${muted}>Facebook</a></p>
 <p class="fs" style="margin:0 0 12px;font-size:12px;color:#868697 !important;"><a href="${SITE_URL}" ${muted}>The RSVP Studio</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/services" ${muted}>Services</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/portfolio" ${muted}>Our work</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${SITE_URL}/faqs" ${muted}>FAQs</a></p>
 <p class="fs" style="margin:0;font-size:11px;line-height:1.6;color:#a0a0ad !important;">${footer}<br />The RSVP Studio, a Huna Creatives brand &middot; Philippines</p>
 </td></tr>`;
