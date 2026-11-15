@@ -67,6 +67,9 @@ const GuestPhotosPage = lazy(() => import("../pages/wedding-sites/public/GuestPh
 const BuilderShellPage = lazy(() => import("../pages/wedding-sites/builder/BuilderShellPage"));
 const TemplateGalleryPage = lazy(() => import("../pages/wedding-sites/builder/TemplateGalleryPage"));
 const BuildLandingPage = lazy(() => import("../pages/wedding-sites/builder/BuildLandingPage"));
+const DebutPage = lazy(() => import("../pages/landing/LandingPages").then((m) => ({ default: m.DebutPage })));
+const ChristeningPage = lazy(() => import("../pages/landing/LandingPages").then((m) => ({ default: m.ChristeningPage })));
+const PricingPage = lazy(() => import("../pages/landing/LandingPages").then((m) => ({ default: m.PricingPage })));
 const TemplatePreviewPage = lazy(() => import("../pages/wedding-sites/public/TemplatePreviewPage"));
 const SeatPlannerPage = lazy(() => import("../pages/tools/seating/SeatPlannerPage"));
 const SeatPlanView = lazy(() => import("../pages/tools/seating/ViewPage"));
@@ -84,6 +87,9 @@ const routes: RouteObject[] = [
   { path: "/portfolio", element: <Portfolio /> },
   { path: "/portfolio/:slug", element: <PortfolioDetail /> },
   { path: "/faqs", element: <Faqs /> },
+  { path: "/pricing", element: <PricingPage /> },
+  { path: "/debut-invitation-website", element: <DebutPage /> },
+  { path: "/christening-invitation-website", element: <ChristeningPage /> },
   { path: "/contact", element: <ContactPage /> },
   { path: "/blog", element: <Blog /> },
   { path: "/blog/:slug", element: <BlogPost /> },

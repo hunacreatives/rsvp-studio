@@ -3,6 +3,8 @@
 // main pages, so a link shared on Messenger or Viber shows that page, not the site's default.
 // Pages not listed keep the site default. Event invites get theirs from api/invite-page.ts.
 
+import { CHRISTENING, DEBUT, PRICING } from "./landing-copy.js";
+
 export const SITE = "The RSVP Studio";
 export const DEFAULT_DESC =
   "Event websites, digital invitations and stationery for weddings, birthdays and every celebration in the Philippines — with RSVPs built in.";
@@ -10,7 +12,7 @@ export const DEFAULT_DESC =
 export const META: [RegExp, string, string?][] = [
   [/^\/$/, `${SITE} — Event Websites, Invitations & Stationery`, DEFAULT_DESC],
   [/^\/services$/, `Services — ${SITE}`, "Event websites, save-the-dates, monograms, printed stationery and RSVP management — pick one or bundle them."],
-  [/^\/services\/milestone$/, `Event Websites — ${SITE}`, "Semi-Custom and Custom event websites for weddings, birthdays and milestones. RSVPs built in. From ₱3,000."],
+  [/^\/services\/milestone$/, `Event Website with RSVP, From ₱3,000 — ${SITE}`, "Event websites with RSVPs for weddings, debuts, birthdays and christenings in the Philippines. Semi-Custom from ₱3,000, Custom from ₱8,000."],
   [/^\/services\/monogram$/, `Monogram Design — ${SITE}`, "Custom monograms and crests for your celebration — Signature, Duo and Crest, from ₱2,500."],
   [/^\/services\/save-the-date$/, `Digital Save the Date — ${SITE}`, "Still or animated Save the Dates designed for your celebration and sent straight to your guests’ phones. From ₱1,500, ready in 3–5 business days."],
   [/^\/services\/stationery$/, `Stationery Design — ${SITE}`, "Printed invitation suites — Essential, Signature and Heirloom — designed for your celebration."],
@@ -23,7 +25,10 @@ export const META: [RegExp, string, string?][] = [
   [/^\/faqs/, `FAQ — ${SITE}`, "Answers about pricing, payment (GCash, Maya, card), timelines, revisions and how RSVPs work."],
   [/^\/enquire/, `Get a Quote — ${SITE}`, "Tell us about your celebration and we’ll reply within 1 business day."],
   [/^\/pickleball$/, `Pickleball Invites — ${SITE}`, "Invitation websites for a birthday on the court, open play or game day with friends. Guests RSVP right on the invite. Free to start."],
-  [/^\/build/, `Make Your Own Event Website — ${SITE}`, "Pick a design, add your details and photos, and share one link with your guests."],
+  [/^\/build/, `Free Online Invitation with RSVP — Make Your Own Event Website — ${SITE}`, "Make your own event website for free: pick a design, add your details and photos, and share one link. Guests RSVP right on the site."],
+  [/^\/pricing$/, PRICING.title, PRICING.description],
+  [/^\/debut-invitation-website$/, DEBUT.title, DEBUT.description],
+  [/^\/christening-invitation-website$/, CHRISTENING.title, CHRISTENING.description],
   [/^\/tools\/seating-chart-maker/, `Mesa: Free Seating Chart Maker for Weddings, Debuts & Events — ${SITE}`, "Mesa is a free seating chart maker for weddings, debuts, birthdays and every kind of event. Paste your guest list and seat everyone, no sign-up needed; download and share with a free account."],
   [/^\/blog$/, `The Journal — ${SITE}`, "Ideas, guides and stories on invitations, events, and everything in between."],
   [/^\/partners$/, `For Coordinators — ${SITE}`, "Sign up free as a coordinator: every client’s event in one dashboard, hand-over, seating and check-in. Partners earn up to 20%."],

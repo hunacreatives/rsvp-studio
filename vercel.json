@@ -118,6 +118,18 @@
       "destination": "/api/invite-page?op=meta&p=/faqs"
     },
     {
+      "source": "/pricing",
+      "destination": "/api/invite-page?op=meta&p=/pricing"
+    },
+    {
+      "source": "/debut-invitation-website",
+      "destination": "/api/invite-page?op=meta&p=/debut-invitation-website"
+    },
+    {
+      "source": "/christening-invitation-website",
+      "destination": "/api/invite-page?op=meta&p=/christening-invitation-website"
+    },
+    {
       "source": "/collections",
       "destination": "/api/invite-page?op=meta&p=/collections"
     },

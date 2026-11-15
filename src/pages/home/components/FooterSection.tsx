@@ -18,6 +18,9 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Explore",
     links: [
       { label: "Collections", to: "/collections" },
+      { label: "Pricing", to: "/pricing" },
+      { label: "Debut websites", to: "/debut-invitation-website" },
+      { label: "Christening & 1st birthday", to: "/christening-invitation-website" },
       { label: "Our work", to: "/portfolio" },
       { label: "FAQ", to: "/faqs" },
       { label: "Blog", to: "/blog" },

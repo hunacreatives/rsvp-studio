@@ -7,6 +7,7 @@ import { FACEBOOK_REVIEWS_URL, readReviewToken } from "./_lib/support-mail.js";
 import { blogPage } from "./_lib/blog-page.js";
 import { META, metaFor } from "./_lib/page-meta.js";
 import { BRAND_LINE, HOME_H1, HOME_SUB, SITE_URL, brandLd } from "./_lib/brand.js";
+import { LANDINGS, PRICING, type Faq } from "./_lib/landing-copy.js";
 import { tagInvitePage } from "./_lib/link-preview.js";
 import { SEATING_NAME, SEATING_DESCRIPTION, SEATING_FACTS, SEATING_FAQ, SEATING_H1, SEATING_LAYOUT, SEATING_PATH, SEATING_STEPS, SEATING_SUB, SEATING_TITLE } from "./_lib/seating-copy.js";
 
@@ -327,6 +328,46 @@ const NAV: [string, string][] = [
   ["/enquire", "Get a quote"],
 ];
 
+/** Pages whose whole text goes in the HTML: the occasion pages and /pricing (api/_lib/landing-copy.ts). */
+function fullPage(path: string): { faq: Faq[]; html: string } | null {
+  const faqHtml = (faq: Faq[]) => `<h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}`;
+  const wrap = (inner: string) => `<main style="max-width:44rem;margin:12vh auto 0;padding:0 16px;color:#1b1b2f">${inner}<p>${esc(BRAND_LINE)}</p><nav>${NAV.map(([href, label]) => `<a href="${href}">${esc(label)}</a>`).join(" · ")}</nav></main>`;
+  const page = LANDINGS[path];
+  if (page)
+    return {
+      faq: page.faq,
+      html: wrap(
+        [
+          `<h1>${esc(page.h1)}</h1>`,
+          `<p>${esc(page.answer)}</p>`,
+          `<p>${esc(page.priceLine)}</p>`,
+          `<h2>What goes on the site</h2><ul>${page.features.map(([t, d]) => `<li><strong>${esc(t)}</strong>: ${esc(d)}</li>`).join("")}</ul>`,
+          `<h2>Designs</h2><ul>${page.designs.map((d) => `<li><a href="/build/preview/${d.id}">${esc(d.label)}</a>: ${esc(d.note)}</li>`).join("")}</ul>`,
+          faqHtml(page.faq),
+          `<p><a href="/pricing">All prices</a> · <a href="/enquire">Get a quote</a> · <a href="/build">Make it yourself, free</a></p>`,
+        ].join(""),
+      ),
+    };
+  if (path === PRICING.path)
+    return {
+      faq: PRICING.faq,
+      html: wrap(
+        [
+          `<h1>${esc(PRICING.h1)}</h1>`,
+          `<p>${esc(PRICING.answer)}</p>`,
+          ...PRICING.groups.map((g) => `<h2>${esc(g.heading)}</h2><table><tbody>${g.rows.map((r) => `<tr><th><a href="${r.href}">${esc(r.name)}</a></th><td>${esc(r.price)}</td><td>${esc(r.detail)}</td></tr>`).join("")}</tbody></table>`),
+          faqHtml(PRICING.faq),
+        ].join(""),
+      ),
+    };
+  return null;
+}
+const faqLd = (faq: Faq[]) => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+});
+
 /** The site's own pages (vercel.json sends the main ones here, "/" included): the same title and
  *  description the app sets (api/_lib/page-meta.ts), a canonical on our one domain, and the page's
  *  heading and a few lines of text inside #root (the app replaces them on load), so search and AI
@@ -346,9 +387,13 @@ function metaPage(req: VercelRequest, res: VercelResponse, shellHtml: string) {
     `<meta property="og:url" content="${esc(url)}" />`,
     ...(known ? [`<link rel="canonical" href="${esc(url)}" />`] : [`<meta name="robots" content="noindex" />`]),
     ...(path === "/" ? [`<script type="application/ld+json">${JSON.stringify(brandLd(description)).replace(/</g, "\\u003c")}</script>`] : []),
+    ...(fullPage(path) ? [`<script type="application/ld+json">${JSON.stringify(faqLd(fullPage(path)!.faq)).replace(/</g, "\\u003c")}</script>`] : []),
   ].join("\n    ");
   const h1 = H1S.find(([re]) => re.test(path))?.[1];
-  const body = known
+  const full = fullPage(path);
+  const body = full
+    ? full.html
+    : known
     ? [
         `<main style="max-width:40rem;margin:18vh auto 0;padding:0 16px;text-align:center;color:#1b1b2f">`,
         h1 ? `<h1>${esc(h1)}</h1>` : "",
