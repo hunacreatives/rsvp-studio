@@ -19,7 +19,7 @@ const PLANS = [
     design: "semi-custom",
     second: { label: "See the designs", to: "/collections" },
     features: [
-      { icon: "ri-layout-2-line", title: "Signature Layouts", copy: "Thoughtfully designed templates from our signature collection" },
+      { icon: "ri-layout-2-line", title: "Our Signature Designs", copy: "Only through us, never in the do-it-yourself builder" },
       { icon: "ri-user-heart-line", title: "Personalized Content", copy: "We tailor the content to your story and celebration" },
       { icon: "ri-time-line", title: "Ready in 5–7 Business Days", copy: "From when we have your details and photos" },
       { icon: "ri-sparkling-line", title: "Elegant & Refined", copy: "Timeless designs with a curated, elevated look" },
@@ -36,7 +36,7 @@ const PLANS = [
     design: "custom",
     second: { label: "See our work", to: "/portfolio#milestone" },
     features: [
-      { icon: "ri-quill-pen-line", title: "Designed from Scratch", copy: "Everything is designed exclusively for you" },
+      { icon: "ri-quill-pen-line", title: "Designed from Scratch", copy: "Every scene and illustration made new for you, never reused" },
       { icon: "ri-team-line", title: "Collaborative Design", copy: "A hands-on experience from start to finish" },
       { icon: "ri-time-line", title: "Ready in 3–4 Weeks", copy: "Three rounds of changes included" },
       { icon: "ri-magic-line", title: "Custom Animations", copy: "Custom interactions and animations designed uniquely for your site" },
@@ -71,6 +71,10 @@ export default function ExperienceSection() {
         <Reveal className="text-center">
           <h2 className="h-section text-[var(--ink)]">Two Ways to Celebrate</h2>
           <p className="mt-3 text-lg text-[var(--slate)]">Choose your experience.</p>
+          {/* the one rule that tells the two apart */}
+          <p className="mx-auto mt-2 max-w-xl text-balance text-[15px] text-[var(--ink)]">
+            Semi-custom changes the words, photos and colours. Custom changes the art.
+          </p>
         </Reveal>
 
         <div className="mx-auto mt-10 grid max-w-[1040px] gap-6 md:mt-14 md:grid-cols-2 md:gap-8">

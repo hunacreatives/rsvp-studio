@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+<base href="/watercolor/special-delivery/">
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elise &amp; Thomas — Special Delivery</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Elise and Thomas are getting married. Saturday, the twelfth of June 2027, Tagaytay.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Pinyon+Script&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2e2622;
+    --brown: #7a5634;
+    --caps: #3e3346;
+    --red: #9a2f2a;
+    --post: rgba(44, 40, 70, .82);
+    --paper: #efe8dc;
+    --serif: "Cormorant Garamond", Georgia, serif;
+    --script: "Pinyon Script", cursive;
+    --glide: cubic-bezier(.45, 0, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { margin: 0; color: var(--ink); font-family: var(--serif); -webkit-font-smoothing: antialiased;
+         background: var(--paper) url(assets/page-paper.webp) center / 900px repeat; }
+  button { font: inherit; color: inherit; }
+
+  /* One show on one stage (as Opening Night): the page scrolls freely through a tall track while the stage stays put;
+     each scene comes apart, the next builds up. */
+  .track { position: relative; }
+  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  .scene { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+  .scene.on { pointer-events: auto; }
+  .scene.gone { visibility: hidden; }
+  .wrap { position: absolute; inset: 0; pointer-events: none; }
+
+  /* a written line: the canvas sits exactly over its own text */
+  .iv-ink { position: relative; display: inline-block; white-space: nowrap; }
+  .iv-ink__t { color: transparent; }
+  .iv-ink__c { position: absolute; left: 0; top: 0; pointer-events: none; }
+
+  /* ---------------------------------------------------------------- the opening: the envelope (unchanged) */
+  .hero { position: absolute; left: 50%; top: 50%; translate: -50% -50%; height: 100%; aspect-ratio: 819 / 1772; container-type: inline-size;
+          -webkit-mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+  @media (max-aspect-ratio: 5 / 8) {
+    .hero { width: max(100vw, 46.22svh); height: auto; -webkit-mask: none; mask: none; }
+  }
+  .hero video, .hero img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+  .hero .last { opacity: 0; }
+  .hero.ready img.first { opacity: 0; }              /* the video itself is the still, start and end: no colour jump */
+  .hero.opened:not(.ready) .last { opacity: 1; }
+  .ring { position: absolute; left: 50%; top: 49.6%; width: 30cqw; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; border: 0; padding: 0;
+          background: transparent; cursor: pointer; }
+  .ring::before, .ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(255, 238, 214, .7);
+          animation: halo 2.6s ease-out infinite; opacity: 0; }
+  .ring::after { animation-delay: 1.3s; }
+  @keyframes halo { 0% { scale: .7; opacity: 0; } 25% { opacity: .9; } 100% { scale: 1.25; opacity: 0; } }
+  .hint { position: absolute; left: 0; right: 0; top: 90.5%; text-align: center; margin: 0; font: italic 500 4cqw / 1 var(--serif); color: #4a3324;
+          opacity: .85; transition: opacity .5s ease; }
+  .hint.out, .ring.out { opacity: 0 !important; pointer-events: none; }
+  .ring.out::before, .ring.out::after { animation: none; }
+  .more span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .more { position: absolute; left: 0; right: 0; bottom: max(.6svh, env(safe-area-inset-bottom)); text-align: center; margin: 0;
+          font: 600 .68rem / 1 var(--serif); color: var(--brown); opacity: 0; transition: opacity 1s ease; }
+  .more::after { content: ""; display: block; width: 8px; height: 8px; margin: 9px auto 0; border: solid currentColor; border-width: 0 1px 1px 0;
+                 rotate: 45deg; animation: nudge 1.8s ease-in-out infinite; }
+  @keyframes nudge { 0%, 100% { translate: 0 0; opacity: .5; } 50% { translate: 0 5px; opacity: 1; } }
+  .more.in { opacity: .9; }
+  /* swallows over the opened card, seen from above (part of the opening) */
+  .sky { position: absolute; inset: 0; pointer-events: none; z-index: 200; overflow: hidden; transition: opacity .6s ease; }
+  .stage.past-open .sky { opacity: 0; }
+  .tbird { position: absolute; left: 0; top: 0; will-change: transform; }
+  .tbird i { position: absolute; inset: 0; background: url(assets/swallow.webp) 0 0 / 800% 100% no-repeat; animation: tflap var(--f, .42s) steps(8) infinite; }
+  .tbird i.sh { filter: brightness(0) blur(var(--sb, 2px)); opacity: .2; translate: var(--sx, 20px) var(--sy, 28px); }
+  @keyframes tflap { to { background-position: 114.2857% 0; } }
+
+  /* ---------------------------------------------------------------- a scene: a watercolour cardboard diorama + its words */
+  .act { padding: 5svh 9vw 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
+  .diorama { position: relative; width: min(88vw, 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
+  .diorama img { position: absolute; display: block; transform-origin: 50% 100%; backface-visibility: hidden;
+                 filter: drop-shadow(0 .6vmin .9vmin rgba(70, 45, 30, .26)); }
+  .diorama img.flat { filter: none; }
+  .diorama > .wrap { perspective: 1100px; perspective-origin: 50% 30%; }
+  .act.prog .diorama { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(196vw, 100svh, 1100px); }
+  .words { text-align: center; max-width: 24em; margin: 0 auto; }
+  .kicker { font: 600 .74rem / 1 var(--serif); letter-spacing: .38em; text-transform: uppercase; color: var(--brown); margin: 0; font-variant-numeric: lining-nums; }
+  .words h2 { font: 400 clamp(2.7rem, 10vw, 3.8rem) / 1.08 var(--script); margin: .4em 0 .45em; }
+  .words .kicker { font-size: .8rem; font-weight: 700; color: var(--caps); }
+  .lead { font: 500 clamp(1.02rem, 3.9vw, 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
+  .body { font: 400 clamp(.98rem, 3.7vw, 1.1rem) / 1.75 var(--serif); margin: 0 auto; max-width: 22em; }
+  .tagbtn { display: inline-block; margin-top: 1.4em; padding: .55em 1.2em .55em 1.6em; font: 600 .72rem / 1 var(--serif); letter-spacing: .26em;
+            text-transform: uppercase; color: var(--ink); text-decoration: none; background: #f6efdf; position: relative;
+            clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); box-shadow: 0 1px 0 rgba(0,0,0,.08); }
+  .tagbtn::before { content: ""; position: absolute; left: 8px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--paper); }
+  @media (min-width: 900px) {
+    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: 6vw; }
+    .diorama { width: min(44vw, 74svh, 640px); }
+    .words { text-align: left; }
+  }
+  /* words set on painted things (the post office sign, the signpost) */
+  .on-paint { position: absolute; translate: -50% -50%; text-align: center; white-space: nowrap; }
+  .sign { font: 600 2.05cqw / 1 var(--serif); letter-spacing: .06em; text-transform: uppercase; color: #5a4632; }
+  .po-sign { font: 600 2.15cqw / 1 var(--serif); letter-spacing: .2em; text-indent: .24em; text-transform: uppercase; color: #f3dcae; }
+  /* the telegram: the day's times set on it as it settles */
+  .bill-card { position: absolute; left: 37.6%; right: 37.6%; top: 30.6%; bottom: 28.4%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .bill-card .k { font: 700 1.05cqw / 1 var(--serif); letter-spacing: .5em; text-indent: .5em; text-transform: uppercase; color: var(--red); margin: 0; }
+  .bill-card .t { font: 400 3.4cqw / 1 var(--script); margin: 1.1cqw 0 2.2cqw; white-space: nowrap; }
+  .bill-card ol { list-style: none; margin: 0; padding: 0; width: 100%; }
+  .bill-card li { display: flex; align-items: baseline; gap: .8cqw; font: 500 1.62cqw / 1.2 var(--serif); margin: 0 0 1.75cqw; }
+  .bill-card li b { font-weight: 700; letter-spacing: .04em; font-size: 1.32cqw; color: var(--red); min-width: 4.6cqw; text-align: left; }
+  .bill-card li span.dots { flex: 1; border-bottom: 1px dotted rgba(46,38,34,.35); transform: translateY(-.3em); }
+  .bill-card .foot { margin-top: auto; font: 600 1.05cqw / 1 var(--serif); letter-spacing: .3em; text-transform: uppercase; color: var(--brown); }
+
+  /* ---------------------------------------------------------------- a full-screen scene: the painting fills the screen, the words are in its sky */
+  .fullscene { position: absolute; inset: 0; }
+  .fframe { position: absolute; left: 50%; top: 50%; translate: -50% -50%; height: 100%; aspect-ratio: 9 / 16; container-type: inline-size; perspective: 1400px; perspective-origin: 50% 40%; }
+  /* phones: the painting covers the screen (narrow ones crop its sides, wider ones its top and bottom); wide screens: contained */
+  @media (min-aspect-ratio: 9 / 16) and (max-aspect-ratio: 3 / 4) { .fframe { width: 100vw; height: auto; } }
+  .fbg { position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; filter: blur(42px) saturate(.95); opacity: 0; transition: opacity 1s ease; pointer-events: none; }
+  @media (min-aspect-ratio: 3 / 4) {
+    .fullscene .fbg { opacity: .8; }
+    .fullscene .fframe { -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+  }
+  .fframe img { position: absolute; display: block; transform-origin: 50% 100%; backface-visibility: hidden; filter: drop-shadow(0 .5cqw .8cqw rgba(70, 45, 30, .24)); }
+  .fframe img.flat { filter: none; }
+  .fframe > .wrap { perspective: 1400px; perspective-origin: 50% 40%; }
+  .skywords { position: absolute; left: 11%; right: 11%; top: 12.5%; text-align: center; }
+  .skywords .kicker { font-size: 2.9cqw; font-weight: 700; letter-spacing: .46em; text-indent: .46em; color: var(--caps); }
+  .skywords h2 { font: 400 11.8cqw / 1.04 var(--script); margin: 4.2cqw 0 0; }
+  .skywords h2 .long { font-size: 10.2cqw; }
+  .skywords h2 > div { display: block; }
+  .orn { display: flex; align-items: center; justify-content: center; gap: 1.6cqw; margin: 4.4cqw auto 4cqw; color: var(--brown); opacity: .75; }
+  .orn::before, .orn::after { content: ""; width: 9cqw; height: 1px; background: currentColor; }
+  .orn i { width: 1.3cqw; height: 1.3cqw; background: currentColor; rotate: 45deg; }
+  .skywords .lead { font: italic 500 5cqw / 1.45 var(--serif); margin: 0 auto; max-width: 72cqw; text-wrap: balance; }
+  .skywords .body { font: 700 3.1cqw / 1.6 var(--serif); letter-spacing: .2em; text-transform: uppercase; color: var(--caps); margin: 2.8cqw auto 0; }
+  .skywords .tagbtn { font-size: 2.3cqw; margin-top: 3.4cqw; }
+
+  .tape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; filter: drop-shadow(0 .6cqw .5cqw rgba(40, 30, 20, .28)); }
+  .tape text { font-family: "Special Elite", "Courier New", monospace; font-size: 2.6px; letter-spacing: .1px; fill: #2c2622; }
+  .spin.live { animation: spin var(--d, 1.2s) linear infinite; transform-origin: var(--ox, 50%) var(--oy, 50%); }
+  @keyframes spin { to { rotate: 360deg; } }
+  .fbtn { position: absolute; left: 50%; bottom: 4.5%; translate: -50% 0; margin: 0 !important; font-size: 2.4cqw !important; pointer-events: auto; }
+  .fsign { position: absolute; translate: -50% -50%; white-space: nowrap; font: 600 2.75cqw / 1 var(--serif); letter-spacing: .1em; text-transform: uppercase; color: #5a4632; }
+
+  /* ---------------------------------------------------------------- the order of the day: a quiet page */
+  .quiet { place-items: center; padding: 8svh 10vw; }
+  .qcol { width: min(76vw, 21rem); text-align: center; }
+  .qclock { width: min(22vw, 5.6rem); display: block; margin: 0 auto 3.6svh; filter: drop-shadow(0 6px 10px rgba(70, 45, 30, .2)); }
+  .qcol h2 { font: 400 clamp(2.2rem, 8.4vw, 3rem) / 1.1 var(--script); margin: 1.6svh 0 4.6svh; }
+  .qlist { list-style: none; margin: 0; padding: 0; }
+  .qlist li { display: flex; align-items: baseline; justify-content: center; gap: 1.1em; margin: 0 0 2.6svh; font: 500 clamp(1rem, 4vw, 1.12rem) / 1.3 var(--serif); }
+  .qlist li b { font: 600 .78em / 1 var(--serif); letter-spacing: .18em; color: var(--red); min-width: 3.2em; text-align: right; }
+  .qlist li span { min-width: 9em; text-align: left; }
+  .qfoot { margin: 4.4svh 0 0; font: 600 .62rem / 1 var(--serif); letter-spacing: .32em; text-indent: .32em; text-transform: uppercase; color: var(--brown); }
+
+  /* ---------------------------------------------------------------- the finale: a lane at dusk, the reply card held up in front */
+  .fframe .rcard { position: absolute; left: 5%; width: 90%; bottom: 2.6%; margin: 0; rotate: -1.2deg; pointer-events: auto; aspect-ratio: 1.36; }
+  .finale .skywords { top: 15%; }
+  .finale .skywords h2 { color: var(--ink); }
+  .finale.night .skywords h2, .finale.night .skywords .sub { color: #f6e3c0; }
+  .office-sign { position: absolute; translate: -50% -50%; white-space: nowrap; font: 600 2.9cqw / 1 var(--serif); letter-spacing: .3em; text-indent: .3em; text-transform: uppercase; color: #f6dfb2; }
+  .glowdot { position: absolute; width: var(--s, 6cqw); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; opacity: 0;
+             background: radial-gradient(rgba(255, 236, 170, .95), rgba(255, 206, 120, .5) 30%, rgba(255, 190, 100, 0) 70%); mix-blend-mode: screen; }
+  .fframe img.glow-on { filter: drop-shadow(0 0 1.6cqw rgba(255, 196, 120, .95)) drop-shadow(0 0 4cqw rgba(255, 170, 90, .6)) brightness(1.15); transition: filter 1.6s ease; }
+  .fireflies { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; }
+  .finale .skywords h2.done { font-size: 8.6cqw; line-height: 1.12; }
+  .skywords .sub { font: italic 500 4.4cqw / 1.4 var(--serif); margin: 2cqw 0 0; opacity: 0; }
+
+  /* ---------------------------------------------------------------- the reply: the card under the postbox */
+  .act.reply .diorama { width: min(74vw, 36svh, 460px); }
+  .rcard { position: relative; width: min(92vw, 30rem); aspect-ratio: 1.44; margin: 1.6svh auto 0; container-type: inline-size;
+           background: url(assets/dio/sd_rsvp/sdx_99_card.webp) center / 100% 100%; filter: drop-shadow(0 8px 14px rgba(60,40,25,.25)); }
+  .rcard::before { content: ""; position: absolute; inset: 6% 5%; background: radial-gradient(ellipse 78% 74% at 50% 50%, rgba(252, 248, 238, .9), rgba(252, 248, 238, .7) 64%, rgba(252, 248, 238, 0) 100%); pointer-events: none; }
+  .rcard form { position: absolute; left: 9%; right: 9%; top: 8%; bottom: 8%; display: flex; flex-direction: column; gap: 3.2cqw; justify-content: center; }
+  .rcard .ttl { font: 700 3.1cqw / 1 var(--serif); letter-spacing: .32em; text-indent: .32em; text-transform: uppercase; color: var(--caps); margin: 0; text-align: center; }
+  .rcard input[type=text] { font: 400 7.2cqw / 1.2 var(--script); color: var(--ink); background: transparent; border: 0; border-bottom: 1.5px solid rgba(46,38,34,.5);
+                            padding: .6cqw 0; outline: none; width: 100%; text-align: center; border-radius: 0; }
+  .rcard input[type=text]::placeholder { color: rgba(46,38,34,.5); }
+  .rcard input:focus-visible { border-bottom-color: var(--red); }
+  .rcard .pick { display: flex; gap: 2cqw; }
+  .rcard .pick label { flex: 1; text-align: center; font: 400 5.6cqw / 1 var(--script); padding: 2.6cqw .5cqw; white-space: nowrap; border: 1.5px solid rgba(62,51,70,.45); cursor: pointer; }
+  .rcard .pick input { position: absolute; opacity: 0; pointer-events: none; }
+  .rcard .pick label:has(input:checked) { background: rgba(154,47,42,.07); border-color: var(--red); color: var(--red); }
+  .rcard .pick label:has(input:focus-visible) { outline: 2px solid var(--red); outline-offset: 2px; }
+  .rcard .row { display: flex; gap: 3cqw; align-items: center; justify-content: space-between; }
+  .rcard .row label { font: 700 3cqw / 1 var(--serif); letter-spacing: .2em; text-transform: uppercase; color: var(--caps); display: flex; gap: 2cqw; align-items: baseline; }
+  .rcard .row input { width: 10cqw; font: 400 6.4cqw / 1 var(--script); }
+  .rcard button { border: 0; background: none; cursor: pointer; font: 400 7.6cqw / 1 var(--script); color: var(--red); padding: 0 1cqw; }
+  .rcard button small { font: 700 2.5cqw / 1 var(--serif); letter-spacing: .28em; text-transform: uppercase; color: var(--caps); margin-left: 1.6cqw; }
+  .rcard button:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+  .after { text-align: center; }
+  .after .sub { font: italic 500 clamp(1rem, 3.9vw, 1.12rem) / 1.5 var(--serif); margin: .6em 0 0; opacity: 0; }
+  .pmark { position: absolute; aspect-ratio: 1; color: var(--post); opacity: 0; mix-blend-mode: multiply; pointer-events: none; }
+  .pmark svg { width: 100%; height: 100%; overflow: visible; display: block; }
+  .credit { position: absolute; left: 0; right: 0; bottom: max(1.4svh, env(safe-area-inset-bottom)); text-align: center; font: 600 .62rem / 1 var(--serif);
+            letter-spacing: .3em; text-indent: .3em; text-transform: uppercase; color: var(--brown); opacity: .55; margin: 0; }
+  .credit a { color: inherit; text-decoration: none; pointer-events: auto; }
+
+  /* ---------------------------------------------------------------- swallows (Opening Night's watercolour bird) */
+  .sky-birds { position: absolute; pointer-events: none; overflow: hidden; }
+  .bird { position: absolute; left: 0; top: 0; aspect-ratio: 260 / 220; will-change: transform; }
+  .bird::before { content: ""; position: absolute; inset: 0; background: url(assets/bird.webp) 0 0 / 800% 100% no-repeat; animation: flap var(--f, .52s) infinite; }
+  .bird.glide::before { animation: none; background-position: 57.1429% 0; }
+  .bird.right::before { scale: -1 1; }
+  @keyframes flap {
+    0.000% { background-position: 0.0000% 0; animation-timing-function: steps(1, end); }
+    7.143% { background-position: 14.2857% 0; animation-timing-function: steps(1, end); }
+    14.286% { background-position: 28.5714% 0; animation-timing-function: steps(1, end); }
+    21.429% { background-position: 42.8571% 0; animation-timing-function: steps(1, end); }
+    28.571% { background-position: 57.1429% 0; animation-timing-function: steps(1, end); }
+    35.714% { background-position: 71.4286% 0; animation-timing-function: steps(1, end); }
+    42.857% { background-position: 85.7143% 0; animation-timing-function: steps(1, end); }
+    50.000% { background-position: 100.0000% 0; animation-timing-function: steps(1, end); }
+    57.143% { background-position: 85.7143% 0; animation-timing-function: steps(1, end); }
+    64.286% { background-position: 71.4286% 0; animation-timing-function: steps(1, end); }
+    71.429% { background-position: 57.1429% 0; animation-timing-function: steps(1, end); }
+    78.571% { background-position: 42.8571% 0; animation-timing-function: steps(1, end); }
+    85.714% { background-position: 28.5714% 0; animation-timing-function: steps(1, end); }
+    92.857% { background-position: 14.2857% 0; animation-timing-function: steps(1, end); }
+    100% { background-position: 0 0; }
+  }
+
+  /* ---------------------------------------------------------------- barely-there life, once a scene is up */
+  .live { will-change: transform; }
+  .rock.live    { transform-origin: 50% 100%; animation: rock calc(var(--d, 7s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .swing.live   { transform-origin: 50% 0;    animation: rock calc(var(--d, 3.6s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .drift.live   { animation: drift calc(var(--d, 15s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .glowy.live   { animation: glowy calc(var(--d, 5s) * 2) ease-in-out infinite; }
+  .stir.live    { transform-origin: 50% 100%; animation: stir calc(var(--d, 4.5s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .flick.live   { transform-origin: 50% 100%; animation: flick var(--d, 1.7s) steps(6) var(--o, 0s) infinite; }
+  .twinkle.live { animation: twinkle calc(var(--d, 3s) * 2) ease-in-out infinite; }
+  .bob.live     { animation: bob calc(var(--d, 1.1s) * 2) ease-in-out infinite; }
+  @keyframes rock    { 0%, 100% { rotate: 0deg; } 25% { rotate: calc(var(--a, .35deg) * -1); } 75% { rotate: var(--a, .35deg); } }
+  @keyframes drift   { 0%, 100% { translate: 0 0; } 50% { translate: var(--x, 1.2%) -0.4%; } }
+  @keyframes glowy   { 0%, 100% { scale: 1; filter: brightness(1); } 50% { scale: 1.025; filter: brightness(1.06); } }
+  @keyframes stir    { 0%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -0.12% 0; rotate: -.15deg; } 75% { translate: .12% -0.1%; rotate: .15deg; } }
+  @keyframes flick   { 0% { opacity: 1; scale: 1 1; } 30% { opacity: .82; scale: .98 1.03; } 60% { opacity: .95; scale: 1.01 .97; } 100% { opacity: 1; scale: 1 1; } }
+  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+  @keyframes bob     { 0%, 100% { translate: 0 0; } 50% { translate: 0 -0.25%; } }
+  .asleep .live, .asleep .bird::before { animation-play-state: paused !important; }
+  @media (prefers-reduced-motion: reduce) { .live, .ring::before, .ring::after, .more::after { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="track" id="track"><div class="stage" id="stage"><div class="sky" id="sky" aria-hidden="true"></div></div></div>
+
+<script src="ink.js"></script>
+<script>
+// Special Delivery (draft 2). The envelope opens (a photographed film); inside, the invitation is a run of small
+// watercolour cardboard scenes from a little post office's world, built piece by piece as the page scrolls on.
+const $ = (s, r = document) => r.querySelector(s);
+const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------------------------------------------------------------- the couple's content (sample)
+const C = {
+  story: { kicker: "Our Story", title: ["It began", "with a letter"], lead: "Eight years of letters later, we're getting married.", sign: "Post Office" },
+  ceremony: { kicker: "The Ceremony", title: "Saturday, 12 June", lead: "four o'clock in the afternoon", body: "The Chapel on the Hill", map: "https://maps.google.com/?q=Tagaytay+chapel" },
+  reception: { kicker: "The Reception", title: "The Garden House", lead: "From six o'clock until late", body: "Dinner · toasts · dancing" },
+  programme: { kicker: "Telegram", title: "The Order of the Day", tape: [["3:30", "ARRIVALS"], ["4:00", "CEREMONY"], ["5:00", "MERIENDA"], ["6:30", "DINNER"], ["8:00", "FIRST DANCE"], ["11:00", "SEND-OFF"]], items: [["3:30", "Guests arrive"], ["4:00", "The ceremony"], ["5:00", "Merienda"], ["6:30", "Dinner"], ["8:00", "First dance"], ["11:00", "Send-off"]], foot: "Elise & Thomas · 12 June 2027" },
+  travel: { kicker: "Getting There", title: "Up the ridge road", lead: "Stay at The Hillside Inn, ten minutes from the chapel.", body: "Shuttle · 3:15 pm", signs: ["The chapel", "Garden House", "Hillside Inn"] },
+  rsvp: { title: "Will you join us?", by: "Kindly reply by 1 May", done: ["See you on", "the twelfth of June"], doneNo: ["We'll miss you"], sub: "Your reply is in the post." },
+};
+
+// ---------------------------------------------------------------- helpers + the pen
+function place(el, b) { Object.assign(el.style, { left: b.x * 100 + "%", top: b.y * 100 + "%", width: b.w * 100 + "%", height: b.h * 100 + "%" }); return el; }
+function img(src, b) { const i = new Image(); i.alt = ""; i.decoding = "sync"; i.src = src; return place(i, b); }
+const inker = window.createInker({ ink: "#2e2622", wet: "#3b3554", pen: () => null, stage: () => $("#stage") });
+function inkLine(text, opts = { speed: 8, maxDur: 1.8 }) {
+  const s = h("span", "iv-ink", `<span class="iv-ink__t" data-iv-text></span><canvas class="iv-ink__c" aria-hidden="true"></canvas>`);
+  s.firstChild.textContent = text; inker.add(s, s.querySelector("canvas"), opts); return s;
+}
+const write = (els) => new Promise((r) => inker.write(els, r));
+const writeNow = (els) => { if (inker.writing()) inker.finish(); return write(els); };
+function setLive(el, cls, vars = {}) { if (!el) return; el.classList.add(cls, "live"); for (const k in vars) el.style.setProperty(k, vars[k]); }
+function wrap(el) { const w = h("div", "wrap"); el.replaceWith(w); w.append(el); return w; }
+
+/** Now and then a swallow (sometimes two or three) crosses a scene's sky: flapping, gliding a beat. (Opening Night) */
+function flock(area, { size, every = [5000, 11000], across = [9000, 13000], band = [0.1, 0.6], awake }) {
+  const one = (delay, y, dir, s) => setTimeout(() => {
+    const b = h("div", "bird" + (dir > 0 ? " right" : ""));
+    b.style.width = s + "%"; b.style.setProperty("--f", (0.5 + Math.random() * 0.16).toFixed(2) + "s");
+    area.append(b);
+    const W = area.clientWidth, H = area.clientHeight, w = (W * s) / 100;
+    const x0 = dir > 0 ? -w * 1.2 : W + w * 0.2, x1 = dir > 0 ? W + w * 0.2 : -w * 1.2;
+    const y0 = y * H, lift = (Math.random() - 0.4) * H * 0.18, kf = [];
+    for (let i = 0; i <= 48; i++) { const u = i / 48; kf.push({ transform: `translate(${x0 + (x1 - x0) * u}px, ${y0 - lift * u + Math.sin(u * Math.PI * 3) * H * 0.02}px)` }); }
+    const dur = across[0] + Math.random() * (across[1] - across[0]);
+    const a = b.animate(kf, { duration: dur, easing: "linear" });
+    const g = setTimeout(() => { b.classList.add("glide"); setTimeout(() => b.classList.remove("glide"), 900 + Math.random() * 700); }, dur * (0.35 + Math.random() * 0.25));
+    a.onfinish = () => { clearTimeout(g); b.remove(); };
+  }, delay);
+  const next = () => setTimeout(() => {
+    if (awake() && !document.hidden && !reduce) {
+      const n = Math.random() < 0.45 ? 1 : Math.random() < 0.7 ? 2 : 3;
+      const dir = Math.random() < 0.5 ? 1 : -1, y = band[0] + Math.random() * (band[1] - band[0]);
+      for (let i = 0; i < n; i++) one(i * (350 + Math.random() * 500), y + (i ? (Math.random() - 0.5) * 0.12 : 0), dir, size * (i ? 0.8 + Math.random() * 0.25 : 1));
+    }
+    next();
+  }, every[0] + Math.random() * (every[1] - every[0]));
+  one(500, band[0] + 0.12, 1, size);
+  next();
+}
+
+// ---------------------------------------------------------------- the show's clock (Opening Night)
+const GAP = 1.8, ZONE = 1.0, IN_SPEED = 1 / 1.5, OUT_SPEED = 1 / 1.5;
+const cues = [], triggers = [], scenes = [];
+let BUILDING = null, current = 0, raf = 0, last = 0;
+function cue(el, keyframes, [a, b], easing = "cubic-bezier(.4,0,.2,1)") {
+  if (!el) return;
+  const an = el.animate(keyframes, { duration: 1000, fill: "both", easing });
+  an.pause(); an.currentTime = 0; cues.push({ an, a, b, s: BUILDING });
+}
+const trig = (o) => triggers.push({ ...o, s: BUILDING });
+/** a scroll cue for something made later (in a scene's life), tied to that scene */
+function cueFor(k, el, keyframes, [a, b]) { const an = el.animate(keyframes, { duration: 1000, fill: "both" }); an.pause(); cues.push({ an, a, b, s: scenes[k] }); apply(); }
+// the next scene waits underneath (earlier scenes on top). fade: after a paper page, a full scene fades in whole as the page clears
+function addScene(el, rest, loaded, fade) { const s = { el, rest, loaded, v: rest === 0 ? 0 : rest - 1, i: scenes.length }; el.style.zIndex = 100 - s.i; scenes.push(s); BUILDING = s;
+  if (fade) cue(el, [{ opacity: 0 }, { opacity: 1 }], [rest - 0.86, rest - 0.56], "ease-in-out"); return s; }
+const isOn = (i) => current === i && scenes[i] && Math.abs(scenes[i].v - scenes[i].rest) < 0.02;
+const goal = (s) => (s.i < current ? s.rest + 1 : s.i > current ? s.rest - 1 : s.rest);
+function apply() {
+  $("#stage").classList.toggle("past-open", current !== 0);
+  for (const c of cues) if (c.s) c.an.currentTime = clamp((c.s.v - c.a) / (c.b - c.a)) * 1000;
+  for (const t of triggers) if (!t.done && t.s && t.s.v >= t.at && t.s.i === current) { t.done = true; t.fn(); }
+  for (const s of scenes) {
+    const d = s.v - s.rest;
+    s.el.classList.toggle("on", s.i === current && Math.abs(d) < 0.1);
+    s.el.classList.toggle("asleep", Math.abs(d) > 0.95);
+    s.el.classList.toggle("gone", Math.abs(d) >= 0.999 && s.i !== current);
+    if (!s.loaded && Math.abs(s.i - current) <= 1) { s.loaded = true; s.el.querySelectorAll("img[data-src]").forEach((i) => (i.src = i.dataset.src)); }
+  }
+}
+function tick(now) {
+  const dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now;
+  let moving = false;
+  for (const s of scenes) {
+    const g = goal(s);
+    if (s.i !== current && ((g < s.rest && s.v > s.rest) || (g > s.rest && s.v < s.rest))) { s.v = g; moving = true; continue; }
+    if (s.v === g) continue;
+    const building = Math.abs(g - s.rest) < Math.abs(s.v - s.rest);
+    const step = (reduce ? 99 : building ? IN_SPEED : OUT_SPEED) * dt;
+    s.v = s.v < g ? Math.min(g, s.v + step) : Math.max(g, s.v - step);
+    moving = true;
+  }
+  apply();
+  raf = moving ? requestAnimationFrame(tick) : 0;
+  if (!raf) last = 0;
+}
+function pick() {
+  const c = clamp(Math.round(scrollY / innerHeight / ZONE), 0, scenes.length - 1);
+  if (c !== current) { current = c; for (const s of scenes) if (s.i !== c && s.v < s.rest - 0.001 && s.i < c) s.v = s.rest + 1; }
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+addEventListener("scroll", pick, { passive: true });
+
+// how a piece arrives; it leaves the same way, backwards (Opening Night)
+const KIND = {
+  hinge: [{ transform: "rotateX(86deg)", opacity: 0 }, { transform: "rotateX(30deg)", opacity: 1, offset: .35 }, { transform: "none", opacity: 1 }],
+  slideL: [{ transform: "translateX(-60%)", opacity: 0 }, { transform: "translateX(-40%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  slideR: [{ transform: "translateX(60%)", opacity: 0 }, { transform: "translateX(40%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  drive: [{ transform: "translateX(120%)", opacity: 0 }, { transform: "translateX(70%)", opacity: 1, offset: .2 }, { transform: "none", opacity: 1 }],
+  drop: [{ transform: "translateY(-55%)", opacity: 0 }, { transform: "translateY(-30%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  rise: [{ transform: "translateY(35%)", opacity: 0 }, { transform: "translateY(18%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  fade: [{ opacity: 0 }, { opacity: 1 }],
+  wash: [{ transform: "scale(.6)", opacity: 0 }, { transform: "none", opacity: 1 }],
+  words: [{ transform: "translateY(14px)", opacity: 0 }, { transform: "none", opacity: 1 }],
+};
+const rev = (kf) => [...kf].reverse().map((f) => ({ ...f, offset: f.offset != null ? 1 - f.offset : undefined }));
+/** (By the Sea) The next scene is already there, fully composed, under the one we're leaving: it settles into place with a
+ *  little depth. The scene we leave comes apart like toy-theatre flats, front first: sky things fly up, ground things sink.
+ *  Words go first and come back last. Nothing ever fades in from bare paper. */
+function stagger(pieces, words, rest, small, whole) {
+  const n = pieces.length;
+  if (whole) cue(whole, [{ transform: "none", opacity: 1 }, { transform: "translateY(-4%) scale(.97)", opacity: 0 }], [rest + 0.02, rest + 0.3], "cubic-bezier(.5,0,.6,1)");
+  pieces.forEach(([el, b, nm = ""], i) => {
+    const d = n > 1 ? i / (n - 1) : 1;
+    const off = ((small ? 0.05 : 0.03) * d / Math.max(0.05, b.h)) * 100;
+    if (off > 0.01 && rest > 0) cue(el, [{ transform: `translateY(${off.toFixed(2)}%)` }, { transform: "none" }], [rest - 1, rest - 0.04], "cubic-bezier(.2,.7,.3,1)");
+    if (small) return;
+    const cy = b.y + b.h / 2, up = /dusk|night|stars|moon|sky|wash|sun|cloud|view/.test(nm) || cy < 0.42 || (b.y < 0.06 && b.h > 0.5);
+    const dist = up ? -(b.y + b.h) * 100 - 4 : (1 - b.y) * 100 + 4;
+    const st = rest + 0.03 + (1 - d) * 0.42, en = Math.min(rest + 0.98, st + 0.5);
+    cue(wrapOnce(el), [{ transform: "none" }, { transform: `translateY(${dist}%)` }], [st, en], "cubic-bezier(.5,0,.75,.4)");
+  });
+  words.forEach((el, i) => {
+    const we = rest - 0.06 + i * 0.008;
+    cue(el, KIND.words, [Math.min(rest - 0.32 + i * 0.03, we - 0.1), Math.min(we, rest - 0.02)]);
+    cue(wrapWords(el), [{ transform: "none", opacity: 1 }, { transform: "translateY(-16px)", opacity: 0 }], [rest + 0.01, rest + 0.14]);
+  });
+}
+function choreograph(pieces, words, rest) {
+  const inA = rest - 0.95, inB = rest - 0.12, outA = rest + 0.15, outB = rest + 0.85;
+  const n = pieces.length;
+  pieces.forEach(([el, kind], i) => {
+    const s = inA + (inB - inA) * 0.62 * (i / Math.max(1, n - 1)), e = s + (inB - inA) * 0.3;
+    cue(el, KIND[kind], [s, e]);
+    const j = n - 1 - i;
+    const s2 = outA + (outB - outA) * (0.22 + 0.55 * (j / Math.max(1, n - 1))), e2 = s2 + (outB - outA) * 0.24;
+    cue(wrapOnce(el), rev(KIND[kind]), [s2, e2]);
+  });
+  words.forEach((el, i) => {
+    cue(el, KIND.words, [inB - 0.22 + i * 0.05, inB - 0.1 + i * 0.05]);
+    cue(wrapWords(el), rev(KIND.words), [outA + i * 0.03, outA + 0.12 + i * 0.03]);
+  });
+}
+function wrapOnce(el) { if (el._w) return el._w; const w = h("div", "wrap"); w.style.transformOrigin = "50% 100%"; el.replaceWith(w); w.append(el); el._w = w; return w; }
+function wrapWords(el) { if (el._w) return el._w; const w = h("div"); el.replaceWith(w); w.append(el); el._w = w; return w; }
+
+// ================================================================ scene 0 · the envelope (unchanged)
+function swallow({ y0, y1, dir, size, delay = 0 }) {
+  return new Promise((done) => setTimeout(() => {
+    const sky = $("#sky"), W = innerWidth, H = innerHeight;
+    const s = (Math.min(W, H) * size) / 100;
+    const b = h("div", "tbird"); b.style.width = b.style.height = s + "px";
+    b.style.setProperty("--f", (0.36 + Math.random() * 0.12).toFixed(2) + "s");
+    b.style.setProperty("--sx", s * 0.55 + "px"); b.style.setProperty("--sy", s * 0.8 + "px"); b.style.setProperty("--sb", Math.max(1.5, s * 0.06) + "px");
+    b.innerHTML = '<i class="sh"></i><i class="b"></i>';
+    sky.append(b);
+    const x0 = dir > 0 ? -s * 1.5 : W + s * 0.5, x1 = dir > 0 ? W + s * 0.5 : -s * 1.5;
+    const bend = (Math.random() - 0.5) * H * 0.25, kf = [];
+    let prev = null;
+    for (let i = 0; i <= 40; i++) {
+      const u = i / 40, x = x0 + (x1 - x0) * u, y = (y0 + (y1 - y0) * u) * H + bend * 4 * u * (1 - u) + Math.sin(u * 9) * s * 0.08;
+      if (prev) { const ang = Math.atan2(y - prev[1], x - prev[0]) * 180 / Math.PI + 90; kf.push({ transform: `translate(${prev[0] - s / 2}px, ${prev[1] - s / 2}px) rotate(${ang}deg)` }); }
+      prev = [x, y];
+    }
+    const an = b.animate(kf, { duration: 5200 + Math.random() * 2400, easing: "linear" });
+    an.onfinish = () => { b.remove(); done(); };
+  }, delay));
+}
+let finishOpening = () => {};
+function opening(stage) {
+  const sc = h("section", "scene"); sc.setAttribute("aria-label", "An invitation from Elise and Thomas"); stage.prepend(sc);
+  addScene(sc, 0, true);
+  const out = h("div"); out.style.cssText = "position:absolute;inset:0"; sc.append(out);
+  const hero = h("div", "hero"); out.append(hero);
+  const pic = (n, cls) => Object.assign(h("img", cls), { src: `assets/${n}.webp`, alt: "", decoding: "async" });
+  const first = pic("hero_first", "first"), lastIm = pic("hero_last", "last");
+  const vid = Object.assign(h("video"), { muted: true, playsInline: true, preload: "auto", src: "assets/hero.mp4", poster: "assets/hero_first.webp" });
+  vid.setAttribute("muted", ""); vid.setAttribute("playsinline", "");
+  hero.append(first, vid, lastIm);
+  vid.addEventListener("loadeddata", () => hero.classList.add("ready"), { once: true });
+  const ring = Object.assign(h("button", "ring"), { type: "button" }); ring.setAttribute("aria-label", "Break the seal to open");
+  const hint = h("p", "hint", "break the seal to open");
+  hero.append(ring, hint);
+  const more = h("p", "more", "<span>Scroll for more</span>"); const moreW = h("div"); moreW.style.cssText = "position:absolute;inset:0;pointer-events:none"; moreW.append(more); sc.append(moreW);
+  cue(out, [{ transform: "none", opacity: 1 }, { transform: "translateY(-110%) rotate(-4deg)", opacity: 1 }], [0.03, 0.62], "cubic-bezier(.5,0,.75,.4)");
+  cue(moreW, [{ opacity: 1 }, { opacity: 0 }], [0.02, 0.12]);
+  let opened = false, finished = false;
+  const end = () => {
+    if (finished) return; finished = true;
+    hero.classList.add("opened"); more.classList.add("in");
+    if (!reduce) { swallow({ y0: 0.32, y1: 0.18, dir: 1, size: 13 }); swallow({ y0: 0.36, y1: 0.24, dir: 1, size: 11, delay: 420 }); }
+  };
+  const open = () => { if (opened) return; opened = true; ring.classList.add("out"); hint.classList.add("out"); vid.play().catch(end); vid.onended = end; };
+  finishOpening = () => {
+    open();
+    try { vid.pause(); if (vid.readyState >= 1 && isFinite(vid.duration)) vid.currentTime = Math.max(0, vid.duration - 0.04); } catch (e) {}
+    end();
+  };
+  ring.addEventListener("click", open); hero.addEventListener("click", open);
+  addEventListener("scroll", () => { if (scrollY > 40) finishOpening(); }, { passive: true });
+  if (reduce) finishOpening();
+}
+
+// ================================================================ the scenes
+// Each: its pieces (back to front) and how they arrive, its words, and what it does once it's up.
+const ACTS = [
+  { id: "sd_storyv", c: "story", poSign: true, kinds: {}, birdsIn: "ssv_01_wash", birdsBand: [0.12, 0.4],
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "lead", c.lead)],
+    life: (L) => { setLive(L.ssv_05_letters, "drift", { "--d": "9s", "--x": "1.2%" }); setLive(L.ssv_04_trees, "stir", { "--d": "5s" }); } },
+  { id: "sd_cer3", c: "ceremony", full: true, kinds: {},
+    birdsIn: "sdc3_01_wash", birdsBand: [0.6, 0.72],
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "lead", c.lead), h("p", "body", c.body), Object.assign(h("a", "tagbtn", "Open the map"), { href: c.map, target: "_blank", rel: "noopener" })],
+    life: (L) => { setLive(L.sdc3_08_bell, "swing", { "--d": "1.6s", "--a": "7deg" }); setTimeout(() => L.sdc3_08_bell.style.setProperty("--a", "1.5deg"), 4200);
+      setLive(L.sdc3_02_clouds, "drift", { "--d": "18s", "--x": "1.4%" }); setLive(L.sdc3_06_trees, "stir", { "--d": "5.5s" }); } },
+  { id: "sd_rec3", c: "reception", full: true, later: ["sdr3_10_flames"], kinds: {}, birdsIn: null,
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "lead", c.lead), h("p", "body", c.body)],
+    life: (L, man, k) => lightsOn(L, man, k) },
+  { id: "sd_prog2", c: "programme", text: true },
+  { id: "sd_travv", c: "travel", kinds: {}, birdsIn: "stv_01_wash", birdsBand: [0.1, 0.34],
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "lead", c.lead), h("p", "body", c.body)],
+    life: (L) => { setLive(L.stv_06_car, "bob", { "--d": "1.4s" }); setLive(L.stv_05_trees, "stir", { "--d": "5.5s" }); } },
+];
+
+async function act(stage, def, k) {
+  if (def.text) return quietProgramme(stage, def, k);
+  const rest = k * GAP, c = C[def.c];
+  const man = await (await fetch(`assets/dio/${def.id}/manifest.json`)).json();
+  const sc = h("section", "scene" + (def.full ? " fullscene" : " act") + (def.programme ? " prog" : "")); sc.setAttribute("aria-label", [].concat(c.title).join(" "));
+  const D = h("div", def.full ? "fframe" : "diorama"), words = h("div", def.full ? "skywords" : "words");
+  if (def.full) { const first = Object.keys(man.pieces).sort()[0]; const bg = Object.assign(h("img", "fbg"), { alt: "", src: `assets/dio/${def.id}/${first}.webp` }); sc.append(bg); }
+  sc.append(D); if (!def.full && !def.programme) sc.append(words); stage.append(sc);
+  addScene(sc, rest, false, k > 1 && !ACTS[k - 2].full);
+  const L = {}, pieces = [];
+  for (const n of Object.keys(man.pieces).sort()) {
+    const b = man.pieces[n];
+    if ((def.skip || []).includes(n)) continue;
+    D.append((L[n] = img(`assets/dio/${def.id}/${n}.webp`, b)));
+    if ((def.later || []).includes(n)) L[n].style.opacity = 0;
+    if (n.endsWith("_wash")) L[n].classList.add("flat");
+    pieces.push([L[n], b, n]);
+    if (n === def.birdsIn) { const sb = place(h("div", "sky-birds"), b); sb.style.clipPath = "ellipse(46% 44% at 50% 46%)"; D.append(sb); L.birds = sb; }
+  }
+  if (def.full) D.append(words);
+  const A = man.anchors || {}, at = (el, key) => { el.style.left = A[key][0] * 100 + "%"; el.style.top = A[key][1] * 100 + "%"; };
+  const onPaint = [];
+  if (def.poSign && A.sign) { const s = h("div", "on-paint po-sign", c.sign); at(s, "sign"); D.append(s); onPaint.push(s); }
+  if (def.fsigns) c.signs.forEach((w, i) => { if (!A["sign" + i]) return; const s = h("div", "fsign", w); at(s, "sign" + i); D.append(s); onPaint.push(s); });
+  if (def.signs) c.signs.forEach((w, i) => { if (!A["sign" + i]) return; const s = h("div", "on-paint sign", w); at(s, "sign" + i); D.append(s); onPaint.push(s); });
+  let title;
+  if (def.programme) {
+    const card = h("div", "bill-card");
+    title = h("p", "t"); title.append(inkLine(c.title, { speed: 8, maxDur: 1.6 }));
+    const ol = h("ol", "", c.items.map(([t, w]) => `<li><b>${t}</b><span class="dots"></span><span>${w}</span></li>`).join(""));
+    card.append(h("p", "k", c.kicker), title, ol, h("p", "foot", c.foot));
+    D.append(card); L.card = card;
+    [...ol.children].forEach((li, i) => cue(li, KIND.words, [rest - 0.3 + i * 0.03, rest - 0.22 + i * 0.03]));
+    cue(card.querySelector(".k"), KIND.fade, [rest - 0.42, rest - 0.34]);
+    cue(card.querySelector(".foot"), KIND.fade, [rest - 0.16, rest - 0.1]);
+    cue(wrapWords(card), rev(KIND.fade), [rest + 0.15, rest + 0.3]);
+    trig({ at: rest - 0.36, fn: () => writeNow([title.firstChild]) });
+  }
+  const ws = [];
+  for (const w of def.words(c)) {
+    if (w === "TITLE") {
+      title = h("h2");
+      const lines = (Array.isArray(c.title) ? c.title : [c.title]).map((t) => { const r = h("div"); if (t.length > 14) r.className = "long"; const l = inkLine(t, { speed: 7, maxDur: 1.6 }); r.append(l); title.append(r); return l; });
+      words.append(title); ws.push(title); trig({ at: rest - 0.25, fn: () => writeNow(lines) });
+      if (def.full) { const o = h("div", "orn", "<i></i>"); words.append(o); ws.push(o); }
+    }
+    else if (def.full && w.classList?.contains("tagbtn")) { w.classList.add("fbtn"); D.append(w); const wr = wrap(w); w._w = wr; ws.push(w); }
+    else { words.append(w); ws.push(w); }
+  }
+  for (const s of onPaint) { const w = wrap(s); s._w = w; ws.push(s); }
+  stagger(pieces, ws, rest, !def.full, def.full ? null : D);
+  await Promise.all(Object.values(L).filter((x) => x.tagName === "IMG").map((i) => i.decode().catch(() => {})));
+  trig({ at: rest - 0.1, fn: () => { def.life?.(L, man, k); if (L.birds) flock(L.birds, { size: 11, every: [4500, 9000], across: [6500, 9500], band: def.birdsBand || [0.1, 0.4], awake: () => isOn(k) }); } });
+  await document.fonts.ready; ws.forEach((w) => w.querySelectorAll?.(".iv-ink").forEach((l) => inker.warm(l)));
+}
+
+/** Letters fly out of the pigeonholes: they tumble towards us, growing as they come, and away off the screen.
+ *  The first burst leaves one on the counter. While the scene is up, now and then another slips out. */
+function letters(L, man, k) {
+  const A = man.anchors, e = man.pieces.sds2_99_env, v = man.pieces.sds2_01_view, D = L.sds2_02_wall.closest(".fframe"), F = 16 / 9;
+  const box = h("div"); box.style.cssText = "position:absolute;inset:0;pointer-events:none;perspective:900px;overflow:visible"; D.insertBefore(box, D.querySelector(".skywords"));
+  cueFor(k, box, [{ opacity: 1 }, { opacity: 0 }], [scenes[k].rest + 0.01, scenes[k].rest + 0.12]);
+  const one = (delay, land) => setTimeout(() => {
+    const hx = v.x + v.w * (0.35 + Math.random() * 0.3), hy = v.y + v.h * (0.35 + Math.random() * 0.3);     // in at the open window
+    const im = new Image(); im.src = `assets/dio/sd_story2/sds2_99_env.webp`; im.alt = "";
+    im.style.cssText = `position:absolute;left:${(hx - e.w / 2) * 100}%;top:${(hy - e.h / 2) * 100}%;width:${e.w * 100}%;filter:drop-shadow(0 1.4cqw 1.2cqw rgba(60,40,25,.28));transform-style:preserve-3d`;
+    box.append(im);
+    const ex = land ? 0.40 : 0.55 + Math.random() * 0.75, ey = land ? 0.655 : 0.25 + Math.random() * 0.5;
+    const dx = (ex - hx) * 100, dy = (ey - hy) * 100 * F, s1 = land ? 1.35 : 1.8 + Math.random() * 1.2;
+    const spin = (Math.random() < 0.5 ? -1 : 1) * (200 + Math.random() * 300);
+    const kf = [];
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12, arc = Math.sin(Math.PI * u) * (land ? 14 : 26);
+      kf.push({ transform: `translate(${dx * u}cqw, ${dy * u - arc}cqw) scale(${1 + (s1 - 1) * u}) rotateX(${Math.sin(u * 9) * 50 * (1 - (land ? u : 0))}deg) rotateY(${spin * u * (land ? 0.5 : 1)}deg) rotate(${Math.sin(u * 5) * 18 * (land ? 1 - u : 1) + (land ? -8 * u : 0)}deg)`,
+                opacity: !land && u > 0.85 ? (1 - u) / 0.15 : Math.min(1, u * 8) });
+    }
+    if (land) kf[12].transform = kf[12].transform.replace(/rotateY\([^)]*\)/, "rotateY(0deg)");
+    const an = im.animate(kf, { duration: land ? 2600 : 3200 + Math.random() * 1600, easing: "cubic-bezier(.3,.2,.4,1)", fill: land ? "forwards" : "none" });
+    if (!land) an.onfinish = () => im.remove();
+  }, delay);
+  if (reduce) return;
+  for (let i = 0; i < 4; i++) one(300 + i * 420, i === 2);
+  const again = () => setTimeout(() => { if (isOn(k)) { one(0, false); if (Math.random() < 0.5) one(300, false); } if (box.isConnected) again(); }, 5000 + Math.random() * 4000);
+  again();
+}
+
+/** The order of the day, kept simple: a small watercolour clock, the title in ink, the times set in a quiet list. */
+async function quietProgramme(stage, def, k) {
+  const rest = k * GAP, c = C.programme;
+  const sc = h("section", "scene quiet"); sc.setAttribute("aria-label", c.title); stage.append(sc);
+  addScene(sc, rest, false);
+  const col = h("div", "qcol"); sc.append(col);
+  const clock = Object.assign(h("img", "qclock"), { alt: "", decoding: "async" }); clock.src = "assets/dio/sd_prog2/sdp2_03_clock.webp";
+  const kick = h("p", "kicker", "The day");
+  const title = h("h2"); title.append(inkLine(c.title, { speed: 8, maxDur: 1.6 }));
+  const ol = h("ol", "qlist", c.items.map(([t, w]) => `<li><b>${t}</b><span>${w}</span></li>`).join(""));
+  const foot = h("p", "qfoot", c.foot);
+  col.append(clock, kick, title, ol, foot);
+  const ws = [clock, kick, title, ...ol.children, foot];
+  ws.forEach((el, i) => {
+    cue(el, KIND.words, [rest - 0.8 + i * 0.06, rest - 0.62 + i * 0.06]);
+    cue(wrapWords(el), rev(KIND.words), [rest + 0.01 + i * 0.008, rest + 0.12 + i * 0.008]);
+  });
+  trig({ at: rest - 0.62, fn: () => writeNow([title.firstChild]) });
+  trig({ at: rest - 0.1, fn: () => setLive(clock, "rock", { "--d": "5s", "--a": "1.2deg" }) });
+  await document.fonts.ready; inker.warm(title.firstChild);
+}
+
+/** Night at the Garden House: the strings of lights come on one by one (with a flicker), the lanterns glow,
+ *  the windows light up, the candles are lit, the fireflies come out. */
+function lightsOn(L, man, k) {
+  // dusk at the garden house: the bulbs come on one by one along the swag (a flicker as each catches), then the candles
+  const A = man.anchors, D = L.sdr3_01_sky.closest(".fframe"), box = h("div", "wrap"); D.insertBefore(box, D.querySelector(".skywords"));
+  cueFor(k, box, [{ opacity: 1 }, { opacity: 0 }], [scenes[k].rest + 0.01, scenes[k].rest + 0.12]);
+  const dot = (p, s, delay, flick) => {
+    const g = h("i", "glowdot"); g.style.setProperty("--s", s); g.style.left = p[0] * 100 + "%"; g.style.top = p[1] * 100 + "%"; box.append(g);
+    g.animate(flick ? [{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: .3, offset: .35 }, { opacity: 1, offset: .5 }, { opacity: .7, offset: .7 }, { opacity: 1 }] : [{ opacity: 0 }, { opacity: 1 }],
+              { duration: flick ? 600 : 1200, delay: reduce ? 0 : delay, fill: "forwards" });
+    return g;
+  };
+  const bulbs = Object.keys(A).filter((n) => n.startsWith("bulb")).sort();
+  bulbs.forEach((n, i) => dot(A[n], "5cqw", 300 + i * 120, true));
+  const t = 300 + bulbs.length * 120 + 300;
+  setTimeout(() => L.sdr3_10_flames.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, fill: "forwards" }), reduce ? 0 : t);
+  Object.keys(A).filter((n) => n.startsWith("flame")).forEach((n, i) => { const g = dot(A[n], "5.5cqw", t + i * 160, false); setTimeout(() => setLive(g, "flick", { "--d": (1.1 + i * 0.13) + "s" }), t + 1400); });
+  setLive(L.sdr3_02_stars, "twinkle", { "--d": "2.6s" });
+}
+
+/** The telegraph ticker prints the day: its type wheel spins while a paper tape feeds out of it and loops back and forth
+ *  across the wall, the times typed along it as it goes. */
+function ticker(L, man, k) {
+  const A = man.anchors, D = L.sdp2_01_wall.closest(".fframe"), H = 177.78, c = C.programme;
+  const o = A.tape_out, ox = o[0] * 100, oy = o[1] * H;
+  const Y1 = 0.465 * H, Y2 = 0.36 * H, Y3 = 0.255 * H, XL = 15, XR = 85;
+  // the tape: out of the ticker, up to the right, then three runs (leftward, rightward, leftward) joined by turns
+  const d = `M ${ox} ${oy} C ${ox + 10} ${oy + 2}, ${XR + 4} ${oy - 4}, ${XR + 3} ${(oy + Y1) / 2} S ${XR + 2} ${Y1}, ${XR - 4} ${Y1}
+             L ${XL + 4} ${Y1} C ${XL - 4} ${Y1}, ${XL - 4} ${Y2}, ${XL + 4} ${Y2} L ${XR - 4} ${Y2} C ${XR + 4} ${Y2}, ${XR + 4} ${Y3}, ${XR - 4} ${Y3} L ${XL + 6} ${Y3}
+             C ${XL} ${Y3}, ${XL - 2} ${Y3 - 5}, ${XL + 3} ${Y3 - 6}`;
+  const run = (y, l2r) => (l2r ? `M ${XL + 4} ${y + 1.05} L ${XR - 4} ${y + 1.05}` : `M ${XL + 4} ${y - 1.05} L ${XR - 4} ${y - 1.05}`);
+  const fmt = (pairs) => pairs.map(([t, w]) => `${t}  ${w}`).join("   ✦   ");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 100 ${H}`); svg.setAttribute("preserveAspectRatio", "none"); svg.classList.add("tape");
+  const id = "tp" + Math.random().toString(36).slice(2, 7);
+  svg.innerHTML = `<defs><mask id="${id}m" maskUnits="userSpaceOnUse" x="-10" y="-10" width="120" height="${H + 20}">
+      <path d="${d}" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"/></mask>
+      <path id="${id}1" d="${run(Y1, false).replace(/M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)/, "M $3 $2 L $1 $2")}"/>
+      <path id="${id}2" d="${run(Y2, true)}"/><path id="${id}3" d="${run(Y3, false).replace(/M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)/, "M $3 $2 L $1 $2")}"/></defs>
+    <g mask="url(#${id}m)">
+      <path d="${d}" fill="none" stroke="#f3ead6" stroke-width="5.2" stroke-linejoin="round"/>
+      <path d="${d}" fill="none" stroke="rgba(120,90,60,.18)" stroke-width="5.2" stroke-dasharray=".25 2.4" stroke-linejoin="round"/>
+      <text><textPath href="#${id}1" startOffset="50%" text-anchor="middle">${fmt(c.tape.slice(0, 2))}</textPath></text>
+      <text><textPath href="#${id}2" startOffset="50%" text-anchor="middle">${fmt(c.tape.slice(2, 4))}</textPath></text>
+      <text><textPath href="#${id}3" startOffset="50%" text-anchor="middle">${fmt(c.tape.slice(4, 6))}</textPath></text>
+    </g>`;
+  D.insertBefore(svg, D.querySelector(".skywords"));
+  // the reversed runs are drawn right-to-left on the tape, so their text paths run left-to-right: fix their direction
+  svg.querySelectorAll(`#${id}1, #${id}3`).forEach((p) => { const m = p.getAttribute("d").match(/M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)/); if (m && +m[1] > +m[3]) p.setAttribute("d", `M ${m[3]} ${m[2]} L ${m[1]} ${m[2]}`); });
+  const mp = svg.querySelector("mask path");
+  const wheel = L.sdp2_06_wheel, wb = man.pieces.sdp2_06_wheel;
+  wheel.style.setProperty("--ox", `${((A.wheel[0] - wb.x) / wb.w) * 100}%`); wheel.style.setProperty("--oy", `${((A.wheel[1] - wb.y) / wb.h) * 100}%`);
+  if (reduce) { mp.setAttribute("stroke-dashoffset", "0"); return; }
+  setLive(wheel, "spin", { "--d": ".7s" });
+  mp.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 9000, easing: "linear", fill: "forwards" }).onfinish = () => wheel.classList.remove("live");
+}
+
+/** The mail van drives the road: away up the hill, smaller with distance, turning with the bends, over the far ridge;
+ *  then it comes round again from the bottom of the screen. The swallows on the wire take off as it passes their pole. */
+function drive(L, man, k) {
+  const A = man.anchors, van = L.sdt2_10_van, b = man.pieces.sdt2_10_van, F = 16 / 9;
+  if (!van || !A.road0) return;
+  const road = (i) => A["road" + i], halfw = (i) => A["roadw" + i][0] - A["road" + i][0];
+  const REST = 25, rest = road(REST), w0 = halfw(REST);
+  van.style.transformOrigin = `${((rest[0] - b.x) / b.w) * 100}% ${((rest[1] - b.y) / b.h) * 100}%`;
+  const at = (i, op) => {
+    const p = road(i), q = road(Math.max(0, i - 1)), dir = q[0] - p[0];      // heading up the road (towards smaller i)
+    const sc = Math.max(0.12, halfw(i) / w0), flip = dir > 0.0005 ? -1 : 1;
+    return { transform: `translate(${(p[0] - rest[0]) * 100}cqw, ${(p[1] - rest[1]) * 100 * F}cqw) scale(${sc * flip}, ${sc})`, opacity: op };
+  };
+  const kf = [];
+  for (let i = REST; i >= 2; i--) kf.push(at(i, i < 6 ? (i - 2) / 4 : 1));
+  for (let i = 40; i >= REST; i--) kf.push(at(i, i > 37 ? (40 - i) / 3 : 1));
+  const dur = 15000;
+  const an = van.animate(kf, { duration: dur, iterations: Infinity, easing: "linear" });
+  const birds = L.sdt2_09_perched;
+  if (!birds) return;
+  const flyOff = () => {
+    if (!isOn(k)) return;
+    birds.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: "forwards" });
+    const box = L.birds; if (!box) return;
+    const bb = box.getBoundingClientRect(), fr = van.parentElement.getBoundingClientRect();
+    ["perch0", "perch1", "perch2"].forEach((n, j) => {
+      const p = A[n]; if (!p) return;
+      const bd = h("div", "bird right"); bd.style.width = (5 + j) + "%"; box.append(bd);
+      const x0 = fr.left + p[0] * fr.width - bb.left, y0 = fr.top + p[1] * fr.height - bb.top;
+      bd.animate([{ transform: `translate(${x0}px, ${y0}px)` }, { transform: `translate(${x0 + bb.width * (0.5 + j * 0.15)}px, ${y0 - bb.height * (0.6 + j * 0.1)}px)` }],
+                 { duration: 2600 + j * 400, delay: j * 140, easing: "cubic-bezier(.4,.1,.6,1)" }).onfinish = () => bd.remove();
+    });
+    setTimeout(() => birds.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, fill: "forwards" }), dur * 0.55);
+  };
+  // the van passes the near pole about 70% of the way round (coming up from the bottom)
+  const tick2 = () => { if (!van.isConnected) return; setTimeout(() => { flyOff(); tick2(); }, dur); };
+  setTimeout(() => { flyOff(); tick2(); }, dur * 0.72);
+}
+
+// ================================================================ finale · the reply goes in the postbox
+function postmark({ top = "TAGAYTAY", bottom = "", mid = "" } = {}) {
+  const id = "pm" + Math.random().toString(36).slice(2, 8), el = h("div", "pmark");
+  el.innerHTML = `<svg viewBox="-50 -50 190 100" aria-hidden="true">
+    <defs><path id="${id}t" d="M -36 0 A 36 36 0 0 1 36 0"/><path id="${id}b" d="M -38 0 A 38 38 0 0 0 38 0"/></defs>
+    <circle r="46" fill="none" stroke="currentColor" stroke-width="2.6"/><circle r="27" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <text font-family="Cormorant Garamond, serif" font-weight="700" font-size="11.5" letter-spacing="2.4" fill="currentColor" text-anchor="middle"><textPath href="#${id}t" startOffset="50%">${top}</textPath></text>
+    <text font-family="Cormorant Garamond, serif" font-weight="700" font-size="11" letter-spacing="1.6" fill="currentColor" text-anchor="middle" dy="8"><textPath href="#${id}b" startOffset="50%" side="right">${bottom}</textPath></text>
+    <text y="6.5" font-family="Cormorant Garamond, serif" font-weight="700" font-size="17" fill="currentColor" text-anchor="middle">${mid}</text>
+    ${[0, 1, 2, 3, 4].map((i) => `<path d="M 52 ${-24 + i * 12} q 11 -6 22 0 t 22 0 t 22 0 t 22 0" fill="none" stroke="currentColor" stroke-width="2.2"/>`).join("")}
+  </svg>`;
+  return el;
+}
+async function finale(stage, k) {
+  const rest = k * GAP, c = C.rsvp;
+  const man = await (await fetch("assets/dio/sd_rsvp3/manifest.json")).json();
+  const sc = h("section", "scene fullscene finale"); sc.setAttribute("aria-label", "Reply"); stage.append(sc);
+  { const bg = Object.assign(h("img", "fbg"), { alt: "", src: "assets/dio/sd_rsvp3/sdx3_01_dusk.webp" }); sc.append(bg); }
+  const D = h("div", "fframe"); sc.append(D);
+  addScene(sc, rest, false, !ACTS[ACTS.length - 1].full);
+  const L = {}, pieces = [], later = ["sdx3_02_night", "sdx3_03_stars", "sdx3_14_slotglow"];
+  for (const n of Object.keys(man.pieces).sort()) {
+    const b = man.pieces[n]; D.append((L[n] = img(`assets/dio/sd_rsvp3/${n}.webp`, b)));
+    if (n === "sdx3_01_dusk" || n === "sdx3_02_night") L[n].classList.add("flat");
+    if (later.includes(n)) { L[n].style.opacity = 0; continue; }
+    pieces.push([L[n], b, n]);
+    if (n === "sdx3_01_dusk") { const sb = place(h("div", "sky-birds"), { x: 0, y: 0, w: 1, h: 0.62 }); D.append(sb); L.birds = sb; }
+  }
+  const A = man.anchors;
+  const words = h("div", "skywords"); D.append(words);
+  const head = h("h2"); head.append(inkLine(c.title, { speed: 8, maxDur: 1.6 }));
+  const by = h("p", "kicker", c.by);
+  words.append(by, head);
+  const card = h("div", "rcard");
+  card.innerHTML = `<form><p class="ttl">Reply card</p>
+    <input id="rn" type="text" name="name" placeholder="Your name(s)" autocomplete="name" required aria-label="Your name(s)">
+    <div class="pick" role="radiogroup" aria-label="Your reply"><label><input type="radio" name="go" value="yes" checked><span>Joyfully accepts</span></label><label><input type="radio" name="go" value="no"><span>Regretfully declines</span></label></div>
+    <div class="row"><label for="rg">Guests <input id="rg" type="text" name="n" inputmode="numeric" value="2"></label><button type="submit">Post it<small>into the box</small></button></div></form>`;
+  D.append(card);
+  const credit = h("p", "credit", `Made with <a href="https://thersvpstudio.com" target="_blank" rel="noopener">The RSVP Studio</a>`); credit.style.bottom = "1.2%"; D.append(credit);
+  { const w = wrap(card); card._w = w; }
+  stagger(pieces, [by, card], rest);
+  await Promise.all(Object.values(L).filter((x) => x.tagName === "IMG").map((i) => i.decode().catch(() => {})));
+  cue(credit, KIND.fade, [rest - 0.3, rest - 0.1]);
+  cue(wrapWords(head), [{ transform: "none", opacity: 1 }, { transform: "translateY(-16px)", opacity: 0 }], [rest + 0.01, rest + 0.14]);
+  trig({ at: rest - 0.45, fn: () => writeNow([head.firstChild]) });
+  trig({ at: rest - 0.1, fn: () => {
+    flock(L.birds, { size: 8, every: [5000, 9000], across: [7000, 10000], band: [0.55, 0.85], awake: () => isOn(k) });
+  } });
+  const form = card.querySelector("form");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const yes = form.go.value === "yes", data = Object.fromEntries(new FormData(form));
+    try { localStorage.setItem("sd-reply", JSON.stringify({ ...data, at: Date.now() })); } catch (err) {}
+    form.querySelectorAll("input,button").forEach((x) => (x.disabled = true));
+    document.activeElement?.blur?.();
+    // 1 · the card is posted: folded small, it flies to the slot and goes in
+    const dr = D.getBoundingClientRect(), cr = card.getBoundingClientRect();
+    const sx = dr.left + A.slot[0] * dr.width, sy = dr.top + A.slot[1] * dr.height;
+    const tx = sx - (cr.left + cr.width / 2), ty = sy - (cr.top + cr.height / 2), k2 = (dr.width * 0.10) / cr.width;
+    await card.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${tx * 0.5}px, ${ty * 0.8}px) rotate(-10deg) scale(${(1 + k2) / 2})`, opacity: 1, offset: .5 },
+      { transform: `translate(${tx}px, ${ty}px) rotate(0deg) scale(${k2})`, opacity: 1, offset: .88 }, { transform: `translate(${tx}px, ${ty + 6}px) scale(${k2 * 0.8})`, opacity: 0 }],
+      { duration: 1600, easing: "cubic-bezier(.5,0,.3,1)", fill: "forwards" }).finished;
+    card.style.visibility = "hidden";
+    // 2 · it lands: the slot glows, the box gives a little jolt
+    L.sdx3_13_postbox.animate([{ rotate: "0deg" }, { rotate: "-1deg" }, { rotate: ".8deg" }, { rotate: "0deg" }], { duration: 420, easing: "ease-out" });
+    L.sdx3_14_slotglow.classList.add("glow-on");
+    L.sdx3_14_slotglow.animate([{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: .7 }], { duration: 1600, fill: "forwards" });
+    head.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, fill: "forwards" }); by.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, fill: "forwards" });
+    credit.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
+    await wait(500);
+    // 3 · night falls: the sky darkens, a few stars come out, the moon brightens
+    sc.classList.add("night");
+    L.sdx3_02_night.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 2600, easing: "ease-in-out", fill: "forwards" });
+    L.sdx3_03_stars.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1800, delay: 1400, fill: "forwards" });
+    setTimeout(() => setLive(L.sdx3_03_stars, "twinkle", { "--d": "2.4s" }), 3400);
+    L.sdx3_04_moon.classList.add("glow-on");
+    for (const n of ["sdx3_05_far", "sdx3_06_hedge", "sdx3_07_paving", "sdx3_13_postbox", "sdx3_15_kerb"])
+      L[n].animate([{ filter: "brightness(1) saturate(1)" }, { filter: "brightness(.62) saturate(.82) hue-rotate(-8deg)" }], { duration: 2600, easing: "ease-in-out", fill: "forwards" });
+    // 4 · the swallows go up from behind the box and away across the sky
+    const bb = L.birds.getBoundingClientRect(), bx = sx - bb.left, byy = Math.min(bb.height * 0.95, sy - bb.top);
+    for (let i = 0; i < 3; i++) setTimeout(() => {
+      const bd = h("div", "bird" + (i % 3 ? " right" : "")); bd.style.width = (6 + Math.random() * 6) + "%"; L.birds.append(bd);
+      const dir = i % 3 ? 1 : -1, W = bb.width, H = bb.height;
+      const ex = bx + dir * (W * (0.55 + Math.random() * 0.5)), ey = -H * 0.25 + Math.random() * H * 0.4;
+      bd.animate([{ transform: `translate(${bx}px, ${byy}px) scale(.4)` }, { transform: `translate(${(bx + ex) / 2}px, ${byy * 0.45 + Math.random() * 30}px) scale(1)`, offset: .45 }, { transform: `translate(${ex}px, ${ey}px) scale(.8)` }],
+                 { duration: 2600 + Math.random() * 1400, easing: "cubic-bezier(.3,.5,.4,1)" }).onfinish = () => bd.remove();
+    }, 600 + i * 320);
+    await wait(2800);
+    // 5 · written across the night sky in gold
+    head.getAnimations().forEach((a) => a.cancel()); head.replaceChildren(); head.classList.add("done");
+    const gold = window.createInker({ ink: "#f3dcae", wet: "#fff1d6", pen: () => null, stage: () => $("#stage") });
+    const lines = (yes ? c.done : c.doneNo).map((t) => {
+      const r = h("div"); const l = h("span", "iv-ink", `<span class="iv-ink__t" data-iv-text></span><canvas class="iv-ink__c" aria-hidden="true"></canvas>`);
+      l.firstChild.textContent = t; gold.add(l, l.querySelector("canvas"), { speed: 9, maxDur: 1.5 }); r.append(l); head.append(r); return l;
+    });
+    const sub = h("p", "sub", c.sub); words.append(sub);
+    await document.fonts.ready; for (const l of lines) await gold.warm(l);
+    await new Promise((r) => gold.write(lines, r));
+    sub.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 900, fill: "forwards", easing: "ease-out" });
+    credit.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, fill: "forwards" }); credit.style.color = "#f6e3c0";
+  });
+  await document.fonts.ready; inker.warm(head.firstChild);
+}
+/** Fireflies in the lane once night has fallen: soft points of light that drift, pulse and wander. */
+function fireflies(cv, awake) {
+  const ctx = cv.getContext("2d"); let W = 0, H = 0, dpr = 1;
+  const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = cv.clientWidth * dpr; H = cv.height = cv.clientHeight * dpr; };
+  size(); addEventListener("resize", size);
+  const F = Array.from({ length: 26 }, () => ({ x: Math.random(), y: 0.45 + Math.random() * 0.45, vx: (Math.random() - 0.5) * 0.02, vy: (Math.random() - 0.5) * 0.015, p: Math.random() * 6.3, r: 1.5 + Math.random() * 2 }));
+  let lt = 0, alpha = 0;
+  const frame = (t) => {
+    if (!cv.isConnected) return;
+    const dt = lt ? Math.min(0.05, (t - lt) / 1000) : 0; lt = t; alpha = Math.min(1, alpha + dt * 0.4);
+    ctx.clearRect(0, 0, W, H);
+    if (awake()) for (const f of F) {
+      f.vx += (Math.random() - 0.5) * 0.02 * dt; f.vy += (Math.random() - 0.5) * 0.02 * dt;
+      f.vx *= 0.99; f.vy *= 0.99; f.x += f.vx * dt; f.y += f.vy * dt;
+      if (f.x < 0 || f.x > 1) f.vx *= -1; if (f.y < 0.4 || f.y > 0.95) f.vy *= -1;
+      const a = alpha * (0.35 + 0.65 * Math.max(0, Math.sin(t / 700 + f.p))) ** 2;
+      const x = f.x * W, y = f.y * H, r = f.r * dpr * 4;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(255,236,160,${a})`); g.addColorStop(0.3, `rgba(255,214,120,${a * 0.5})`); g.addColorStop(1, "rgba(255,200,100,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.29); ctx.fill();
+    }
+    if (!reduce) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------- put the show together
+(async () => {
+  const stage = $("#stage");
+  opening(stage);
+  for (let i = 0; i < ACTS.length; i++) await act(stage, ACTS[i], i + 1).catch((e) => console.warn("scene skipped:", ACTS[i].id, e.message));
+  await finale(stage, ACTS.length + 1);
+  $("#track").style.height = `${((scenes.length - 1) * ZONE + 1) * 100}svh`;
+  pick(); apply();
+})();
+</script>
+</body>
+</html>

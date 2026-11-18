@@ -37,6 +37,65 @@ const COLLECTIONS: Collection[] = [
   { name: "Classic", tagline: "Ivory, gold, and timeless refinement.", events: ["Wedding", "Birthday"], img: "/collections/classic.webp" },
 ];
 
+// The Watercolor Collection: wedding invitations painted on cut paper, built scene by scene as guests scroll.
+// Each one is live at /collections/<slug> (vercel.json rewrites it to the static page in /public/watercolor/<slug>/).
+const WATERCOLOR = [
+  { name: "Opening Night", slug: "opening-night", tagline: "A paper theatre. The curtain rises on your names." },
+  { name: "Special Delivery", slug: "special-delivery", tagline: "A letter sealed in wax, opened scene by scene." },
+  { name: "By the Sea", slug: "by-the-sea", tagline: "Paper waves, a sailboat, and replies sent in a bottle." },
+];
+
+function WatercolorCollection() {
+  const navigate = useNavigate();
+  return (
+    <section className="pb-6 pt-12 md:pb-10 md:pt-16" style={{ background: "var(--warm-white)" }} aria-labelledby="watercolor-title">
+      <div className="container-x">
+        <Reveal className="mx-auto max-w-[560px] text-center">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[var(--slate)]">New · For weddings</p>
+          <h2 id="watercolor-title" className="h-section mt-3 text-balance text-[var(--ink)]">The Watercolor Collection</h2>
+          <p className="mt-3 text-pretty text-lg text-[var(--slate)]">
+            Hand-painted paper scenes that come together as your guests scroll.
+          </p>
+        </Reveal>
+
+        {/* Phones: swipe through the three. Wider screens: side by side. */}
+        <div className="-mx-6 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2 [scrollbar-width:none] sm:mx-auto sm:grid sm:max-w-[960px] sm:grid-cols-3 sm:gap-6 sm:overflow-visible sm:px-0">
+          {WATERCOLOR.map((w, i) => (
+            <Reveal key={w.slug} delay={i * 0.06} className="w-[72vw] max-w-[300px] shrink-0 snap-center sm:w-auto sm:max-w-none">
+              <a href={`/collections/${w.slug}`} target="_blank" rel="noopener" className="group block" aria-label={`See ${w.name} live`}>
+                <div className="relative aspect-[9/16] overflow-hidden rounded-[18px] bg-[var(--paper)] shadow-[0_24px_48px_-32px_rgba(40,40,60,0.45)] sm:rounded-[22px]">
+                  <img
+                    src={`/collections/watercolor/${w.slug}.webp`}
+                    alt={`The ${w.name} wedding invitation`}
+                    loading="eager"
+                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  />
+                </div>
+              </a>
+              <h3 className="mt-4 font-display text-xl font-semibold leading-snug text-[var(--ink)]">{w.name}</h3>
+              <p className="mt-1 text-balance text-sm leading-normal text-[var(--slate)]">{w.tagline}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[14px] font-medium">
+                <a href={`/collections/${w.slug}`} target="_blank" rel="noopener" className="text-[var(--acc-blue)] underline-offset-4 hover:underline">
+                  See it live ↗
+                </a>
+                <button
+                  type="button"
+                  onClick={() => navigate(inquiryLink({ service: "website", design: "semi-custom", collection: w.name, occasion: "Wedding" }))}
+                  className="text-[var(--ink)] underline-offset-4 hover:underline"
+                >
+                  Have us make this →
+                </button>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <p className="mt-10 text-center text-[15px] text-[var(--slate)]">Two more designs are coming soon.</p>
+      </div>
+    </section>
+  );
+}
+
 /** "#baby-shower" → "Baby Shower" (menu links pre-select a filter). */
 const fromHash = <T extends string>(options: readonly T[], hash: string, fallback: T): T =>
   options.find((o) => o.toLowerCase().replace(/[^a-z]+/g, "-") === hash.replace(/^#/, "").toLowerCase()) ?? fallback;
@@ -145,7 +204,7 @@ function BespokeBanner() {
           <div className="text-center md:text-left">
             <h2 className="h-section text-balance text-[var(--ink)]">Looking for something uniquely yours?</h2>
             <p className="mt-4 max-w-md text-pretty text-lg text-[var(--slate)] max-md:mx-auto">
-              Our Custom service starts from scratch, with every detail designed around your story, style, and celebration.
+              Semi-custom changes the words, photos and colours. Custom changes the art: every scene is designed from scratch around your story.
             </p>
             <ul className="mt-6 inline-grid gap-2 text-left text-[15px] text-[var(--ink)]">
               {["Designed from scratch, just for you", "3 rounds of changes", "RSVP management and a free domain included", "Ready in 3–4 weeks"].map((x) => (
@@ -209,6 +268,7 @@ export default function CollectionsPage() {
           </div>
         </section>
 
+        <WatercolorCollection />
         <CollectionsGrid />
         <BespokeBanner />
       </main>

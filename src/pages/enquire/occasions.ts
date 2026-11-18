@@ -88,6 +88,7 @@ export const BESPOKE_COLLECTIONS = [
   "Essential Suite", "Signature Suite", "Heirloom Suite",
 ];
 export const SEMI_COLLECTIONS = [
+  "Opening Night", "Special Delivery", "By the Sea",
   "Alpine", "Classic", "Coastal", "Garden", "Minimalist Polaroid", "Floral",
 ];
 // RSVP management is built into every website, so it isn’t an add-on.

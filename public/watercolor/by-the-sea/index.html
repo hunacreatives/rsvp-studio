@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<base href="/watercolor/by-the-sea/">
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clara &amp; Mateo — By the Sea</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Clara and Mateo are getting married. Saturday, the fourth of September 2027, El Nido.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Pinyon+Script&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #24324a;
+    --brown: #6b5a48;
+    --caps: #343750;
+    --coral: #b4523f;
+    --paper: #efe8dc;
+    --serif: "Cormorant Garamond", Georgia, serif;
+    --script: "Pinyon Script", cursive;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { margin: 0; color: var(--ink); font-family: var(--serif); -webkit-font-smoothing: antialiased;
+         background: var(--paper) url(assets/page-paper.webp) center / 900px repeat; }
+  button { font: inherit; color: inherit; }
+
+  /* one show on one stage (Opening Night): the page scrolls freely, the stage stays put; each scene comes apart, the next builds */
+  .track { position: relative; }
+  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  .scene { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+  .scene.on { pointer-events: auto; }
+  .scene.gone { visibility: hidden; }
+  .wrap { position: absolute; inset: 0; pointer-events: none; }
+
+  .iv-ink { position: relative; display: inline-block; white-space: nowrap; }
+  .iv-ink__t { color: transparent; }
+  .iv-ink__c { position: absolute; left: 0; top: 0; pointer-events: none; }
+
+  /* ---------------------------------------------------------------- a full-screen scene: the painting fills the screen */
+  .fullscene { position: absolute; inset: 0; }
+  .fframe { position: absolute; left: 50%; top: 50%; translate: -50% -50%; height: 100%; aspect-ratio: 9 / 16; container-type: inline-size; perspective: 1400px; perspective-origin: 50% 40%; }
+  @media (min-aspect-ratio: 9 / 16) and (max-aspect-ratio: 3 / 4) { .fframe { width: 100vw; height: auto; } }
+  .fbg { position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; filter: blur(42px) saturate(.95); opacity: 0; pointer-events: none; }
+  @media (min-aspect-ratio: 3 / 4) {
+    .fullscene .fbg { opacity: .8 !important; }
+    .fullscene .fframe { -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+  }
+  .fframe img { position: absolute; display: block; transform-origin: 50% 100%; backface-visibility: hidden; filter: drop-shadow(0 .5cqw .8cqw rgba(40, 50, 70, .22)); }
+  .fframe img.flat { filter: none; }
+  .fframe > .wrap { perspective: 1400px; perspective-origin: 50% 40%; }
+  .skywords { position: absolute; left: 9%; right: 9%; top: 7.5%; text-align: center; }
+  .kicker { font: 600 .74rem / 1 var(--serif); letter-spacing: .38em; text-transform: uppercase; color: var(--brown); margin: 0; font-variant-numeric: lining-nums; }
+  .skywords .kicker { font-size: 2.9cqw; font-weight: 700; letter-spacing: .46em; text-indent: .46em; color: var(--caps); }
+  .skywords h2 { font: 400 12.4cqw / 1.04 var(--script); margin: 4.4cqw 0 0; }
+  .skywords h2 > div { display: block; }
+  .orn { display: flex; align-items: center; justify-content: center; gap: 1.6cqw; margin: 4cqw auto 3.6cqw; color: var(--brown); opacity: .75; }
+  .orn::before, .orn::after { content: ""; width: 9cqw; height: 1px; background: currentColor; }
+  .orn i { width: 1.3cqw; height: 1.3cqw; background: currentColor; rotate: 45deg; }
+  .skywords .lead { font: italic 500 5cqw / 1.45 var(--serif); margin: 0 auto; max-width: 72cqw; text-wrap: balance; }
+  .skywords .body { font: 700 3.1cqw / 1.6 var(--serif); letter-spacing: .2em; text-transform: uppercase; color: var(--caps); margin: 2.8cqw auto 0; }
+  .tagbtn { display: inline-block; padding: .55em 1.2em .55em 1.6em; font: 600 .72rem / 1 var(--serif); letter-spacing: .26em;
+            text-transform: uppercase; color: var(--ink); text-decoration: none; background: #f6efdf; position: relative;
+            clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); box-shadow: 0 1px 0 rgba(0,0,0,.08); }
+  .tagbtn::before { content: ""; position: absolute; left: 8px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--paper); }
+  .fbtn { position: absolute; left: 50%; bottom: 4.5%; translate: -50% 0; margin: 0 !important; font-size: 2.4cqw !important; pointer-events: auto; }
+
+  /* ---------------------------------------------------------------- the opening: the boat */
+  .open .skywords { top: 9%; }
+  .open .date { font: 500 5cqw / 1.35 var(--serif); margin: 3cqw 0 0; }
+  .open .place { font: 700 2.9cqw / 1 var(--serif); letter-spacing: .34em; text-indent: .34em; text-transform: uppercase; color: var(--caps); margin: 2.8cqw 0 0; }
+  .boatbox { position: absolute; top: 0; bottom: 0; left: -4cqw; right: 4cqw; pointer-events: none; }
+  .sail { position: absolute; translate: -50% -50%; text-align: center; color: var(--ink); width: 34cqw; }
+  .sail .n { display: block; font: 400 10.4cqw / .95 var(--script); }
+  .sail .amp { display: block; font: italic 500 4.6cqw / 1 var(--serif); margin: .4cqw 0 .8cqw; color: var(--brown); }
+  .more span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .more { position: absolute; left: 0; right: 0; bottom: max(1.2svh, env(safe-area-inset-bottom)); text-align: center; margin: 0;
+          color: #f6f1e6; opacity: 0; transition: opacity 1s ease; }
+  .more::after { content: ""; display: block; width: 9px; height: 9px; margin: 0 auto; border: solid currentColor; border-width: 0 1.5px 1.5px 0;
+                 rotate: 45deg; animation: nudge 1.8s ease-in-out infinite; }
+  @keyframes nudge { 0%, 100% { translate: 0 0; opacity: .5; } 50% { translate: 0 5px; opacity: 1; } }
+  .more.in { opacity: .95; }
+
+  /* ---------------------------------------------------------------- a small scene: a diorama on the paper, words under it */
+  .act { padding: 5svh 9vw 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
+  .diorama { position: relative; width: min(88vw, 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
+  .diorama img { position: absolute; display: block; transform-origin: 50% 100%; backface-visibility: hidden; filter: drop-shadow(0 .6vmin .9vmin rgba(40, 50, 70, .24)); }
+  .diorama img.flat { filter: none; }
+  .diorama > .wrap { perspective: 1100px; perspective-origin: 50% 30%; }
+  .words { text-align: center; max-width: 24em; margin: 0 auto; }
+  .words h2 { font: 400 clamp(2.7rem, 10vw, 3.8rem) / 1.08 var(--script); margin: .4em 0 .45em; }
+  .words .kicker { font-size: .8rem; font-weight: 700; color: var(--caps); }
+  .words .lead { font: 500 clamp(1.02rem, 3.9vw, 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
+  .words .body { font: 500 clamp(1.04rem, 4vw, 1.16rem) / 1.75 var(--serif); margin: 0 auto; max-width: 21em; text-wrap: pretty; }
+  .words .tag { font: 700 .72rem / 1 var(--serif); letter-spacing: .3em; text-transform: uppercase; color: var(--caps); margin: 1.3em 0 0; }
+  @media (min-width: 900px) {
+    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: 6vw; }
+    .diorama { width: min(44vw, 74svh, 640px); }
+    .words { text-align: left; }
+  }
+  /* words painted on the signpost's arms */
+  .arm { position: absolute; translate: -50% -50%; white-space: nowrap; font: 700 2.05cqw / 1 var(--serif); letter-spacing: .1em; text-transform: uppercase; color: #4a3c30; }
+
+  /* ---------------------------------------------------------------- light: bulbs, flames, the lighthouse beam */
+  .glowdot { position: absolute; width: var(--s, 6cqw); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; opacity: 0;
+             background: radial-gradient(rgba(255, 236, 170, .95), rgba(255, 206, 120, .5) 30%, rgba(255, 190, 100, 0) 70%); mix-blend-mode: screen; }
+  .beam { position: absolute; width: var(--w, 42cqw); height: var(--h, 7cqw); translate: 0 -50%; transform-origin: 0 50%; pointer-events: none; mix-blend-mode: screen;
+          background: linear-gradient(90deg, rgba(255, 242, 200, .95), rgba(255, 236, 190, .35) 45%, rgba(255, 236, 190, 0)); clip-path: polygon(0 44%, 100% 0, 100% 100%, 0 56%); filter: blur(.4cqw); opacity: 0; }
+  .beam.live { animation: sweep var(--d, 6s) ease-in-out infinite; }
+  @keyframes sweep { 0% { scale: 1 1; opacity: .85; } 40% { scale: .04 1; opacity: .15; } 50% { scale: -.04 1; opacity: .1; } 60% { scale: -.5 1; opacity: .3; } 90% { scale: -1 1; opacity: .7; } 100% { scale: 1 1; opacity: .85; } }
+  .petals, .fireflies { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .fireflies { mix-blend-mode: screen; }
+  .fframe img.glow-on { filter: drop-shadow(0 0 1.6cqw rgba(255, 196, 120, .95)) drop-shadow(0 0 4cqw rgba(255, 170, 90, .6)) brightness(1.15); transition: filter 1.6s ease; }
+
+  /* ---------------------------------------------------------------- the finale: the note, the bottle */
+  .note { position: absolute; pointer-events: auto; transform-origin: 50% 96%; }
+  .note > img { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 1cqw 1.4cqw rgba(30, 30, 50, .3)) brightness(1.14) saturate(.7); }
+  .note form { position: absolute; left: 6%; right: 6%; top: 7%; bottom: 7%; padding: 0 6%; display: flex; flex-direction: column; justify-content: center; gap: 4.6cqw;
+               background: radial-gradient(ellipse 80% 72% at 50% 50%, rgba(252, 249, 241, .94), rgba(252, 249, 241, .82) 62%, rgba(252, 249, 241, 0) 100%); }
+  .note .ttl { font: 700 2.9cqw / 1 var(--serif); letter-spacing: .34em; text-indent: .34em; text-transform: uppercase; color: var(--caps); margin: 0; text-align: center; }
+  .note input[type=text] { font: 400 7cqw / 1.2 var(--script); color: var(--ink); background: transparent; border: 0; border-bottom: 1.5px solid rgba(36,50,74,.5);
+                           padding: .6cqw 0; outline: none; width: 100%; text-align: center; border-radius: 0; }
+  .note input[type=text]::placeholder { color: rgba(36,50,74,.5); }
+  .note input:focus-visible { border-bottom-color: var(--coral); }
+  .note .pick { display: flex; flex-direction: column; gap: 2.2cqw; }
+  .note .pick label { text-align: center; font: 400 5.6cqw / 1 var(--script); padding: 2.2cqw 1cqw; white-space: nowrap; border: 1.5px solid rgba(52,55,80,.45); border-radius: 99px; color: var(--ink); cursor: pointer; }
+  .note .pick input { position: absolute; opacity: 0; pointer-events: none; }
+  .note .pick label:has(input:checked) { background: rgba(180,82,63,.07); border-color: var(--coral); color: var(--coral); }
+  .note .pick label:has(input:focus-visible) { outline: 2px solid var(--coral); outline-offset: 2px; }
+  .note .row { display: flex; align-items: baseline; justify-content: center; gap: 3cqw; font: 700 2.9cqw / 1 var(--serif); letter-spacing: .22em; text-transform: uppercase; color: var(--caps); }
+  .note .row input { width: 10cqw !important; font-size: 6cqw !important; }
+  .note button { align-self: center; border: 0; background: none; cursor: pointer; font: 400 7.4cqw / 1 var(--script); color: var(--coral); padding: 0 1cqw; }
+  .note button small { display: block; font: 700 2.4cqw / 1 var(--serif); letter-spacing: .3em; text-transform: uppercase; color: var(--caps); margin-top: 1.8cqw; }
+  .note button:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+  .finale.night .skywords h2, .finale.night .skywords .sub { color: #f6e3c0; }
+  .finale .skywords h2.done { font-size: 7.6cqw; line-height: 1.12; }
+  .skywords .sub { font: italic 500 4.4cqw / 1.4 var(--serif); margin: 2cqw 0 0; opacity: 0; }
+  .bottlebox { position: absolute; inset: 0; pointer-events: none; }
+  .credit { position: absolute; left: 0; right: 0; bottom: 1.2%; text-align: center; font: 600 2.1cqw / 1 var(--serif);
+            letter-spacing: .3em; text-indent: .3em; text-transform: uppercase; color: var(--brown); opacity: .6; margin: 0; }
+  .credit a { color: inherit; text-decoration: none; pointer-events: auto; }
+  /* the teaser's last word, written in the night sky (filming only) */
+  .cta { position: absolute; left: 10%; right: 10%; top: 12%; text-align: center; color: #f3dcae; }
+  .cta > div { font: 400 12.4cqw / 1.04 var(--script); }
+  .cta-by { max-width: 50cqw; margin: 4.4cqw auto 0; text-wrap: balance; font: 700 2.6cqw / 1.7 var(--serif); letter-spacing: .3em; text-indent: .3em; text-transform: uppercase; opacity: 0; color: #f6e3c0; }
+  .cta-url { font: 500 4.8cqw / 1.3 var(--serif); margin: 3.6cqw 0 0; opacity: 0; color: #f8e9cc; }
+  .cta-url i { font-style: italic; }
+
+  /* ---------------------------------------------------------------- gulls (Opening Night's watercolour bird) */
+  .sky-birds { position: absolute; pointer-events: none; overflow: hidden; }
+  .bird { position: absolute; left: 0; top: 0; aspect-ratio: 260 / 220; will-change: transform; }
+  .bird::before { content: ""; position: absolute; inset: 0; background: url(assets/bird.webp) 0 0 / 800% 100% no-repeat; animation: flap var(--f, .52s) infinite; }
+  .bird.glide::before { animation: none; background-position: 57.1429% 0; }
+  .bird.right::before { scale: -1 1; }
+  @keyframes flap {
+    0.000% { background-position: 0.0000% 0; animation-timing-function: steps(1, end); }
+    7.143% { background-position: 14.2857% 0; animation-timing-function: steps(1, end); }
+    14.286% { background-position: 28.5714% 0; animation-timing-function: steps(1, end); }
+    21.429% { background-position: 42.8571% 0; animation-timing-function: steps(1, end); }
+    28.571% { background-position: 57.1429% 0; animation-timing-function: steps(1, end); }
+    35.714% { background-position: 71.4286% 0; animation-timing-function: steps(1, end); }
+    42.857% { background-position: 85.7143% 0; animation-timing-function: steps(1, end); }
+    50.000% { background-position: 100.0000% 0; animation-timing-function: steps(1, end); }
+    57.143% { background-position: 85.7143% 0; animation-timing-function: steps(1, end); }
+    64.286% { background-position: 71.4286% 0; animation-timing-function: steps(1, end); }
+    71.429% { background-position: 57.1429% 0; animation-timing-function: steps(1, end); }
+    78.571% { background-position: 42.8571% 0; animation-timing-function: steps(1, end); }
+    85.714% { background-position: 28.5714% 0; animation-timing-function: steps(1, end); }
+    92.857% { background-position: 14.2857% 0; animation-timing-function: steps(1, end); }
+    100% { background-position: 0 0; }
+  }
+
+  /* ---------------------------------------------------------------- the sea's life, once a scene is up */
+  .live { will-change: transform; }
+  .sway.live    { animation: sway calc(var(--d, 5s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .float.live   { transform-origin: var(--ox, 50%) var(--oy, 90%); animation: float calc(var(--d, 3.4s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .drift.live   { animation: drift calc(var(--d, 15s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .stir.live    { transform-origin: 50% 100%; animation: stir calc(var(--d, 4.5s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .swing.live   { transform-origin: 50% 0; animation: rock calc(var(--d, 3.6s) * 2) ease-in-out var(--o, 0s) infinite; }
+  .lap.live     { animation: lap calc(var(--d, 4.2s) * 2) ease-in-out infinite; }
+  .glowy.live   { animation: glowy calc(var(--d, 5s) * 2) ease-in-out infinite; }
+  .twinkle.live { animation: twinkle calc(var(--d, 3s) * 2) ease-in-out infinite; }
+  .flick.live   { animation: flick var(--d, 1.4s) steps(6) var(--o, 0s) infinite; }
+  @keyframes sway    { 0%, 100% { translate: 0 0; } 25% { translate: calc(var(--x, 1.2cqw) * -1) 0; } 75% { translate: var(--x, 1.2cqw) calc(var(--y, .5cqw) * -1); } }
+  @keyframes float   { 0%, 100% { rotate: 0deg; translate: 0 0; } 25% { rotate: calc(var(--a, 1.4deg) * -1); translate: 0 calc(var(--y, .8cqw) * -.5); } 75% { rotate: var(--a, 1.4deg); translate: 0 calc(var(--y, .8cqw) * -1); } }
+  @keyframes drift   { 0%, 100% { translate: 0 0; } 50% { translate: var(--x, 1.2%) -0.4%; } }
+  @keyframes stir    { 0%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -0.12% 0; rotate: -.15deg; } 75% { translate: .12% -0.1%; rotate: .15deg; } }
+  @keyframes rock    { 0%, 100% { rotate: 0deg; } 25% { rotate: calc(var(--a, .35deg) * -1); } 75% { rotate: var(--a, .35deg); } }
+  @keyframes lap     { 0%, 100% { translate: 0 0; opacity: 1; } 50% { translate: 0 1.2cqw; opacity: .6; } }
+  @keyframes glowy   { 0%, 100% { scale: 1; filter: brightness(1); } 50% { scale: 1.03; filter: brightness(1.08); } }
+  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+  @keyframes flick   { 0% { opacity: 1; } 30% { opacity: .75; } 60% { opacity: .95; } 100% { opacity: 1; } }
+  .asleep .live, .asleep .bird::before { animation-play-state: paused !important; }
+  @media (prefers-reduced-motion: reduce) { .live, .more::after { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="track" id="track"><div class="stage" id="stage"></div></div>
+
+<script src="ink.js"></script>
+<script>
+// By the Sea · a watercolour cardboard wedding invitation. A toy-theatre sea of paper waves; a sailboat comes in with the
+// couple's names on its sail. Below it the invitation is a run of cut-paper scenes by the water, built piece by piece as the
+// page scrolls on. The reply goes out in a bottle.
+const $ = (s, r = document) => r.querySelector(s);
+const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const F = 16 / 9;
+
+// ---------------------------------------------------------------- the couple's content (sample)
+const C = {
+  names: ["Clara", "Mateo"], date: "Saturday, the fourth of September 2027", place: "El Nido · Palawan",
+  story: { kicker: "Our Story", title: "Where it began", body: "A ferry to Coron, two seats by the window, and a storm that kept us talking for four hours. We've been in the same boat ever since." },
+  ceremony: { kicker: "The Ceremony", title: "On the sand", lead: "Four o'clock in the afternoon", body: "The north cove · El Nido", map: "https://maps.google.com/?q=El+Nido+Palawan" },
+  reception: { kicker: "The Reception", title: ["Dinner", "by the water"], lead: "From six o'clock until late", body: "Supper · toasts · dancing" },
+  travel: { kicker: "Getting There", title: "Island hopping", body: "Fly into El Nido. The boat to the cove leaves the town pier at three; we'll have one waiting for you.", tag: "Stay · The Cove House", signs: ["The cove", "Town pier", "Airport"] },
+  rsvp: { title: "Will you join us?", by: "Kindly reply by 1 August", done: ["See you on", "the fourth of September"], doneNo: ["We'll miss you"], sub: "Your reply is on its way." },
+};
+
+// ---------------------------------------------------------------- helpers + the pen
+function place(el, b) { Object.assign(el.style, { left: b.x * 100 + "%", top: b.y * 100 + "%", width: b.w * 100 + "%", height: b.h * 100 + "%" }); return el; }
+function img(src, b, lazy) { const i = new Image(); i.alt = ""; i.decoding = "sync"; if (lazy) i.dataset.src = src; else i.src = src; return place(i, b); }
+const at = (el, p) => { el.style.left = p[0] * 100 + "%"; el.style.top = p[1] * 100 + "%"; return el; };
+const inker = window.createInker({ ink: "#24324a", wet: "#3b4a6a", pen: () => null, stage: () => $("#stage") });
+function inkLine(text, opts = { speed: 8, maxDur: 1.8 }, ink = inker) {
+  const s = h("span", "iv-ink", `<span class="iv-ink__t" data-iv-text></span><canvas class="iv-ink__c" aria-hidden="true"></canvas>`);
+  s.firstChild.textContent = text; ink.add(s, s.querySelector("canvas"), opts); return s;
+}
+const write = (els) => new Promise((r) => inker.write(els, r));
+const writeNow = (els) => { if (inker.writing()) inker.finish(); return write(els); };
+function setLive(el, cls, vars = {}) { if (!el) return; el.classList.add(cls, "live"); for (const k in vars) el.style.setProperty(k, vars[k]); }
+function wrap(el) { const w = h("div", "wrap"); el.replaceWith(w); w.append(el); return w; }
+const sway = (els) => els.forEach((el, i) => setLive(el, "sway", { "--d": (4.2 + i * 0.7).toFixed(1) + "s", "--x": ((i % 2 ? -1 : 1) * (0.8 + i * 0.25)).toFixed(2) + "cqw", "--y": (0.3 + i * 0.15).toFixed(2) + "cqw", "--o": (i * 0.35) + "s" }));
+function floatAt(el, b, anchor) { el.style.setProperty("--ox", ((anchor[0] - b.x) / b.w) * 100 + "%"); el.style.setProperty("--oy", ((anchor[1] - b.y) / b.h) * 100 + "%"); }
+
+/** Now and then a gull (sometimes two or three) crosses a scene's sky: flapping, gliding a beat. (Opening Night) */
+function flock(area, { size, every = [5000, 11000], across = [9000, 13000], band = [0.1, 0.6], awake }) {
+  const one = (delay, y, dir, s) => setTimeout(() => {
+    const b = h("div", "bird" + (dir > 0 ? " right" : ""));
+    b.style.width = s + "%"; b.style.setProperty("--f", (0.55 + Math.random() * 0.18).toFixed(2) + "s");
+    area.append(b);
+    const W = area.clientWidth, H = area.clientHeight, w = (W * s) / 100;
+    const x0 = dir > 0 ? -w * 1.2 : W + w * 0.2, x1 = dir > 0 ? W + w * 0.2 : -w * 1.2;
+    const y0 = y * H, lift = (Math.random() - 0.4) * H * 0.18, kf = [];
+    for (let i = 0; i <= 48; i++) { const u = i / 48; kf.push({ transform: `translate(${x0 + (x1 - x0) * u}px, ${y0 - lift * u + Math.sin(u * Math.PI * 3) * H * 0.02}px)` }); }
+    const dur = across[0] + Math.random() * (across[1] - across[0]);
+    const a = b.animate(kf, { duration: dur, easing: "linear" });
+    const g = setTimeout(() => { b.classList.add("glide"); setTimeout(() => b.classList.remove("glide"), 1100 + Math.random() * 900); }, dur * (0.3 + Math.random() * 0.25));
+    a.onfinish = () => { clearTimeout(g); b.remove(); };
+  }, delay);
+  const next = () => setTimeout(() => {
+    if (awake() && !document.hidden && !reduce) {
+      const n = Math.random() < 0.45 ? 1 : Math.random() < 0.7 ? 2 : 3;
+      const dir = Math.random() < 0.5 ? 1 : -1, y = band[0] + Math.random() * (band[1] - band[0]);
+      for (let i = 0; i < n; i++) one(i * (350 + Math.random() * 500), y + (i ? (Math.random() - 0.5) * 0.12 : 0), dir, size * (i ? 0.8 + Math.random() * 0.25 : 1));
+    }
+    next();
+  }, every[0] + Math.random() * (every[1] - every[0]));
+  one(500, band[0] + 0.12, 1, size);
+  next();
+}
+
+// ---------------------------------------------------------------- the show's clock (Opening Night)
+const GAP = 1.8, ZONE = 1.0, IN_SPEED = 1 / 1.5, OUT_SPEED = 1 / 1.5;
+const cues = [], triggers = [], scenes = [];
+let BUILDING = null, current = 0, raf = 0, last = 0;
+function cue(el, keyframes, [a, b], easing = "cubic-bezier(.4,0,.2,1)") {
+  if (!el) return;
+  const an = el.animate(keyframes, { duration: 1000, fill: "both", easing });
+  an.pause(); an.currentTime = 0; cues.push({ an, a, b, s: BUILDING });
+}
+const trig = (o) => triggers.push({ ...o, s: BUILDING });
+/** a scroll cue for something made later (in a scene's life), tied to that scene */
+function cueFor(k, el, keyframes, [a, b]) { const an = el.animate(keyframes, { duration: 1000, fill: "both" }); an.pause(); cues.push({ an, a, b, s: scenes[k] }); apply(); }
+// fade: when the scene before is a small one (transparent paper), a full scene waits for it to clear, then fades in whole
+function addScene(el, rest, loaded, fade) { const s = { el, rest, loaded, v: rest === 0 ? 0 : rest - 1, i: scenes.length }; el.style.zIndex = 100 - s.i; scenes.push(s); BUILDING = s;
+  if (fade) cue(el, [{ opacity: 0 }, { opacity: 1 }], [rest - 0.86, rest - 0.56], "ease-in-out"); return s; }
+const isOn = (i) => current === i && scenes[i] && Math.abs(scenes[i].v - scenes[i].rest) < 0.02;
+const goal = (s) => (s.i < current ? s.rest + 1 : s.i > current ? s.rest - 1 : s.rest);
+function apply() {
+  for (const c of cues) if (c.s) c.an.currentTime = clamp((c.s.v - c.a) / (c.b - c.a)) * 1000;
+  for (const t of triggers) if (!t.done && t.s && t.s.v >= t.at && t.s.i === current) { t.done = true; t.fn(); }
+  for (const s of scenes) {
+    const d = s.v - s.rest;
+    s.el.classList.toggle("on", s.i === current && Math.abs(d) < 0.1);
+    s.el.classList.toggle("asleep", Math.abs(d) > 0.95);
+    s.el.classList.toggle("gone", Math.abs(d) >= 0.999 && s.i !== current);
+    if (!s.loaded && Math.abs(s.i - current) <= 1) { s.loaded = true; s.el.querySelectorAll("img[data-src]").forEach((i) => (i.src = i.dataset.src)); }
+  }
+}
+function tick(now) {
+  const dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now;
+  let moving = false;
+  for (const s of scenes) {
+    const g = goal(s);
+    if (s.i !== current && ((g < s.rest && s.v > s.rest) || (g > s.rest && s.v < s.rest))) { s.v = g; moving = true; continue; }
+    if (s.v === g) continue;
+    const building = Math.abs(g - s.rest) < Math.abs(s.v - s.rest);
+    const step = (reduce ? 99 : building ? IN_SPEED : OUT_SPEED) * dt;
+    s.v = s.v < g ? Math.min(g, s.v + step) : Math.max(g, s.v - step);
+    moving = true;
+  }
+  apply();
+  raf = moving ? requestAnimationFrame(tick) : 0;
+  if (!raf) last = 0;
+}
+let forced = null;   // filming only (the teaser recorder): a scene chosen without scrolling
+window.__scene = (k) => { forced = k; if (k > 0) finishOpening(); pick(); };
+function pick() {
+  const c = forced ?? clamp(Math.round(scrollY / innerHeight / ZONE), 0, scenes.length - 1);
+  if (c !== current) { current = c; for (const s of scenes) if (s.i !== c && s.v < s.rest - 0.001 && s.i < c) s.v = s.rest + 1; }
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+addEventListener("scroll", pick, { passive: true });
+
+const KIND = {
+  hinge: [{ transform: "rotateX(86deg)", opacity: 0 }, { transform: "rotateX(30deg)", opacity: 1, offset: .35 }, { transform: "none", opacity: 1 }],
+  slideL: [{ transform: "translateX(-70%)", opacity: 0 }, { transform: "translateX(-45%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  slideR: [{ transform: "translateX(70%)", opacity: 0 }, { transform: "translateX(45%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  drop: [{ transform: "translateY(-55%)", opacity: 0 }, { transform: "translateY(-30%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  rise: [{ transform: "translateY(35%)", opacity: 0 }, { transform: "translateY(18%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  roll: [{ transform: "translateY(60%)", opacity: 0 }, { transform: "translateY(-4%)", opacity: 1, offset: .7 }, { transform: "none", opacity: 1 }],
+  fade: [{ opacity: 0 }, { opacity: 1 }],
+  wash: [{ transform: "scale(.6)", opacity: 0 }, { transform: "none", opacity: 1 }],
+  words: [{ transform: "translateY(14px)", opacity: 0 }, { transform: "none", opacity: 1 }],
+};
+const rev = (kf) => [...kf].reverse().map((f) => ({ ...f, offset: f.offset != null ? 1 - f.offset : undefined }));
+function wrapOnce(el) { if (el._w) return el._w; const w = h("div", "wrap"); w.style.transformOrigin = "50% 100%"; el.replaceWith(w); w.append(el); el._w = w; return w; }
+function wrapWords(el) { if (el._w) return el._w; const w = h("div"); el.replaceWith(w); w.append(el); el._w = w; return w; }
+/** The next scene is already there, fully composed, under the one we're leaving: it settles into place with a little depth
+ *  (front layers from a touch lower). The scene we leave comes apart like toy-theatre flats, front first: what hangs in the
+ *  sky flies up, what stands on the ground sinks. Words go first and come back last. Nothing ever fades in from bare paper. */
+function stagger(pieces, words, rest, small, whole) {
+  const n = pieces.length, K = 1;
+  if (whole) cue(whole, [{ transform: "none", opacity: 1 }, { transform: "translateY(-4%) scale(.97)", opacity: 0 }], [rest + 0.02, rest + 0.3], "cubic-bezier(.5,0,.6,1)");
+  pieces.forEach(([el, b, nm = ""], i) => {
+    const d = n > 1 ? i / (n - 1) : 1;
+    const off = ((small ? 0.05 : 0.03) * d / Math.max(0.05, b.h)) * 100;
+    if (off > 0.01 && rest > 0) cue(el, [{ transform: `translateY(${off.toFixed(2)}%)` }, { transform: "none" }], [rest - 1, rest - 0.04], "cubic-bezier(.2,.7,.3,1)");
+    if (small) return;
+    const cy = b.y + b.h / 2, up = /wash|sun|cloud|moon|stars/.test(nm) || cy < 0.42 || (b.y < 0.06 && b.h > 0.5);
+    const dist = (up ? -(b.y + b.h) * 100 - 4 : (1 - b.y) * 100 + 4) * K;
+    const st = small ? rest + 0.02 + (1 - d) * 0.18 : rest + 0.03 + (1 - d) * 0.42, en = small ? st + 0.26 : Math.min(rest + 0.98, st + 0.5);
+    cue(wrapOnce(el), small ? [{ transform: "none", opacity: 1 }, { transform: `translateY(${dist * 0.7}%)`, opacity: 1, offset: .7 }, { transform: `translateY(${dist}%)`, opacity: 0 }]
+                           : [{ transform: "none" }, { transform: `translateY(${dist}%)` }], [st, en], "cubic-bezier(.5,0,.75,.4)");
+  });
+  words.forEach((el, i) => {
+    const we = rest - 0.06 + i * 0.008;
+    cue(el, KIND.words, [Math.min(rest - 0.32 + i * 0.03, we - 0.1), Math.min(we, rest - 0.02)]);
+    cue(wrapWords(el), [{ transform: "none", opacity: 1 }, { transform: "translateY(-16px)", opacity: 0 }], [rest + 0.01, rest + 0.14]);
+  });
+}
+
+// ================================================================ scene 0 · the opening: paper waves roll in, the boat sails in
+let finishOpening = () => {};
+async function opening(stage) {
+  const man = await (await fetch("assets/dio/bts_open/manifest.json")).json(), A = man.anchors;
+  const sc = h("section", "scene fullscene open"); sc.setAttribute("aria-label", `${C.names.join(" and ")} are getting married`); stage.prepend(sc);
+  addScene(sc, 0, true);
+  const bg = Object.assign(h("img", "fbg"), { alt: "", src: "assets/dio/bts_open/bto_01_wash.webp" }); sc.append(bg);
+  const D = h("div", "fframe"); sc.append(D);
+  const L = {};
+  for (const n of Object.keys(man.pieces).sort()) { L[n] = img(`assets/dio/bts_open/${n}.webp`, man.pieces[n], false); if (/wash|far|glints|sun/.test(n)) L[n].classList.add("flat"); }
+  // the boat and its names travel together
+  const boat = h("div", "boatbox");
+  const sail = h("div", "sail"); at(sail, A.sail_c); sail.style.top = (A.sail_c[1] - 0.012) * 100 + "%";
+  const n1 = inkLine(C.names[0], { speed: 7, maxDur: 1.4 }), n2 = inkLine(C.names[1], { speed: 7, maxDur: 1.4 });
+  const amp = h("span", "amp", "and");
+  const r1 = h("span", "n"), r2 = h("span", "n"); r1.append(n1); r2.append(n2); sail.append(r1, amp, r2);
+  const bb = man.pieces.bto_08_boat;
+  for (const n of Object.keys(man.pieces).sort()) {
+    if (n === "bto_08_boat") { boat.append(L[n], sail); D.append(boat); } else D.append(L[n]);
+    if (n === "bto_05_glints") { const sb = h("div", "sky-birds"); sb.style.cssText = "left:0;top:0;width:100%;height:46%"; D.append(sb); L.birds = sb; }
+  }
+  floatAt(boat, { x: 0, y: 0, w: 1, h: 1 }, [bb.x + bb.w * 0.55, bb.y + bb.h * 0.92]);
+  const words = h("div", "skywords");
+  const kick = h("p", "kicker", "We're getting married"), date = h("p", "date", C.date), plc = h("p", "place", C.place);
+  words.append(kick, date, plc); D.append(words);
+  const more = h("p", "more", "<span>Scroll for more</span>"); const moreW = h("div"); moreW.style.cssText = "position:absolute;inset:0;pointer-events:none"; moreW.append(more); sc.append(moreW);
+
+  await Promise.all(Object.keys(man.pieces).map((n) => L[n].decode().catch(() => {})));
+  // the entrance, on time at load (scrolling or a tap hurries it to the end)
+  const rows = ["bto_06_waves1", "bto_07_waves2", "bto_09_waves3", "bto_10_waves4", "bto_11_waves5"].map((n) => L[n]);
+  const ent = [];
+  const go = (el, kf, delay, dur, easing = "cubic-bezier(.3,.7,.3,1)") => ent.push(el.animate(kf, { delay, duration: dur, easing, fill: "backwards" }));
+  for (const n of ["bto_01_wash", "bto_04_far"]) go(L[n], [{ opacity: 0 }, { opacity: 1 }], 0, 900);
+  go(L.bto_02_sun, [{ opacity: 0, transform: "translateY(6cqw)" }, { opacity: 1, transform: "none" }], 300, 2400);
+  go(L.bto_03_clouds, [{ opacity: 0, transform: "translateX(-4cqw)" }, { opacity: 1, transform: "none" }], 400, 2200);
+  go(L.bto_05_glints, [{ opacity: 0 }, { opacity: 1 }], 1600, 1400);
+  rows.forEach((r, i) => go(r, [{ transform: "translateY(110%)" }, { transform: "translateY(-3%)", offset: .78 }, { transform: "none" }], 250 + [0, 1, 3, 4, 5][i] * 260, 1500));
+  go(boat, [{ transform: "translateX(-95cqw) rotate(-3deg)" }, { transform: "translateX(-30cqw) rotate(2deg)", offset: .55 }, { transform: "none" }], 1100, 3600, "cubic-bezier(.25,.6,.3,1)");
+  go(words, [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], 6200, 1200);
+  amp.style.opacity = 0;
+  let finished = false;
+  const life = () => {
+    sway(rows); setLive(boat, "float", { "--d": "3.6s", "--a": "1.3deg", "--y": ".9cqw" });
+    setLive(L.bto_03_clouds, "drift", { "--d": "30s", "--x": "1.4%" }); setLive(L.bto_05_glints, "twinkle", { "--d": "1.6s" }); setLive(L.bto_02_sun, "glowy", { "--d": "5s" });
+    flock(L.birds, { size: 7, every: [5000, 10000], across: [9000, 13000], band: [0.58, 0.9], awake: () => isOn(0) });
+  };
+  const timers = [
+    setTimeout(async () => { await document.fonts.ready; amp.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, delay: 900, fill: "forwards" }); write([n1, n2]); }, 4500),
+    setTimeout(() => more.classList.add("in"), 8200),
+  ];
+  life();
+  finishOpening = () => {
+    if (finished) return; finished = true;
+    timers.forEach(clearTimeout); ent.forEach((a) => a.finish());
+    amp.getAnimations().forEach((a) => a.finish()); amp.style.opacity = 1;
+    writeNow([n1, n2]); more.classList.add("in");
+  };
+  setTimeout(() => (finished = true), 9000);
+  sc.addEventListener("click", finishOpening);
+  addEventListener("scroll", () => { if (scrollY > 40) finishOpening(); }, { passive: true });
+  if (reduce) finishOpening();
+
+  // as the page scrolls on, the words go, the boat sails off, the sea's flats come apart (the next scene waits underneath)
+  cue(moreW, [{ opacity: 1 }, { opacity: 0 }], [0.01, 0.08]);
+  cue(wrapOnce(words), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-16px)" }], [0.01, 0.16]);
+  cue(wrapOnce(boat), [{ transform: "none" }, { transform: "translateX(115%) translateY(-3%) rotate(4deg)" }], [0.04, 0.55], "cubic-bezier(.5,0,.8,.6)");
+  const flats = Object.keys(man.pieces).sort().filter((n) => n !== "bto_08_boat").map((n) => [L[n], man.pieces[n], n]);
+  stagger(flats, [], 0, false);
+  await document.fonts.ready; inker.warm(n1); inker.warm(n2);
+}
+
+// ================================================================ the scenes
+const ACTS = [
+  { id: "bts_story", c: "story",
+    kinds: { bts_01_wash: "wash", bts_02_sea1: "roll", bts_03_boat: "slideL", bts_04_sea2: "roll", bts_05_rocks: "rise", bts_06_lighthouse: "hinge", bts_07_cottage: "hinge", bts_08_sea3: "roll", bts_09_ground: "rise" },
+    birdsIn: "bts_01_wash", birdsBand: [0.12, 0.42],
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "body", c.body)],
+    life: (L, man, k, D) => {
+      sway([L.bts_02_sea1, L.bts_04_sea2, L.bts_08_sea3]);
+      floatAt(L.bts_03_boat, man.pieces.bts_03_boat, [man.pieces.bts_03_boat.x + man.pieces.bts_03_boat.w * 0.5, man.pieces.bts_03_boat.y + man.pieces.bts_03_boat.h]);
+      setLive(L.bts_03_boat, "float", { "--d": "2.8s", "--a": "2.5deg", "--y": ".7cqw" });
+      const beam = h("i", "beam"); at(beam, man.anchors.lamp); beam.style.setProperty("--w", "46cqw"); beam.style.setProperty("--h", "9cqw");
+      L.bts_06_lighthouse.parentElement.after(beam); beam.classList.add("live");
+    } },
+  { id: "bts_cer", c: "ceremony", full: true,
+    kinds: { btc_01_wash: "wash", btc_02_clouds: "fade", btc_03_far: "rise", btc_04_waves: "roll", btc_05_wet: "fade", btc_06_lace: "fade", btc_07_sand: "rise", btc_08_arch: "hinge",
+             btc_09_fabric: "drop", btc_10_flowers: "drop", btc_11_aisle: "fade", btc_12_chairs: "rise", btc_13_lanterns: "rise", btc_14_front: "rise" },
+    birdsIn: "btc_01_wash", birdsBand: [0.74, 0.92],
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "lead", c.lead), h("p", "body", c.body), Object.assign(h("a", "tagbtn", "Open the map"), { href: c.map, target: "_blank", rel: "noopener" })],
+    life: (L, man, k, D) => {
+      setLive(L.btc_02_clouds, "drift", { "--d": "20s", "--x": "1.4%" }); sway([L.btc_04_waves]); setLive(L.btc_06_lace, "lap", { "--d": "3.8s" });
+      setLive(L.btc_09_fabric, "swing", { "--d": "4.2s", "--a": ".5deg" }); setLive(L.btc_10_flowers, "stir", { "--d": "5s" }); setLive(L.btc_14_front, "stir", { "--d": "4.4s" });
+      const cv = h("canvas", "petals"); D.insertBefore(cv, D.querySelector(".skywords")); petals(cv, () => isOn(k)); cueFor(k, cv, [{ opacity: 1 }, { opacity: 0 }], [scenes[k].rest + 0.01, scenes[k].rest + 0.12]);
+    } },
+  { id: "bts_rec", c: "reception", full: true,
+    kinds: { btr_01_wash: "wash", btr_02_sun: "fade", btr_03_clouds: "fade", btr_04_far: "rise", btr_05_glints: "fade", btr_06_waves: "roll", btr_07_beach: "rise", btr_08_poles: "rise",
+             btr_09_bulbs: "drop", btr_10_chairs: "rise", btr_11_table: "rise", btr_12_settings: "drop", btr_13_sandlights: "rise", btr_14_front: "rise" },
+    birdsIn: null,
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "lead", c.lead), h("p", "body", c.body)],
+    life: (L, man, k, D) => lightsOn(L, man, k, D) },
+  { id: "bts_trav", c: "travel", arms: true,
+    kinds: { btt_01_wash: "wash", btt_02_island: "rise", btt_03_sea1: "roll", btt_04_boat: "slideR", btt_05_sea2: "roll", btt_06_jetty: "slideL", btt_07_sign: "hinge", btt_08_sea3: "roll", btt_09_ground: "rise" },
+    birdsIn: "btt_01_wash", birdsBand: [0.1, 0.36],
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "body", c.body), h("p", "tag", c.tag)],
+    life: (L, man, k) => {
+      sway([L.btt_03_sea1, L.btt_05_sea2, L.btt_08_sea3]); setLive(L.btt_02_island, "stir", { "--d": "5s" });
+      const b = man.pieces.btt_04_boat; floatAt(L.btt_04_boat, b, [b.x + b.w * 0.5, b.y + b.h]); setLive(L.btt_04_boat, "float", { "--d": "3.1s", "--a": "1.6deg", "--y": ".5cqw" });
+    } },
+];
+
+async function act(stage, def, k) {
+  const rest = k * GAP, c = C[def.c];
+  const man = await (await fetch(`assets/dio/${def.id}/manifest.json`)).json();
+  const sc = h("section", "scene" + (def.full ? " fullscene" : " act")); sc.setAttribute("aria-label", c.kicker);
+  const D = h("div", def.full ? "fframe" : "diorama"), words = h("div", def.full ? "skywords" : "words");
+  if (def.full) { const first = Object.keys(man.pieces).sort()[0]; const bg = Object.assign(h("img", "fbg"), { alt: "", src: `assets/dio/${def.id}/${first}.webp` }); sc.append(bg); }
+  sc.append(D); if (!def.full) sc.append(words); stage.append(sc);
+  addScene(sc, rest, false, def.full && k > 1 && !ACTS[k - 2].full);
+  const L = {}, pieces = [];
+  for (const n of Object.keys(man.pieces).sort()) {
+    const b = man.pieces[n];
+    D.append((L[n] = img(`assets/dio/${def.id}/${n}.webp`, b, false)));
+    if (/_wash$|_far$|_wet$|_glints$/.test(n)) L[n].classList.add("flat");
+    pieces.push([L[n], b, n]);
+    if (n === def.birdsIn) { const sb = place(h("div", "sky-birds"), def.full ? { x: 0, y: 0, w: 1, h: 0.5 } : b); if (!def.full) sb.style.clipPath = "ellipse(46% 44% at 50% 46%)"; D.append(sb); L.birds = sb; }
+  }
+  if (def.full) D.append(words);
+  const A = man.anchors || {}, onPaint = [];
+  if (def.arms) c.signs.forEach((w, i) => { const p = A["arm" + i]; if (!p) return; const s = h("div", "arm", w); at(s, p); s.style.rotate = [-2, 1.7, -1.4][i] + "deg"; D.append(s); onPaint.push(s); });
+  let title;
+  const ws = [];
+  for (const w of def.words(c)) {
+    if (w === "TITLE") {
+      title = h("h2");
+      const lines = (Array.isArray(c.title) ? c.title : [c.title]).map((t) => { const r = h("div"); const l = inkLine(t, { speed: 7, maxDur: 1.6 }); r.append(l); title.append(r); return l; });
+      words.append(title); ws.push(title); trig({ at: rest - 0.25, fn: () => writeNow(lines) });
+      if (def.full) { const o = h("div", "orn", "<i></i>"); words.append(o); ws.push(o); }
+    }
+    else if (def.full && w.classList?.contains("tagbtn")) { w.classList.add("fbtn"); D.append(w); const wr = wrap(w); w._w = wr; ws.push(w); }
+    else { words.append(w); ws.push(w); }
+  }
+  for (const s of onPaint) { const w = wrap(s); s._w = w; ws.push(s); }
+  stagger(pieces, ws, rest, !def.full, def.full ? null : D);
+  await Promise.all(Object.keys(man.pieces).map((n) => L[n].decode().catch(() => {})));
+  trig({ at: rest - 0.1, fn: () => { def.life?.(L, man, k, D); if (L.birds) flock(L.birds, { size: def.full ? 7 : 10, every: [4500, 9000], across: [7000, 10500], band: def.birdsBand || [0.1, 0.4], awake: () => isOn(k) }); } });
+  await document.fonts.ready; ws.forEach((w) => w.querySelectorAll?.(".iv-ink").forEach((l) => inker.warm(l)));
+}
+
+/** Petals on the sea breeze: a few blush and white petals drift across the aisle, tumbling as they go. */
+function petals(cv, awake) {
+  const ctx = cv.getContext("2d"); let W = 0, H = 0, dpr = 1;
+  const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = cv.clientWidth * dpr; H = cv.height = cv.clientHeight * dpr; };
+  size(); addEventListener("resize", size);
+  const COL = ["#f7e6e2", "#f2c9c6", "#fbf4ef", "#e8b0b0"];
+  const P = Array.from({ length: 22 }, (_, i) => ({ x: Math.random() * 1.2 - 0.2, y: 0.35 + Math.random() * 0.6, v: 0.03 + Math.random() * 0.05, r: Math.random() * 6.3, s: 0.6 + Math.random() * 0.8, w: Math.random() * 6.3, c: COL[i % 4] }));
+  let lt = 0, alpha = 0;
+  const frame = (t) => {
+    if (!cv.isConnected) return;
+    const dt = lt ? Math.min(0.05, (t - lt) / 1000) : 0; lt = t; alpha = Math.min(1, alpha + dt * 0.5);
+    ctx.clearRect(0, 0, W, H);
+    if (awake()) for (const p of P) {
+      p.x += p.v * dt; p.y += Math.sin(t / 900 + p.w) * 0.008 * dt + 0.006 * dt; p.r += dt * (1.2 + p.v * 10);
+      if (p.x > 1.1 || p.y > 1.02) { p.x = -0.1; p.y = 0.3 + Math.random() * 0.55; }
+      const x = p.x * W, y = p.y * H, R = W * 0.009 * p.s;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(p.r); ctx.scale(1, Math.abs(Math.cos(p.r * 0.7)) * 0.7 + 0.3);
+      ctx.globalAlpha = alpha * 0.92; ctx.fillStyle = p.c; ctx.shadowColor = "rgba(60,40,40,.18)"; ctx.shadowBlur = 3 * dpr; ctx.shadowOffsetY = 2 * dpr;
+      ctx.beginPath(); ctx.ellipse(0, 0, R, R * 0.62, 0, 0, 6.29); ctx.fill(); ctx.restore();
+    }
+    if (!reduce) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+/** Evening at the water's edge: the bulbs come on one by one along each string (a flicker as each catches), then the
+ *  candles on the table, then the jars in the sand; the sun goes on sinking into the sea. */
+function lightsOn(L, man, k, D) {
+  const A = man.anchors, box = h("div", "wrap"); D.insertBefore(box, D.querySelector(".skywords"));
+  cueFor(k, box, [{ opacity: 1 }, { opacity: 0 }], [scenes[k].rest + 0.01, scenes[k].rest + 0.12]);
+  const dot = (p, s, delay, flick) => {
+    const g = h("i", "glowdot"); g.style.setProperty("--s", s); at(g, p); box.append(g);
+    g.animate(flick ? [{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: .3, offset: .35 }, { opacity: 1, offset: .5 }, { opacity: .7, offset: .7 }, { opacity: 1 }] : [{ opacity: 0 }, { opacity: 1 }],
+              { duration: flick ? 600 : 1200, delay: reduce ? 0 : delay, fill: "forwards" });
+    return g;
+  };
+  const bulbs = Object.keys(A).filter((n) => n.startsWith("bulb")).sort();
+  bulbs.forEach((n, i) => dot(A[n], "5.4cqw", 300 + i * 110, true));
+  const flames = Object.keys(A).filter((n) => n.startsWith("flame")).map((n, i) => dot(A[n], "6cqw", 300 + bulbs.length * 110 + 300 + i * 250, false));
+  setTimeout(() => { L.btr_13_sandlights.classList.add("glow-on"); flames.forEach((f, i) => setLive(f, "flick", { "--d": (1.1 + i * 0.13) + "s" })); }, reduce ? 0 : 300 + bulbs.length * 110 + 1600);
+  L.btr_02_sun.animate([{ transform: "none" }, { transform: "translateY(3.4cqw)" }], { duration: 60000, easing: "linear", fill: "forwards" });
+  L.btr_05_glints.animate([{ opacity: 1 }, { opacity: 0.35 }], { duration: 60000, fill: "forwards" });
+  setLive(L.btr_03_clouds, "drift", { "--d": "24s", "--x": "1.2%" }); sway([L.btr_06_waves]); setLive(L.btr_14_front, "stir", { "--d": "4.8s" });
+}
+
+// ================================================================ finale · a message in a bottle
+async function finale(stage, k) {
+  const rest = k * GAP, c = C.rsvp;
+  const man = await (await fetch("assets/dio/bts_rsvp/manifest.json")).json(), A = man.anchors;
+  const sc = h("section", "scene fullscene finale"); sc.setAttribute("aria-label", "Reply"); stage.append(sc);
+  { const bg = Object.assign(h("img", "fbg"), { alt: "", src: "assets/dio/bts_rsvp/btx_01_wash.webp" }); sc.append(bg); }
+  const D = h("div", "fframe"); sc.append(D);
+  addScene(sc, rest, false, !ACTS[ACTS.length - 1].full);
+  const L = {}, pieces = [], later = ["btx_02_stars", "btx_13_inside", "btx_14_cork"];
+  const kinds = { btx_01_wash: "wash", btx_03_moon: "fade", btx_04_clouds: "fade", btx_05_far: "rise", btx_06_lamp: "fade", btx_07_boat: "slideL", btx_08_waves: "roll", btx_09_surf: "roll",
+                  btx_10_beach: "rise", btx_11_lace: "fade", btx_12_bottle: "drop", btx_14b_bury: "rise", btx_15_front: "rise" };
+  const bottleBox = h("div", "bottlebox");
+  for (const n of Object.keys(man.pieces).sort()) {
+    if (n === "btx_99_note") continue;
+    const b = man.pieces[n]; L[n] = img(`assets/dio/bts_rsvp/${n}.webp`, b, false);
+    if (["btx_12_bottle", "btx_13_inside", "btx_14_cork"].includes(n)) { bottleBox.append(L[n]); if (n === "btx_12_bottle") D.append(bottleBox); } else D.append(L[n]);
+    if (/_wash$|_far$|_stars$/.test(n)) L[n].classList.add("flat");
+    if (later.includes(n)) { L[n].style.opacity = 0; continue; }
+    pieces.push([L[n], b, n]);
+    if (n === "btx_01_wash") { const sb = place(h("div", "sky-birds"), { x: 0, y: 0, w: 1, h: 0.5 }); D.append(sb); L.birds = sb; }
+  }
+  const words = h("div", "skywords"); D.append(words);
+  const head = h("h2"); head.append(inkLine(c.title, { speed: 8, maxDur: 1.6 }));
+  const by = h("p", "kicker", c.by);
+  words.append(by, head);
+  L.btx_03_moon.style.translate = "4cqw 26cqw";
+  const nb = man.pieces.btx_99_note;
+  const note = place(h("div", "note"), nb);
+  note.innerHTML = `<img alt="" src="assets/dio/bts_rsvp/btx_99_note.webp"><form><p class="ttl">Kindly reply</p>
+    <input id="rn" type="text" name="name" placeholder="Your name(s)" autocomplete="name" required aria-label="Your name(s)">
+    <div class="pick" role="radiogroup" aria-label="Your reply"><label><input type="radio" name="go" value="yes" checked><span>Joyfully accepts</span></label><label><input type="radio" name="go" value="no"><span>Regretfully declines</span></label></div>
+    <div class="row"><label for="rg">Guests</label><input id="rg" type="text" name="n" inputmode="numeric" value="2"></div>
+    <button type="submit">Send it out to sea<small>in a bottle</small></button></form>`;
+  D.append(note);
+  const credit = h("p", "credit", `Made with <a href="https://thersvpstudio.com" target="_blank" rel="noopener">The RSVP Studio</a>`); D.append(credit);
+  { const w = wrap(note); note._w = w; }
+  stagger(pieces, [by, note], rest, false);
+  await Promise.all(Object.values(L).filter((x) => x.tagName === "IMG").map((i) => i.decode().catch(() => {})));
+  credit.style.opacity = 0;
+  cue(wrapWords(head), [{ transform: "none", opacity: 1 }, { transform: "translateY(-16px)", opacity: 0 }], [rest + 0.01, rest + 0.16]);
+  trig({ at: rest - 0.45, fn: () => writeNow([head.firstChild]) });
+  const beam = h("i", "beam"); at(beam, A.lamp); beam.style.setProperty("--w", "60cqw"); beam.style.setProperty("--h", "10cqw"); L.btx_06_lamp.after(beam);
+  trig({ at: rest - 0.1, fn: () => {
+    sway([L.btx_08_waves, L.btx_09_surf]); setLive(L.btx_11_lace, "lap", { "--d": "3.6s" }); setLive(L.btx_04_clouds, "drift", { "--d": "22s" });
+    const b = man.pieces.btx_07_boat; floatAt(L.btx_07_boat, b, [b.x + b.w / 2, b.y + b.h]); setLive(L.btx_07_boat, "float", { "--d": "3s", "--a": "2deg", "--y": ".3cqw" });
+    setLive(L.btx_06_lamp, "glowy", { "--d": "2.6s" });
+    flock(L.birds, { size: 6, every: [6000, 11000], across: [9000, 12000], band: [0.62, 0.9], awake: () => isOn(k) });
+  } });
+  const form = note.querySelector("form");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const yes = form.go.value === "yes", data = Object.fromEntries(new FormData(form));
+    try { localStorage.setItem("bts-reply", JSON.stringify({ ...data, at: Date.now() })); } catch (err) {}
+    form.querySelectorAll("input,button").forEach((x) => (x.disabled = true));
+    document.activeElement?.blur?.();
+    head.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, fill: "forwards" }); by.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, fill: "forwards" });
+    // 1 · the note rolls up from the top onto its lower roll, then flies, rolled, into the bottle's mouth
+    await form.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" }).finished;
+    await note.animate([{ transform: "none" }, { transform: "scaleY(.06)" }], { duration: 900, easing: "cubic-bezier(.6,0,.3,1)", fill: "forwards" }).finished;
+    const dr = D.getBoundingClientRect(), cr = note.getBoundingClientRect();
+    const mx = dr.left + A.mouth[0] * dr.width, my = dr.top + A.mouth[1] * dr.height;
+    const tx = mx - (cr.left + cr.width / 2), ty = my - cr.bottom, s1 = (dr.width * 0.13) / cr.width;
+    await note.animate([{ transform: "scaleY(.06)", opacity: 1 },
+      { transform: `translate(${tx * 0.6}px, ${ty * 0.5 - dr.height * 0.06}px) rotate(-40deg) scale(${(1 + s1) / 2}, .06)`, opacity: 1, offset: .6 },
+      { transform: `translate(${tx}px, ${ty}px) rotate(-78deg) scale(${s1}, .06)`, opacity: 0 }], { duration: 1300, easing: "cubic-bezier(.45,0,.3,1)", fill: "forwards" }).finished;
+    note.style.visibility = "hidden";
+    L.btx_13_inside.animate([{ opacity: 0 }, { opacity: .82 }], { duration: 500, fill: "forwards" });
+    // 2 · the cork drops in
+    await wait(250);
+    await L.btx_14_cork.animate([{ opacity: 0, transform: "translate(6cqw, -16cqw) rotate(-120deg)" }, { opacity: 1, transform: "translate(1cqw, -1cqw) rotate(-10deg)", offset: .8 }, { opacity: 1, transform: "none" }],
+      { duration: 700, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" }).finished;
+    // 3 · the tide comes in and takes it: the lace washes up, the bottle lifts out of the sand and floats out to the boat
+    L.btx_11_lace.classList.remove("live");
+    L.btx_11_lace.animate([{ transform: "none" }, { transform: "translateY(26cqw)", opacity: .9, offset: .45 }, { transform: "none" }], { duration: 3000, easing: "ease-in-out" });
+    const bx = A.bottle, bo = A.boat;
+    bottleBox.style.transformOrigin = `${bx[0] * 100}% ${bx[1] * 100}%`;
+    const kf = [];
+    for (let i = 0; i <= 30; i++) {
+      const u = i / 30, e = u < 0.18 ? 0 : Math.min(1, (u - 0.18) / 0.82), ee = 1 - (1 - e) ** 1.6;
+      const dx = (bo[0] - bx[0] + 0.05) * 100 * ee, dy = (bo[1] - bx[1] + 0.02) * 100 * F * ee - Math.sin(u * Math.PI * 7) * 0.8 * (1 - ee) - (u < 0.18 ? (u / 0.18) * 2.4 : 2.4 * (1 - ee));
+      kf.push({ transform: `translate(${dx}cqw, ${dy}cqw) rotate(${Math.sin(u * 13) * 9 * (1 - ee) - 8 * ee}deg) scale(${1 - 0.9 * ee})`, opacity: u > 0.9 ? (1 - u) / 0.1 : 1 });
+    }
+    bottleBox.animate(kf, { duration: 6400, easing: "linear", fill: "forwards" });
+    await wait(1600);
+    // 4 · night: stars come out, the lighthouse turns its beam, the moon brightens
+    sc.classList.add("night");
+    L.btx_02_stars.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 2400, fill: "forwards" });
+    setTimeout(() => setLive(L.btx_02_stars, "twinkle", { "--d": "2.2s" }), 2400);
+    L.btx_03_moon.classList.add("glow-on"); L.btx_06_lamp.classList.add("glow-on");
+    beam.classList.add("live");
+    for (const n of ["btx_01_wash", "btx_04_clouds", "btx_05_far", "btx_07_boat", "btx_08_waves", "btx_09_surf", "btx_10_beach", "btx_11_lace", "btx_14b_bury", "btx_15_front"])
+      L[n].animate([{ filter: "brightness(1) saturate(1)" }, { filter: "brightness(.6) saturate(.85) hue-rotate(-6deg)" }], { duration: 2800, easing: "ease-in-out", fill: "forwards" });
+    const ff = h("canvas", "fireflies"); D.insertBefore(ff, words); sparkles(ff, () => isOn(k));
+    await wait(3000);
+    // 5 · written in the night sky in gold
+    head.getAnimations().forEach((a) => a.cancel()); head.replaceChildren(); head.classList.add("done");
+    const gold = window.createInker({ ink: "#f3dcae", wet: "#fff1d6", pen: () => null, stage: () => $("#stage") });
+    const lines = (yes ? c.done : c.doneNo).map((t) => { const r = h("div"); const l = inkLine(t, { speed: 9, maxDur: 1.5 }, gold); r.append(l); head.append(r); return l; });
+    const sub = h("p", "sub", c.sub); words.append(sub);
+    await document.fonts.ready; for (const l of lines) await gold.warm(l);
+    await new Promise((r) => gold.write(lines, r));
+    sub.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 900, fill: "forwards", easing: "ease-out" });
+    credit.style.color = "#f6e3c0"; credit.animate([{ opacity: 0 }, { opacity: .8 }], { duration: 900, fill: "forwards" });
+    // filming only: the teaser ends on the design's name, in the same gold, in the same sky
+    window.__cta = async () => {
+      for (const el of [head, sub, credit]) el.animate([{ opacity: getComputedStyle(el).opacity }, { opacity: 0 }], { duration: 800, fill: "forwards" });
+      await wait(1000);
+      const box = h("div", "cta"), r1 = h("div"), t1 = inkLine("By the Sea", { speed: 8, maxDur: 1.6 }, gold);
+      const cby = h("p", "cta-by", "A wedding invitation by The RSVP Studio"), url = h("p", "cta-url", "Create yours at <i>thersvpstudio.com</i>");
+      r1.append(t1); box.append(r1, cby, url); D.append(box);
+      await gold.warm(t1); await new Promise((r) => gold.write([t1], r));
+      cby.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 800, fill: "forwards", easing: "ease-out" });
+      await wait(600);
+      url.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 900, fill: "forwards", easing: "ease-out" });
+    };
+  });
+  await document.fonts.ready; inker.warm(head.firstChild);
+}
+/** Moonlight on the water: glints that come and go on the sea under the moon once night has fallen. */
+function sparkles(cv, awake) {
+  const ctx = cv.getContext("2d"); let W = 0, H = 0, dpr = 1;
+  const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = cv.clientWidth * dpr; H = cv.height = cv.clientHeight * dpr; };
+  size(); addEventListener("resize", size);
+  const S = Array.from({ length: 40 }, () => ({ x: 0.08 + Math.random() * 0.84, y: 0.49 + Math.random() * 0.12, p: Math.random() * 6.3, w: 0.6 + Math.random() }));
+  let lt = 0, alpha = 0;
+  const frame = (t) => {
+    if (!cv.isConnected) return;
+    const dt = lt ? Math.min(0.05, (t - lt) / 1000) : 0; lt = t; alpha = Math.min(1, alpha + dt * 0.35);
+    ctx.clearRect(0, 0, W, H);
+    if (awake()) for (const s of S) {
+      const a = alpha * Math.max(0, Math.sin(t / 600 * s.w + s.p)) ** 3;
+      const x = s.x * W, y = s.y * H, len = W * 0.018 * s.w;
+      const g = ctx.createLinearGradient(x - len, y, x + len, y);
+      g.addColorStop(0, "rgba(255,240,200,0)"); g.addColorStop(0.5, `rgba(255,240,200,${a * 0.9})`); g.addColorStop(1, "rgba(255,240,200,0)");
+      ctx.fillStyle = g; ctx.fillRect(x - len, y - dpr, len * 2, dpr * 2);
+    }
+    if (!reduce) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------- put the show together
+(async () => {
+  const stage = $("#stage");
+  await opening(stage);
+  for (let i = 0; i < ACTS.length; i++) await act(stage, ACTS[i], i + 1).catch((e) => console.warn("scene skipped:", ACTS[i].id, e.message));
+  await finale(stage, ACTS.length + 1).catch((e) => console.warn("finale skipped:", e.message));
+  $("#track").style.height = `${((scenes.length - 1) * ZONE + 1) * 100}svh`;
+  pick(); apply();
+  document.body.dataset.ready = 1;
+})();
+</script>
+</body>
+</html>

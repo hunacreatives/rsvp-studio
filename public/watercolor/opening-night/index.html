@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+<head>
+<base href="/watercolor/opening-night/">
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Opening Night — draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Pinyon+Script&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2e2622;
+    --gilt: #9a7432;
+    --rose: #a2575a;
+    --paper: #f1ebe0;
+    --serif: "Cormorant Garamond", Georgia, serif;
+    --script: "Pinyon Script", cursive;
+    --glide: cubic-bezier(.45, 0, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { margin: 0; color: var(--ink); font-family: var(--serif);
+         background: var(--paper) url(assets/page-paper.webp) center / 900px repeat; -webkit-font-smoothing: antialiased; }
+
+  /* One show on one stage: the page scrolls freely through a tall track while the stage stays put.
+     How far you've scrolled is where the show is: each scene comes apart, the next builds up. */
+  .track { position: relative; }
+  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  .scene { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+  .scene.on { pointer-events: auto; }
+  .scene.gone { visibility: hidden; }
+
+  /* ---------------------------------------------------------------- the theatre */
+  .fold { transform-origin: 50% 100%; }
+  /* The theatre is a window onto the rendered 9:16 frame: x ±0.68, z 0.16..2.362 of the model — the
+     crest above the cornice is cut away and the stage fills more of the screen. Everything inside is
+     placed in the full frame's own coordinates (.frame), so cqw still means 1% of the full frame. */
+  .theatre { position: relative; overflow: clip; filter: drop-shadow(0 18px 28px rgba(60, 40, 25, .22)); }
+  .theatre.full { filter: none; }
+  .frame { position: absolute; aspect-ratio: 9 / 16; container-type: inline-size; }
+  .theatre img, .theatre video { position: absolute; display: block; pointer-events: none; user-select: none; }
+  .theatre video { object-fit: fill; }
+  .wrap { position: absolute; inset: 0; pointer-events: none; }
+  .dim { position: absolute; inset: 0; background: rgba(28, 16, 12, .58); mix-blend-mode: multiply; transition: opacity 1.1s var(--glide); }
+  .glow { position: absolute; width: 9cqw; height: 6cqw; margin: -3cqw 0 0 -4.5cqw; border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(255, 214, 150, .85), rgba(255, 190, 110, .25) 55%, transparent);
+          mix-blend-mode: screen; opacity: 0; }
+  .glow.on { animation: lamp .5s steps(1) forwards, flicker 2.4s ease-in-out .5s 2; }
+  .glow.on.live { animation: flicker 2.4s ease-in-out var(--o, 0s) infinite; }
+  @keyframes lamp { 0% { opacity: .9 } 20% { opacity: .2 } 40% { opacity: .95 } 100% { opacity: .75 } }
+  @keyframes flicker { 0%, 100% { opacity: .75 } 50% { opacity: .62 } }
+  .bill { position: absolute; left: 22%; right: 22%; top: 38.5%; text-align: center; }
+  .names { font: 400 8.6cqw / 1.12 var(--script); margin: 0; }
+  .names > div { display: block; }
+  .caps { font: 500 1.9cqw / 1.7 var(--serif); letter-spacing: .3em; margin: 4.6cqw 0 0; text-transform: uppercase; }
+  .caps span { opacity: 0; transition: opacity .35s ease; }
+  .caps span.in { opacity: 1; }
+  .date { font: 400 4.6cqw / 1 var(--script); margin: 3.8cqw 0 0; }
+  .mono { position: absolute; left: 50%; top: 9.58%; transform: translate(-50%, -50%); font: 400 7.4cqw / 1 var(--script); white-space: nowrap; }
+    /* on the red velvet front of the stage, under the footlights: centred in the panel (model z 0 .. 0.235) */
+  .hint { position: absolute; left: 0; right: 0; top: 95.9%; translate: 0 -50%; text-align: center; font: 600 1.9cqw / 1 var(--serif);
+          letter-spacing: .34em; text-indent: .34em; text-transform: uppercase; color: #f0d9a8; opacity: 0; transition: opacity .8s ease; }
+  .hint::after { content: ""; display: block; width: 1.1cqw; height: 1.1cqw; margin: 1.2cqw auto 0; border: solid currentColor;
+                 border-width: 0 1px 1px 0; rotate: 45deg; animation: nudge 1.8s ease-in-out infinite; }
+  @keyframes nudge { 0%, 100% { translate: 0 0; opacity: .6; } 50% { translate: 0 .5cqw; opacity: 1; } }
+  .hint.in { opacity: .9; }
+  .fin-bill { top: 45%; left: 26%; right: 26%; }
+  .fin-bill .q { font: 400 6.2cqw / 1.1 var(--script); margin: 0; }
+  .fin-bill .by { font: 500 1.6cqw / 1.8 var(--serif); letter-spacing: .2em; text-wrap: balance; text-transform: uppercase; margin: 3.6cqw 0 0; }
+  .cta { position: absolute; left: 10%; right: 10%; top: 39%; text-align: center; color: #f3dcae; }
+  .cta > div { font: 400 10.4cqw / 1 var(--script); }
+  .cta-by { max-width: 46cqw; margin-inline: auto !important; text-wrap: balance; font: 600 2.5cqw / 1.7 var(--serif); letter-spacing: .22em; text-indent: .22em; text-transform: uppercase; margin: 4.4cqw 0 0; opacity: 0; }
+  .cta-url { font: 400 4.6cqw / 1.3 var(--serif); margin: 4cqw 0 0; opacity: 0; color: #f8e9cc; }
+  .cta-url i { font-style: italic; font-weight: 500; }
+  .curtain-word { position: absolute; left: 18%; right: 18%; top: 45%; text-align: center; font: 400 8.6cqw / 1 var(--script); color: #f6e3c4; }
+
+  /* a written line: the canvas sits exactly over its own text */
+  .iv-ink { position: relative; display: inline-block; }
+  .iv-ink__t { color: transparent; }
+  .iv-ink__c { position: absolute; left: 0; top: 0; pointer-events: none; }
+
+  /* ---------------------------------------------------------------- an act: a cardboard scene + its words */
+  .act { padding: 5svh 9vw 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
+  .diorama { position: relative; width: min(88vw, 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
+  .diorama img { position: absolute; display: block; transform-origin: 50% 100%; backface-visibility: hidden;
+                 filter: drop-shadow(0 .6vmin .9vmin rgba(70, 45, 30, .26)); }
+  .diorama img.flat { filter: none; }
+  .diorama > .wrap { perspective: 1100px; perspective-origin: 50% 30%; }
+  .act.prog .diorama { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(196vw, 100svh, 1100px); }
+  .words { text-align: center; max-width: 24em; margin: 0 auto; }
+  .kicker { font: 600 .74rem / 1 var(--serif); letter-spacing: .38em; text-transform: uppercase; color: var(--gilt); margin: 0; }
+  .words h2 { font: 400 clamp(2.3rem, 8vw, 3.2rem) / 1.1 var(--script); margin: .45em 0 .5em; }
+  .lead { font: 500 clamp(1.02rem, 3.9vw, 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
+  .body { font: 400 clamp(.98rem, 3.7vw, 1.1rem) / 1.75 var(--serif); margin: 0 auto; max-width: 22em; }
+  .small { font: 500 .78rem / 1.6 var(--serif); letter-spacing: .2em; text-transform: uppercase; margin: .6em 0 0; }
+  .tagbtn { display: inline-block; margin-top: 1.4em; padding: .55em 1.2em .55em 1.6em; font: 600 .72rem / 1 var(--serif); letter-spacing: .26em;
+            text-transform: uppercase; color: var(--ink); text-decoration: none; background: #f6efdf; position: relative;
+            clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); box-shadow: 0 1px 0 rgba(0,0,0,.08); }
+  .tagbtn::before { content: ""; position: absolute; left: 8px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--paper); }
+  @media (min-width: 900px) {
+    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: 6vw; }
+    .diorama { width: min(44vw, 74svh, 640px); }
+    .words { text-align: left; }
+  }
+  /* words set on painted things (signposts, the tag, the playbill) */
+  .on-paint { position: absolute; translate: -50% -50%; text-align: center; white-space: nowrap; }
+  .sign { font: 600 1.9cqw / 1 var(--serif); letter-spacing: .08em; text-transform: uppercase; color: #5a4632; }
+  .tagword { font: 400 4.2cqw / 1.08 var(--script); white-space: normal; width: 13cqw; text-align: center; }
+  .bill-card { position: absolute; left: 30%; right: 30%; top: 21%; bottom: 13%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .bill-card .t { font: 400 4.6cqw / 1 var(--script); margin: 1.2cqw 0 3.4cqw; white-space: nowrap; }
+  .bill-card ol { list-style: none; margin: 0; padding: 0; width: 100%; }
+  .bill-card li { display: flex; align-items: baseline; gap: 1.2cqw; font: 400 2.65cqw / 1.25 var(--serif); margin: 0 0 2.6cqw; }
+  .bill-card li b { font-weight: 600; letter-spacing: .08em; font-size: 2.2cqw; color: var(--gilt); min-width: 9cqw; text-align: left; }
+  .bill-card li span.dots { flex: 1; border-bottom: 1px dotted rgba(46,38,34,.35); transform: translateY(-.35em); }
+  .bill-card .foot { margin-top: auto; font: 600 1.7cqw / 1 var(--serif); letter-spacing: .3em; text-transform: uppercase; color: var(--gilt); }
+  .chips { display: flex; justify-content: center; gap: .8rem; margin-top: 1.4em; }
+  .chip { width: 3.7rem; text-align: center; font: 600 .56rem / 1.2 var(--serif); letter-spacing: .06em; text-transform: uppercase; }
+  .chip i { display: block; height: 3.6rem; margin-bottom: .35rem; background: var(--c); border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(60,40,25,.18); -webkit-mask: url(assets/page-paper.webp) center / 300px; }
+  .chip:nth-child(odd) i { rotate: -2deg; } .chip:nth-child(even) i { rotate: 1.5deg; }
+  @media (min-width: 900px) { .chips { justify-content: flex-start; } }
+  .faq { display: flex; flex-direction: column; align-items: center; gap: .55rem; margin-top: 1.1em; perspective: 900px; }
+  .card { width: min(84vw, 23rem); min-height: 4.4rem; position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3,.8,.3,1); cursor: pointer; border: 0; padding: 0; background: none; font: inherit; color: inherit; }
+  .card.open { transform: rotateY(180deg); }
+  .card > span { position: absolute; inset: 0; display: grid; place-items: center; padding: .5rem 1.4rem; backface-visibility: hidden;
+                 border: 13px solid transparent; border-image: url(assets/notes/notes_99_card.webp) 34 fill / 13px stretch;
+                 filter: drop-shadow(0 3px 5px rgba(60,40,25,.18)); text-align: center; }
+  .card .q { font: 400 clamp(1.25rem, 5.4vw, 1.5rem) / 1.05 var(--script); }
+  .card .q::after { content: "tap to read"; display: block; margin-top: .3em; font: 600 .56rem / 1 var(--serif); letter-spacing: .26em; text-transform: uppercase; color: var(--gilt); }
+  .card .a { transform: rotateY(180deg); font: 400 clamp(.9rem, 3.6vw, 1rem) / 1.4 var(--serif); }
+  .act.notes .diorama { width: min(76vw, 34svh, 460px); }
+  @media (min-width: 900px) { .faq { justify-content: flex-start; } }
+
+  /* ---------------------------------------------------------------- the reply ticket */
+  .ticket { position: absolute; left: 50%; bottom: 7%; width: min(94%, 560px); aspect-ratio: 1.47; translate: -50% 0;
+            background: url(assets/finale/fin_00_ticket.webp) center / 100% 100%; filter: drop-shadow(0 10px 18px rgba(60,40,25,.28));
+            container-type: inline-size; }
+  .ticket form { position: absolute; left: 6%; top: 9%; width: 66%; height: 82%; display: flex; flex-direction: column; gap: 2.2cqw; justify-content: center; }
+  .ticket .ttl { font: 600 2.6cqw / 1 var(--serif); letter-spacing: .32em; text-transform: uppercase; color: var(--gilt); margin: 0; }
+  .ticket input[type=text], .ticket textarea { font: 400 4cqw / 1.2 var(--serif); color: var(--ink); background: transparent; border: 0;
+            border-bottom: 1px solid rgba(46,38,34,.35); padding: .6cqw 0; outline: none; width: 100%; resize: none; }
+  .ticket .pick { display: flex; gap: 2cqw; }
+  .ticket .pick label { flex: 1; text-align: center; font: 400 3.2cqw / 1 var(--script); padding: 1.6cqw .5cqw; white-space: nowrap; border: 1px solid rgba(154,116,50,.45); cursor: pointer; }
+  .ticket .pick input { position: absolute; opacity: 0; pointer-events: none; }
+  .ticket .pick input:checked + span { color: var(--rose); }
+  .ticket .pick label:has(input:checked) { background: rgba(162,87,90,.08); border-color: var(--rose); }
+  .ticket .row { display: flex; gap: 3cqw; align-items: center; font: 500 2.6cqw / 1 var(--serif); letter-spacing: .18em; text-transform: uppercase; }
+  .ticket .row input { width: 9cqw; text-align: center; font: 400 4cqw / 1 var(--serif); background: transparent; border: 0; border-bottom: 1px solid rgba(46,38,34,.35); }
+  .ticket button { position: absolute; left: 100%; margin-left: 9%; top: 50%; translate: 0 -50%; width: 26%; aspect-ratio: .5; border: 0; background: none;
+            font: 400 5.2cqw / 1 var(--script); color: var(--rose); cursor: pointer; }
+  .ticket button small { display: block; font: 600 1.9cqw / 1.4 var(--serif); letter-spacing: .3em; text-transform: uppercase; color: var(--gilt); margin-top: 2cqw; }
+  .stamp { position: absolute; left: 22%; top: 30%; padding: 2cqw 4cqw; border: .7cqw double var(--rose); color: var(--rose); rotate: -11deg;
+           font: 700 6cqw / 1 var(--serif); letter-spacing: .2em; text-transform: uppercase; opacity: 0; scale: 1.6; mix-blend-mode: multiply;
+           -webkit-mask: url(assets/page-paper.webp) center / 120px; transition: opacity .25s ease, scale .35s cubic-bezier(.3,1.6,.5,1); }
+  .stamp.in { opacity: .85; scale: 1; }
+  .petal { position: absolute; top: -8%; width: 4.2cqw; aspect-ratio: 1; background-size: 100% 100%; pointer-events: none; }
+
+  /* ---------------------------------------------------------------- birds */
+  .sky-birds { position: absolute; pointer-events: none; overflow: hidden; }
+  /* the bird element only travels; its painted wings (and its mirroring, for birds flying right) are on
+     an inner layer, so the flip can never reverse the flight */
+  .bird { position: absolute; left: 0; top: 0; aspect-ratio: 260 / 220; will-change: transform; }
+  .bird::before { content: ""; position: absolute; inset: 0; background: url(assets/bird.webp) 0 0 / 800% 100% no-repeat;
+                  animation: flap var(--f, .52s) infinite; }
+  .bird.glide::before { animation: none; background-position: 57.1429% 0; }
+  .bird.right::before { scale: -1 1; }
+  @keyframes flap {
+    0.000% { background-position: 0.0000% 0; animation-timing-function: steps(1, end); }
+    7.143% { background-position: 14.2857% 0; animation-timing-function: steps(1, end); }
+    14.286% { background-position: 28.5714% 0; animation-timing-function: steps(1, end); }
+    21.429% { background-position: 42.8571% 0; animation-timing-function: steps(1, end); }
+    28.571% { background-position: 57.1429% 0; animation-timing-function: steps(1, end); }
+    35.714% { background-position: 71.4286% 0; animation-timing-function: steps(1, end); }
+    42.857% { background-position: 85.7143% 0; animation-timing-function: steps(1, end); }
+    50.000% { background-position: 100.0000% 0; animation-timing-function: steps(1, end); }
+    57.143% { background-position: 85.7143% 0; animation-timing-function: steps(1, end); }
+    64.286% { background-position: 71.4286% 0; animation-timing-function: steps(1, end); }
+    71.429% { background-position: 57.1429% 0; animation-timing-function: steps(1, end); }
+    78.571% { background-position: 42.8571% 0; animation-timing-function: steps(1, end); }
+    85.714% { background-position: 28.5714% 0; animation-timing-function: steps(1, end); }
+    92.857% { background-position: 14.2857% 0; animation-timing-function: steps(1, end); }
+    100% { background-position: 0 0; }
+  }
+
+  /* ---------------------------------------------------------------- barely-there life, once a scene is up */
+  .live { will-change: transform; }
+  .rock.live    { transform-origin: 50% 100%; animation: rock var(--d, 7s) ease-in-out var(--o, 0s) infinite alternate; }
+  .swing.live   { transform-origin: 50% 0;    animation: rock var(--d, 3.6s) ease-in-out var(--o, 0s) infinite alternate; }
+  .drift.live   { animation: drift var(--d, 15s) ease-in-out var(--o, 0s) infinite alternate; }
+  .breathe.live { transform-origin: 50% 0; animation: breathe var(--d, 6s) ease-in-out var(--o, 0s) infinite alternate; }
+  .glowy.live   { animation: glowy var(--d, 5s) ease-in-out infinite alternate; }
+  .stir.live    { transform-origin: 50% 100%; animation: stir var(--d, 4.5s) ease-in-out var(--o, 0s) infinite alternate; }
+  .flick.live   { transform-origin: 50% 100%; animation: flick var(--d, 1.7s) steps(6) var(--o, 0s) infinite; }
+  .twinkle.live { animation: twinkle var(--d, 3s) ease-in-out infinite alternate; }
+  .bob.live     { animation: bob var(--d, 1.1s) ease-in-out infinite alternate; }
+  .float.live   { animation: float var(--d, 4s) ease-in-out infinite alternate; }
+  @keyframes rock    { from { rotate: calc(var(--a, .35deg) * -1); } to { rotate: var(--a, .35deg); } }
+  @keyframes drift   { from { translate: calc(var(--x, 1.2%) * -1) 0; } to { translate: var(--x, 1.2%) -0.4%; } }
+  @keyframes breathe { from { scale: 1 1; } to { scale: 1.003 1.006; } }
+  @keyframes glowy   { from { scale: 1; filter: brightness(1); } to { scale: 1.025; filter: brightness(1.06); } }
+  @keyframes stir    { from { translate: -0.12% 0; rotate: -.15deg; } to { translate: .12% -0.1%; rotate: .15deg; } }
+  @keyframes flick   { 0% { opacity: 1; scale: 1 1; } 30% { opacity: .82; scale: .98 1.03; } 60% { opacity: .95; scale: 1.01 .97; } 100% { opacity: 1; scale: 1 1; } }
+  @keyframes twinkle { from { opacity: .55; } to { opacity: 1; } }
+  @keyframes bob     { from { translate: 0 0; } to { translate: 0 -0.25%; } }
+  @keyframes float   { from { translate: 0 0; } to { translate: 0 -0.8%; } }
+  .asleep .live, .asleep .bird::before { animation-play-state: paused !important; }
+  @media (prefers-reduced-motion: reduce) { .glow.on { animation: none; opacity: .75; } .live { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="track" id="track"><div class="stage" id="stage"></div></div>
+
+<script src="rec-clock.js"></script>
+<script src="ink.js"></script>
+<script>
+// Opening Night (draft). The show's whole motion vocabulary — nothing else:
+//   footlights come up · the curtain rises and falls (the rendered film) · cardboard hinges up and folds
+//   down like a pop-up · flats slide in and out on their grooves · ground rows rise and sink · hung
+//   things lower and fly up on their lines · the pen writes · and, once a scene is up, it barely moves.
+const SLOW = Math.max(1, Number(new URLSearchParams(location.search).get("slow")) || 1);
+if (SLOW > 1) { const st = window.setTimeout; window.setTimeout = (fn, ms, ...a) => st(fn, (ms || 0) * SLOW, ...a); }
+const REC = new URLSearchParams(location.search).has("rec");
+const $ = (s, r = document) => r.querySelector(s);
+/** In filming mode, a stand-in for the curtain film: an <img> stepping through the frames at 24 fps. */
+function film(reverse) {
+  const el = new Image(); el.alt = ""; el.style.objectFit = "fill";
+  const N = 60, src = (i) => `assets/curtain_seq/c${String(reverse ? N - 1 - i : i).padStart(3, "0")}.webp`;
+  for (let i = 0; i < N; i++) new Image().src = src(i);       // warm them
+  el.src = src(0);
+  let i = 0, timer = 0;
+  el.play = () => new Promise((res) => {
+    const step = () => { i++; if (i >= N) { el.onended?.(); return res(); } el.src = src(i); timer = setTimeout(step, 1000 / 24); };
+    timer = setTimeout(step, 1000 / 24);
+  });
+  el.pause = () => clearTimeout(timer);
+  return el;
+}
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+// ---------------------------------------------------------------- the couple's content (sample)
+const C = {
+  names: ["Clara", "& Julian"], initials: "C · J", date: "the twelfth of June", caps: "are getting married",
+  story: { kicker: "Act I", title: "Our Story", body: "We met in a bookshop in the rain, both reaching for the last copy of the same book. Seven years, two cities and one very patient dog later, we're making it official, and we'd love you there." },
+  ceremony: { kicker: "Act II", title: "The Ceremony", lead: "Saturday, the twelfth of June<br>at three o'clock", body: "Holy Trinity Chapel<br>14 Garden Lane, Wexley", map: "https://maps.google.com/?q=Holy+Trinity+Chapel" },
+  reception: { kicker: "Act III", title: "The Reception", lead: "From six o'clock until late", body: "The Orangery at Wexley House. Dinner at a long table under the lanterns, then dancing." },
+  programme: { kicker: "Intermission", title: "The Programme", items: [["3:00", "The ceremony"], ["4:00", "Photographs & champagne"], ["6:00", "Dinner is served"], ["8:00", "The first dance"], ["9:00", "Cake & dancing"], ["11:30", "Carriages"]] },
+  wear: { kicker: "Act IV", title: "What to Wear", body: "Garden formal. Soft colours are lovely; we'll leave the white to the bride.", chips: [["#c9a3a0", "Rose"], ["#a9b89c", "Sage"], ["#d9c4a3", "Champagne"], ["#8d9cb6", "Dusk"]] },
+  travel: { kicker: "Act V", title: "Stay & Travel", body: "We've held rooms at The Mill House, ten minutes from the chapel. Mention our names for the wedding rate. A shuttle leaves the chapel at 5:15.", signs: ["Chapel", "Station", "Mill House"] },
+  gifts: { kicker: "Act VI", title: "Gifts", body: "Your company is the gift. If you'd like to give something more, a little toward our honeymoon would be lovely.", tag: "with love" },
+  notes: { kicker: "Notes", title: "Good to Know", faq: [["Plus one?", "Your invitation names everyone we've saved a seat for."], ["Children?", "We love your little ones, but this is a grown-ups' evening."], ["Parking?", "Free at Wexley House, with a shuttle from the chapel."]] },
+  rsvp: { title: "Will you join us?", by: "Kindly reply by the first of May", done: "See you there" },
+};
+// ?cover=1 (the teaser's title cover): the sky carries the design's name instead of the couple's
+const COVER = new URLSearchParams(location.search).get("cover");   // "title" or "couple"
+if (COVER === "title") Object.assign(C, { names: ["Opening", "Night"], caps: "a wedding invitation", date: "thersvpstudio.com" });
+
+// ---------------------------------------------------------------- helpers
+function place(el, b) { Object.assign(el.style, { left: b.x * 100 + "%", top: b.y * 100 + "%", width: b.w * 100 + "%", height: b.h * 100 + "%" }); return el; }
+function img(src, b, lazy) { const i = new Image(); i.alt = ""; i.decoding = "async"; if (lazy) i.dataset.src = src; else i.src = src; return place(i, b); }
+const inker = window.createInker({ ink: "#2e2622", wet: "#3b3554", pen: () => null, stage: () => $("#stage") });
+if (SLOW > 1) inker.hurry(1 / SLOW);
+function inkLine(text, opts = { speed: 8, maxDur: 1.8 }) {
+  const s = h("span", "iv-ink", `<span class="iv-ink__t" data-iv-text></span><canvas class="iv-ink__c" aria-hidden="true"></canvas>`);
+  s.firstChild.textContent = text;
+  inker.add(s, s.querySelector("canvas"), opts);
+  return s;
+}
+const write = (els) => new Promise((r) => inker.write(els, r));
+function inkCentre(line) {
+  const t = line.querySelector("[data-iv-text]"), cs = getComputedStyle(t);
+  const ctx = document.createElement("canvas").getContext("2d");
+  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const m = ctx.measureText(t.textContent);
+  const ink = (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;   // the ink's middle, from the text's start
+  line.style.translate = `${(m.width / 2 - ink).toFixed(2)}px 0`;
+}
+// a scene's words are written when it arrives; anything still queued from scenes already scrolled past is
+// finished at once, so a fast scroll never arrives at a blank title
+const writeNow = (els) => { if (inker.writing()) inker.finish(); return write(els); };
+function setLive(el, cls, vars = {}) { if (!el) return; el.classList.add(cls, "live"); for (const k in vars) el.style.setProperty(k, vars[k]); }
+function wrap(el) { const w = h("div", "wrap"); el.replaceWith(w); w.append(el); return w; }
+function centreInk(line, box, stage) {
+  const t = line.querySelector("[data-iv-text]"), cs = getComputedStyle(t);
+  const ctx = document.createElement("canvas").getContext("2d");
+  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const m = ctx.measureText(t.textContent);
+  const r = t.getBoundingClientRect(), b = box.getBoundingClientRect();
+  const asc = m.fontBoundingBoxAscent, desc = m.fontBoundingBoxDescent;
+  const base = r.top + (r.height - (asc + desc)) / 2 + asc;
+  const gx = r.left + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;
+  const gy = base + (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
+  const w = stage.getBoundingClientRect().width / 100;
+  box.style.translate = `${((b.left + b.width / 2 - gx) / w).toFixed(3)}cqw ${((b.top + b.height / 2 - gy) / w).toFixed(3)}cqw`;
+}
+/** Now and then a bird (sometimes two or three) crosses a sky: flapping, gliding a beat, bobbing. */
+function flock(area, { size, every = [5000, 11000], across = [9000, 13000], band = [0.1, 0.6], awake }) {
+  const one = (delay, y, dir, s) => setTimeout(() => {
+    const b = h("div", "bird" + (dir > 0 ? " right" : ""));
+    b.style.width = s + "%"; b.style.setProperty("--f", (0.5 + Math.random() * 0.16).toFixed(2) + "s");
+    area.append(b);
+    const W = area.clientWidth, H = area.clientHeight, w = (W * s) / 100;
+    const x0 = dir > 0 ? -w * 1.2 : W + w * 0.2, x1 = dir > 0 ? W + w * 0.2 : -w * 1.2;
+    const y0 = y * H, lift = (Math.random() - 0.4) * H * 0.18, kf = [];
+    for (let i = 0; i <= 48; i++) { const u = i / 48; kf.push({ transform: `translate(${x0 + (x1 - x0) * u}px, ${y0 - lift * u + Math.sin(u * Math.PI * 3) * H * 0.02}px)` }); }
+    const dur = across[0] + Math.random() * (across[1] - across[0]);
+    const a = b.animate(kf, { duration: dur, easing: "linear" });
+    const g = setTimeout(() => { b.classList.add("glide"); setTimeout(() => b.classList.remove("glide"), 900 + Math.random() * 700); }, dur * (0.35 + Math.random() * 0.25));
+    a.onfinish = () => { clearTimeout(g); b.remove(); };
+  }, delay);
+  const next = () => setTimeout(() => {
+    if (awake() && !document.hidden) {
+      const n = Math.random() < 0.45 ? 1 : Math.random() < 0.7 ? 2 : 3;
+      const dir = Math.random() < 0.5 ? 1 : -1, y = band[0] + Math.random() * (band[1] - band[0]);
+      for (let i = 0; i < n; i++) one(i * (350 + Math.random() * 500), y + (i ? (Math.random() - 0.5) * 0.12 : 0), dir, size * (i ? 0.8 + Math.random() * 0.25 : 1));
+    }
+    next();
+  }, every[0] + Math.random() * (every[1] - every[0]));
+  one(500, band[0] + 0.12, 1, size);
+  next();
+}
+
+// ---------------------------------------------------------------- the show's clock
+// Scrolling picks the scene (one screen of scroll per scene: free scroll, never locked). The scene then
+// plays on its own clock: whatever was up comes apart first, then the new one builds all the way, so
+// it never matters where exactly the scroll stops. Each scene keeps a virtual position `v` on its own
+// timeline: rest − 1 = not built, rest = built, rest + 1 = taken apart. Its moves (cues) are paused
+// animations set from `v`; `triggers` fire once when `v` passes them (the pen, the scene's life).
+const GAP = 1.8;      // timeline units between scenes (the cue windows are written in these)
+const ZONE = 1.0;     // screens of scroll per scene
+const IN_SPEED = 1 / 2.1, OUT_SPEED = 1 / 1.0;   // timeline units per second
+const cues = [], triggers = [], scenes = [];
+let BUILDING = null, current = 0, raf = 0, last = 0;
+function cue(el, keyframes, [a, b], easing = "cubic-bezier(.4,0,.2,1)") {
+  if (!el) return;
+  const an = el.animate(keyframes, { duration: 1000, fill: "both", easing });
+  an.pause(); an.currentTime = 0; an._cue = true;
+  cues.push({ an, a, b, s: BUILDING });
+}
+const trig = (o) => triggers.push({ ...o, s: BUILDING });
+function addScene(el, rest, loaded) { const s = { el, rest, loaded, v: rest === 0 ? 0 : rest - 1, i: scenes.length }; scenes.push(s); BUILDING = s; return s; }
+const isOn = (i) => current === i && scenes[i] && Math.abs(scenes[i].v - scenes[i].rest) < 0.02;
+const goal = (s) => (s.i < current ? s.rest + 1 : s.i > current ? s.rest - 1 : s.rest);
+function apply() {
+  for (const c of cues) if (c.s) c.an.currentTime = clamp((c.s.v - c.a) / (c.b - c.a)) * 1000;
+  for (const t of triggers) if (!t.done && t.s && t.s.v >= t.at && t.s.i === current) { t.done = true; t.fn(); }
+  for (const s of scenes) {
+    const d = s.v - s.rest;
+    s.el.classList.toggle("on", s.i === current && Math.abs(d) < 0.1);
+    s.el.classList.toggle("asleep", Math.abs(d) > 0.95);
+    s.el.classList.toggle("gone", Math.abs(d) >= 0.999 && s.i !== current);
+    if (!s.loaded && (REC || Math.abs(s.i - current) <= 1)) { s.loaded = true; s.el.querySelectorAll("img[data-src]").forEach((i) => (i.src = i.dataset.src)); }
+  }
+}
+function tick(now) {
+  const dt = (last ? Math.min(0.05 * SLOW, (now - last) / 1000) : 0.016) / SLOW; last = now;
+  let moving = false;
+  // scenes that are leaving go first; the current one builds only once the stage is clear
+  const clear = scenes.every((s) => s.i === current || Math.abs(s.v - s.rest) >= 0.999);
+  for (const s of scenes) {
+    const g = goal(s);
+    // off stage on the far side: jump, never rebuild a scene just to un-build it
+    if (s.i !== current && ((g < s.rest && s.v > s.rest) || (g > s.rest && s.v < s.rest))) { s.v = g; moving = true; continue; }
+    if (s.v === g) continue;
+    if (s.i === current && !clear) { moving = true; continue; }
+    const building = Math.abs(g - s.rest) < Math.abs(s.v - s.rest);
+    const step = (reduce ? 99 : building ? IN_SPEED : OUT_SPEED) * dt;
+    s.v = s.v < g ? Math.min(g, s.v + step) : Math.max(g, s.v - step);
+    // a scene left halfway built (scrolled back past it) resets to "not built" once it's off the stage
+    moving = true;
+  }
+  apply();
+  raf = moving ? requestAnimationFrame(tick) : 0;
+  if (!raf) last = 0;
+}
+let forced = null;   // filming: the recorder names the scene instead of scrolling (a held clock can't scroll)
+window.__scene = (k) => { forced = k; if (k > 0) finishOpening(); pick(); };
+function pick() {
+  const c = clamp(forced ?? Math.round(scrollY / innerHeight / ZONE), 0, scenes.length - 1);
+  if (c !== current) { current = c; for (const s of scenes) if (s.i !== c && s.v < s.rest - 0.001 && s.i < c) s.v = s.rest + 1; }
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+addEventListener("scroll", pick, { passive: true });
+
+// how a piece arrives; it leaves the same way, backwards
+const KIND = {
+  hinge: [{ transform: "rotateX(86deg)", opacity: 0 }, { transform: "rotateX(30deg)", opacity: 1, offset: .35 }, { transform: "none", opacity: 1 }],
+  slideL: [{ transform: "translateX(-60%)", opacity: 0 }, { transform: "translateX(-40%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  slideR: [{ transform: "translateX(60%)", opacity: 0 }, { transform: "translateX(40%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  drop: [{ transform: "translateY(-55%)", opacity: 0 }, { transform: "translateY(-30%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  rise: [{ transform: "translateY(35%)", opacity: 0 }, { transform: "translateY(18%)", opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }],
+  fade: [{ opacity: 0 }, { opacity: 1 }],
+  wash: [{ transform: "scale(.6)", opacity: 0 }, { transform: "none", opacity: 1 }],
+  words: [{ transform: "translateY(14px)", opacity: 0 }, { transform: "none", opacity: 1 }],
+};
+const rev = (kf) => [...kf].reverse().map((f, i, a) => ({ ...f, offset: f.offset != null ? 1 - f.offset : undefined }));
+
+/** A scene's pieces (back to front) build over [a,b] and come apart, front first, over [c,d]. */
+function choreograph(pieces, words, rest, { first = false, last = false } = {}) {
+  const inA = rest - 0.95, inB = rest - 0.12, outA = rest + 0.15, outB = rest + 0.85;
+  const n = pieces.length;
+  pieces.forEach(([el, kind], i) => {
+    const s = inA + (inB - inA) * 0.62 * (i / Math.max(1, n - 1)), e = s + (inB - inA) * 0.3;
+    if (!first) cue(el, KIND[kind], [s, e]);
+    const j = n - 1 - i;
+    const s2 = outA + (outB - outA) * (0.22 + 0.55 * (j / Math.max(1, n - 1))), e2 = s2 + (outB - outA) * 0.24;
+    if (!last) cue(el.parentElement.classList.contains("wrap") ? el.parentElement : wrapOnce(el), rev(KIND[kind]), [s2, e2]);
+  });
+  words.forEach((el, i) => {
+    if (!first) cue(el, KIND.words, [inB - 0.22 + i * 0.05, inB - 0.1 + i * 0.05]);
+    if (!last) cue(wrapWords(el), rev(KIND.words), [outA + i * 0.03, outA + 0.12 + i * 0.03]);
+  });
+}
+// a piece gets a wrapper for its leaving, so its arriving (on the piece) and leaving don't collide
+function wrapOnce(el) { if (el._w) return el._w; const w = h("div", "wrap"); w.style.transformOrigin = "50% 100%"; el.replaceWith(w); w.append(el); el._w = w; return w; }
+function wrapWords(el) { if (el._w) return el._w; const w = h("div"); el.replaceWith(w); w.append(el); el._w = w; return w; }
+
+// ---------------------------------------------------------------- the theatre's window onto the rendered frame
+// The render is the whole 9:16 frame of the model (x ±0.8044, z 0..2.86); the crest above the cornice
+// (z > 2.362) is never shown. On a phone the theatre fills the screen: full height (z 0..2.362) and as
+// much width as the screen allows. On wider screens it's the stage with its columns (x ±0.68), centred.
+const FW = 1.6088, FH = 2.86, ZTOP = 2.362;
+function frameTheatre(T) {
+  const F = T.querySelector(".frame"), stage = $("#stage");
+  const W = stage.clientWidth, H = stage.clientHeight;
+  let x0, x1, z0 = 0, z1 = ZTOP, w, hgt;
+  if (W / H < 0.68 / ZTOP * 2) {          // portrait: cover the screen
+    const s = H / (z1 - z0), xh = Math.min(FW / 2, W / s / 2);
+    x0 = -xh; x1 = xh; w = W; hgt = H; T.classList.add("full");
+  } else {                                 // landscape: the stage with its columns, contained
+    x0 = -0.68; x1 = 0.68; T.classList.remove("full");
+    const a = (x1 - x0) / (z1 - z0);
+    hgt = Math.min(H - 24, (W - 24) / a); w = hgt * a;
+  }
+  T.style.width = w + "px"; T.style.height = hgt + "px";
+  const fw = w / ((x1 - x0) / FW), fh = fw * 16 / 9;
+  F.style.width = fw + "px";
+  F.style.left = -((x0 + FW / 2) / FW) * fw + "px";
+  F.style.top = -((FH - z1) / FH) * fh + "px";
+}
+const theatres = [];
+addEventListener("resize", () => theatres.forEach(frameTheatre));
+
+// ---------------------------------------------------------------- the theatre (built twice: the opening and the finale)
+async function makeTheatre(T0, man, { lazy }) {
+  const T = T0.appendChild(h("div", "frame"));
+  theatres.push(T0); frameTheatre(T0);
+  const P = man.pieces, L = { frame: T };
+  const add = (n) => (P[n] ? T.appendChild((L[n] = img(`assets/${n}.webp`, P[n], lazy))) : null);
+  for (const n of ["stage", "day_sky", "day_clouds"]) add(n);
+  L.birds = T.appendChild(place(h("div", "sky-birds"), P.day_sky));
+  for (const n of ["day_far", "day_bal", "day_row"]) add(n);
+  L.billSlot = T.appendChild(h("div", "wrap"));
+  for (const n of ["day_wingL", "day_wingR"]) add(n);   // (day_wingR is day_wingL mirrored, made by pack.py)
+  L.videoSlot = T.appendChild(h("div", "wrap"));
+  add("curtain");
+  for (const n of ["drapes", "front"]) add(n);
+  L.top = T.appendChild(h("div", "wrap"));
+  return L;
+}
+
+let finishOpening = () => {};
+async function opening(stage, man) {
+  const sc = h("div", "scene"); const fold = h("div", "fold"); const T = h("div", "theatre"); fold.append(T); sc.append(fold); stage.append(sc);
+  addScene(sc, 0, true);
+  const L = await makeTheatre(T, man, { lazy: false });
+  const bill = h("div", "bill"); const n1 = inkLine(C.names[0], { speed: 9, maxDur: 1.7 }), n2 = inkLine(C.names[1], { speed: 9, maxDur: 1.7 });
+  const names = h("h1", "names"); for (const n of [n1, n2]) { const r = h("div"); r.append(n); names.append(r); }
+  const caps = h("p", "caps", [...C.caps].map((c) => `<span>${c === " " ? "&nbsp;" : c}</span>`).join(""));
+  const date = h("p", "date"); const d1 = inkLine(C.date, { speed: 13, maxDur: 1.2 }); date.append(d1);
+  bill.append(names, caps, date); L.billSlot.append(bill);
+  const vid = REC ? film(false) : Object.assign(h("video"), { muted: true, playsInline: true, preload: "auto", src: "assets/curtain.mp4", poster: "assets/curtain_poster.webp" });
+  vid.setAttribute("muted", ""); vid.setAttribute("playsinline", "");
+  vid.defaultPlaybackRate = vid.playbackRate = 1 / SLOW;
+  L.videoSlot.append(place(vid, man.video)); L.curtain.style.opacity = 0;
+  const hint = h("div", "hint", "Scroll for the programme"); L.top.append(hint);
+  if (COVER) hint.style.display = "none";
+  const dim = h("div", "dim"); L.top.append(dim);
+  const glows = [];
+  for (let i = 0; i < 9; i++) {
+    const g = h("div", "glow"), x = -0.48 + i * 0.12, z = 0.40;
+    g.style.left = ((x + 0.8044) / 1.6088) * 100 + "%"; g.style.top = ((2.86 - z) / 2.86) * 100 + "%";
+    L.top.append(g); glows.push(g);
+  }
+  const OUT = 12, wingAt = (el, s, k) => (el.style.transform = `translateX(${s * (OUT + k)}cqw)`);
+  wingAt(L.day_wingL, -1, 46); wingAt(L.day_wingR, 1, 46);
+
+  // taking it apart as the page scrolls on (over u 0.15 .. 0.95)
+  const at = (a, b) => [0.15 + a * 0.8, 0.15 + b * 0.8];
+  const W = {}; for (const n of ["day_sky", "day_clouds", "day_far", "day_bal", "day_row", "day_wingL", "day_wingR"]) W[n] = wrap(L[n]);
+  const up = (k) => [{ transform: "none", opacity: 1 }, { transform: `translateY(${-k}%)`, opacity: 0 }];
+  cue(wrap(hint), [{ opacity: 1 }, { opacity: 0 }], at(0, 0.06));   // on a wrapper: the hint's own fade-in stays its own
+cue(date, up(30), at(0.07, 0.17)); cue(caps, up(30), at(0.09, 0.19)); cue(names, up(12), at(0.11, 0.24));
+  cue(L.birds, [{ opacity: 1 }, { opacity: 0 }], at(0.12, 0.2));
+  cue(W.day_wingL, [{ transform: "none" }, { transform: "translateX(-60cqw)" }], at(0.2, 0.36));
+  cue(W.day_wingR, [{ transform: "none" }, { transform: "translateX(60cqw)" }], at(0.24, 0.4));
+  cue(W.day_row, [{ transform: "none" }, { transform: "translateY(14%)" }], at(0.34, 0.46));
+  cue(W.day_bal, [{ transform: "none" }, { transform: "translateY(22%)" }], at(0.38, 0.5));
+  cue(W.day_far, [{ transform: "none" }, { transform: "translateY(26%)" }], at(0.42, 0.55));
+  cue(W.day_clouds, [{ transform: "none" }, { transform: "translateY(-60%)" }], at(0.46, 0.58));
+  cue(W.day_sky, [{ transform: "none" }, { transform: "translateY(-75%)" }], at(0.5, 0.64));
+  cue(fold, [{ transform: "perspective(1400px) rotateX(0)", opacity: 1 }, { transform: "perspective(1400px) translateY(4%) rotateX(78deg)", opacity: 1, offset: .85 }, { transform: "perspective(1400px) translateY(6%) rotateX(88deg)", opacity: 0 }], at(0.68, 1), "cubic-bezier(.5,0,.6,1)");
+  return async () => {
+
+  await Promise.all([document.fonts.ready, ...Object.values(L).filter((i) => i.decode).map((i) => i.decode().catch(() => {}))]);
+  for (const el of [n1, n2, d1]) { inkCentre(el); inker.warm(el); }
+  addEventListener("resize", () => [n1, n2, d1].forEach(inkCentre));
+  let alive = false, hurried = false;
+  const comeAlive = () => {
+    if (alive) return; alive = true; hint.classList.add("in");
+    setLive(L.day_clouds, "drift", { "--d": "17s", "--x": "1.1%" });
+    setLive(L.day_wingL, "rock", { "--d": "7.4s", "--a": ".3deg" }); setLive(L.day_wingR, "rock", { "--d": "8.6s", "--a": ".3deg", "--o": "-3s" });
+    setLive(L.curtain, "breathe", { "--d": "6.5s" });
+    glows.forEach((g, i) => { g.classList.add("on", "live"); g.style.setProperty("--o", `${-i * 0.37}s`); });
+    flock(L.birds, { size: 8, band: [0.66, 0.74], awake: () => isOn(0) });   // small, far off, over the hills, under the words
+  };
+  finishOpening = () => {
+    if (hurried || alive) return; hurried = true;
+    inker.finish(); vid.pause(); dim.style.opacity = 0; glows.forEach((g) => g.classList.add("on"));
+    vid.style.opacity = 0; L.curtain.style.opacity = 1; wingAt(L.day_wingL, -1, 0); wingAt(L.day_wingR, 1, 0);
+    for (const el of [n1, n2, d1]) inker.dry(el);
+    caps.querySelectorAll("span").forEach((s) => s.classList.add("in"));
+    comeAlive();
+  };
+  if (reduce) return finishOpening();
+  T.addEventListener("click", finishOpening, { once: true });
+  addEventListener("scroll", () => { if (scrollY > 40) finishOpening(); }, { passive: true });
+  await wait(400);
+  for (const g of glows) { if (hurried) return; g.classList.add("on"); await wait(90); }
+  await wait(200); dim.style.opacity = 0; await wait(700); if (hurried) return;
+  await new Promise((r) => { vid.onended = r; vid.play().catch(r); }); if (hurried) return;
+  L.curtain.style.opacity = 1; vid.style.opacity = 0; await wait(250);
+  for (const [el, s] of [[L.day_wingL, -1], [L.day_wingR, 1]]) {
+    el.animate([{ transform: `translateX(${s * (OUT + 46)}cqw)` }, { transform: `translateX(${s * OUT}cqw)` }], { duration: 1100, easing: "cubic-bezier(.3,.9,.3,1)", fill: "forwards" });
+    wingAt(el, s, 0); await wait(200);
+  }
+  await wait(500); if (hurried) return;
+  await write([n1, n2]); if (hurried) return;
+  await wait(150); for (const s of caps.querySelectorAll("span")) { s.classList.add("in"); await wait(32); }
+  await wait(200); await write([d1]); if (hurried) return;
+  await wait(300); comeAlive();
+  };
+}
+
+// ---------------------------------------------------------------- the acts
+// Each: its pieces (back to front) with how they arrive, its words, and what it does once it's up.
+const ACTS = [
+  { id: "story", order: ["story_wash", "story_sun", "story_clouds", "story_hills", "story_treeL", "story_treeR", "story_arbor", "story_roses", "story_bench", "story_row"],
+    kinds: { story_wash: "wash", story_sun: "drop", story_clouds: "fade", story_hills: "hinge", story_treeL: "slideL", story_treeR: "slideR", story_arbor: "hinge", story_roses: "hinge", story_bench: "drop", story_row: "rise" },
+    birdsIn: "story_wash", birdsBand: [0.08, 0.4],
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "body", c.body)],
+    life: (L) => { setLive(L.story_sun, "glowy", { "--d": "5.5s" }); setLive(L.story_clouds, "drift", { "--d": "16s", "--x": "1.6%" });
+      setLive(L.story_treeL, "rock", { "--d": "6.2s", "--a": ".55deg" }); setLive(L.story_treeR, "rock", { "--d": "7.1s", "--a": ".5deg", "--o": "-2.5s" }); setLive(L.story_roses, "stir", { "--d": "4.8s" }); } },
+  { id: "ceremony",
+    kinds: { cer_01_wash: "wash", cer_02_chapel: "hinge", cer_02b_garland: "fade", cer_03_bell: "drop", cer_04_treeL: "slideL", cer_04_treeR: "slideR", cer_05_row1: "rise", cer_05_row2: "rise", cer_07_ground: "rise" },
+    birdsIn: "cer_01_wash", birdsBand: [0.06, 0.32],
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "lead", c.lead), h("p", "body", c.body), Object.assign(h("a", "tagbtn", "Open the map"), { href: c.map, target: "_blank", rel: "noopener" })],
+    life: (L) => { setLive(L.cer_03_bell, "swing", { "--d": "1.6s", "--a": "7deg" }); setTimeout(() => L.cer_03_bell.style.setProperty("--a", "1.5deg"), 4200);
+      setLive(L.cer_04_treeL, "rock", { "--d": "6.4s", "--a": ".45deg" }); setLive(L.cer_04_treeR, "rock", { "--d": "7.3s", "--a": ".45deg", "--o": "-3s" }); } },
+  { id: "reception",
+    kinds: { rec_01_wash: "wash", rec_01b_stars: "fade", rec_02_ground: "rise", rec_02c_ground: "fade", rec_03_table: "rise", rec_04_flames: "fade", rec_05_string: "drop", rec_06_lantern1: "drop", rec_06_lantern2: "drop", rec_06_lantern3: "drop", rec_06_lantern4: "drop" },
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "lead", c.lead), h("p", "body", c.body)],
+    life: (L) => { setLive(L.rec_01b_stars, "twinkle", { "--d": "2.6s" }); setLive(L.rec_04_flames, "flick", { "--d": "1.3s" }); setLive(L.rec_05_string, "swing", { "--d": "5.5s", "--a": ".4deg" });
+      [1, 2, 3, 4].forEach((k) => setLive(L[`rec_06_lantern${k}`], "swing", { "--d": `${3.2 + k * 0.45}s`, "--a": `${1.2 + (k % 2) * 0.6}deg`, "--o": `${-k * 0.9}s` })); } },
+  { id: "programme", programme: true,
+    kinds: { prog_00_card: "drop", prog_01_tassel: "drop" },
+    words: () => [],
+    life: (L) => { setLive(L.prog_00_card, "swing", { "--d": "4.8s", "--a": ".5deg" }); setLive(L.prog_01_tassel, "swing", { "--d": "2.4s", "--a": "3deg" }); } },
+  { id: "wear",
+    kinds: { wear_01_wash: "wash", wear_01c_ground: "fade", wear_02_rail: "rise", wear_03_gown: "drop", wear_04_suit: "drop", wear_05_props: "rise" },
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "body", c.body), h("div", "chips", c.chips.map(([col, nm]) => `<span class="chip" style="--c:${col}"><i></i>${nm}</span>`).join(""))],
+    life: (L) => { setLive(L.wear_03_gown, "swing", { "--d": "4.4s", "--a": ".7deg" }); setLive(L.wear_04_suit, "swing", { "--d": "5.1s", "--a": ".6deg", "--o": "-2s" }); } },
+  { id: "travel",
+    kinds: { trav_01_wash: "wash", trav_02_far: "rise", trav_03_mid: "rise", trav_04_near: "rise", trav_05_trees: "fade", trav_06_car: "slideR", trav_07_sign: "rise" },
+    birdsIn: "trav_01_wash", birdsBand: [0.06, 0.3],
+    signs: true,
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "body", c.body)],
+    life: (L) => { setLive(L.trav_06_car, "bob", { "--d": ".9s" }); setLive(L.trav_05_trees, "stir", { "--d": "6s" }); } },
+  { id: "gifts",
+    kinds: { gift_01_wash: "wash", gift_01c_ground: "fade", gift_02_table: "rise", gift_03_small: "drop", gift_04_smalllid: "drop", gift_05_tag: "drop", gift_06_petals: "fade" },
+    tag: true,
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("p", "body", c.body)],
+    life: (L) => { setLive(L.gift_04_smalllid, "float", { "--d": "3.6s" }); } },
+  { id: "notes", skip: ["notes_99_card"],
+    kinds: { notes_01_wash: "wash", notes_01c_ground: "fade", notes_02_desk: "rise", notes_03_letters: "drop", notes_04_inkwell: "drop", notes_05_quill: "drop", notes_06_vase: "drop" },
+    words: (c) => [h("p", "kicker", c.kicker), "TITLE", h("div", "faq", c.faq.map(([q, a]) => `<button class="card" type="button" aria-label="${q}"><span><span class="q">${q}</span></span><span class="a">${a}</span></button>`).join(""))],
+    life: (L) => { setLive(L.notes_05_quill, "rock", { "--d": "4s", "--a": "1.2deg" }); } },
+];
+
+async function act(stage, def, k) {
+  const rest = k * GAP, c = C[def.id];
+  const man = await (await fetch(`assets/${def.id}/manifest.json`)).json();
+  const sc = h("section", "scene act " + def.id + (def.programme ? " prog" : "")); sc.setAttribute("aria-label", c.title);
+  const D = h("div", "diorama"), words = h("div", "words");
+  sc.append(D); if (!def.programme) sc.append(words); stage.append(sc);
+  addScene(sc, rest, false);
+  const names = def.order || Object.keys(man.pieces).filter((n) => !(def.skip || []).includes(n)).sort();
+  const L = {}, pieces = [];
+  for (const n of names) {
+    const b = man.pieces[n]; if (!b) continue;
+    D.append((L[n] = img(`assets/${def.id}/${n}.webp`, b, true)));
+    if (n.endsWith("_wash")) L[n].classList.add("flat");
+    pieces.push([L[n], def.kinds[n] || "fade"]);
+    if (n === def.birdsIn) { const sb = place(h("div", "sky-birds"), b); sb.style.clipPath = "ellipse(46% 44% at 50% 46%)"; D.append(sb); L.birds = sb; }
+  }
+  // words set on painted things
+  const A = man.anchors || {}, at = (el, k) => { el.style.left = A[k][0] * 100 + "%"; el.style.top = A[k][1] * 100 + "%"; };
+  if (def.signs) c.signs.forEach((w, i) => { if (!A["sign" + i]) return; const s = h("div", "on-paint sign", w); at(s, "sign" + i); D.append(s); L["sign" + i] = s; });
+  if (def.tag && A.tag) { const t = h("div", "on-paint tagword"); t.append(inkLine(c.tag, { speed: 10, maxDur: 1.2 })); at(t, "tag"); D.append(t); L.tagword = t; }
+  let title;
+  if (def.programme) {
+    const card = h("div", "bill-card");
+    title = h("p", "t"); title.append(inkLine(c.title, { speed: 8, maxDur: 1.6 }));
+    const ol = h("ol", "", c.items.map(([t, w]) => `<li><b>${t}</b><span class="dots"></span><span>${w}</span></li>`).join(""));
+    card.append(h("p", "kicker", c.kicker), title, ol, h("p", "foot", "Clara & Julian · the twelfth of June"));
+    D.append(card); L.card = card;
+    const lis = [...ol.children];
+    // the playbill's lines are set one at a time as it settles
+    lis.forEach((li, i) => cue(li, KIND.words, [rest - 0.3 + i * 0.03, rest - 0.22 + i * 0.03]));
+    cue(card.querySelector(".kicker"), KIND.fade, [rest - 0.42, rest - 0.34]);
+    cue(card.querySelector(".foot"), KIND.fade, [rest - 0.16, rest - 0.1]);
+    cue(wrapWords(card), rev(KIND.fade), [rest + 0.15, rest + 0.3]);
+    trig({ at: rest - 0.36, fn: () => writeNow([title.firstChild]) });
+  }
+  const ws = [];
+  for (const w of def.words(c)) {
+    if (w === "TITLE") { title = h("h2"); title.append(inkLine(c.title, { speed: 7, maxDur: 1.8 })); words.append(title); ws.push(title); trig({ at: rest - 0.2, fn: () => writeNow([title.firstChild]) }); }
+    else { words.append(w); ws.push(w); }
+  }
+  for (const k2 of ["sign0", "sign1", "sign2", "tagword"]) if (L[k2]) { const w = wrap(L[k2]); L[k2]._w = w; ws.push(L[k2]); }
+  if (L.tagword) trig({ at: rest - 0.12, fn: () => write([L.tagword.firstChild]) });
+  choreograph(pieces, ws, rest);
+  words.querySelectorAll(".card").forEach((b) => b.addEventListener("click", () => b.classList.toggle("open")));
+  trig({ at: rest - 0.1, fn: () => { def.life?.(L); if (L.birds) flock(L.birds, { size: 11, every: [4500, 9000], across: [6500, 9500], band: def.birdsBand || [0.1, 0.4], awake: () => isOn(k) }); } });
+  await document.fonts.ready; ws.forEach((w) => w.querySelector?.(".iv-ink") && inker.warm(w.querySelector(".iv-ink")));
+}
+
+// ---------------------------------------------------------------- finale: the theatre unfolds again for the reply
+async function finale(stage, man, k) {
+  const rest = k * GAP;
+  const sc = h("section", "scene"); sc.setAttribute("aria-label", "Reply");
+  const fold = h("div", "fold"); const T = h("div", "theatre"); fold.append(T); sc.append(fold); stage.append(sc);
+  addScene(sc, rest, false);
+  const L = await makeTheatre(T, man, { lazy: true });
+  const fm = await (await fetch("assets/finale/manifest.json")).json();
+  // the theatre comes back: unfolds, then its garden is set again
+  cue(fold, [{ transform: "perspective(1400px) translateY(6%) rotateX(88deg)", opacity: 0 }, { transform: "perspective(1400px) translateY(4%) rotateX(78deg)", opacity: 1, offset: .15 }, { transform: "perspective(1400px) rotateX(0)", opacity: 1 }], [rest - 0.95, rest - 0.6], "cubic-bezier(.3,0,.4,1)");
+  const W = {}; for (const n of ["day_sky", "day_clouds", "day_far", "day_bal", "day_row", "day_wingL", "day_wingR"]) W[n] = wrap(L[n]);
+  cue(W.day_sky, [{ transform: "translateY(-75%)" }, { transform: "none" }], [rest - 0.66, rest - 0.52]);
+  cue(W.day_clouds, [{ transform: "translateY(-60%)" }, { transform: "none" }], [rest - 0.6, rest - 0.48]);
+  cue(W.day_far, [{ transform: "translateY(26%)" }, { transform: "none" }], [rest - 0.56, rest - 0.44]);
+  cue(W.day_bal, [{ transform: "translateY(22%)" }, { transform: "none" }], [rest - 0.52, rest - 0.4]);
+  cue(W.day_row, [{ transform: "translateY(14%)" }, { transform: "none" }], [rest - 0.48, rest - 0.36]);
+  L.day_wingL.style.transform = "translateX(-12cqw)"; L.day_wingR.style.transform = "translateX(12cqw)";
+  cue(W.day_wingL, [{ transform: "translateX(-60cqw)" }, { transform: "none" }], [rest - 0.42, rest - 0.3]);
+  cue(W.day_wingR, [{ transform: "translateX(60cqw)" }, { transform: "none" }], [rest - 0.38, rest - 0.26]);
+  const bill = h("div", "bill fin-bill"); const q = h("p", "q"); q.append(inkLine(C.rsvp.title, { speed: 8, maxDur: 1.8 }));
+  const by = h("p", "by", C.rsvp.by); bill.append(q, by); L.billSlot.append(bill);
+  document.fonts.ready.then(() => inkCentre(q.firstChild));
+  cue(by, KIND.fade, [rest - 0.22, rest - 0.14]);
+  trig({ at: rest - 0.26, fn: () => writeNow([q.firstChild]) });
+  // the ticket, lowered in front
+  const tk = h("div", "ticket");
+  tk.innerHTML = `<form><p class="ttl">Reply · Admit</p>
+    <input type="text" name="name" placeholder="Your name(s)" autocomplete="name" required>
+    <div class="pick"><label><input type="radio" name="go" value="yes" checked><span>Joyfully accepts</span></label><label><input type="radio" name="go" value="no"><span>Regretfully declines</span></label></div>
+    <div class="row">Guests <input type="text" name="n" inputmode="numeric" value="2"></div>
+    <input type="text" name="note" placeholder="A note for us (optional)">
+    <button type="submit">Send<small>tear here</small></button></form><div class="stamp">Admit two</div>`;
+  T.append(tk);
+  cue(tk, [{ transform: "translateY(-160%)", opacity: 0 }, { transform: "translateY(-20%)", opacity: 1, offset: .55 }, { transform: "none", opacity: 1 }], [rest - 0.2, rest - 0.02], "cubic-bezier(.3,.7,.3,1)");
+  const form = tk.querySelector("form"), stamp = tk.querySelector(".stamp");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const n = form.n.value.trim() || "1", yes = form.go.value === "yes";
+    stamp.textContent = yes ? `Admit ${{ 1: "one", 2: "two", 3: "three", 4: "four" }[n] || n}` : "With regrets";
+    stamp.classList.add("in");
+    await wait(900);
+    // the ticket is taken; petals fall from the flies; the trees slide off; the curtain comes down
+    tk.animate([{ transform: "none", opacity: 1 }, { transform: "translateY(140%) rotate(6deg)", opacity: 0 }], { duration: 900, easing: "cubic-bezier(.5,0,.7,.4)", fill: "forwards" });
+    tk.style.pointerEvents = "none";
+    if (yes) petals(T, fm);
+    for (const [el, s] of [[W.day_wingL, -1], [W.day_wingR, 1]]) el.animate([{ translate: "0 0" }, { translate: `${s * 60}cqw 0` }], { duration: 1000, easing: "cubic-bezier(.5,0,.5,1)", fill: "forwards" });
+    bill.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, fill: "forwards" });
+    await wait(1100);
+    const v = REC ? film(true) : Object.assign(h("video"), { muted: true, playsInline: true, src: "assets/curtain_close.mp4" }); v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
+    v.defaultPlaybackRate = v.playbackRate = 1 / SLOW;
+    L.videoSlot.append(place(v, man.video));
+    if (!REC) await new Promise((r) => { v.oncanplay = r; setTimeout(r, 1500); });
+    L.curtain.style.opacity = 0; await new Promise((r) => { v.onended = r; v.play().catch(r); });
+    // written on the velvet in a pale gold ink (a pen of its own)
+    const gilt = window.createInker({ ink: "#f3dcae", wet: "#fff1d6", pen: () => null, stage: () => $("#stage") });
+    const word = h("div", "curtain-word");
+    const wl = h("span", "iv-ink", `<span class="iv-ink__t" data-iv-text></span><canvas class="iv-ink__c" aria-hidden="true"></canvas>`);
+    wl.firstChild.textContent = yes ? C.rsvp.done : "We'll miss you";
+    word.append(wl); L.top.append(word);
+    gilt.add(wl, wl.querySelector("canvas"), { speed: 8, maxDur: 1.8 });
+    if (SLOW > 1) gilt.hurry(1 / SLOW);
+    await gilt.warm(wl); await wait(250); gilt.write([wl]);
+    window.__cta = async () => {
+      word.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, fill: "forwards" });
+      await wait(800);
+      const box = h("div", "cta");
+      const t1 = h("span", "iv-ink", `<span class="iv-ink__t" data-iv-text>Opening Night</span><canvas class="iv-ink__c" aria-hidden="true"></canvas>`);
+      const by = h("p", "cta-by", "A wedding invitation by The RSVP Studio");
+      const url = h("p", "cta-url", "Create yours at <i>thersvpstudio.com</i>");
+      const r1 = h("div"); r1.append(t1); box.append(r1, by, url); L.top.append(box);
+      gilt.add(t1, t1.querySelector("canvas"), { speed: 8, maxDur: 1.6 });
+      inkCentre(t1); await gilt.warm(t1);
+      await new Promise((r) => gilt.write([t1], r));
+      by.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 700, fill: "forwards", easing: "ease-out" });
+      await wait(500);
+      url.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 800, fill: "forwards", easing: "ease-out" });
+    };
+  });
+  trig({ at: rest - 0.1, fn: () => { setLive(L.day_clouds, "drift", { "--d": "17s", "--x": "1.1%" }); setLive(L.curtain, "breathe", { "--d": "6.5s" });
+  } });
+}
+function petals(T, fm) {
+  const srcs = ["fin_10_petal", "fin_11_petal", "fin_12_petal"].filter((n) => fm.pieces[n]).map((n) => `assets/finale/${n}.webp`);
+  for (let i = 0; i < 46; i++) {
+    const p = h("div", "petal"); p.style.backgroundImage = `url(${srcs[i % srcs.length]})`; p.style.left = Math.random() * 96 + "%";
+    p.style.width = 3 + Math.random() * 2.6 + "cqw"; T.append(p);
+    const H = T.clientHeight, sway = (Math.random() - 0.5) * 18;
+    p.animate([{ transform: `translate(0,0) rotate(0)` }, { transform: `translate(${sway}cqw, ${H * 0.55}px) rotate(${200 + Math.random() * 300}deg)`, offset: .5 },
+               { transform: `translate(${-sway * 0.6}cqw, ${H * 1.15}px) rotate(${420 + Math.random() * 400}deg)` }],
+              { duration: 3800 + Math.random() * 2600, delay: Math.random() * 1600, easing: "linear", fill: "forwards" }).onfinish = () => p.remove();
+  }
+}
+
+// ---------------------------------------------------------------- put the show together
+(async () => {
+  const stage = $("#stage");
+  const man = await (await fetch("assets/manifest.json")).json();
+  const n = ACTS.length + 2;   // opening, the acts, finale
+  $("#track").style.height = `${((n - 1) * ZONE + 1) * 100}svh`;
+  const runOpening = await opening(stage, man);
+  const op = runOpening ? runOpening() : null;
+  for (let i = 0; i < ACTS.length; i++) await act(stage, ACTS[i], i + 1).catch((e) => console.warn("scene skipped:", ACTS[i].id, e.message));
+  await finale(stage, man, ACTS.length + 1);
+  pick(); apply();
+  if (REC) {
+    // every image the film will need, in the page before the first frame (a held clock can't wait on a fetch)
+    const hold = h("div"); hold.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden";
+    const srcs = ["assets/bird.webp", "assets/notes/notes_99_card.webp", "assets/finale/fin_10_petal.webp", "assets/finale/fin_11_petal.webp",
+                  "assets/finale/fin_12_petal.webp", "assets/finale/fin_00_ticket.webp", "assets/page-paper.webp"];
+    for (let i = 0; i < 60; i++) srcs.push(`assets/curtain_seq/c${String(i).padStart(3, "0")}.webp`);
+    for (const s of srcs) { const im = new Image(); im.src = s; hold.append(im); }
+    document.body.append(hold);
+    Promise.all([...document.images].map((im) => im.decode().catch(() => {}))).then(() => (window.__recReady = true));   // filming: the teaser's beats, played by the page on its own (recorder-held) clock
+    const beat = (s, fn) => setTimeout(fn, s * 1000);
+    beat(15.5, () => __scene(1));            // the theatre comes apart; Our Story builds
+    beat(21.5, () => __scene(3));            // on to the Reception
+    beat(27.5, () => __scene(ACTS.length + 1));   // the finale: the theatre unfolds, the ticket comes down
+    beat(32.1, () => { const el = $(".ticket input[name=name]"); [..."Mia & Theo"].forEach((ch, j) => setTimeout(() => (el.value += ch), 70 * (j + 1))); });
+    beat(33.4, () => $(".ticket form").requestSubmit());
+    beat(41.6, () => window.__cta?.());
+  }
+  await op;
+})();
+</script>
+</body>
+</html>
