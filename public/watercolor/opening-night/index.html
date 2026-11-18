@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Pinyon+Script&display=swap" rel="stylesheet">
 <style>
+  @property --vw { syntax: "<length>"; inherits: true; initial-value: 4px; }
   :root {
     --ink: #2e2622;
     --gilt: #9a7432;
@@ -27,7 +28,8 @@
   /* One show on one stage: the page scrolls freely through a tall track while the stage stays put.
      How far you've scrolled is where the show is: each scene comes apart, the next builds up. */
   .track { position: relative; }
-  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; container-type: size; width: min(100%, calc(100svh * 9 / 16)); margin-inline: auto; }
+  .stage > * { --vw: 1cqw; }
   .scene { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
   .scene.on { pointer-events: auto; }
   .scene.gone { visibility: hidden; }
@@ -82,26 +84,26 @@
   .iv-ink__c { position: absolute; left: 0; top: 0; pointer-events: none; }
 
   /* ---------------------------------------------------------------- an act: a cardboard scene + its words */
-  .act { padding: 5svh 9vw 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
-  .diorama { position: relative; width: min(88vw, 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
+  .act { padding: 5svh calc(9 * var(--vw)) 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
+  .diorama { position: relative; width: min(calc(88 * var(--vw)), 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
   .diorama img { position: absolute; display: block; transform-origin: 50% 100%; backface-visibility: hidden;
                  filter: drop-shadow(0 .6vmin .9vmin rgba(70, 45, 30, .26)); }
   .diorama img.flat { filter: none; }
   .diorama > .wrap { perspective: 1100px; perspective-origin: 50% 30%; }
-  .act.prog .diorama { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(196vw, 100svh, 1100px); }
+  .act.prog .diorama { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(calc(196 * var(--vw)), 100svh, 1100px); }
   .words { text-align: center; max-width: 24em; margin: 0 auto; }
   .kicker { font: 600 .74rem / 1 var(--serif); letter-spacing: .38em; text-transform: uppercase; color: var(--gilt); margin: 0; }
-  .words h2 { font: 400 clamp(2.3rem, 8vw, 3.2rem) / 1.1 var(--script); margin: .45em 0 .5em; }
-  .lead { font: 500 clamp(1.02rem, 3.9vw, 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
-  .body { font: 400 clamp(.98rem, 3.7vw, 1.1rem) / 1.75 var(--serif); margin: 0 auto; max-width: 22em; }
+  .words h2 { font: 400 clamp(2.3rem, calc(8 * var(--vw)), 3.2rem) / 1.1 var(--script); margin: .45em 0 .5em; }
+  .lead { font: 500 clamp(1.02rem, calc(3.9 * var(--vw)), 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
+  .body { font: 400 clamp(.98rem, calc(3.7 * var(--vw)), 1.1rem) / 1.75 var(--serif); margin: 0 auto; max-width: 22em; }
   .small { font: 500 .78rem / 1.6 var(--serif); letter-spacing: .2em; text-transform: uppercase; margin: .6em 0 0; }
   .tagbtn { display: inline-block; margin-top: 1.4em; padding: .55em 1.2em .55em 1.6em; font: 600 .72rem / 1 var(--serif); letter-spacing: .26em;
             text-transform: uppercase; color: var(--ink); text-decoration: none; background: #f6efdf; position: relative;
             clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); box-shadow: 0 1px 0 rgba(0,0,0,.08); }
   .tagbtn::before { content: ""; position: absolute; left: 8px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--paper); }
-  @media (min-width: 900px) {
-    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: 6vw; }
-    .diorama { width: min(44vw, 74svh, 640px); }
+  @container (min-width: 900px) {
+    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: calc(6 * var(--vw)); }
+    .diorama { width: min(calc(44 * var(--vw)), 74svh, 640px); }
     .words { text-align: left; }
   }
   /* words set on painted things (signposts, the tag, the playbill) */
@@ -120,18 +122,18 @@
   .chip i { display: block; height: 3.6rem; margin-bottom: .35rem; background: var(--c); border-radius: 2px;
             box-shadow: 0 2px 4px rgba(60,40,25,.18); -webkit-mask: url(assets/page-paper.webp) center / 300px; }
   .chip:nth-child(odd) i { rotate: -2deg; } .chip:nth-child(even) i { rotate: 1.5deg; }
-  @media (min-width: 900px) { .chips { justify-content: flex-start; } }
+  @container (min-width: 900px) { .chips { justify-content: flex-start; } }
   .faq { display: flex; flex-direction: column; align-items: center; gap: .55rem; margin-top: 1.1em; perspective: 900px; }
-  .card { width: min(84vw, 23rem); min-height: 4.4rem; position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3,.8,.3,1); cursor: pointer; border: 0; padding: 0; background: none; font: inherit; color: inherit; }
+  .card { width: min(calc(84 * var(--vw)), 23rem); min-height: 4.4rem; position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3,.8,.3,1); cursor: pointer; border: 0; padding: 0; background: none; font: inherit; color: inherit; }
   .card.open { transform: rotateY(180deg); }
   .card > span { position: absolute; inset: 0; display: grid; place-items: center; padding: .5rem 1.4rem; backface-visibility: hidden;
                  border: 13px solid transparent; border-image: url(assets/notes/notes_99_card.webp) 34 fill / 13px stretch;
                  filter: drop-shadow(0 3px 5px rgba(60,40,25,.18)); text-align: center; }
-  .card .q { font: 400 clamp(1.25rem, 5.4vw, 1.5rem) / 1.05 var(--script); }
+  .card .q { font: 400 clamp(1.25rem, calc(5.4 * var(--vw)), 1.5rem) / 1.05 var(--script); }
   .card .q::after { content: "tap to read"; display: block; margin-top: .3em; font: 600 .56rem / 1 var(--serif); letter-spacing: .26em; text-transform: uppercase; color: var(--gilt); }
-  .card .a { transform: rotateY(180deg); font: 400 clamp(.9rem, 3.6vw, 1rem) / 1.4 var(--serif); }
-  .act.notes .diorama { width: min(76vw, 34svh, 460px); }
-  @media (min-width: 900px) { .faq { justify-content: flex-start; } }
+  .card .a { transform: rotateY(180deg); font: 400 clamp(.9rem, calc(3.6 * var(--vw)), 1rem) / 1.4 var(--serif); }
+  .act.notes .diorama { width: min(calc(76 * var(--vw)), 34svh, 460px); }
+  @container (min-width: 900px) { .faq { justify-content: flex-start; } }
 
   /* ---------------------------------------------------------------- the reply ticket */
   .ticket { position: absolute; left: 50%; bottom: 7%; width: min(94%, 560px); aspect-ratio: 1.47; translate: -50% 0;

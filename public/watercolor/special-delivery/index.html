@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Pinyon+Script&family=Special+Elite&display=swap" rel="stylesheet">
 <style>
+  @property --vw { syntax: "<length>"; inherits: true; initial-value: 4px; }
   :root {
     --ink: #2e2622;
     --brown: #7a5634;
@@ -32,7 +33,8 @@
   /* One show on one stage (as Opening Night): the page scrolls freely through a tall track while the stage stays put;
      each scene comes apart, the next builds up. */
   .track { position: relative; }
-  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; container-type: size; width: min(100%, calc(100svh * 9 / 16)); margin-inline: auto; }
+  .stage > * { --vw: 1cqw; }
   .scene { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
   .scene.on { pointer-events: auto; }
   .scene.gone { visibility: hidden; }
@@ -46,8 +48,8 @@
   /* ---------------------------------------------------------------- the opening: the envelope (unchanged) */
   .hero { position: absolute; left: 50%; top: 50%; translate: -50% -50%; height: 100%; aspect-ratio: 819 / 1772; container-type: inline-size;
           -webkit-mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
-  @media (max-aspect-ratio: 5 / 8) {
-    .hero { width: max(100vw, 46.22svh); height: auto; -webkit-mask: none; mask: none; }
+  @container (max-aspect-ratio: 5 / 8) {
+    .hero { width: max(calc(100 * var(--vw)), 46.22svh); height: auto; -webkit-mask: none; mask: none; }
   }
   .hero video, .hero img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
   .hero .last { opacity: 0; }
@@ -79,26 +81,26 @@
   @keyframes tflap { to { background-position: 114.2857% 0; } }
 
   /* ---------------------------------------------------------------- a scene: a watercolour cardboard diorama + its words */
-  .act { padding: 5svh 9vw 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
-  .diorama { position: relative; width: min(88vw, 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
+  .act { padding: 5svh calc(9 * var(--vw)) 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
+  .diorama { position: relative; width: min(calc(88 * var(--vw)), 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
   .diorama img { position: absolute; display: block; transform-origin: 50% 100%; backface-visibility: hidden;
                  filter: drop-shadow(0 .6vmin .9vmin rgba(70, 45, 30, .26)); }
   .diorama img.flat { filter: none; }
   .diorama > .wrap { perspective: 1100px; perspective-origin: 50% 30%; }
-  .act.prog .diorama { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(196vw, 100svh, 1100px); }
+  .act.prog .diorama { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(calc(196 * var(--vw)), 100svh, 1100px); }
   .words { text-align: center; max-width: 24em; margin: 0 auto; }
   .kicker { font: 600 .74rem / 1 var(--serif); letter-spacing: .38em; text-transform: uppercase; color: var(--brown); margin: 0; font-variant-numeric: lining-nums; }
-  .words h2 { font: 400 clamp(2.7rem, 10vw, 3.8rem) / 1.08 var(--script); margin: .4em 0 .45em; }
+  .words h2 { font: 400 clamp(2.7rem, calc(10 * var(--vw)), 3.8rem) / 1.08 var(--script); margin: .4em 0 .45em; }
   .words .kicker { font-size: .8rem; font-weight: 700; color: var(--caps); }
-  .lead { font: 500 clamp(1.02rem, 3.9vw, 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
-  .body { font: 400 clamp(.98rem, 3.7vw, 1.1rem) / 1.75 var(--serif); margin: 0 auto; max-width: 22em; }
+  .lead { font: 500 clamp(1.02rem, calc(3.9 * var(--vw)), 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
+  .body { font: 400 clamp(.98rem, calc(3.7 * var(--vw)), 1.1rem) / 1.75 var(--serif); margin: 0 auto; max-width: 22em; }
   .tagbtn { display: inline-block; margin-top: 1.4em; padding: .55em 1.2em .55em 1.6em; font: 600 .72rem / 1 var(--serif); letter-spacing: .26em;
             text-transform: uppercase; color: var(--ink); text-decoration: none; background: #f6efdf; position: relative;
             clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%); box-shadow: 0 1px 0 rgba(0,0,0,.08); }
   .tagbtn::before { content: ""; position: absolute; left: 8px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--paper); }
-  @media (min-width: 900px) {
-    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: 6vw; }
-    .diorama { width: min(44vw, 74svh, 640px); }
+  @container (min-width: 900px) {
+    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: calc(6 * var(--vw)); }
+    .diorama { width: min(calc(44 * var(--vw)), 74svh, 640px); }
     .words { text-align: left; }
   }
   /* words set on painted things (the post office sign, the signpost) */
@@ -119,9 +121,9 @@
   .fullscene { position: absolute; inset: 0; }
   .fframe { position: absolute; left: 50%; top: 50%; translate: -50% -50%; height: 100%; aspect-ratio: 9 / 16; container-type: inline-size; perspective: 1400px; perspective-origin: 50% 40%; }
   /* phones: the painting covers the screen (narrow ones crop its sides, wider ones its top and bottom); wide screens: contained */
-  @media (min-aspect-ratio: 9 / 16) and (max-aspect-ratio: 3 / 4) { .fframe { width: 100vw; height: auto; } }
+  @container (min-aspect-ratio: 9 / 16) and (max-aspect-ratio: 3 / 4) { .fframe { width: calc(100 * var(--vw)); height: auto; } }
   .fbg { position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; filter: blur(42px) saturate(.95); opacity: 0; transition: opacity 1s ease; pointer-events: none; }
-  @media (min-aspect-ratio: 3 / 4) {
+  @container (min-aspect-ratio: 3 / 4) {
     .fullscene .fbg { opacity: .8; }
     .fullscene .fframe { -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
   }
@@ -148,12 +150,12 @@
   .fsign { position: absolute; translate: -50% -50%; white-space: nowrap; font: 600 2.75cqw / 1 var(--serif); letter-spacing: .1em; text-transform: uppercase; color: #5a4632; }
 
   /* ---------------------------------------------------------------- the order of the day: a quiet page */
-  .quiet { place-items: center; padding: 8svh 10vw; }
-  .qcol { width: min(76vw, 21rem); text-align: center; }
-  .qclock { width: min(22vw, 5.6rem); display: block; margin: 0 auto 3.6svh; filter: drop-shadow(0 6px 10px rgba(70, 45, 30, .2)); }
-  .qcol h2 { font: 400 clamp(2.2rem, 8.4vw, 3rem) / 1.1 var(--script); margin: 1.6svh 0 4.6svh; }
+  .quiet { place-items: center; padding: 8svh calc(10 * var(--vw)); }
+  .qcol { width: min(calc(76 * var(--vw)), 21rem); text-align: center; }
+  .qclock { width: min(calc(22 * var(--vw)), 5.6rem); display: block; margin: 0 auto 3.6svh; filter: drop-shadow(0 6px 10px rgba(70, 45, 30, .2)); }
+  .qcol h2 { font: 400 clamp(2.2rem, calc(8.4 * var(--vw)), 3rem) / 1.1 var(--script); margin: 1.6svh 0 4.6svh; }
   .qlist { list-style: none; margin: 0; padding: 0; }
-  .qlist li { display: flex; align-items: baseline; justify-content: center; gap: 1.1em; margin: 0 0 2.6svh; font: 500 clamp(1rem, 4vw, 1.12rem) / 1.3 var(--serif); }
+  .qlist li { display: flex; align-items: baseline; justify-content: center; gap: 1.1em; margin: 0 0 2.6svh; font: 500 clamp(1rem, calc(4 * var(--vw)), 1.12rem) / 1.3 var(--serif); }
   .qlist li b { font: 600 .78em / 1 var(--serif); letter-spacing: .18em; color: var(--red); min-width: 3.2em; text-align: right; }
   .qlist li span { min-width: 9em; text-align: left; }
   .qfoot { margin: 4.4svh 0 0; font: 600 .62rem / 1 var(--serif); letter-spacing: .32em; text-indent: .32em; text-transform: uppercase; color: var(--brown); }
@@ -172,8 +174,8 @@
   .skywords .sub { font: italic 500 4.4cqw / 1.4 var(--serif); margin: 2cqw 0 0; opacity: 0; }
 
   /* ---------------------------------------------------------------- the reply: the card under the postbox */
-  .act.reply .diorama { width: min(74vw, 36svh, 460px); }
-  .rcard { position: relative; width: min(92vw, 30rem); aspect-ratio: 1.44; margin: 1.6svh auto 0; container-type: inline-size;
+  .act.reply .diorama { width: min(calc(74 * var(--vw)), 36svh, 460px); }
+  .rcard { position: relative; width: min(calc(92 * var(--vw)), 30rem); aspect-ratio: 1.44; margin: 1.6svh auto 0; container-type: inline-size;
            background: url(assets/dio/sd_rsvp/sdx_99_card.webp) center / 100% 100%; filter: drop-shadow(0 8px 14px rgba(60,40,25,.25)); }
   .rcard::before { content: ""; position: absolute; inset: 6% 5%; background: radial-gradient(ellipse 78% 74% at 50% 50%, rgba(252, 248, 238, .9), rgba(252, 248, 238, .7) 64%, rgba(252, 248, 238, 0) 100%); pointer-events: none; }
   .rcard form { position: absolute; left: 9%; right: 9%; top: 8%; bottom: 8%; display: flex; flex-direction: column; gap: 3.2cqw; justify-content: center; }
@@ -194,7 +196,7 @@
   .rcard button small { font: 700 2.5cqw / 1 var(--serif); letter-spacing: .28em; text-transform: uppercase; color: var(--caps); margin-left: 1.6cqw; }
   .rcard button:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
   .after { text-align: center; }
-  .after .sub { font: italic 500 clamp(1rem, 3.9vw, 1.12rem) / 1.5 var(--serif); margin: .6em 0 0; opacity: 0; }
+  .after .sub { font: italic 500 clamp(1rem, calc(3.9 * var(--vw)), 1.12rem) / 1.5 var(--serif); margin: .6em 0 0; opacity: 0; }
   .pmark { position: absolute; aspect-ratio: 1; color: var(--post); opacity: 0; mix-blend-mode: multiply; pointer-events: none; }
   .pmark svg { width: 100%; height: 100%; overflow: visible; display: block; }
   .credit { position: absolute; left: 0; right: 0; bottom: max(1.4svh, env(safe-area-inset-bottom)); text-align: center; font: 600 .62rem / 1 var(--serif);
@@ -417,7 +419,7 @@ function wrapWords(el) { if (el._w) return el._w; const w = h("div"); el.replace
 // ================================================================ scene 0 · the envelope (unchanged)
 function swallow({ y0, y1, dir, size, delay = 0 }) {
   return new Promise((done) => setTimeout(() => {
-    const sky = $("#sky"), W = innerWidth, H = innerHeight;
+    const sky = $("#sky"), W = sky.clientWidth, H = sky.clientHeight;
     const s = (Math.min(W, H) * size) / 100;
     const b = h("div", "tbird"); b.style.width = b.style.height = s + "px";
     b.style.setProperty("--f", (0.36 + Math.random() * 0.12).toFixed(2) + "s");

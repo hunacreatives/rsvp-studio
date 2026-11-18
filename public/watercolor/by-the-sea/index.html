@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Pinyon+Script&display=swap" rel="stylesheet">
 <style>
+  @property --vw { syntax: "<length>"; inherits: true; initial-value: 4px; }
   :root {
     --ink: #24324a;
     --brown: #6b5a48;
@@ -29,7 +30,8 @@
 
   /* one show on one stage (Opening Night): the page scrolls freely, the stage stays put; each scene comes apart, the next builds */
   .track { position: relative; }
-  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; container-type: size; width: min(100%, calc(100svh * 9 / 16)); margin-inline: auto; }
+  .stage > * { --vw: 1cqw; }
   .scene { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
   .scene.on { pointer-events: auto; }
   .scene.gone { visibility: hidden; }
@@ -42,9 +44,9 @@
   /* ---------------------------------------------------------------- a full-screen scene: the painting fills the screen */
   .fullscene { position: absolute; inset: 0; }
   .fframe { position: absolute; left: 50%; top: 50%; translate: -50% -50%; height: 100%; aspect-ratio: 9 / 16; container-type: inline-size; perspective: 1400px; perspective-origin: 50% 40%; }
-  @media (min-aspect-ratio: 9 / 16) and (max-aspect-ratio: 3 / 4) { .fframe { width: 100vw; height: auto; } }
+  @container (min-aspect-ratio: 9 / 16) and (max-aspect-ratio: 3 / 4) { .fframe { width: calc(100 * var(--vw)); height: auto; } }
   .fbg { position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; filter: blur(42px) saturate(.95); opacity: 0; pointer-events: none; }
-  @media (min-aspect-ratio: 3 / 4) {
+  @container (min-aspect-ratio: 3 / 4) {
     .fullscene .fbg { opacity: .8 !important; }
     .fullscene .fframe { -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
   }
@@ -84,20 +86,20 @@
   .more.in { opacity: .95; }
 
   /* ---------------------------------------------------------------- a small scene: a diorama on the paper, words under it */
-  .act { padding: 5svh 9vw 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
-  .diorama { position: relative; width: min(88vw, 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
+  .act { padding: 5svh calc(9 * var(--vw)) 6svh; grid-template-rows: auto auto; align-content: center; gap: 3.2svh; }
+  .diorama { position: relative; width: min(calc(88 * var(--vw)), 48svh, 560px); aspect-ratio: 1; perspective: 1100px; perspective-origin: 50% 30%; container-type: inline-size; }
   .diorama img { position: absolute; display: block; transform-origin: 50% 100%; backface-visibility: hidden; filter: drop-shadow(0 .6vmin .9vmin rgba(40, 50, 70, .24)); }
   .diorama img.flat { filter: none; }
   .diorama > .wrap { perspective: 1100px; perspective-origin: 50% 30%; }
   .words { text-align: center; max-width: 24em; margin: 0 auto; }
-  .words h2 { font: 400 clamp(2.7rem, 10vw, 3.8rem) / 1.08 var(--script); margin: .4em 0 .45em; }
+  .words h2 { font: 400 clamp(2.7rem, calc(10 * var(--vw)), 3.8rem) / 1.08 var(--script); margin: .4em 0 .45em; }
   .words .kicker { font-size: .8rem; font-weight: 700; color: var(--caps); }
-  .words .lead { font: 500 clamp(1.02rem, 3.9vw, 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
-  .words .body { font: 500 clamp(1.04rem, 4vw, 1.16rem) / 1.75 var(--serif); margin: 0 auto; max-width: 21em; text-wrap: pretty; }
+  .words .lead { font: 500 clamp(1.02rem, calc(3.9 * var(--vw)), 1.15rem) / 1.55 var(--serif); margin: 0 auto .7em; }
+  .words .body { font: 500 clamp(1.04rem, calc(4 * var(--vw)), 1.16rem) / 1.75 var(--serif); margin: 0 auto; max-width: 21em; text-wrap: pretty; }
   .words .tag { font: 700 .72rem / 1 var(--serif); letter-spacing: .3em; text-transform: uppercase; color: var(--caps); margin: 1.3em 0 0; }
-  @media (min-width: 900px) {
-    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: 6vw; }
-    .diorama { width: min(44vw, 74svh, 640px); }
+  @container (min-width: 900px) {
+    .act { grid-template-columns: auto minmax(0, 26rem); grid-template-rows: none; gap: calc(6 * var(--vw)); }
+    .diorama { width: min(calc(44 * var(--vw)), 74svh, 640px); }
     .words { text-align: left; }
   }
   /* words painted on the signpost's arms */
