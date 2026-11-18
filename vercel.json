@@ -6,6 +6,17 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.thersvpstudio.com"
+        }
+      ],
+      "destination": "https://thersvpstudio.com/",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [
         {
