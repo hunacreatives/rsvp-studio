@@ -26,8 +26,14 @@ const NOISE = [
   /AbortError|The operation was aborted/i,
   /Non-Error promise rejection captured/i,
   /dynamically imported module|Importing a module script failed|Loading chunk/i, // an old tab after a deploy: it reloads itself (Safari's "MIME type" version stays reported: it also means a broken deploy)
-  /Java object is gone|_META\.IABInnerFrame|xbrowser is not defined|swbrowser is not defined/i, // scripts Facebook, Instagram and phone browsers inject, not ours
+  /Java object is gone|_META\.IABInnerFrame|xbrowser is not defined|swbrowser is not defined|WebViewJavascriptBridge/i, // scripts Facebook, Instagram and phone browsers inject, not ours
 ];
+
+/** Every stack line is "<anonymous>": a script the browser app injected (eval'd), none of our files. */
+function onlyInjectedFrames(stack: string | undefined) {
+  const f = frames(stack)?.frames;
+  return !!f && f.every((x) => x.filename === "<anonymous>");
+}
 
 /** Chrome / Firefox / Safari stack lines → Sentry frames (oldest call first). */
 function frames(stack: string | undefined) {
@@ -48,6 +54,7 @@ export function reportError(error: unknown, context: Record<string, string> = {}
     const message = `${err.name}: ${err.message}`;
     if (NOISE.some((r) => r.test(err.message))) return;
     if (/chrome-extension:|moz-extension:|safari-web-extension:/.test(err.stack ?? "")) return;
+    if (onlyInjectedFrames(err.stack)) return;
     if (seen.has(message) || seen.size >= MAX_PER_PAGE) return;
     seen.add(message);
 
