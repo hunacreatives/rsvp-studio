@@ -45,6 +45,8 @@
   .theatre img, .theatre video { position: absolute; display: block; pointer-events: none; user-select: none; }
   .theatre video { object-fit: fill; }
   .wrap { position: absolute; inset: 0; pointer-events: none; }
+  .veil { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: var(--paper) url(assets/page-paper.webp) center / 900px repeat; transition: opacity .7s ease; }
+  .veil.off { opacity: 0; }
   .dim { position: absolute; inset: 0; background: rgba(28, 16, 12, .58); mix-blend-mode: multiply; transition: opacity 1.1s var(--glide); }
   .glow { position: absolute; width: 9cqw; height: 6cqw; margin: -3cqw 0 0 -4.5cqw; border-radius: 50%;
           background: radial-gradient(closest-side, rgba(255, 214, 150, .85), rgba(255, 190, 110, .25) 55%, transparent);
@@ -344,7 +346,8 @@ function cue(el, keyframes, [a, b], easing = "cubic-bezier(.4,0,.2,1)") {
   cues.push({ an, a, b, s: BUILDING });
 }
 const trig = (o) => triggers.push({ ...o, s: BUILDING });
-function addScene(el, rest, loaded) { const s = { el, rest, loaded, v: rest === 0 ? 0 : rest - 1, i: scenes.length }; scenes.push(s); BUILDING = s; return s; }
+function addScene(el, rest, loaded) { if (scenes.length) el.classList.add("gone");   // built off stage, hidden until apply() places it
+  const s = { el, rest, loaded, v: rest === 0 ? 0 : rest - 1, i: scenes.length }; scenes.push(s); BUILDING = s; return s; }
 const isOn = (i) => current === i && scenes[i] && Math.abs(scenes[i].v - scenes[i].rest) < 0.02;
 const goal = (s) => (s.i < current ? s.rest + 1 : s.i > current ? s.rest - 1 : s.rest);
 function apply() {
@@ -469,6 +472,9 @@ let finishOpening = () => {};
 async function opening(stage, man) {
   const sc = h("div", "scene"); const fold = h("div", "fold"); const T = h("div", "theatre"); fold.append(T); sc.append(fold); stage.append(sc);
   addScene(sc, 0, true);
+  // nothing shows until every layer is in (no half-loaded garden behind a missing curtain): plain paper lies over the
+  // theatre and lifts once it's all decoded
+  const veil = h("div", "veil"); sc.append(veil);
   const L = await makeTheatre(T, man, { lazy: false });
   const bill = h("div", "bill"); const n1 = inkLine(C.names[0], { speed: 9, maxDur: 1.7 }), n2 = inkLine(C.names[1], { speed: 9, maxDur: 1.7 });
   const names = h("h1", "names"); for (const n of [n1, n2]) { const r = h("div"); r.append(n); names.append(r); }
@@ -478,7 +484,8 @@ async function opening(stage, man) {
   const vid = REC ? film(false) : Object.assign(h("video"), { muted: true, playsInline: true, preload: "auto", src: "assets/curtain.mp4", poster: "assets/curtain_poster.webp" });
   vid.setAttribute("muted", ""); vid.setAttribute("playsinline", "");
   vid.defaultPlaybackRate = vid.playbackRate = 1 / SLOW;
-  L.videoSlot.append(place(vid, man.video)); L.curtain.style.opacity = 0;
+  const still = img("assets/curtain_poster.webp", man.video);   // the closed curtain, there from the first frame (the film covers it while it plays)
+  L.videoSlot.append(still, place(vid, man.video)); L.curtain.style.opacity = 0;
   const hint = h("div", "hint", "Scroll for the programme"); L.top.append(hint);
   if (COVER) hint.style.display = "none";
   const dim = h("div", "dim"); L.top.append(dim);
@@ -488,6 +495,11 @@ async function opening(stage, man) {
     g.style.left = ((x + 0.8044) / 1.6088) * 100 + "%"; g.style.top = ((2.86 - z) / 2.86) * 100 + "%";
     L.top.append(g); glows.push(g);
   }
+  // everything behind the closed curtain stays out of the render until the curtain rises: nothing for the compositor to
+  // seam through (a frame of hairline outlines) and nothing half-drawn to show around it
+  const behind = [L.day_sky, L.day_clouds, L.birds, L.day_far, L.day_bal, L.day_row, L.billSlot, L.day_wingL, L.day_wingR, L.curtain].filter(Boolean);
+  behind.forEach((e) => (e.style.visibility = "hidden"));
+  const raise = () => behind.forEach((e) => (e.style.visibility = ""));
   const OUT = 12, wingAt = (el, s, k) => (el.style.transform = `translateX(${s * (OUT + k)}cqw)`);
   wingAt(L.day_wingL, -1, 46); wingAt(L.day_wingR, 1, 46);
 
@@ -508,7 +520,8 @@ cue(date, up(30), at(0.07, 0.17)); cue(caps, up(30), at(0.09, 0.19)); cue(names,
   cue(fold, [{ transform: "perspective(1400px) rotateX(0)", opacity: 1 }, { transform: "perspective(1400px) translateY(4%) rotateX(78deg)", opacity: 1, offset: .85 }, { transform: "perspective(1400px) translateY(6%) rotateX(88deg)", opacity: 0 }], at(0.68, 1), "cubic-bezier(.5,0,.6,1)");
   return async () => {
 
-  await Promise.all([document.fonts.ready, ...Object.values(L).filter((i) => i.decode).map((i) => i.decode().catch(() => {}))]);
+  await Promise.all([document.fonts.ready, still.decode().catch(() => {}), ...Object.values(L).filter((i) => i.decode).map((i) => i.decode().catch(() => {}))]);
+  requestAnimationFrame(() => requestAnimationFrame(() => veil.classList.add("off")));
   for (const el of [n1, n2, d1]) { inkCentre(el); inker.warm(el); }
   addEventListener("resize", () => [n1, n2, d1].forEach(inkCentre));
   let alive = false, hurried = false;
@@ -523,7 +536,7 @@ cue(date, up(30), at(0.07, 0.17)); cue(caps, up(30), at(0.09, 0.19)); cue(names,
   finishOpening = () => {
     if (hurried || alive) return; hurried = true;
     inker.finish(); vid.pause(); dim.style.opacity = 0; glows.forEach((g) => g.classList.add("on"));
-    vid.style.opacity = 0; L.curtain.style.opacity = 1; wingAt(L.day_wingL, -1, 0); wingAt(L.day_wingR, 1, 0);
+    raise(); vid.style.opacity = 0; still.style.opacity = 0; L.curtain.style.opacity = 1; wingAt(L.day_wingL, -1, 0); wingAt(L.day_wingR, 1, 0);
     for (const el of [n1, n2, d1]) inker.dry(el);
     caps.querySelectorAll("span").forEach((s) => s.classList.add("in"));
     comeAlive();
@@ -535,7 +548,7 @@ cue(date, up(30), at(0.07, 0.17)); cue(caps, up(30), at(0.09, 0.19)); cue(names,
   for (const g of glows) { if (hurried) return; g.classList.add("on"); await wait(90); }
   await wait(200); dim.style.opacity = 0; await wait(700); if (hurried) return;
   await new Promise((r) => { vid.onended = r; vid.play().catch(r); }); if (hurried) return;
-  L.curtain.style.opacity = 1; vid.style.opacity = 0; await wait(250);
+  raise(); L.curtain.style.opacity = 1; vid.style.opacity = 0; still.style.opacity = 0; await wait(250);
   for (const [el, s] of [[L.day_wingL, -1], [L.day_wingR, 1]]) {
     el.animate([{ transform: `translateX(${s * (OUT + 46)}cqw)` }, { transform: `translateX(${s * OUT}cqw)` }], { duration: 1100, easing: "cubic-bezier(.3,.9,.3,1)", fill: "forwards" });
     wingAt(el, s, 0); await wait(200);
