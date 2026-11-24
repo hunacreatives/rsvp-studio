@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePortal } from "@/pages/account/portal/PortalContext";
 import { formatDate } from "@/pages/account/portal/format";
@@ -55,6 +55,18 @@ export default function TemplatesPage() {
     next.splice(from < to ? at + 1 : at, 0, rows.find((r) => r.id === dragId)!);
     void reorder(next);
   };
+  // Featured, occasions and gallery status save as they're changed; a failed save puts the row back.
+  const [rowError, setRowError] = useState<Record<string, string>>({});
+  const saveRow = async (t: TemplateRow, patch: Partial<TemplateRow>) => {
+    setRows((cur) => cur?.map((r) => (r.id === t.id ? { ...r, ...patch } : r)) ?? cur);
+    setRowError((e) => ({ ...e, [t.id]: "" }));
+    try {
+      await updateTemplate(t.id, patch);
+    } catch (e) {
+      setRows((cur) => cur?.map((r) => (r.id === t.id ? t : r)) ?? cur);
+      setRowError((x) => ({ ...x, [t.id]: /featured/.test(String(e instanceof Error ? e.message : e)) ? "Run template-tags.sql first." : "Couldn’t save." }));
+    }
+  };
   const arrows = (t: TemplateRow, i: number) => (
     <span className="inline-flex gap-1">
       <button type="button" onClick={() => move(t.id, -1)} disabled={i === 0 || orderState === "saving"} aria-label={`Move ${t.label} up`} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--line)] text-[var(--ink)] hover:border-[var(--ink)] disabled:opacity-30 md:h-8 md:w-8">
@@ -106,21 +118,22 @@ export default function TemplatesPage() {
       {/* Phones: one card per template. */}
       <ul className="divide-y divide-[var(--line)] rounded-[22px] border border-[var(--line)] bg-white empty:hidden md:hidden">
         {(rows ?? []).map((t, i) => (
-          <li key={t.id}>
-            {t.kind === "spec" ? (
-              <Link to={`/studio/templates/${t.id}`} className="flex items-center gap-3 px-4 pt-3.5">
-                <TemplateCardBody t={t} />
-                <i className="ri-arrow-right-s-line text-[20px] text-[var(--slate)]" />
-              </Link>
-            ) : (
-              <div className="flex items-center gap-3 px-4 pt-3.5">
-                <TemplateCardBody t={t} />
-              </div>
-            )}
-            <div className="flex flex-wrap items-center gap-2 px-4 pb-3.5 pt-2">
-              {!demo ? arrows(t, i) : null}
-              {!demo ? <TemplateTags t={t} onChange={(next) => setRows((cur) => cur?.map((r) => (r.id === t.id ? next : r)) ?? cur)} /> : null}
+          <li key={t.id} className="px-4 py-3.5">
+            <div className="flex items-start gap-3">
+              <TemplateName t={t} error={rowError[t.id]} />
+              {!demo ? <FeaturedStar t={t} save={saveRow} /> : null}
             </div>
+            {!demo ? (
+              <>
+                <div className="mt-2">
+                  <Occasions t={t} save={saveRow} />
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  {arrows(t, i)}
+                  <GallerySwitch t={t} save={saveRow} />
+                </div>
+              </>
+            ) : null}
           </li>
         ))}
         {rows && !rows.length && !demo ? <li className="px-5 py-10 text-center text-[14px] text-[var(--slate)]">No templates yet.</li> : null}
@@ -128,16 +141,15 @@ export default function TemplatesPage() {
       </ul>
 
       <div className="hidden overflow-x-auto rounded-[22px] border border-[var(--line)] bg-white md:block">
-        <table className="w-full min-w-[720px] text-left text-[14px]">
+        <table className="w-full min-w-[760px] text-left text-[14px]">
           <thead>
             <tr className="border-b border-[var(--line)] text-[12px] uppercase tracking-[0.06em] text-[var(--slate)]">
               <th className="w-[1%] whitespace-nowrap px-4 py-3 font-medium">Order</th>
-              <th className="px-5 py-3 font-medium">Template</th>
-              <th className="px-5 py-3 font-medium">Type</th>
-              <th className="px-5 py-3 font-medium">Tier</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 font-medium">Occasions</th>
-              <th className="px-5 py-3 font-medium">Updated</th>
+              <th className="px-4 py-3 font-medium">Template</th>
+              <th className="px-4 py-3 font-medium">Occasions</th>
+              <th className="w-[1%] whitespace-nowrap px-4 py-3 text-center font-medium">Featured</th>
+              <th className="w-[1%] whitespace-nowrap px-4 py-3 font-medium">Gallery</th>
+              <th className="w-[1%] whitespace-nowrap px-4 py-3 font-medium">Updated</th>
             </tr>
           </thead>
           <tbody>
@@ -167,42 +179,30 @@ export default function TemplatesPage() {
                 }}
                 className={`border-b border-[var(--line)] last:border-0 hover:bg-[var(--paper)] ${dragId === t.id ? "opacity-40" : ""} ${overId === t.id && dragId !== t.id ? "shadow-[inset_0_2px_0_var(--ink)]" : ""}`}
               >
-                <td className="whitespace-nowrap px-4 py-3">
+                <td className="whitespace-nowrap px-4 py-2.5">
                   <span className="inline-flex items-center gap-2">
                     <i className="ri-draggable cursor-grab text-[18px] text-[var(--slate)]" aria-hidden title="Drag to reorder" />
                     <span className="w-5 text-right text-[13px] tabular-nums text-[var(--slate)]">{i + 1}</span>
                     {!demo ? arrows(t, i) : null}
                   </span>
                 </td>
-                <td className="px-5 py-3">
-                  {t.kind === "spec" ? (
-                    <Link to={`/studio/templates/${t.id}`} className="font-semibold text-[var(--ink)] hover:underline">
-                      {t.label}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-[var(--ink)]">{t.label}</span>
-                  )}
-                  <span className="block text-[12px] text-[var(--slate)]">{t.id}</span>
+                <td className="px-4 py-2.5">
+                  <TemplateName t={t} error={rowError[t.id]} />
                 </td>
-                <td className="px-5 py-3 text-[var(--slate)]">{t.kind === "spec" ? "Uploaded" : "Built in (code)"}</td>
-                <td className="px-5 py-3 capitalize text-[var(--ink)]">{t.tier}</td>
-                <td className="px-5 py-3">
-                  <StatusPill tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</StatusPill>
-                </td>
-                <td className="px-5 py-3">
-                  {!demo ? <TemplateTags t={t} onChange={(next) => setRows((cur) => cur?.map((r) => (r.id === t.id ? next : r)) ?? cur)} /> : null}
-                </td>
-                <td className="px-5 py-3 text-[var(--slate)]">{formatDate(t.updated_at)}</td>
+                <td className="px-4 py-2.5">{!demo ? <Occasions t={t} save={saveRow} /> : null}</td>
+                <td className="px-4 py-2.5 text-center">{!demo ? <FeaturedStar t={t} save={saveRow} /> : null}</td>
+                <td className="px-4 py-2.5">{!demo ? <GallerySwitch t={t} save={saveRow} /> : null}</td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-[13px] text-[var(--slate)]">{formatDate(t.updated_at)}</td>
               </tr>
             ))}
             {rows && !rows.length && !demo ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-[var(--slate)]">No templates yet.</td>
+                <td colSpan={6} className="px-5 py-10 text-center text-[var(--slate)]">No templates yet.</td>
               </tr>
             ) : null}
             {!rows && !error ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-[var(--slate)]">Loading…</td>
+                <td colSpan={6} className="px-5 py-10 text-center text-[var(--slate)]">Loading…</td>
               </tr>
             ) : null}
           </tbody>
@@ -212,61 +212,144 @@ export default function TemplatesPage() {
   );
 }
 
-/** Occasion chips and the Featured star, saved as they're tapped. */
-function TemplateTags({ t, onChange }: { t: TemplateRow; onChange: (next: TemplateRow) => void }) {
-  const [error, setError] = useState<string | null>(null);
-  const save = async (patch: Partial<TemplateRow>) => {
-    const prev = t;
-    onChange({ ...t, ...patch });
-    setError(null);
-    try {
-      await updateTemplate(t.id, patch);
-    } catch (e) {
-      onChange(prev);
-      setError(/featured/.test(String(e instanceof Error ? e.message : e)) ? "Run template-tags.sql first." : "Couldn’t save.");
-    }
-  };
-  const chip = "min-h-[36px] rounded-full border px-2.5 text-[12px] font-medium transition-colors md:min-h-[28px]";
+type SaveRow = (t: TemplateRow, patch: Partial<TemplateRow>) => void;
+
+/** Name, then id · tier · kind on one quiet line. Uploaded designs open their detail page. */
+function TemplateName({ t, error }: { t: TemplateRow; error?: string }) {
+  const off = t.status !== "listed";
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <button
-        onClick={() => save({ featured: !t.featured })}
-        aria-pressed={!!t.featured}
-        title="Featured on the Build Your Website page"
-        className={`${chip} ${t.featured ? "border-[var(--acc-yellow)] bg-[var(--acc-yellow)] text-[var(--ink)]" : "border-[var(--line)] bg-white text-[var(--slate)]"}`}
-      >
-        ★ Featured
-      </button>
-      {TEMPLATE_OCCASIONS.map((o) => {
-        const on = t.event_types.includes(o.id);
-        return (
-          <button
-            key={o.id}
-            onClick={() => save({ event_types: on ? t.event_types.filter((x) => x !== o.id) : [...t.event_types, o.id] })}
-            aria-pressed={on}
-            className={`${chip} ${on ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[var(--line)] bg-white text-[var(--slate)]"}`}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-      {error ? <span className="text-[12px] text-[#c2412d]">{error}</span> : null}
-    </div>
+    <span className="min-w-0 flex-1">
+      {t.kind === "spec" ? (
+        <Link to={`/studio/templates/${t.id}`} className={`font-semibold hover:underline ${off ? "text-[var(--slate)]" : "text-[var(--ink)]"}`}>
+          {t.label}
+        </Link>
+      ) : (
+        <span className={`font-semibold ${off ? "text-[var(--slate)]" : "text-[var(--ink)]"}`}>{t.label}</span>
+      )}
+      <span className="block whitespace-nowrap text-[12px] text-[var(--slate)]">
+        {t.id} · <span className="capitalize">{t.tier}</span> · {t.kind === "spec" ? "Uploaded" : "Built in"}
+      </span>
+      {error ? <span className="block text-[12px] text-[#c2412d]">{error}</span> : null}
+    </span>
   );
 }
 
-function TemplateCardBody({ t }: { t: TemplateRow }) {
+/** The occasions a design is tagged for, short. Click to change them in a checklist. */
+function Occasions({ t, save }: { t: TemplateRow; save: SaveRow }) {
+  const [at, setAt] = useState<{ left: number; top?: number; bottom?: number } | null>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!at) return;
+    const close = (e: Event) => {
+      if (e.type === "keydown" && (e as KeyboardEvent).key !== "Escape") return;
+      if (e.type === "mousedown" && (panel.current?.contains(e.target as Node) || btn.current?.contains(e.target as Node))) return;
+      setAt(null);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [at]);
+  const open = () => {
+    if (at) return setAt(null);
+    const r = btn.current!.getBoundingClientRect();
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - 288));
+    // Opens below, or above when the row sits low on the screen.
+    setAt(window.innerHeight - r.bottom > 400 ? { left, top: r.bottom + 4 } : { left, bottom: window.innerHeight - r.top + 4 });
+  };
+  const picked = TEMPLATE_OCCASIONS.filter((o) => t.event_types.includes(o.id));
   return (
-    <span className="min-w-0 flex-1">
-      <span className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-[var(--ink)]">{t.label}</span>
-        <StatusPill tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</StatusPill>
+    <>
+      <button
+        ref={btn}
+        type="button"
+        onClick={open}
+        aria-expanded={!!at}
+        aria-label={`Occasions for ${t.label}`}
+        className="group -mx-1.5 flex min-h-[36px] flex-wrap items-center gap-1 rounded-lg px-1.5 py-1 text-left hover:bg-white md:min-h-[32px]"
+      >
+        {picked.length ? (
+          picked.map((o) => (
+            <span key={o.id} className="whitespace-nowrap rounded-full border border-[var(--line)] bg-white px-2.5 py-0.5 text-[12px] font-medium text-[var(--ink)]">
+              {o.short}
+            </span>
+          ))
+        ) : (
+          <span className="text-[13px] text-[var(--slate)]">All occasions</span>
+        )}
+        <i className="ri-pencil-line ml-0.5 text-[14px] text-[var(--slate)] md:opacity-0 md:group-hover:opacity-100" aria-hidden />
+      </button>
+      {at ? (
+        <div ref={panel} role="group" aria-label={`Occasions for ${t.label}`} style={{ position: "fixed", ...at }} className="z-50 w-[280px] rounded-xl border border-[var(--line)] bg-white p-1.5 shadow-lg">
+          {TEMPLATE_OCCASIONS.map((o) => {
+            const on = t.event_types.includes(o.id);
+            return (
+              <label key={o.id} className="flex min-h-[40px] cursor-pointer items-start gap-2.5 rounded-lg px-2.5 py-2 hover:bg-[var(--paper)]">
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => save(t, { event_types: on ? t.event_types.filter((x) => x !== o.id) : [...t.event_types, o.id] })}
+                  className="mt-[3px] h-4 w-4 accent-[var(--ink)]"
+                />
+                <span>
+                  <span className="block text-[14px] text-[var(--ink)]">{o.short}</span>
+                  {o.hint ? <span className="block text-[12px] text-[var(--slate)]">{o.hint}</span> : null}
+                </span>
+              </label>
+            );
+          })}
+          <p className="px-2.5 pb-1 pt-1.5 text-[12px] text-[var(--slate)]">None ticked = offered for every occasion.</p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function FeaturedStar({ t, save }: { t: TemplateRow; save: SaveRow }) {
+  return (
+    <button
+      type="button"
+      onClick={() => save(t, { featured: !t.featured })}
+      aria-pressed={!!t.featured}
+      aria-label={`Feature ${t.label} on the Build Your Website page`}
+      title="Featured on the Build Your Website page"
+      className="inline-grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-white"
+    >
+      <i className={t.featured ? "ri-star-fill text-[19px] text-[#e0a800]" : "ri-star-line text-[19px] text-[#c9c9d3]"} aria-hidden />
+    </button>
+  );
+}
+
+/** Listed ↔ hidden. Hidden designs leave the gallery but keep rendering the sites made with them.
+ *  An uploaded design can only be shown once it has a published version; drafts and retired designs just say so. */
+function GallerySwitch({ t, save }: { t: TemplateRow; save: SaveRow }) {
+  const canShow = t.kind === "code" || !!t.current_version_id;
+  if (t.status === "draft" || t.status === "retired" || (t.status === "hidden" && !canShow)) {
+    return <StatusPill tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</StatusPill>;
+  }
+  const on = t.status === "listed";
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={`${t.label} in the gallery`}
+      title={on ? "In the gallery. Switch off to hide it; sites already using it keep working." : "Hidden from the gallery. Sites already using it keep working."}
+      onClick={() => save(t, { status: on ? "hidden" : "listed" })}
+      className="flex min-h-[36px] items-center gap-2 whitespace-nowrap text-[13px]"
+    >
+      <span className={`relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors ${on ? "bg-[var(--ink)]" : "bg-[#d6d6de]"}`}>
+        <span className={`absolute left-0 top-[3px] h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[19px]" : "translate-x-[3px]"}`} />
       </span>
-      <span className="mt-0.5 block break-all text-[13px] text-[var(--slate)]">{t.id}</span>
-      <span className="block text-[13px] text-[var(--slate)]">
-        {t.kind === "spec" ? "Uploaded" : "Built in (code)"} · <span className="capitalize">{t.tier}</span> · updated {formatDate(t.updated_at)}
-      </span>
-    </span>
+      <span className={on ? "text-[var(--ink)]" : "text-[var(--slate)]"}>{on ? "Shown" : "Hidden"}</span>
+    </button>
   );
 }
 

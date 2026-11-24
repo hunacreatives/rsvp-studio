@@ -50,14 +50,14 @@ export async function getTemplate(id: string): Promise<{ template: TemplateRow; 
 
 /** The occasions a design suits (templates.event_types), for the gallery's filters. */
 export const TEMPLATE_OCCASIONS = [
-  { id: "wedding", label: "Wedding" },
-  { id: "birthday", label: "Birthday" },
-  { id: "debut", label: "Debut" },
-  { id: "baby", label: "Baby (christening, 1st birthday)" },
-  { id: "engagement", label: "Engagement / Tinghun" },
-  { id: "anniversary", label: "Anniversary" },
-  { id: "party", label: "Parties (filter only: yachts, cruises…)" },
-  { id: "other", label: "Other" },
+  { id: "wedding", label: "Wedding", short: "Wedding", hint: "" },
+  { id: "birthday", label: "Birthday", short: "Birthday", hint: "" },
+  { id: "debut", label: "Debut", short: "Debut", hint: "" },
+  { id: "baby", label: "Baby (christening, 1st birthday)", short: "Baby", hint: "Christening, 1st birthday" },
+  { id: "engagement", label: "Engagement / Tinghun", short: "Engagement", hint: "Includes Tinghun" },
+  { id: "anniversary", label: "Anniversary", short: "Anniversary", hint: "" },
+  { id: "party", label: "Parties (filter only: yachts, cruises…)", short: "Parties", hint: "Filter only: yachts, cruises…" },
+  { id: "other", label: "Other", short: "Other", hint: "" },
 ] as const;
 
 export async function updateTemplate(id: string, patch: Partial<Pick<TemplateRow, "label" | "tier" | "status" | "event_types" | "sort" | "thumbnail_url" | "featured">>) {
