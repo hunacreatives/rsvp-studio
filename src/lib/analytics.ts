@@ -119,11 +119,25 @@ export function trackEvent(name: string, params: Record<string, string | number>
   }
 }
 
+// Ad-click parameters GA4 needs on the page URL to credit a visit to its ad (Google Ads gclid/gbraid/wbraid,
+// UTM tags, Meta fbclid). Without them GA4 can't tie an inquiry to an ad click, and the GA4-imported
+// "Inquiry sent" Google Ads conversion never records (Nov 26 2026: 3 google/cpc sessions vs ~3,400 ad clicks).
+// Everything else in the query string is left off, as before.
+const AD_PARAMS = /^(gclid|gbraid|wbraid|gad_source|gad_campaignid|fbclid|utm_[a-z_]+)$/i;
+function pageLocation(pathname: string) {
+  const keep = new URLSearchParams();
+  new URLSearchParams(window.location.search).forEach((v, k) => {
+    if (AD_PARAMS.test(k)) keep.append(k, v);
+  });
+  const q = keep.toString();
+  return window.location.origin + pathname + (q ? `?${q}` : "");
+}
+
 /** One page view (the app changes pages without reloading). */
 export function trackPage(pathname: string) {
   if (!tracking(pathname)) return;
   load();
-  window.gtag?.("event", "page_view", { page_path: pathname, page_location: window.location.origin + pathname, page_title: document.title });
+  window.gtag?.("event", "page_view", { page_path: pathname, page_location: pageLocation(pathname), page_title: document.title });
   loadMeta();
   window.fbq?.("track", "PageView");
 }
