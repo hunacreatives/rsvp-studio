@@ -1,10 +1,16 @@
-import { useId, useRef } from "react";
-import { EnvelopeBack, PAPER_GRAIN, Pocket, WaxSeal, lacePath, useSize } from "../shared/stationery";
+import { useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
+import { photoFit } from "../shared/photoFit";
+import type { ImageAsset } from "../../content/types";
 
-// Love Letter's own pieces (the shared paper, envelope, seal and lace ribbon
-// live in ../shared/stationery): the open envelope holding a photo in an oval
-// mat, a striped name card and a scalloped date card; a leaf sprig ornament;
-// and the countdown.
+// Love Letter's own pieces: the open envelope holding a photo in an oval mat, a
+// striped name card and a scalloped date card, the ivory wax seal; a leaf sprig
+// ornament; and the countdown.
+//
+// The paper pieces and the seal are Cycles renders (~/rsvp-teaser/loveletter:
+// ll_render.py → post.py → /public/event-templates/love-letter). The envelope and
+// cards render in neutral grey (flat paper = 50%) and are tinted here with the
+// palette colour (hard-light), so every palette still works; the mat and the seal
+// are always ivory, so they're full colour. Text (names, date, monogram) stays live.
 
 /** A small olive sprig, used between sections. */
 export function Sprig({ className = "" }: { className?: string }) {
@@ -19,86 +25,119 @@ export function Sprig({ className = "" }: { className?: string }) {
   );
 }
 
-/** A scalloped card (the red date card): the shared lace edge, without holes, with paper grain. */
-function ScallopCard({ text, className = "" }: { text: string; className?: string }) {
+export const ART = "/event-templates/love-letter/";
+/** Every rendered file, seal first (the intro shows it); preloaded while the intro is up. */
+export const ART_FILES = ["seal_sprig", "pocket", "back", "namecard", "datecard", "mat", "seal_plain"].map((f) => `${ART}${f}.webp`);
+
+/**
+ * Keeps the names inside the square card: if they overflow (long names wrap onto more lines,
+ * or one long word is wider than the card), shrink the type (--fit, 0.4–1) until they fit.
+ */
+function useFitText(deps: unknown[]) {
   const ref = useRef<HTMLDivElement>(null);
-  const { w, h } = useSize(ref);
-  const id = useId().replace(/:/g, "");
-  const edge = w && h ? lacePath(w, h, Math.max(5, h * 0.09)).edge : "";
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // names are centred (their boxes shrink to the text), so measure them against the card's
+    // inner width, not their own box
+    const fits = () => {
+      const cs = getComputedStyle(el);
+      const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      return (
+        el.scrollHeight <= el.clientHeight + 1 &&
+        [...el.querySelectorAll<HTMLElement>(".ll-namecard__name")].every((n) => n.scrollWidth <= room + 1)
+      );
+    };
+    const run = () => {
+      el.style.setProperty("--fit", "1");
+      if (fits()) return;
+      let lo = 0.4, hi = 1;
+      for (let i = 0; i < 8; i++) {
+        const mid = (lo + hi) / 2;
+        el.style.setProperty("--fit", String(mid));
+        if (fits()) lo = mid;
+        else hi = mid;
+      }
+      el.style.setProperty("--fit", String(lo));
+    };
+    run();
+    // the script face may arrive after the first layout; type in cqw scales with the card, so
+    // only content and font changes need a re-fit
+    let live = true;
+    document.fonts?.ready.then(() => live && run());
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return ref;
+}
+
+/**
+ * A rendered paper piece in the palette's colour: the render's alpha cuts the shape, its grey
+ * shading (paper grain, bevelled edges, shadows) lights whatever is drawn inside it.
+ */
+function Lit({ map, className = "", children, boxRef }: { map: string; className?: string; children?: ReactNode; boxRef?: Ref<HTMLDivElement> }) {
+  const url = `url("${ART}${map}.webp")`;
   return (
-    <div ref={ref} className={`ll-datecard ${className}`}>
-      {edge ? (
-        <svg className="ll-datecard__sheet" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
-          <defs>
-            <pattern id={`${id}-g`} width="280" height="280" patternUnits="userSpaceOnUse">
-              <image href={PAPER_GRAIN} width="280" height="280" />
-            </pattern>
-            <radialGradient id={`${id}-l`} cx="30%" cy="25%" r="80%">
-              <stop offset="0" stopColor="#fff" stopOpacity=".18" />
-              <stop offset="1" stopColor="#000" stopOpacity=".15" />
-            </radialGradient>
-          </defs>
-          <path d={edge} fill="var(--ll-accent)" />
-          <path d={edge} fill={`url(#${id}-g)`} style={{ mixBlendMode: "multiply" }} opacity=".7" />
-          <path d={edge} fill={`url(#${id}-l)`} />
-        </svg>
-      ) : null}
-      <span className="ll-datecard__text">{text}</span>
+    <div ref={boxRef} className={`ll-lit ${className}`} style={{ WebkitMaskImage: url, maskImage: url }}>
+      {children}
+      <img className="ll-lit__map" src={`${ART}${map}.webp`} alt="" aria-hidden draggable={false} />
     </div>
   );
 }
 
-/** The photo in an oval mat (or the monogram, when there's no photo). */
-function OvalMat({ photo, mono, focal }: { photo?: string; mono: string; focal?: { x: number; y: number } }) {
-  const id = useId().replace(/:/g, "");
+/** The ivory wax seal (rendered), with the couple's monogram pressed into its open field. */
+export function LLSeal({ text, sprig = false, className = "" }: { text: string; sprig?: boolean; className?: string }) {
+  const n = text.replace(/\s+/g, "").length;
   return (
-    <svg className="ll-oval" viewBox="0 0 140 180" aria-hidden>
-      <defs>
-        <clipPath id={`${id}-c`}>
-          <ellipse cx="70" cy="90" rx="50" ry="68" />
-        </clipPath>
-        <pattern id={`${id}-g`} width="280" height="280" patternUnits="userSpaceOnUse">
-          <image href={PAPER_GRAIN} width="280" height="280" />
-        </pattern>
-        <filter id={`${id}-sh`} x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#1d2410" floodOpacity=".45" />
-          <feDropShadow dx="0" dy="10" stdDeviation="9" floodColor="#1d2410" floodOpacity=".3" />
-        </filter>
-      </defs>
-      <g filter={`url(#${id}-sh)`}>
-        <ellipse cx="70" cy="90" rx="68" ry="88" fill="var(--st-paper)" />
-        <ellipse cx="70" cy="90" rx="68" ry="88" fill={`url(#${id}-g)`} style={{ mixBlendMode: "multiply" }} opacity=".8" />
-      </g>
-      <ellipse cx="70" cy="90" rx="60" ry="79" fill="none" stroke="#b9a678" strokeWidth="1" />
-      <ellipse cx="70" cy="90" rx="56.5" ry="75" fill="none" stroke="#b9a678" strokeOpacity=".6" strokeWidth=".6" />
+    <span className={`ll-seal${sprig ? " ll-seal--sprig" : ""} ${className}`} aria-hidden>
+      <img src={`${ART}seal_${sprig ? "sprig" : "plain"}.webp`} alt="" draggable={false} />
+      {text ? (
+        <span className="ll-seal__mono" style={{ fontSize: `${(n <= 2 ? 19 : n <= 3 ? 16 : n <= 4 ? 13 : 10) * (sprig ? 0.74 : 1)}cqw` }}>
+          {text}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/**
+ * The photo in a bevelled oval mat (or the monogram, when there's no photo). The photo is a real
+ * <img> under the mat (not an SVG <image>): it crops at the host's exact focal point and zoom via
+ * photoFit, and the builder's on-page Adjust/Replace tools, which look for <img>, can find it.
+ */
+function OvalMat({ photo, mono }: { photo?: Pick<ImageAsset, "masterUrl" | "focalPoint" | "zoom" | "alt">; mono: string }) {
+  return (
+    <div className="ll-oval">
       {photo ? (
-        <image href={photo} x="20" y="22" width="100" height="136" preserveAspectRatio={`x${focal && focal.x < 0.34 ? "Min" : focal && focal.x > 0.66 ? "Max" : "Mid"}Y${focal && focal.y < 0.34 ? "Min" : focal && focal.y > 0.66 ? "Max" : "Mid"} slice`} clipPath={`url(#${id}-c)`} />
+        <div className="ll-oval__photo">
+          <img src={photo.masterUrl} alt={photo.alt ?? ""} draggable={false} style={photoFit(photo)} />
+        </div>
       ) : (
-        <>
-          <ellipse cx="70" cy="90" rx="50" ry="68" fill="var(--ll-olive)" />
-          <text x="70" y={mono.length > 3 ? 97 : 100} textAnchor="middle" fontFamily="var(--ll-script)" fontSize={mono.length > 3 ? 25 : 36} fill="var(--st-paper)">
-            {mono}
-          </text>
-        </>
+        <div className="ll-oval__photo ll-oval__photo--mono">
+          <span style={{ fontSize: mono.length > 3 ? "17cqw" : "25cqw" }}>{mono}</span>
+        </div>
       )}
-      <ellipse cx="70" cy="90" rx="50" ry="68" fill="none" stroke="#000" strokeOpacity=".18" strokeWidth="1.2" />
-    </svg>
+      <img className="ll-oval__mat" src={`${ART}mat.webp`} alt="" aria-hidden draggable={false} />
+    </div>
   );
 }
 
 /**
  * The open envelope with the invitation pieces tucked inside: the photo in its
  * oval mat (left), the striped name card (back right), the scalloped date card
- * (front), and the pocket with a small ivory seal.
+ * (front left), the pocket, and the wax seal on the pocket's point.
  */
-export function EnvelopeStack({ names, date, mono, photo, focal, editorHint }: { names: string[]; date: string | null; mono: string; photo?: string; focal?: { x: number; y: number }; editorHint?: boolean }) {
+export function EnvelopeStack({ names, date, mono, photo, editorHint }: { names: string[]; date: string | null; mono: string; photo?: ImageAsset; editorHint?: boolean }) {
+  const cardRef = useFitText([names.join("|"), editorHint]);
   return (
     <div className="ll-stack" aria-label={names.join(" & ")}>
       <div className="ll-stack__env ll-stack__env--back">
-        <EnvelopeBack />
+        <Lit map="back" className="ll-env" />
       </div>
       <div className="ll-stack__namecard">
-        <div className="ll-namecard">
+        <Lit map="namecard" className="ll-namecard" boxRef={cardRef}>
           <p className="ll-namecard__kicker">Save the date</p>
           {names.length ? (
             names.map((n, i) => (
@@ -110,21 +149,23 @@ export function EnvelopeStack({ names, date, mono, photo, focal, editorHint }: {
           ) : (
             <span className="ll-namecard__name ll-hint">{editorHint ? "Your names" : ""}</span>
           )}
-        </div>
+        </Lit>
       </div>
       <div className="ll-stack__oval">
-        <OvalMat photo={photo} mono={mono} focal={focal} />
+        <OvalMat photo={photo} mono={mono} />
       </div>
       {date ? (
         <div className="ll-stack__date">
-          <ScallopCard text={date} />
+          <Lit map="datecard" className="ll-datecard">
+            <span className="ll-datecard__text">{date}</span>
+          </Lit>
         </div>
       ) : null}
       <div className="ll-stack__env ll-stack__env--front">
-        <Pocket />
+        <Lit map="pocket" className="ll-env" />
       </div>
       <div className="ll-stack__seal">
-        <WaxSeal text={mono} tone="ivory" shape="oval" />
+        <LLSeal text={mono} />
       </div>
     </div>
   );

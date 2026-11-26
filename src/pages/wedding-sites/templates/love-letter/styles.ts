@@ -48,23 +48,37 @@ export const LOVE_LETTER_CSS = `
 /* the open envelope with the pieces tucked in */
 .ll-stack{position:relative;width:min(100%,470px);aspect-ratio:1/.96;container-type:inline-size;}
 .ll-stack__env{position:absolute;left:4%;right:4%;bottom:2%;height:50%;}
-.ll-stack__env--back{z-index:1;}
-.ll-stack__env--front{z-index:5;}
-.ll-stack__namecard{position:absolute;right:6%;top:3%;width:52%;z-index:2;transform:rotate(3deg);}
-.ll-namecard{position:relative;padding:5cqw 4cqw 14cqw;text-align:center;color:var(--ll-olive);
-  border:2.4cqw solid transparent;background:linear-gradient(var(--st-paper),var(--st-paper)) padding-box,repeating-linear-gradient(90deg,var(--ll-olive) 0 .9cqw,var(--st-paper) .9cqw 1.8cqw) border-box;
-  box-shadow:0 1px 1px rgba(30,35,15,.4),0 12px 22px -8px rgba(30,35,15,.4);}
-.ll-namecard::after{content:"";position:absolute;inset:0;background-image:var(--grain);background-size:280px;mix-blend-mode:multiply;opacity:.6;pointer-events:none;}
-.ll-namecard__kicker{margin:0 0 2.4cqw;font-size:2.4cqw;letter-spacing:.24em;text-transform:uppercase;}
-.ll-namecard__name{display:block;font-family:var(--ll-script);font-size:6.6cqw;line-height:1.15;}
-.ll-namecard__amp{display:block;font-family:var(--ll-script);font-size:5cqw;line-height:1;opacity:.85;}
-.ll-stack__oval{position:absolute;left:7%;top:3%;width:33%;z-index:3;transform:rotate(-7deg);}
-.ll-oval{display:block;width:100%;height:auto;overflow:visible;}
-.ll-stack__date{position:absolute;left:2%;top:41%;width:38%;aspect-ratio:2.3/1;z-index:6;transform:rotate(-6deg);}
-.ll-datecard{position:relative;width:100%;height:100%;display:grid;place-items:center;}
-.ll-datecard__sheet{position:absolute;inset:0;overflow:visible;filter:drop-shadow(0 1px 1px rgba(40,10,10,.45)) drop-shadow(0 8px 12px rgba(40,10,10,.3));}
-.ll-datecard__text{position:relative;font-family:var(--ll-serif);font-size:6.2cqw;letter-spacing:.06em;color:#f7ecdc;text-shadow:0 1px 0 rgba(0,0,0,.25);}
+.ll-stack__env--back{z-index:1;filter:drop-shadow(0 2px 2px rgba(10,0,4,.45)) drop-shadow(0 22px 30px rgba(10,0,4,.4));}
+.ll-stack__env--front{z-index:5;filter:drop-shadow(0 -1px 1.5px rgba(30,20,10,.3)) drop-shadow(0 -6px 12px rgba(30,20,10,.22));}
+/* a rendered piece: its alpha is the shape, its grey shading lights the palette colour (see art.tsx) */
+.ll-lit{position:relative;isolation:isolate;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.ll-lit__map{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:hard-light;pointer-events:none;user-select:none;-webkit-user-drag:none;}
+.ll-env{position:absolute;inset:0;background:var(--st-env);}
+.ll-stack__namecard{position:absolute;right:6%;top:3%;width:52%;z-index:2;transform:rotate(3deg);filter:drop-shadow(0 1px 1px rgba(30,35,15,.35)) drop-shadow(0 10px 14px rgba(30,35,15,.28));}
+.ll-namecard{aspect-ratio:1;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4cqw;text-align:center;color:var(--ll-card-ink);
+  border:2.4cqw solid transparent;background:linear-gradient(var(--st-paper),var(--st-paper)) padding-box,repeating-linear-gradient(90deg,var(--ll-card-ink) 0 .9cqw,var(--st-paper) .9cqw 1.8cqw) border-box;}
+/* the shading covers the striped border too (the mask is the border box; inset:0 would be the padding box) */
+.ll-namecard>.ll-lit__map{inset:-2.4cqw;width:auto;height:auto;}
+.ll-namecard__kicker{flex:none;margin:0 0 calc(2.4cqw * var(--fit,1));font-size:2.4cqw;letter-spacing:.24em;text-indent:.24em;text-transform:uppercase;}
+.ll-namecard__name{display:block;font-family:var(--ll-script);font-size:calc(6.6cqw * var(--fit,1));line-height:1.15;text-wrap:balance;}
+.ll-namecard__amp{display:block;font-family:var(--ll-script);font-size:calc(5cqw * var(--fit,1));line-height:1;opacity:.85;}
+.ll-stack__oval{position:absolute;left:7%;top:3%;width:33%;z-index:3;transform:rotate(-7deg);filter:drop-shadow(0 1.5px 1.5px rgba(29,36,16,.4)) drop-shadow(0 10px 14px rgba(29,36,16,.28));}
+.ll-oval{position:relative;width:100%;aspect-ratio:140/180;container-type:inline-size;}
+/* the photo sits under the mat: the bevelled window overlaps its edge */
+.ll-oval__photo{position:absolute;left:12.8%;top:11%;width:74.4%;height:78%;border-radius:50%;overflow:hidden;background:var(--ll-card-ink);}
+.ll-oval__photo img{display:block;width:100%;height:100%;object-fit:cover;}
+.ll-oval__photo--mono{display:grid;place-items:center;font-family:var(--ll-script);color:var(--st-paper);}
+.ll-oval__mat{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none;-webkit-user-drag:none;}
+.ll-stack__date{position:absolute;left:2%;top:41%;width:38%;aspect-ratio:2.3/1;z-index:6;transform:rotate(-6deg);filter:drop-shadow(0 1px 1px rgba(40,10,10,.4)) drop-shadow(0 8px 12px rgba(40,10,10,.28));}
+.ll-datecard{width:100%;height:100%;display:grid;place-items:center;background:var(--ll-accent);}
+.ll-datecard__text{position:relative;font-family:var(--ll-serif);font-size:6.2cqw;letter-spacing:.06em;color:var(--ll-date-ink,#f7ecdc);text-shadow:0 1px 0 var(--ll-date-shadow,rgba(0,0,0,.25));}
 .ll-stack__seal{position:absolute;left:50%;top:75.8%;width:12%;z-index:6;transform:translate(-50%,-50%);}
+/* the rendered wax seal; the monogram is raised in the wax, lit from the upper left like the render */
+.ll-seal{position:relative;display:block;width:100%;aspect-ratio:100/120;container-type:inline-size;}
+.ll-seal img{display:block;width:100%;height:100%;pointer-events:none;user-select:none;-webkit-user-drag:none;}
+.ll-seal__mono{position:absolute;left:50.5%;top:50.6%;transform:translate(-50%,-50%);white-space:nowrap;font-family:var(--ll-serif);font-weight:600;letter-spacing:.04em;line-height:1;
+  color:#ddd2bb;text-shadow:-.025em -.03em 0 rgba(255,253,246,.95),.03em .045em .03em rgba(95,75,45,.55),0 0 .02em rgba(95,75,45,.3);}
+.ll-seal--sprig .ll-seal__mono{top:61.5%;}
 
 .ll-where{position:relative;z-index:1;padding:26px 20px 10px;text-align:center;}
 .ll-where__place{margin:8px 0 12px;font-size:clamp(40px,9cqw,64px);color:var(--ll-olive);}

@@ -22,7 +22,7 @@ export const loveLetterTemplateDefinition: TemplateDefinition<BaseTemplateSettin
   label: "Love Letter",
   keywords: ["envelope", "letter", "lace", "romantic", "monogram"],
   archetype: "formal-stationery",
-  previewThumbnailUrl: "/event-templates/love-letter/thumbnail.jpg",
+  previewThumbnailUrl: "/event-templates/cards/love-letter.webp",
   cardImage: "/event-templates/cards/love-letter.webp",
   component: LoveLetterTemplate,
   defaultSettings,

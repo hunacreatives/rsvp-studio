@@ -8,8 +8,9 @@ import { customValue } from "../../content/custom";
 import VenueLinks from "../shared/VenueLinks";
 import { CashGifts, hasCashGifts } from "../shared/CashGifts";
 import EntourageBlock, { entourageTitle } from "../shared/Entourage";
-import { FELT, LaceRibbon, PAPER_GRAIN, STATIONERY_CSS, WaxSeal } from "../shared/stationery";
-import { EnvelopeStack, Sprig } from "./art";
+import { FELT, LaceRibbon, PAPER_GRAIN, STATIONERY_CSS } from "../shared/stationery";
+import { ART_FILES, EnvelopeStack, LLSeal, Sprig } from "./art";
+import { preload } from "react-dom";
 import { Countdown } from "../shared/Countdown";
 import { coupleNames, eventIsOver, fullNames, longDate, monogram, placeLine, dotDate, timeOf, timeWords } from "./content";
 import RsvpCard from "./RsvpCard";
@@ -33,6 +34,18 @@ import { LOVE_LETTER_CSS } from "./styles";
  */
 
 const OPEN_MS = 1500;
+
+/** Relative luminance (0–1) of a #rgb / #rrggbb colour; anything else counts as mid (0.5). */
+function luminance(c: string): number {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c.trim());
+  if (!m) return 0.5;
+  const h = m[1].length === 3 ? [...m[1]].map((x) => x + x).join("") : m[1];
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const v = parseInt(h.slice(i, i + 2), 16) / 255;
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
 const INSIDE_HASHES = ["#details", "#rsvp"];
 
 function useReveal(on: boolean) {
@@ -75,6 +88,8 @@ export default function LoveLetterTemplate({ content, settings, editorPreview = 
   const live = published || demo;
   const credit = useSiteCredit();
   const theme = resolveEventTheme(settings);
+  // the rendered stationery: fetch it while the intro is up, so nothing pops in when it opens
+  for (const href of ART_FILES) preload(href, { as: "image", fetchPriority: href.endsWith("seal_sprig.webp") ? "high" : "low" });
   const reduced = usePrefersReducedMotion();
   const motion = !reduced;
   const reveal = live && motion;
@@ -136,7 +151,7 @@ export default function LoveLetterTemplate({ content, settings, editorPreview = 
   const venue = content.primaryLocation.name?.trim() ?? "";
   const photos = content.galleries[0]?.items ?? [];
   const cover = settings.heroImage?.masterUrl || photos[0]?.image.masterUrl;
-  const coverFocal = settings.heroImage?.masterUrl ? settings.heroImage.focalPoint : photos[0]?.image.focalPoint;
+  const coverImage = settings.heroImage?.masterUrl ? settings.heroImage : photos[0]?.image;
   const band = photos[1]?.image.masterUrl || cover;
   const paragraphs = (content.story ?? "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   const schedule = [...content.schedule].sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -150,13 +165,22 @@ export default function LoveLetterTemplate({ content, settings, editorPreview = 
   const over = !editorPreview && eventIsOver(content.eventDate);
   const vis = settings.sectionVisibility;
 
+  // Dark palettes swap roles (a dark page, light "ink"): the stationery stays light paper with dark
+  // type, so the card's paper and ink come from whichever of the two is light / dark.
+  const bgDark = luminance(theme.background) < 0.3;
+  const darker = luminance(theme.ink) <= luminance(theme.background) ? theme.ink : theme.background;
+  // the date: cream type, or the palette's dark colour when that reads better on the accent
+  const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  const accentLight = contrast(luminance(theme.muted), luminance(darker)) > contrast(luminance(theme.muted), luminance("#f7ecdc"));
   const vars = {
     ["--ll-olive" as string]: theme.ink,
     ["--ll-accent" as string]: theme.muted,
     ["--ll-cream" as string]: theme.background,
     ["--ll-script" as string]: theme.displayFont,
     ["--ll-serif" as string]: theme.bodyFont,
-    ["--st-paper" as string]: `color-mix(in srgb, ${theme.background} 50%, #fff)`,
+    ["--st-paper" as string]: bgDark ? `color-mix(in srgb, ${theme.ink} 45%, #fff)` : `color-mix(in srgb, ${theme.background} 50%, #fff)`,
+    ["--ll-card-ink" as string]: bgDark ? theme.background : theme.ink,
+    ...(accentLight ? { ["--ll-date-ink" as string]: darker, ["--ll-date-shadow" as string]: "rgba(255,255,255,.35)" } : {}),
     ["--st-env" as string]: theme.ink,
     ["--st-ink" as string]: theme.ink,
     ["--st-lace" as string]: "#eee6d4",
@@ -190,7 +214,7 @@ export default function LoveLetterTemplate({ content, settings, editorPreview = 
               <LaceRibbon height={64} />
             </div>
             <button type="button" className="ll-intro__seal" onClick={open} aria-label="Open the invitation">
-              <WaxSeal text={mono} tone="ivory" shape="oval" sprig />
+              <LLSeal text={mono} sprig />
             </button>
           </div>
 
@@ -212,7 +236,7 @@ export default function LoveLetterTemplate({ content, settings, editorPreview = 
           </div>
 
           <div className="ll-hero">
-            <EnvelopeStack names={names} date={dotDate(content.eventDate)} mono={mono} photo={cover} focal={coverFocal} editorHint={editorPreview} />
+            <EnvelopeStack names={names} date={dotDate(content.eventDate)} mono={mono} photo={coverImage} editorHint={editorPreview} />
           </div>
 
           <div className="ll-where">
@@ -341,7 +365,7 @@ export default function LoveLetterTemplate({ content, settings, editorPreview = 
           <div className="ll-band" style={band ? ({ ["--band" as string]: `url("${band}")` } as CSSProperties) : ({ ["--felt" as string]: `url("${FELT}")` } as CSSProperties)}>
             <div className={`ll-band__bg${band ? "" : " ll-band__bg--felt"}`} aria-hidden />
             <div className="ll-band__seal">
-              <WaxSeal text={mono} tone="ivory" shape="oval" sprig />
+              <LLSeal text={mono} sprig />
             </div>
             {credit.show ? (
               <p className="ll-band__credit">
