@@ -1,63 +1,41 @@
 import { useEffect, type RefObject } from "react";
-import { camOf, createChurch, type View } from "./church";
+import { createPainted, openingFrame, NAMES_FRAME, OPEN_N, SEG, STOP_AT, type FrameSet } from "./painted";
 import { createStopSnap } from "../shared/stopSnap";
 
 /**
- * Simbahan's walk: the church on the sticky frame, the guest walking down the aisle as they
- * scroll, one stop a section ([data-sb-stop]).
+ * Simbahan's walk: the painted church on the sticky frame (painted.ts: watercolour frames rendered
+ * in Blender), the guest walking down the aisle as they scroll, one stop a section ([data-sb-stop]).
  *  - Every card ([data-sb-dock]) pauses in the same place, its dock: high on the right of a wide
  *    frame, on the bottom edge of a phone's (a card too tall for that docks by its bottom edge,
  *    so it can be read to the end). The card is sticky there for its hold, then scrolls away; the
  *    dock is measured here and set as the card's `top` (as in Level Up).
  *  - The camera stands still while a card is docked and walks on in the gap to the next stop,
- *    exactly where the page is each frame (the church and the cards move as one).
+ *    exactly where the page is each frame (the church and the cards move as one). A hidden
+ *    section's stop is walked past.
  *  - One swipe, one stop (shared/stopSnap.ts) on the live page and the design preview.
- *  - The opening (`intro`): outside, before the closed doors in the late sun; the doors swing
- *    open into the light, the names appear, and the camera steps inside to the head of the
- *    aisle. Any scroll, tap or key finishes it.
- *  - Kept light: every frame while moving, ≤ 1.25 device pixels (less if the screen can't keep
- *    up), the church drawn at a fraction of the size while moving (half on a phone) and in full
- *    once it has stopped (on a phone, only once the page has rested a moment and no finger is
- *    down, so the full drawing never lands on the next swipe); then only the flames and the dust,
- *    at ≤ 10 frames a second, for a few seconds, and nothing after that until the page moves
- *    again. Only while on screen and the tab is shown.
- *  - `animate` false (builder, gallery card, reduced motion): the doors open, no flicker, a still
- *    frame redrawn on scroll.
+ *  - The opening (`intro`): the plaza in the late sun, a breath, then the walk up the steps; the
+ *    doors swing open into the light, the names appear once they're through, and the camera steps
+ *    inside to the head of the aisle. It waits for its first frames; any scroll, tap or key
+ *    finishes it.
+ *  - Kept light: frames at a moving size while walking, the sharp frame once the camera has
+ *    stopped (on a phone, only once the page has rested a moment and no finger is down); then a
+ *    slow hand-held drift for a few seconds, and nothing after that until the page moves again.
+ *    Only while on screen and the tab is shown.
+ *  - `animate` false (builder, gallery card, reduced motion): the doors open, a still frame
+ *    redrawn on scroll.
  */
 
 export type StopKey = "door" | "story" | "day" | "sponsors" | "entourage" | "wear" | "details" | "rsvp";
-/** Where each stop is along the aisle (metres from the doors). */
-export const PLACE_Z: Record<StopKey, number> = { door: 0.9, story: 7.2, day: 11.6, sponsors: 15.8, entourage: 20.0, wear: 24.0, details: 28.0, rsvp: 32.0 };
 
-const DEG = Math.PI / 180;
-// a small turn at each stop, so the walk looks round it: toward the flowers, up to the light
-const LOOK: Record<StopKey, [number, number]> = { door: [0, 3], story: [-3, 2], day: [2, 6], sponsors: [-4, 3], entourage: [3, 4], wear: [-3, 3], details: [2, 5], rsvp: [0, 8.5] };
-export function viewOf(key: StopKey, phone: boolean, wide = false): View {
-  const z = PLACE_Z[key], door = key === "door";
-  const [yaw, pitch] = LOOK[key];
-  if (wide) return { x: 0, y: 1.66, z: 3.4, yaw: 0, pitch: 6 * DEG, fov: 48 * DEG, sx: 0, sy: 0 };
-  return phone
-    ? { x: 0, y: 1.62, z: door ? -0.6 : z, yaw: yaw * DEG * 0.5, pitch: (door ? 9 : pitch + 5) * DEG, fov: 66 * DEG, sx: 0, sy: door ? 0 : 0.36 }
-    : { x: 0, y: 1.64, z, yaw: yaw * DEG, pitch: pitch * DEG, fov: (door ? 46 : 42) * DEG, sx: door ? 0 : -0.3, sy: 0 };
-}
-const outsideView = (phone: boolean): View =>
-  phone ? { x: 0, y: 1.65, z: -15.5, yaw: 0, pitch: 19 * DEG, fov: 62 * DEG, sx: 0, sy: 0 } : { x: 0, y: 1.7, z: -14, yaw: 0, pitch: 17 * DEG, fov: 46 * DEG, sx: 0, sy: 0 };
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-function mixView(a: View, b: View, t: number): View {
-  return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t), yaw: lerp(a.yaw, b.yaw, t), pitch: lerp(a.pitch, b.pitch, t), fov: lerp(a.fov, b.fov, t), sx: lerp(a.sx, b.sx, t), sy: lerp(a.sy, b.sy, t) };
-}
-const smooth = (k: number) => k * k * (3 - 2 * k);
 const easeInOut = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
-// the opening's beats (ms): a breath before the doors; the doors; the step inside; the names, once
-// through the doors
-const DOOR_AT = 1000, DOOR_MS = 3200, WALK_AT = 4000, WALK_MS = 3800, NAMES_AT = 6300;
-const INTRO_MS = WALK_AT + WALK_MS;
+// the opening (ms): a breath on the plaza, then the walk through the doors to the head of the aisle
+const BREATH = 1000, WALK_MS = 9500, INTRO_MS = BREATH + WALK_MS;
+// the opening waits for this many of its first frames (or this long, on a very slow connection)
+const READY_FRAMES = 40, READY_WAIT = 8000;
 // when each page's opening began (or that it's over: -1), so the setup running again (React does
 // it twice in development; a change to the stops does it too) carries on with the same opening
 // rather than showing the names, hiding them and starting over
 const opened = new WeakMap<HTMLElement, number>();
-/** How bright the picture is set: for the shade outside, then the church's own light. */
-const exposureAt = (z: number) => lerp(0.6, 1.0, smooth(Math.min(1, Math.max(0, (z + 6) / 6.5))));
 
 export function useAisle(
   refs: { root: RefObject<HTMLElement | null>; stage: RefObject<HTMLElement | null>; gl: RefObject<HTMLCanvasElement | null> },
@@ -66,7 +44,7 @@ export function useAisle(
   useEffect(() => {
     const root = refs.root.current, stage = refs.stage.current, cv = refs.gl.current;
     if (!root || !stage || !cv) return;
-    const church = createChurch(cv);
+    const church = createPainted(cv);
     if (!church) { cv.style.display = "none"; root.classList.add("sb-nogl"); }
     const keys = stops.split(",") as StopKey[];
 
@@ -112,11 +90,13 @@ export function useAisle(
       }
       return holds.length - 1;
     };
-    const viewAt = (x: number): View => {
+    // where along the aisle frames (in stops) the camera is, for a place along this page's stops
+    const aisleAt = (x: number) => {
       const n = keys.length - 1, i = Math.max(0, Math.min(n, Math.floor(x))), f = Math.min(1, Math.max(0, x - i));
-      const a = viewOf(keys[i] ?? "door", phone, wide);
-      return i >= n || f === 0 ? a : mixView(a, viewOf(keys[i + 1], phone), f);
+      const a = STOP_AT[keys[i] ?? "door"] ?? 0;
+      return i >= n || f === 0 ? a : a + ((STOP_AT[keys[i + 1]] ?? a) - a) * f;
     };
+    const setOf = (): FrameSet => (wide ? "wide" : church ? church.setFor(stage.clientWidth || 1, stage.clientHeight || 1) : "wide");
 
     // ---- the opening
     const begun = opened.get(root);
@@ -132,7 +112,7 @@ export function useAisle(
     };
     const skip = () => {
       if (!introOn || skipFrom >= 0) return;
-      skipFrom = introK(performance.now());
+      skipFrom = Math.max(introK(performance.now()), BREATH);
       skipAt = performance.now();
       // the page stays held until the doors finish: the swipe that skipped (its momentum) is used up
       kick();
@@ -147,20 +127,18 @@ export function useAisle(
     } else root.classList.add("sb-named");
 
     // ---- the loop
-    let target = 0, X = 0, XV = 0, lastStep = performance.now(), lastFade = "", lastDraw = -1e9, raf = 0, visible = true, lastKey = "", adapt = 1, settled = 0;
+    let target = 0, X = 0, XV = 0, lastStep = performance.now(), lastFade = "", raf = 0, visible = true, lastKey = "", settled = 0, lastSet: FrameSet | "" = "", lastNear = -1;
     // the camera's walk: a critically damped follow, about two seconds from one stop to the next
     const WALK = 2.6;
-    // the last time the page or a finger moved (the full drawing and the idle frames wait on it)
-    let active = performance.now(), touching = false, lastFrac = 0;
+    // the last time the page or a finger moved (the sharp frame and the drift wait on it)
+    let active = performance.now(), touching = false, dirty = true;
     const IDLE_MS = 4000;
-    const slow: number[] = [];
-    const scale = () => Math.min(window.devicePixelRatio || 1, 1.25) * adapt;
+    const scale = () => Math.min(window.devicePixelRatio || 1, 2);
     const loop = (now: number) => {
       raf = 0;
       // the opening looks straight down the aisle, wherever the page happens to start (Safari can
-      // restore a page part-way down: the camera would set off toward that stop, then swing back).
-      // After it, the camera walks to wherever the page is at its own unhurried pace (a phone's own
-      // snapping is quick), so the church between the stops can be seen; each card comes up as the
+      // restore a page part-way down). After it, the camera walks to wherever the page is at its
+      // own unhurried pace, so the church between the stops can be seen; each card comes up as the
       // camera arrives at it
       if (introOn || !animate) { X = introOn ? 0 : target; XV = 0; }
       else {
@@ -173,75 +151,71 @@ export function useAisle(
       const arrive = 1 - Math.min(1, Math.max(0, (Math.abs(target - X) - 0.06) / 0.3));
       const fade = arrive.toFixed(2);
       if (fade !== lastFade) { root.style.setProperty("--sb-arrive", fade); lastFade = fade; }
-      let view = viewAt(X), door = 1;
-      if (introOn) {
+
+      const set = setOf();
+      let src: "o" | "a" = "a", f = wide ? 0 : aisleAt(X) * SEG;
+      if (introOn && church) {
         if (begun === undefined && introStart === t0 && now - t0 < 60) introStart = now; // start on the first real frame
+        // hold on the plaza until the first frames are in (a slow connection shouldn't skip the walk up)
+        if (skipFrom < 0 && church.openingReady(set) < READY_FRAMES && now - t0 < READY_WAIT) introStart = Math.max(introStart, now - BREATH * 0.5);
         if (opened.get(root) !== introStart) opened.set(root, introStart);
         const ms = introK(now);
-        door = easeInOut(Math.min(1, Math.max(0, (ms - DOOR_AT) / DOOR_MS)));
-        const w = easeInOut(Math.min(1, Math.max(0, (ms - WALK_AT) / WALK_MS)));
-        // a slow drift toward the doors while they open, then the steps inside
-        const out = outsideView(phone), near = { ...out, z: out.z + 1.6 * smooth(Math.min(1, ms / (WALK_AT + 200))) };
-        view = mixView(near, view, w);
-        if (ms >= NAMES_AT && !named) { named = true; root.classList.add("sb-named"); }
+        src = "o";
+        f = ms <= BREATH ? 0 : openingFrame(easeInOut((ms - BREATH) / WALK_MS));
+        if (f >= NAMES_FRAME && !named) { named = true; root.classList.add("sb-named"); }
         if (ms >= INTRO_MS) {
           introOn = false;
           opened.set(root, -1);
+          if (!named) { named = true; root.classList.add("sb-named"); }
           // (the opening's class stays: the names are still coming up; once they're in it changes nothing)
           unlock();
           evs.forEach((ev) => window.removeEventListener(ev, skip));
+          src = "a"; f = 0;
         }
+        if (src === "o" && f >= OPEN_N - 1) f = OPEN_N - 1;
       }
-      const cam = camOf(view, Math.max(0.1, (stage.clientWidth || 1) / Math.max(1, stage.clientHeight || 1)));
-      const key = `${view.x.toFixed(3)}|${view.y.toFixed(3)}|${view.z.toFixed(3)}|${view.pitch.toFixed(4)}|${view.yaw.toFixed(4)}|${view.fov.toFixed(4)}|${view.sx.toFixed(3)}|${view.sy.toFixed(3)}|${door.toFixed(4)}`;
-      const still = key === lastKey;
+      // ask for this set's frames: the opening, or the stop the page is at
+      const near = Math.round(f / SEG);
+      if (church && (set !== lastSet || (src === "a" && near !== lastNear))) {
+        church.want(set, src, src === "a" ? f / SEG : 0);
+        lastSet = set; lastNear = src === "a" ? near : -1;
+      }
+      const key = `${set}|${src}|${f.toFixed(3)}`;
+      const still = key === lastKey && !introOn;
       settled = still ? settled + 1 : 0;
       if (!still) active = now;
-      // the church in full once the camera rests: on a computer a quarter second on; on a phone
-      // once the page has rested 0.7s with no finger down
-      const full = still && (phone ? !touching && now - active > 700 : settled > 14);
-      const refine = full && lastFrac !== 1;
-      // while walking, every frame, phones too (the cards move every frame: the church keeps pace);
-      // once the camera rests, only the flames and the dust move: ≤ 10 frames a second for those
-      const gap = !still || refine ? 0 : 100;
-      if (church && now - lastDraw >= gap) {
-        // a screen that can't keep up (frames slower than ~50 a second) draws fewer pixels
-        if (!still && animate && lastDraw > 0) {
-          slow.push(now - lastDraw);
-          if (slow.length > 10) slow.shift();
-          if (slow.length === 10 && [...slow].sort((p, q) => p - q)[5] > 20 && adapt > 0.55) { adapt = Math.max(0.55, adapt * 0.85); slow.length = 0; church.size(scale()); }
-        }
-        // a hand-held camera at rest: the slowest drift, a few pixels at most (moved in the light
-        // pass, so the church itself isn't redrawn for it)
+      const tall = set === "tall";
+      // the sharp frame once the camera rests: on a computer a quarter second on; on a phone once
+      // the page has rested 0.7s with no finger down
+      const rest = !animate || (still && (tall ? !touching && now - active > 700 : settled > 14));
+      const idle = animate && !introOn && now - active < IDLE_MS;
+      if (church && (dirty || !still || idle || rest)) {
+        // a hand-held camera at rest: the slowest drift, a few pixels at most
         const ts = (now - t0) / 1000, hold = animate && !introOn ? 1 : 0;
-        const sway: [number, number, number] = [hold * (Math.sin(ts * 0.37) * 0.0011 + Math.sin(ts * 0.83 + 1.3) * 0.0004), hold * (Math.sin(ts * 0.29 + 2.1) * 0.0009 + Math.sin(ts * 0.61) * 0.0003), 1.012];
-        // at rest the church stays at the size it was last drawn at (the light pass reads it so)
-        const moving = phone ? 0.5 : 0.62, frac = refine ? 1 : still ? lastFrac || moving : moving;
-        church.draw(cam, { time: animate ? ts : 3, door, exposure: exposureAt(view.z), outside: view.z < -0.2, still, frac, live: animate, focus: view.z < -0.2 ? 13 : 9, sway });
-        lastFrac = frac;
-        lastDraw = now;
-        lastKey = key;
+        const sway: [number, number] = [hold * (Math.sin(ts * 0.37) * 0.0011 + Math.sin(ts * 0.83 + 1.3) * 0.0004), hold * (Math.sin(ts * 0.29 + 2.1) * 0.0009 + Math.sin(ts * 0.61) * 0.0003)];
+        church.draw(set, src, f, { rest, sway });
+        dirty = false;
       }
-      // the flames and the dust run for a few seconds after the camera rests, then the frame holds
-      const idle = animate && now - active < IDLE_MS;
-      if (visible && !document.hidden && (introOn || X !== target || idle || !still)) raf = requestAnimationFrame(loop);
+      lastKey = key;
+      if (visible && !document.hidden && (introOn || X !== target || idle || !still || (!rest && animate))) raf = requestAnimationFrame(loop);
     };
     const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
     const wake = () => { active = performance.now(); kick(); };
     const onScroll = () => { target = stopAt(scrolled()); wake(); };
     const onTouch = (e: TouchEvent) => { touching = e.touches.length > 0; wake(); };
+    church?.onLoad(() => { dirty = true; kick(); });
 
     church?.size(scale());
     measure();
     target = stopAt(scrolled());
     X = target;
     kick();
-    const ro = new ResizeObserver(() => { church?.size(scale()); measure(); onScroll(); lastKey = ""; lastDraw = -1e9; kick(); });
+    const ro = new ResizeObserver(() => { church?.size(scale()); measure(); onScroll(); lastKey = ""; dirty = true; kick(); });
     ro.observe(stage);
     ro.observe(root);
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) kick(); });
     io.observe(stage);
-    const onVis = () => { if (!document.hidden) kick(); };
+    const onVis = () => { if (!document.hidden) { dirty = true; kick(); } };
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     for (const ev of ["touchstart", "touchend", "touchcancel"] as const) window.addEventListener(ev, onTouch, { passive: true });

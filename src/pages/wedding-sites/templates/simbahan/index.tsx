@@ -13,8 +13,9 @@ const defaultSettings: BaseTemplateSettings = {
   sectionVisibility: { ...defaultSectionVisibility },
 };
 
-// A church wedding in an old Filipino stone church, drawn live in real 3D: the great wooden doors
-// swing open into the light, and the guest walks down the aisle past the pews, the flowers and
+// A church wedding in an old Filipino stone church, painted in watercolour (frames rendered in
+// Blender, painted.ts): the great wooden doors swing open into the light, and the guest walks
+// down the aisle past the pews, the flowers and
 // the candles, under shafts of late sun, one stop for each part of the day (the story, the
 // programme, the sponsors, the entourage, what to wear, good to know), to the reply at the altar
 // before the gilded retablo. Each card is a page of a church programme in black and rubric red.
